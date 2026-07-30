@@ -10,10 +10,10 @@ calcite:
               LogicalProject(__r_seq__=[ROW_NUMBER() OVER ()], __r_gender__=[$4], __r_age__=[$8])
                 CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_account]])
   physical: |
-    EnumerableCalc(expr#0..19=[{inputs}], expr#20=[0], expr#21=[=($t19, $t20)], expr#22=[null:BIGINT], expr#23=[CASE($t21, $t22, $t18)], expr#24=[CAST($t23):DOUBLE], expr#25=[/($t24, $t19)], proj#0..10=[{exprs}], avg_age=[$t25])
+    EnumerableCalc(expr#0..18=[{inputs}], proj#0..10=[{exprs}], avg_age=[$t18])
       EnumerableLimit(fetch=[10000])
         EnumerableSort(sort0=[$17], dir0=[ASC])
-          EnumerableAggregate(group=[{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17}], agg#0=[$SUM0($20)], agg#1=[COUNT($20)])
+          EnumerableAggregate(group=[{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17}], avg_age=[AVG($20)])
             EnumerableMergeJoin(condition=[AND(=($4, $19), >=($18, -($17, 1)), <=($18, $17))], joinType=[left])
               EnumerableSort(sort0=[$4], dir0=[ASC])
                 EnumerableWindow(window#0=[window(rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])

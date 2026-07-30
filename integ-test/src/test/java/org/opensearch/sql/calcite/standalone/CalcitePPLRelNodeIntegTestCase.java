@@ -25,6 +25,7 @@ import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.SysLimit;
+import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
 import org.opensearch.sql.executor.QueryType;
 
@@ -87,7 +88,8 @@ public abstract class CalcitePPLRelNodeIntegTestCase extends CalcitePPLIntegTest
   protected void executeRelNodeAndVerify(
       CalcitePlanContext planContext, RelNode relNode, ResultVerifier verifier)
       throws SQLException {
-    try (PreparedStatement statement = OpenSearchRelRunners.run(planContext, relNode)) {
+    try (PreparedStatement statement =
+        OpenSearchRelRunners.run(planContext, CalciteToolsHelper.optimize(relNode, planContext))) {
       ResultSet resultSet = statement.executeQuery();
       verifier.verify(resultSet);
     }

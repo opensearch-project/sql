@@ -58,6 +58,11 @@ public class CalcitePlanContext {
   /** Timewrap series mode: "relative", "short", or "exact". */
   public static final ThreadLocal<String> timewrapSeries = new ThreadLocal<>();
 
+  /**
+   * Thread-local tracking which pool executed this query ("sql-worker" or "sql-complex-worker").
+   */
+  public static final ThreadLocal<String> executionPool = new ThreadLocal<>();
+
   /** Thread-local switch that tells whether the current query prefers legacy behavior. */
   private static final ThreadLocal<Boolean> legacyPreferredFlag =
       ThreadLocal.withInitial(() -> true);
@@ -118,6 +123,22 @@ public class CalcitePlanContext {
 
   /** Whether we're currently inside a lambda context. */
   @Getter @Setter private boolean inLambdaContext = false;
+
+  /**
+   * When enabled, tracks which RelNode ids were produced by each AST command. Each entry maps an
+   * AST node class name to the list of RelNode ids it produced (excluding children).
+   */
+  @Getter @Setter private boolean trackingEnabled = false;
+
+  @Getter private final List<NodeIdMapping> nodeIdMappings = new ArrayList<>();
+
+  /** Records a mapping from an AST command to the RelNode ids it produced. */
+  public void recordMapping(String astNodeType, List<Integer> relNodeIds) {
+    nodeIdMappings.add(new NodeIdMapping(astNodeType, relNodeIds));
+  }
+
+  /** A mapping from one AST command to the RelNode ids it produced. */
+  public record NodeIdMapping(String astNodeType, List<Integer> relNodeIds) {}
 
   private CalcitePlanContext(FrameworkConfig config, SysLimit sysLimit, QueryType queryType) {
     this.config = config;
@@ -229,6 +250,51 @@ public class CalcitePlanContext {
     stripNullColumns.set(false);
     timewrapUnitName.set(null);
     timewrapSeries.set(null);
+    executionPool.set(null);
+  }
+
+  /**
+   * Snapshot of all thread-local state in CalcitePlanContext. Used when dispatching queries to the
+   * complex worker pool — capture state on the caller thread, restore on the worker thread.
+   */
+  public static class ThreadLocalSnapshot {
+    final boolean skipEncoding;
+    final boolean stripNullColumns;
+    final String timewrapUnitName;
+    final String timewrapSeries;
+    final String executionPool;
+
+    private ThreadLocalSnapshot(
+        boolean skipEncoding,
+        boolean stripNullColumns,
+        String timewrapUnitName,
+        String timewrapSeries,
+        String executionPool) {
+      this.skipEncoding = skipEncoding;
+      this.stripNullColumns = stripNullColumns;
+      this.timewrapUnitName = timewrapUnitName;
+      this.timewrapSeries = timewrapSeries;
+      this.executionPool = executionPool;
+    }
+  }
+
+  /** Capture current thread-local state for cross-thread propagation. */
+  public static ThreadLocalSnapshot snapshotThreadLocals() {
+    return new ThreadLocalSnapshot(
+        skipEncoding.get(),
+        stripNullColumns.get(),
+        timewrapUnitName.get(),
+        timewrapSeries.get(),
+        executionPool.get());
+  }
+
+  /** Restore thread-local state from a snapshot. */
+  public static void restoreThreadLocals(ThreadLocalSnapshot snapshot) {
+    skipEncoding.set(snapshot.skipEncoding);
+    stripNullColumns.set(snapshot.stripNullColumns);
+    timewrapUnitName.set(snapshot.timewrapUnitName);
+    timewrapSeries.set(snapshot.timewrapSeries);
+    executionPool.set(snapshot.executionPool);
   }
 
   public void pushForeachBindings(

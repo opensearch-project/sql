@@ -55,6 +55,11 @@ public class PPLQueryRequest {
   @Setter
   @Getter
   @Accessors(fluent = true)
+  private boolean analyze = false;
+
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
   private String queryId = null;
 
   public PPLQueryRequest(String pplQuery, JSONObject jsonContent, String path) {
@@ -62,7 +67,17 @@ public class PPLQueryRequest {
   }
 
   public PPLQueryRequest(String pplQuery, JSONObject jsonContent, String path, String format) {
-    this(pplQuery, jsonContent, path, format, ExplainMode.STANDARD.getModeName(), false);
+    this(pplQuery, jsonContent, path, format, ExplainMode.STANDARD.getModeName(), false, false);
+  }
+
+  public PPLQueryRequest(
+      String pplQuery,
+      JSONObject jsonContent,
+      String path,
+      String format,
+      String explainMode,
+      boolean profile) {
+    this(pplQuery, jsonContent, path, format, explainMode, profile, false);
   }
 
   /** Constructor of PPLQueryRequest. */
@@ -72,13 +87,15 @@ public class PPLQueryRequest {
       String path,
       String format,
       String explainMode,
-      boolean profile) {
+      boolean profile,
+      boolean analyze) {
     this.pplQuery = pplQuery;
     this.jsonContent = jsonContent;
     this.path = Optional.ofNullable(path).orElse(DEFAULT_PPL_PATH);
     this.format = format;
     this.explainMode = explainMode;
     this.profile = profile;
+    this.analyze = analyze;
   }
 
   public String getRequest() {

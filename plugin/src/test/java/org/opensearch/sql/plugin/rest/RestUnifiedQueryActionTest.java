@@ -54,7 +54,8 @@ public class RestUnifiedQueryActionTest {
             clusterService,
             executor,
             mock(EngineContextProvider.class),
-            mock(org.opensearch.sql.common.setting.Settings.class));
+            mock(org.opensearch.sql.common.setting.Settings.class),
+            new org.opensearch.sql.executor.DirectExecutionDispatcher());
   }
 
   @Test
