@@ -73,7 +73,6 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.rex.RexWindowBounds;
 import org.apache.calcite.sql.SqlKind;
-import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.fun.SqlTrimFunction;
 import org.apache.calcite.sql.type.ArraySqlType;
@@ -4498,13 +4497,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       RelBuilder relBuilder, int targetIndex, String targetName, List<RexNode> groupExprs) {
 
     final RexNode targetRef = relBuilder.field(targetIndex);
-    final RexNode notNullTarget = relBuilder.isNotNull(targetRef);
-
+    // list() rather than Calcite ARRAY_AGG: list() carries the ARRAY<VARCHAR> contract the
+    // analytics-engine (DataFusion) route supports, and drops nulls itself (no filter needed).
     final RelBuilder.AggCall aggCall =
-        relBuilder
-            .aggregateCall(SqlLibraryOperators.ARRAY_AGG, targetRef)
-            .filter(notNullTarget)
-            .as(targetName);
+        relBuilder.aggregateCall(PPLBuiltinOperators.LIST, targetRef).as(targetName);
 
     relBuilder.aggregate(relBuilder.groupKey(groupExprs), aggCall);
   }

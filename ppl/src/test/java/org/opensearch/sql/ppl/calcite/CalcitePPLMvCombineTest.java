@@ -85,14 +85,13 @@ public class CalcitePPLMvCombineTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalSort(sort0=[$1], dir0=[ASC-nulls-first])\n"
             + "  LogicalProject(case=[$0], ip=[$1], packets=[$2])\n"
-            + "    LogicalAggregate(group=[{0, 1}], packets=[ARRAY_AGG($2) FILTER $3])\n"
-            + "      LogicalProject(case=[$0], ip=[$1], packets=[$2], $f3=[IS NOT NULL($2)])\n"
-            + "        LogicalFilter(condition=[=($0, 'basic')])\n"
-            + "          LogicalTableScan(table=[[scott, MVCOMBINE_DATA]])\n";
+            + "    LogicalAggregate(group=[{0, 1}], packets=[LIST($2)])\n"
+            + "      LogicalFilter(condition=[=($0, 'basic')])\n"
+            + "        LogicalTableScan(table=[[scott, MVCOMBINE_DATA]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `case`, `ip`, ARRAY_AGG(`packets`) FILTER (WHERE `packets` IS NOT NULL) `packets`\n"
+        "SELECT `case`, `ip`, `LIST`(`packets`) `packets`\n"
             + "FROM `scott`.`MVCOMBINE_DATA`\n"
             + "WHERE `case` = 'basic'\n"
             + "GROUP BY `case`, `ip`\n"
@@ -114,14 +113,13 @@ public class CalcitePPLMvCombineTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalSort(sort0=[$1], dir0=[ASC-nulls-first])\n"
             + "  LogicalProject(case=[$0], ip=[$1], packets=[$2])\n"
-            + "    LogicalAggregate(group=[{0, 1}], packets=[ARRAY_AGG($2) FILTER $3])\n"
-            + "      LogicalProject(case=[$0], ip=[$1], packets=[$2], $f3=[IS NOT NULL($2)])\n"
-            + "        LogicalFilter(condition=[=($0, 'nulls')])\n"
-            + "          LogicalTableScan(table=[[scott, MVCOMBINE_DATA]])\n";
+            + "    LogicalAggregate(group=[{0, 1}], packets=[LIST($2)])\n"
+            + "      LogicalFilter(condition=[=($0, 'nulls')])\n"
+            + "        LogicalTableScan(table=[[scott, MVCOMBINE_DATA]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `case`, `ip`, ARRAY_AGG(`packets`) FILTER (WHERE `packets` IS NOT NULL) `packets`\n"
+        "SELECT `case`, `ip`, `LIST`(`packets`) `packets`\n"
             + "FROM `scott`.`MVCOMBINE_DATA`\n"
             + "WHERE `case` = 'nulls'\n"
             + "GROUP BY `case`, `ip`\n"
@@ -143,14 +141,13 @@ public class CalcitePPLMvCombineTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalSort(sort0=[$1], dir0=[ASC-nulls-first])\n"
             + "  LogicalProject(case=[$0], ip=[$1], packets=[$2])\n"
-            + "    LogicalAggregate(group=[{0, 1}], packets=[ARRAY_AGG($2) FILTER $3])\n"
-            + "      LogicalProject(case=[$0], ip=[$1], packets=[$2], $f3=[IS NOT NULL($2)])\n"
-            + "        LogicalFilter(condition=[=($0, 'basic')])\n"
-            + "          LogicalTableScan(table=[[scott, MVCOMBINE_DATA]])\n";
+            + "    LogicalAggregate(group=[{0, 1}], packets=[LIST($2)])\n"
+            + "      LogicalFilter(condition=[=($0, 'basic')])\n"
+            + "        LogicalTableScan(table=[[scott, MVCOMBINE_DATA]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `case`, `ip`, ARRAY_AGG(`packets`) FILTER (WHERE `packets` IS NOT NULL) `packets`\n"
+        "SELECT `case`, `ip`, `LIST`(`packets`) `packets`\n"
             + "FROM `scott`.`MVCOMBINE_DATA`\n"
             + "WHERE `case` = 'basic'\n"
             + "GROUP BY `case`, `ip`\n"
@@ -188,10 +185,9 @@ public class CalcitePPLMvCombineTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalSort(sort0=[$1], dir0=[ASC-nulls-first])\n"
             + "  LogicalProject(case=[$0], ip=[$1], packets=[$2])\n"
-            + "    LogicalAggregate(group=[{0, 1}], packets=[ARRAY_AGG($2) FILTER $3])\n"
-            + "      LogicalProject(case=[$0], ip=[$1], packets=[$2], $f3=[IS NOT NULL($2)])\n"
-            + "        LogicalFilter(condition=[=($0, 'single')])\n"
-            + "          LogicalTableScan(table=[[scott, MVCOMBINE_DATA]])\n";
+            + "    LogicalAggregate(group=[{0, 1}], packets=[LIST($2)])\n"
+            + "      LogicalFilter(condition=[=($0, 'single')])\n"
+            + "        LogicalTableScan(table=[[scott, MVCOMBINE_DATA]])\n";
     verifyLogical(root, expectedLogical);
   }
 
@@ -209,10 +205,9 @@ public class CalcitePPLMvCombineTest extends CalcitePPLAbstractTest {
     String expectedLogical =
         "LogicalSort(sort0=[$1], dir0=[ASC-nulls-first])\n"
             + "  LogicalProject(case=[$0], ip=[$1], packets=[$2])\n"
-            + "    LogicalAggregate(group=[{0, 1}], packets=[ARRAY_AGG($2) FILTER $3])\n"
-            + "      LogicalProject(case=[$0], ip=[$1], packets=[$2], $f3=[IS NOT NULL($2)])\n"
-            + "        LogicalFilter(condition=[=($0, 'no_such_case')])\n"
-            + "          LogicalTableScan(table=[[scott, MVCOMBINE_DATA]])\n";
+            + "    LogicalAggregate(group=[{0, 1}], packets=[LIST($2)])\n"
+            + "      LogicalFilter(condition=[=($0, 'no_such_case')])\n"
+            + "        LogicalTableScan(table=[[scott, MVCOMBINE_DATA]])\n";
     verifyLogical(root, expectedLogical);
   }
 

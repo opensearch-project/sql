@@ -108,6 +108,10 @@ Error: Query returned no data
 
 =======
 
+## Limitations
+
+Values are combined using the `list()` aggregation: the combined field is a multivalue array of **strings** (non-string values are rendered as strings), at most **100** values are retained per group, and the order of values within the array is not guaranteed.
+
 ## Related commands
 
 - [`nomv`](nomv.md) -- Converts a multivalue field into a single-value string
