@@ -2366,9 +2366,11 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
-  public void testDedupTextTypeNotPushdown() throws IOException {
+  public void testDedupTextTypePushdown() throws IOException {
+    // A text field with no .keyword sub-field is aggregated by reading its value from _source via
+    // a Calcite script; dedup therefore pushes down as a composite terms + top_hits aggregation.
     enabledOnlyWhenPushdownIsEnabled();
-    String expected = loadExpectedPlan("explain_dedup_text_type_no_push.yaml");
+    String expected = loadExpectedPlan("explain_dedup_text_type_push.yaml");
     assertYamlEqualsIgnoreId(
         expected, explainQueryYaml(String.format("source=%s | dedup email", TEST_INDEX_BANK)));
   }
