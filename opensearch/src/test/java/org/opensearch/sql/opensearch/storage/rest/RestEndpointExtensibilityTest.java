@@ -56,9 +56,6 @@ class RestEndpointExtensibilityTest {
 
     assertEquals("/_cluster/health", registry.resolve("/_cluster/health").getPath());
     assertEquals("/_plugin/echo", registry.resolve("/_plugin/echo").getPath());
-
-    assertTrue(registry.endpointNames().contains("/_cluster/health"));
-    assertTrue(registry.endpointNames().contains("/_plugin/echo"));
   }
 
   @Test

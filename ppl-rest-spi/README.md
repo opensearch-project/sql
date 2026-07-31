@@ -1,13 +1,21 @@
 # ppl-rest-spi
 
-The extension point for the PPL `rest` command. Any OpenSearch plugin can contribute read-only,
-fixed-schema management endpoints that become queryable as `rest '<name>'`, without touching the
-PPL grammar and without depending on the sql plugin's internals. The built-in `/_cluster/health`
-endpoint is just one client of this same contract.
+A generic extension point that lets any OpenSearch plugin surface its own read-only, fixed-schema
+data as a PPL table, queryable as `rest '<name>'`. A plugin integrates with PPL this way without a
+new command or grammar keyword and without a compile dependency on the sql plugin's internals; each
+endpoint then composes with ordinary PPL (`| where`, `| stats`, `| head`).
 
 This module is intentionally thin: it depends only on OpenSearch core, and the row values it
 exchanges are plain `java.lang` types (String / Number / Boolean / nested Map), so there is no
 cross-classloader type-identity problem.
+
+## Example
+
+The built-in `/_cluster/health` endpoint is just one client of this contract:
+
+```
+rest '/_cluster/health' | where status != 'green'
+```
 
 ## Contract
 
@@ -26,7 +34,10 @@ cross-classloader type-identity problem.
    `loadExtensions` discovers your provider:
 
    ```gradle
-   dependencies { compileOnly project(':ppl-rest-spi') }   // or the published artifact
+   dependencies {
+       // Published artifact, provided at runtime by the installed sql plugin, so compileOnly (not bundled).
+       compileOnly "org.opensearch.plugin:ppl-rest-spi:${version}"
+   }
    opensearchplugin { extendedPlugins = ['opensearch-sql'] }
    ```
 
@@ -70,11 +81,24 @@ Then `rest '/_my/thing' verbose=true | where count > 0 | stats sum(count)` compo
 
 ## Rules and guarantees
 
-- Endpoints are read-only. The handler produces rows; the sql side coerces each value to the
+- Endpoints are read-only. The handler produces rows; the ppl side coerces each value to the
   declared `ColumnType` and rejects an uncoercible value with a clear error.
-- Endpoint names are global. If two providers register the same name, the first registration wins
-  and the duplicate is ignored with a logged warning.
-- An endpoint must be both registered by a provider and present in `allowed_endpoints`; anything
-  else is rejected before any transport call.
-- Redaction of sensitive values is applied centrally at the row-shaping choke point; a provider
-  does not implement it.
+- `plugins.ppl.rest.allowed_endpoints` is the operator's explicit enable list: a name is queryable
+  only when it is both registered by a provider and listed there; anything else is rejected before
+  any transport call. Listing a name no provider registered has no effect.
+- Endpoint names are global across providers; a duplicate name is a registration-time concern,
+  independent of `allowed_endpoints`.
+- Redaction is a platform policy, not an endpoint concern. Sensitive values are masked centrally at
+  the row-shaping choke point, uniformly for every endpoint, so an endpoint author never
+  re-implements masking and cannot accidentally bypass it. The OSS default is a no-op
+  (`Redactor.NONE`). A deployment can install one masking policy that applies to all endpoints. For
+  example, masking an `ip` column the same way wherever it appears:
+
+  ```java
+  // OSS default: Redactor.NONE. Rows pass through unchanged.
+  // A deployment can supply a single Redactor, applied once per row at the choke point:
+  Redactor mask = (endpoint, row) -> {
+    row.computeIfPresent("ip", (col, val) -> maskIp(val));
+    return row;
+  };
+  ```

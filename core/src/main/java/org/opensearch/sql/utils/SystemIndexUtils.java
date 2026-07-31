@@ -6,6 +6,7 @@
 package org.opensearch.sql.utils;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.Getter;
@@ -117,25 +118,14 @@ public class SystemIndexUtils {
   }
 
   private static String toHex(String s) {
-    StringBuilder h = new StringBuilder();
-    for (byte b : s.getBytes(StandardCharsets.UTF_8)) {
-      h.append(Character.forDigit((b >> 4) & 0xF, 16)).append(Character.forDigit(b & 0xF, 16));
-    }
-    return h.toString();
+    return HexFormat.of().formatHex(s.getBytes(StandardCharsets.UTF_8));
   }
 
   private static String fromHex(String h) {
     if (h.length() % 2 != 0) {
       throw new IllegalArgumentException("not a valid rest source token: odd-length hex body");
     }
-    byte[] bytes = new byte[h.length() / 2];
-    for (int i = 0; i < bytes.length; i++) {
-      bytes[i] =
-          (byte)
-              ((Character.digit(h.charAt(2 * i), 16) << 4)
-                  + Character.digit(h.charAt(2 * i + 1), 16));
-    }
-    return new String(bytes, StandardCharsets.UTF_8);
+    return new String(HexFormat.of().parseHex(h), StandardCharsets.UTF_8);
   }
 
   /**

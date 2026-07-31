@@ -17,9 +17,11 @@ import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,7 +43,7 @@ import org.opensearch.sql.utils.SystemIndexUtils.RestSpec;
  * The read-only endpoint allow-list, built by merging every {@link RestEndpointProvider} (the
  * built-in {@link CoreEndpointsProvider} plus any externally contributed providers) into one map of
  * endpoint name to an internal {@link Endpoint}. A built-in and an externally contributed endpoint
- * are uniform entries here; the built-in provider holds no privileged position.
+ * are uniform entries here, except that a built-in name cannot be shadowed by an external provider.
  *
  * <p>This is the single place the read-only allow-list is enforced. An endpoint that no provider
  * registered, including every mutating endpoint, is rejected by {@link #resolve} with a clear
@@ -56,23 +58,37 @@ public final class RestEndpointRegistry {
 
   public RestEndpointRegistry(List<RestEndpointProvider> providers) {
     Map<String, Endpoint> m = new LinkedHashMap<>();
+    Set<String> disabled = new HashSet<>();
     for (RestEndpointProvider provider : providers) {
+      boolean builtIn = provider instanceof CoreEndpointsProvider;
       for (RestEndpointDefinition definition : provider.getEndpoints()) {
-        if (m.containsKey(definition.name())) {
+        String name = definition.name();
+        if (disabled.contains(name)) {
+          continue;
+        }
+        Endpoint existing = m.get(name);
+        if (existing == null) {
+          m.put(name, new Endpoint(definition, builtIn));
+          continue;
+        }
+        if (existing.isBuiltIn() || builtIn) {
           LOG.warn(
-              "rest endpoint [{}] is already registered; ignoring the duplicate from provider [{}]",
-              definition.name(),
+              "rest endpoint [{}] collides with a built-in endpoint; ignoring the duplicate from"
+                  + " provider [{}]",
+              name,
               provider.getClass().getName());
           continue;
         }
-        m.put(definition.name(), new Endpoint(definition));
+        LOG.warn(
+            "rest endpoint [{}] is registered by multiple external providers; disabling it."
+                + " Conflicting provider [{}]",
+            name,
+            provider.getClass().getName());
+        m.remove(name);
+        disabled.add(name);
       }
     }
     this.registry = m;
-  }
-
-  public java.util.Set<String> endpointNames() {
-    return registry.keySet();
   }
 
   /** A single allow-listed endpoint, adapted from a provider's {@link RestEndpointDefinition}. */
@@ -82,12 +98,14 @@ public final class RestEndpointRegistry {
     private final LinkedHashMap<String, ExprType> schema;
     private final ArgSpec argSpec;
     private final RestEndpointHandler handler;
+    private final boolean builtIn;
 
-    Endpoint(RestEndpointDefinition definition) {
+    Endpoint(RestEndpointDefinition definition, boolean builtIn) {
       this.path = definition.name();
       this.schema = toExprSchema(definition.schema());
       this.argSpec = definition.argSpec();
       this.handler = definition.handler();
+      this.builtIn = builtIn;
     }
 
     /**

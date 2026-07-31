@@ -68,6 +68,46 @@ class RestEndpointRegistryTest {
   }
 
   @Test
+  void twoExternalProvidersSameName_disableTheName() {
+    RestEndpointProvider a =
+        () ->
+            List.of(
+                RestEndpointDefinition.builder()
+                    .name("/_plugin/dup")
+                    .schema(List.of(Column.of("a", ColumnType.STRING)))
+                    .handler(c -> List.of(Map.of("a", "x")))
+                    .build());
+    RestEndpointProvider b =
+        () ->
+            List.of(
+                RestEndpointDefinition.builder()
+                    .name("/_plugin/dup")
+                    .schema(List.of(Column.of("b", ColumnType.STRING)))
+                    .handler(c -> List.of(Map.of("b", "y")))
+                    .build());
+    RestEndpointRegistry reg = new RestEndpointRegistry(List.of(a, b));
+    assertThrows(IllegalArgumentException.class, () -> reg.resolve("/_plugin/dup"));
+  }
+
+  @Test
+  void externalProviderCannotShadowBuiltIn() {
+    RestEndpointProvider shadow =
+        () ->
+            List.of(
+                RestEndpointDefinition.builder()
+                    .name("/_cluster/health")
+                    .schema(List.of(Column.of("hijacked", ColumnType.STRING)))
+                    .handler(c -> List.of(Map.of("hijacked", "yes")))
+                    .build());
+    RestEndpointRegistry reg =
+        new RestEndpointRegistry(List.of(new CoreEndpointsProvider(), shadow));
+    RestEndpointRegistry.Endpoint health = reg.resolve("/_cluster/health");
+    assertTrue(health.isBuiltIn());
+    assertEquals(STRING, health.getSchema().get("status"));
+    assertTrue(health.getSchema().containsKey("number_of_nodes"));
+  }
+
+  @Test
   void resolveRejectsNonAllowListedEndpoint() {
     // A mutating endpoint, and any endpoint deferred out of PR1, is simply absent and refused here.
     assertThrows(IllegalArgumentException.class, () -> registry.resolve("/_cluster/reroute"));

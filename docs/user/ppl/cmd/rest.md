@@ -14,7 +14,7 @@ The `rest` command is a generic, extensible framework: a plugin contributes addi
 plugins.ppl.rest.allowed_endpoints: ["/_cluster/health"]
 ```
 
-Use `["*"]` to allow every endpoint in the curated list below. Set an empty list to disable the command entirely.
+Every endpoint must be listed explicitly by name; there is no wildcard, so a newly installed or upgraded provider is never enabled without an explicit allow-list change. Set an empty list to disable the command entirely.
 
 ## Syntax
 

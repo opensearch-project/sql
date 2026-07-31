@@ -57,12 +57,11 @@ public class OpenSearchStorageEngine implements StorageEngine {
     RestSpec spec = decodeRestSpec(name);
     RestEndpointRegistry registry = RestEndpointRegistryHolder.get();
     if (registry == null) {
-      throw new IllegalStateException(
-          "the rest command endpoint registry is not initialized on this node");
+      throw new IllegalStateException("the rest command is not available on this node");
     }
     registry.resolve(spec.getEndpoint());
     List<String> allowed = settings.getSettingValue(Settings.Key.PPL_REST_ALLOWED_ENDPOINTS);
-    if (allowed == null || !(allowed.contains("*") || allowed.contains(spec.getEndpoint()))) {
+    if (allowed == null || !allowed.contains(spec.getEndpoint())) {
       throw new IllegalArgumentException(
           allowed == null || allowed.isEmpty()
               ? "the rest command is disabled on this cluster"

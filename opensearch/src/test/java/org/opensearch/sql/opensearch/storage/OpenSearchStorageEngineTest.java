@@ -73,16 +73,20 @@ class OpenSearchStorageEngineTest {
   }
 
   @Test
-  public void getRestTableAllowedByWildcard() {
+  public void wildcardNoLongerEnablesEndpoints() {
     when(settings.getSettingValue(Settings.Key.PPL_REST_ALLOWED_ENDPOINTS))
         .thenReturn(List.of("*"));
     OpenSearchStorageEngine engine = new OpenSearchStorageEngine(client, settings);
     String name =
         SystemIndexUtils.restTable(
             new SystemIndexUtils.RestSpec("/_cluster/health", Map.of(), null, null));
-    Table table =
-        engine.getTable(new DataSourceSchemaName(DEFAULT_DATASOURCE_NAME, "default"), name);
-    assertTrue(table instanceof OpenSearchCatalogTable);
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                engine.getTable(
+                    new DataSourceSchemaName(DEFAULT_DATASOURCE_NAME, "default"), name));
+    assertTrue(e.getMessage().contains("is not enabled on this cluster"));
   }
 
   @Test
