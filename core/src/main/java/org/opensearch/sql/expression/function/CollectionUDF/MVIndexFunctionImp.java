@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 /**
@@ -64,12 +65,16 @@ public class MVIndexFunctionImp implements PPLFuncImpTable.FunctionImp {
 
   /** Non-widening integer addition for internal, int-domain array-index math. */
   private static RexNode add(RexBuilder builder, RexNode left, RexNode right) {
-    return builder.makeCall(SqlStdOperatorTable.PLUS, left, right);
+    RexNode result = builder.makeCall(SqlStdOperatorTable.PLUS, left, right);
+    return builder.makeCast(
+        builder.getTypeFactory().createSqlType(SqlTypeName.INTEGER), result);
   }
 
   /** Non-widening integer subtraction for internal, int-domain array-index math. */
   private static RexNode subtract(RexBuilder builder, RexNode left, RexNode right) {
-    return builder.makeCall(SqlStdOperatorTable.MINUS, left, right);
+    RexNode result = builder.makeCall(SqlStdOperatorTable.MINUS, left, right);
+    return builder.makeCast(
+        builder.getTypeFactory().createSqlType(SqlTypeName.INTEGER), result);
   }
 
   /**
