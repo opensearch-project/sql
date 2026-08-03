@@ -330,6 +330,18 @@ The ``fetch_size`` parameter limits the number of rows returned in a PPL query r
 
 If ``fetch_size`` is larger than ``plugins.query.size_limit``, the result is capped at ``plugins.query.size_limit``. The effective number of rows returned is always ``min(fetch_size, plugins.query.size_limit)``.
 
+Behavior with aggregations
+--------------------------
+
+``fetch_size`` applies to the **final** rows of the query, equivalent to appending ``| head <fetch_size>``. For an aggregating query (``stats``, ``timechart``, ``top``, ``rare``, ``patterns ... mode=aggregation``, and similar) those rows are buckets, so ``fetch_size`` limits the number of **buckets** returned::
+
+    source=logs | stats count() by extension                  -> 6 buckets
+    source=logs | stats count() by extension  (fetch_size=3)   -> first 3 buckets only
+
+Aggregate values are unaffected — every matching document is still visited, so each returned bucket holds its full count. Unlike DSL ``terminate_after``, which undercounts, ``fetch_size`` drops whole rows off the end rather than corrupting values. But unlike DSL ``size``, which leaves aggregation results intact, it does truncate them.
+
+Bucket counts grow with the queried time range, not the data volume: ``stats count() by span(@timestamp, 1h), extension`` over 7 days with 6 extensions yields ``168 x 6 = 1008`` rows. Use an explicit ``head`` when a bounded aggregation result is wanted.
+
 Note
 ----
 
