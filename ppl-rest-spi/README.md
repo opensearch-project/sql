@@ -118,13 +118,23 @@ nodes
    `META-INF/services/org.opensearch.sql.spi.rest.RestEndpointProvider`, containing your class's
    fully-qualified name.
 
-4. Enable the endpoint on the cluster. `plugins.ppl.rest.allowed_endpoints` is a node-level setting
-   listing the endpoint names a deployment permits; it defaults to `["/_cluster/health"]`. Add your
-   name to run it:
+4. Add the endpoint name to the sql plugin's default allow list. Steps 1 to 3 only *register* the
+   provider, which does not make the endpoint queryable on its own. A name is queryable only when it
+   is also present in `plugins.ppl.rest.allowed_endpoints`. Enable your endpoint by submitting a
+   change to the sql plugin that adds its name to the default list in `OpenSearchSettings.java`:
 
-   ```yaml
-   plugins.ppl.rest.allowed_endpoints: ["/_cluster/health", "/_my/thing"]
+   ```java
+   public static final Setting<List<String>> PPL_REST_ALLOWED_ENDPOINTS_SETTING =
+       Setting.listSetting(
+           Key.PPL_REST_ALLOWED_ENDPOINTS.getKeyValue(),
+           List.of("/_cluster/health", "/_my/thing"), // add your endpoint name here
+           Function.identity(),
+           Setting.Property.NodeScope);
    ```
+
+   Once that change is merged and released, the endpoint is enabled by default on every cluster
+   running that sql version. The sql maintainers' review of this change is the gate that decides
+   which endpoint names PPL is allowed to expose.
 
 Then `rest '/_my/thing' verbose=true | spath input=response path=count output=count | where cast(count as int) > 0` composes like any scan; pull fields out of the `response` JSON with `spath` (or `json_extract`) and cast the ones you compute on.
 
@@ -132,9 +142,10 @@ Then `rest '/_my/thing' verbose=true | spath input=response path=count output=co
 
 - Endpoints are read-only. The handler produces rows; every value is surfaced as a string column,
   and a query extracts and casts the fields it needs (for example with `json_extract` or `spath`).
-- `plugins.ppl.rest.allowed_endpoints` is the operator's explicit enable list: a name is queryable
-  only when it is both registered by a provider and listed there; anything else is rejected before
-  any transport call. Listing a name no provider registered has no effect.
+- `plugins.ppl.rest.allowed_endpoints` is the enable list, whose default is maintained in the sql
+  plugin's `OpenSearchSettings.java`: a name is queryable only when it is both registered by a
+  provider and listed there; anything else is rejected before any transport call. Listing a name no
+  provider registered has no effect.
 - Endpoint names are global across all providers, and `allowed_endpoints` does not resolve name
   collisions: it only enables names, it does not make two providers that claim the same name
   coexist. Collisions are handled separately, at registration time: a built-in name cannot be
