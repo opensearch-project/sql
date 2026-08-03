@@ -5,15 +5,7 @@
 
 package org.opensearch.sql.opensearch.storage.rest;
 
-import static org.opensearch.sql.data.model.ExprValueUtils.booleanValue;
-import static org.opensearch.sql.data.model.ExprValueUtils.doubleValue;
-import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
-import static org.opensearch.sql.data.model.ExprValueUtils.longValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
-import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
-import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
-import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
-import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import java.util.ArrayList;
@@ -31,7 +23,6 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.spi.rest.ArgSpec;
 import org.opensearch.sql.spi.rest.Column;
-import org.opensearch.sql.spi.rest.ColumnType;
 import org.opensearch.sql.spi.rest.Redactor;
 import org.opensearch.sql.spi.rest.RestEndpointContext;
 import org.opensearch.sql.spi.rest.RestEndpointDefinition;
@@ -119,7 +110,7 @@ public final class RestEndpointRegistry {
         Map<String, Object> redacted = redactor.redact(path, raw);
         LinkedHashMap<String, ExprValue> tuple = new LinkedHashMap<>();
         for (Map.Entry<String, ExprType> col : schema.entrySet()) {
-          tuple.put(col.getKey(), coerce(col.getKey(), col.getValue(), redacted.get(col.getKey())));
+          tuple.put(col.getKey(), coerce(redacted.get(col.getKey())));
         }
         out.add(new ExprTupleValue(tuple));
       }
@@ -187,83 +178,12 @@ public final class RestEndpointRegistry {
   private static LinkedHashMap<String, ExprType> toExprSchema(List<Column> columns) {
     LinkedHashMap<String, ExprType> schema = new LinkedHashMap<>();
     for (Column column : columns) {
-      schema.put(column.name(), toExprType(column.type()));
+      schema.put(column.name(), STRING);
     }
     return schema;
   }
 
-  private static ExprType toExprType(ColumnType type) {
-    return switch (type) {
-      case STRING -> STRING;
-      case INTEGER -> INTEGER;
-      case LONG -> LONG;
-      case DOUBLE -> DOUBLE;
-      case BOOLEAN -> BOOLEAN;
-    };
-  }
-
-  private static ExprValue coerce(String column, ExprType type, Object value) {
-    if (value == null) {
-      return ExprNullValue.of();
-    }
-    try {
-      if (type == INTEGER) {
-        return integerValue(toNumber(value).intValue());
-      }
-      if (type == LONG) {
-        return longValue(toNumber(value).longValue());
-      }
-      if (type == DOUBLE) {
-        return doubleValue(toNumber(value).doubleValue());
-      }
-      if (type == BOOLEAN) {
-        return booleanValue(toBoolean(value));
-      }
-    } catch (IllegalArgumentException | ClassCastException e) {
-      // Surface a clear client error (HTTP 400) instead of a raw HTTP 500 when an endpoint
-      // returns an unexpected value shape. NumberFormatException extends IllegalArgumentException,
-      // so toNumber parse failures and toBoolean's "not a boolean" are both caught here; genuinely
-      // unexpected faults (NPE, etc.) are left to propagate.
-      throw new IllegalArgumentException(
-          "rest endpoint value for column ["
-              + column
-              + "] could not be coerced to "
-              + type
-              + ": ["
-              + value
-              + "]");
-    }
-    return stringValue(String.valueOf(value));
-  }
-
-  private static Number toNumber(Object value) {
-    if (value instanceof Number n) {
-      return n;
-    }
-    String s = String.valueOf(value).trim();
-    if (s.isEmpty()) {
-      throw new NumberFormatException("empty string");
-    }
-    if (s.indexOf('.') >= 0 || s.indexOf('e') >= 0 || s.indexOf('E') >= 0) {
-      return Double.parseDouble(s);
-    }
-    return Long.parseLong(s);
-  }
-
-  private static boolean toBoolean(Object value) {
-    if (value instanceof Boolean b) {
-      return b;
-    }
-    String s = String.valueOf(value).trim();
-    if (s.isEmpty()) {
-      throw new IllegalArgumentException("empty string is not a boolean");
-    }
-    if (s.equalsIgnoreCase("true")) {
-      return true;
-    }
-    if (s.equalsIgnoreCase("false")) {
-      return false;
-    }
-    throw new IllegalArgumentException("not a boolean: " + value);
+  private static ExprValue coerce(Object value) {
+    return value == null ? ExprNullValue.of() : stringValue(String.valueOf(value));
   }
 }

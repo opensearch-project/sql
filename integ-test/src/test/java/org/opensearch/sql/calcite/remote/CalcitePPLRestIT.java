@@ -32,14 +32,32 @@ public class CalcitePPLRestIT extends PPLIntegTestCase {
 
   @Test
   public void testRestClusterHealthSchema() throws IOException {
-    JSONObject result = executeQuery("| rest '/_cluster/health' | fields status, number_of_nodes");
-    verifySchema(result, schema("status", "string"), schema("number_of_nodes", "int"));
+    JSONObject result = executeQuery("| rest '/_cluster/health' | fields response");
+    verifySchema(result, schema("response", "string"));
   }
 
   @Test
-  public void testRestClusterHealthDataRows() throws IOException {
-    // Single-node test cluster: exactly one node.
-    JSONObject result = executeQuery("| rest '/_cluster/health' | fields number_of_nodes");
+  public void testRestClusterHealthResponseIsValidJson() throws IOException {
+    JSONObject result =
+        executeQuery("| rest '/_cluster/health' | eval ok = json_valid(response) | fields ok");
+    verifyDataRows(result, rows(true));
+  }
+
+  @Test
+  public void testRestClusterHealthJsonExtract() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "| rest '/_cluster/health' | eval status = json_extract(response, 'status')"
+                + " | fields status");
+    verifySchema(result, schema("status", "string"));
+  }
+
+  @Test
+  public void testRestClusterHealthSpath() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "| rest '/_cluster/health' | spath input=response path=status output=status"
+                + " | where status = 'green' or status = 'yellow' | stats count() as cnt");
     verifyDataRows(result, rows(1));
   }
 
@@ -54,7 +72,7 @@ public class CalcitePPLRestIT extends PPLIntegTestCase {
   public void testRestClusterHealthLocalArg() throws IOException {
     // local=true reads health from the local node; on a single-node cluster the row is unchanged.
     JSONObject result =
-        executeQuery("| rest '/_cluster/health' local='true' | fields number_of_nodes");
+        executeQuery("| rest '/_cluster/health' local='true' | stats count() as cnt");
     verifyDataRows(result, rows(1));
   }
 

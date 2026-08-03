@@ -36,25 +36,28 @@ rest <endpoint-path> [count=<int>] [<get-arg>=<value> ...]
 
 | Endpoint | Output columns | Accepted args |
 | --- | --- | --- |
-| `/_cluster/health` | `cluster_name` (string), `status` (string), `number_of_nodes` (integer), `number_of_data_nodes` (integer), `active_primary_shards` (integer), `active_shards` (integer), `relocating_shards` (integer), `initializing_shards` (integer), `unassigned_shards` (integer), `timed_out` (boolean) | `local` |
+| `/_cluster/health` | `response` (string): the full cluster-health response as JSON. Extract fields with `json_extract` or the `spath` command (see the example below). | `local` |
 
-## Example: Counting the nodes in the cluster
+## Example: Reading fields from the response
 
-The following query reads cluster health and projects a column that is deterministic on a single-node cluster:
+`/_cluster/health` returns the full health response in a single `response` column as JSON. Extract the fields you need with `json_extract` (or the `spath` command):
 
 ```ppl
-| rest '/_cluster/health' | fields number_of_nodes
+| rest '/_cluster/health'
+| eval status = json_extract(response, 'status'),
+       number_of_nodes = json_extract(response, 'number_of_nodes')
+| fields status, number_of_nodes
 ```
 
 The query returns the following results:
 
 ```text
 fetched rows / total rows = 1/1
-+-----------------+
-| number_of_nodes |
-|-----------------|
-| 1               |
-+-----------------+
++--------+-----------------+
+| status | number_of_nodes |
+|--------+-----------------|
+| green  | 1               |
++--------+-----------------+
 ```
 
-`/_cluster/health` also exposes `status`, `active_shards`, and the other columns listed in the allow-list. The `rest` row source composes with downstream `where`, `sort`, `stats`, and `fields` exactly like an index scan, for example `| rest '/_cluster/health' | where status = 'green' | fields status, active_shards`.
+Because the whole response is available, a query can read any field it exposes (for example `active_shards`, `active_primary_shards`, `unassigned_shards`) without the endpoint pre-declaring a column for it. The extracted columns then compose with downstream `where`, `sort`, `stats`, and `fields` exactly like an index scan, for example `| rest '/_cluster/health' | spath input=response path=status output=status | where status = 'green'`.

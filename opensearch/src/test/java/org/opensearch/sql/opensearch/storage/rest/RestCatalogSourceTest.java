@@ -11,7 +11,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
-import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import java.util.LinkedHashMap;
@@ -27,7 +26,6 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.spi.rest.Column;
-import org.opensearch.sql.spi.rest.ColumnType;
 import org.opensearch.sql.spi.rest.RestEndpointDefinition;
 import org.opensearch.sql.spi.rest.RestEndpointProvider;
 import org.opensearch.sql.utils.SystemIndexUtils.RestSpec;
@@ -61,10 +59,7 @@ class RestCatalogSourceTest {
             List.of(
                 RestEndpointDefinition.builder()
                     .name("/_cluster/health")
-                    .schema(
-                        List.of(
-                            Column.of("status", ColumnType.STRING),
-                            Column.of("number_of_nodes", ColumnType.INTEGER)))
+                    .schema(List.of(Column.of("status"), Column.of("number_of_nodes")))
                     .handler(ctx -> rows)
                     .build());
     return new RestEndpointRegistry(List.of(provider));
@@ -74,8 +69,7 @@ class RestCatalogSourceTest {
   void getFieldTypesReturnsFixedEndpointSchema() {
     RestCatalogSource source = new RestCatalogSource(registry, healthSpec(), client);
     Map<String, ExprType> fieldTypes = source.getFieldTypes();
-    assertThat(fieldTypes, hasEntry("status", STRING));
-    assertThat(fieldTypes, hasEntry("number_of_nodes", INTEGER));
+    assertThat(fieldTypes, hasEntry("response", STRING));
   }
 
   @Test
@@ -138,7 +132,7 @@ class RestCatalogSourceTest {
     List<ExprValue> rows = source.createRequest().search();
     assertEquals(1, rows.size());
     assertEquals("green", rows.get(0).tupleValue().get("status").stringValue());
-    assertEquals(1, rows.get(0).tupleValue().get("number_of_nodes").integerValue());
+    assertEquals("1", rows.get(0).tupleValue().get("number_of_nodes").stringValue());
   }
 
   @Test

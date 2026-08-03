@@ -6,12 +6,13 @@
 package org.opensearch.sql.spi.rest;
 
 /**
- * One column of a {@code rest} endpoint's fixed output schema: a name and a {@link ColumnType}.
- * Column order is output-field order.
+ * One column of a {@code rest} endpoint's output schema, identified by name. Column order is
+ * output-field order. Every column is surfaced as a string; a query extracts and casts fields as
+ * needed (for example with {@code spath} or {@code json_extract}).
  */
-public record Column(String name, ColumnType type) {
+public record Column(String name) {
 
-  public static Column of(String name, ColumnType type) {
-    return new Column(name, type);
+  public static Column of(String name) {
+    return new Column(name);
   }
 }

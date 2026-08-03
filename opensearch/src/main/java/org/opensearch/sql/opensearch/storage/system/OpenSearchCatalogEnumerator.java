@@ -53,9 +53,13 @@ public class OpenSearchCatalogEnumerator implements Enumerator<Object> {
 
   @Override
   public Object current() {
-    return fields.stream()
-        .map(k -> current.tupleValue().getOrDefault(k, ExprNullValue.of()).valueForCalcite())
-        .toArray();
+    Object[] row =
+        fields.stream()
+            .map(k -> current.tupleValue().getOrDefault(k, ExprNullValue.of()).valueForCalcite())
+            .toArray();
+    // Calcite represents a single-column row as the bare scalar (the ARRAY row format optimizes to
+    // SCALAR for a one-field row type), so return the value directly instead of a length-one array.
+    return row.length == 1 ? row[0] : row;
   }
 
   @Override

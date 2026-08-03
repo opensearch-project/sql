@@ -13,7 +13,6 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.spi.rest.Column;
-import org.opensearch.sql.spi.rest.ColumnType;
 import org.opensearch.sql.spi.rest.Redactor;
 import org.opensearch.sql.spi.rest.RestEndpointContext;
 import org.opensearch.sql.spi.rest.RestEndpointDefinition;
@@ -32,10 +31,7 @@ class RedactorSeamTest {
             List.of(
                 RestEndpointDefinition.builder()
                     .name("/_test/probe")
-                    .schema(
-                        List.of(
-                            Column.of("ip", ColumnType.STRING),
-                            Column.of("count", ColumnType.INTEGER)))
+                    .schema(List.of(Column.of("ip"), Column.of("count")))
                     .handler(ctx -> List.of(Map.of("ip", "10.0.0.7", "count", 3)))
                     .build());
     return new RestEndpointRegistry(List.of(provider)).resolve("/_test/probe");
@@ -53,8 +49,7 @@ class RedactorSeamTest {
     List<ExprValue> rows = probe().toRows(RestEndpointContext.of(Map.of(), null), maskIp);
 
     assertEquals("x.x.x.x", rows.get(0).tupleValue().get("ip").stringValue());
-    // A column the redactor did not touch is still coerced to its schema type.
-    assertEquals(3, rows.get(0).tupleValue().get("count").integerValue());
+    assertEquals("3", rows.get(0).tupleValue().get("count").stringValue());
   }
 
   @Test

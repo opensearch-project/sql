@@ -8,7 +8,6 @@ package org.opensearch.sql.opensearch.storage.rest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import java.util.LinkedHashMap;
@@ -18,7 +17,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.spi.rest.Column;
-import org.opensearch.sql.spi.rest.ColumnType;
 import org.opensearch.sql.spi.rest.Redactor;
 import org.opensearch.sql.spi.rest.RestEndpointContext;
 import org.opensearch.sql.spi.rest.RestEndpointDefinition;
@@ -27,11 +25,10 @@ import org.opensearch.sql.utils.SystemIndexUtils.RestSpec;
 
 /**
  * Covers the {@code rest} {@link RestEndpointRegistry} against the PR1 endpoint set (only {@code
- * /_cluster/health}): allow-list resolution, arg validation, count/timeout gating, value coercion,
- * and fixed-schema row shaping. Coercion and shaping are exercised through a fake provider that
- * returns canned rows, so they stay independent of how any one endpoint fetches; rows are shaped
- * with {@link Redactor#NONE} (the no-op redactor). The centralized redactor seam is covered
- * separately in {@link RedactorSeamTest}.
+ * /_cluster/health}): allow-list resolution, arg validation, count/timeout gating, and fixed-schema
+ * row shaping. Shaping is exercised through a fake provider that returns canned rows, so it stays
+ * independent of how any one endpoint fetches; rows are shaped with {@link Redactor#NONE} (the
+ * no-op redactor). The centralized redactor seam is covered separately in {@link RedactorSeamTest}.
  */
 class RestEndpointRegistryTest {
 
@@ -63,8 +60,8 @@ class RestEndpointRegistryTest {
   void resolveAllowListedEndpoint() {
     RestEndpointRegistry.Endpoint endpoint = registry.resolve("/_cluster/health");
     assertEquals("/_cluster/health", endpoint.getPath());
-    assertEquals(STRING, endpoint.getSchema().get("status"));
-    assertEquals(INTEGER, endpoint.getSchema().get("number_of_nodes"));
+    assertEquals(STRING, endpoint.getSchema().get("response"));
+    assertEquals(1, endpoint.getSchema().size());
   }
 
   @Test
@@ -74,7 +71,7 @@ class RestEndpointRegistryTest {
             List.of(
                 RestEndpointDefinition.builder()
                     .name("/_plugin/dup")
-                    .schema(List.of(Column.of("a", ColumnType.STRING)))
+                    .schema(List.of(Column.of("a")))
                     .handler(c -> List.of(Map.of("a", "x")))
                     .build());
     RestEndpointProvider b =
@@ -82,7 +79,7 @@ class RestEndpointRegistryTest {
             List.of(
                 RestEndpointDefinition.builder()
                     .name("/_plugin/dup")
-                    .schema(List.of(Column.of("b", ColumnType.STRING)))
+                    .schema(List.of(Column.of("b")))
                     .handler(c -> List.of(Map.of("b", "y")))
                     .build());
     RestEndpointRegistry reg = new RestEndpointRegistry(List.of(a, b));
@@ -96,15 +93,14 @@ class RestEndpointRegistryTest {
             List.of(
                 RestEndpointDefinition.builder()
                     .name("/_cluster/health")
-                    .schema(List.of(Column.of("hijacked", ColumnType.STRING)))
+                    .schema(List.of(Column.of("hijacked")))
                     .handler(c -> List.of(Map.of("hijacked", "yes")))
                     .build());
     RestEndpointRegistry reg =
         new RestEndpointRegistry(List.of(new CoreEndpointsProvider(), shadow));
     RestEndpointRegistry.Endpoint health = reg.resolve("/_cluster/health");
     assertTrue(health.isBuiltIn());
-    assertEquals(STRING, health.getSchema().get("status"));
-    assertTrue(health.getSchema().containsKey("number_of_nodes"));
+    assertEquals(STRING, health.getSchema().get("response"));
   }
 
   @Test
@@ -179,36 +175,6 @@ class RestEndpointRegistryTest {
   }
 
   @Test
-  void coerceParsesNumericStringValues() {
-    // The transport/JSON layer may return numeric columns as strings; coerce must parse them.
-    RestEndpointRegistry.Endpoint endpoint =
-        fakeEndpoint(
-            List.of(
-                Column.of("status", ColumnType.STRING),
-                Column.of("number_of_nodes", ColumnType.INTEGER)),
-            Map.<String, Object>of("status", "green", "number_of_nodes", "3"));
-    List<ExprValue> rows = endpoint.toRows(ctx(Map.of()), Redactor.NONE);
-    assertEquals(3, rows.get(0).tupleValue().get("number_of_nodes").integerValue());
-  }
-
-  @Test
-  void coerceThrowsClearErrorOnUncoercibleValue() {
-    // A non-numeric value for an INTEGER column must surface a clear client error (HTTP 400),
-    // not a raw ClassCastException / NumberFormatException (HTTP 500).
-    RestEndpointRegistry.Endpoint endpoint =
-        fakeEndpoint(
-            List.of(
-                Column.of("status", ColumnType.STRING),
-                Column.of("number_of_nodes", ColumnType.INTEGER)),
-            Map.<String, Object>of("status", "green", "number_of_nodes", "not-a-number"));
-    IllegalArgumentException ex =
-        assertThrows(
-            IllegalArgumentException.class, () -> endpoint.toRows(ctx(Map.of()), Redactor.NONE));
-    assertTrue(ex.getMessage().contains("number_of_nodes"));
-    assertTrue(ex.getMessage().contains("not-a-number"));
-  }
-
-  @Test
   void rowsAreShapedToFixedSchema() {
     Map<String, Object> raw = new LinkedHashMap<>();
     raw.put("cluster_name", "test-cluster");
@@ -217,15 +183,15 @@ class RestEndpointRegistryTest {
     RestEndpointRegistry.Endpoint endpoint =
         fakeEndpoint(
             List.of(
-                Column.of("cluster_name", ColumnType.STRING),
-                Column.of("status", ColumnType.STRING),
-                Column.of("number_of_nodes", ColumnType.INTEGER),
-                Column.of("relocating_shards", ColumnType.INTEGER)),
+                Column.of("cluster_name"),
+                Column.of("status"),
+                Column.of("number_of_nodes"),
+                Column.of("relocating_shards")),
             raw);
     List<ExprValue> rows = endpoint.toRows(ctx(Map.of()), Redactor.NONE);
     assertEquals(1, rows.size());
     assertEquals("green", rows.get(0).tupleValue().get("status").stringValue());
-    assertEquals(1, rows.get(0).tupleValue().get("number_of_nodes").integerValue());
+    assertEquals("1", rows.get(0).tupleValue().get("number_of_nodes").stringValue());
     // a declared column the handler did not return becomes null, never absent.
     assertTrue(rows.get(0).tupleValue().get("relocating_shards").isNull());
   }

@@ -42,14 +42,13 @@ public class CalcitePPLRestTest {
 
   @Test
   public void restHealthProjectsDeclaredColumns() {
-    Project project =
-        (Project) parse("| rest \"/_cluster/health\" | fields status, number_of_nodes");
+    Project project = (Project) parse("| rest \"/_cluster/health\" | fields response");
     RestRelation rest = (RestRelation) project.getChild().get(0);
     SystemIndexUtils.RestSpec spec =
         SystemIndexUtils.decodeRestSpec(rest.getTableQualifiedName().toString());
     assertEquals("/_cluster/health", spec.getEndpoint());
     // downstream fields compose on top of the rest row source.
-    assertEquals(2, project.getProjectList().size());
+    assertEquals(1, project.getProjectList().size());
   }
 
   @Test

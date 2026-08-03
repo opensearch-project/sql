@@ -11,10 +11,11 @@ cross-classloader type-identity problem.
 
 ## Example
 
-The built-in `/_cluster/health` endpoint is just one client of this contract:
+The built-in `/_cluster/health` endpoint is just one client of this contract. It returns the full
+response in a single `response` column; extract fields with `json_extract` (or the `spath` command):
 
 ```
-rest '/_cluster/health' | where status != 'green'
+rest '/_cluster/health' | eval status = json_extract(response, 'status') | where status != 'green'
 ```
 
 ## Contract
@@ -23,7 +24,7 @@ rest '/_cluster/health' | where status != 'green'
 |---|---|
 | `RestEndpointProvider` | Your entry point: `List<RestEndpointDefinition> getEndpoints()`. |
 | `RestEndpointDefinition` | One endpoint: `name()`, `schema()`, `argSpec()`, `handler()`. Build with `RestEndpointDefinition.builder()`. |
-| `Column` / `ColumnType` | A fixed output column. `ColumnType` is `STRING`, `INTEGER`, `LONG`, `DOUBLE`, or `BOOLEAN`. The schema is pinned before execution. |
+| `Column` | A named output column. Every column is surfaced as a string; a query extracts and casts the fields it needs (for example with `json_extract` or the `spath` command). The schema is pinned before execution. |
 | `ArgSpec` | The query args the endpoint accepts and each arg's allowed value domain; an unknown or out-of-domain arg is rejected. `ArgSpec.NONE` accepts none. |
 | `RestEndpointHandler` | `List<Map<String, Object>> fetch(RestEndpointContext)`, run at scan execution (not planning), so the scan is lazy and `EXPLAIN` is side-effect free. |
 | `RestEndpointContext` | The validated `args()` plus an optional core `NodeClient` (`client()`) for a handler that issues its own read-only transport action. |
@@ -50,9 +51,7 @@ rest '/_cluster/health' | where status != 'green'
        return List.of(
            RestEndpointDefinition.builder()
                .name("/_my/thing")
-               .schema(List.of(
-                   Column.of("name", ColumnType.STRING),
-                   Column.of("count", ColumnType.LONG)))
+               .schema(List.of(Column.of("name"), Column.of("count")))
                .argSpec(ArgSpec.builder().arg("verbose", Set.of("true", "false")).build())
                .handler(MyRestProvider::fetch)
                .build());
@@ -77,12 +76,12 @@ rest '/_cluster/health' | where status != 'green'
    plugins.ppl.rest.allowed_endpoints: ["/_cluster/health", "/_my/thing"]
    ```
 
-Then `rest '/_my/thing' verbose=true | where count > 0 | stats sum(count)` composes like any scan.
+Then `rest '/_my/thing' verbose=true | eval count = cast(count as int) | where count > 0 | stats sum(count)` composes like any scan (every column is a string, so cast the ones you compute on).
 
 ## Rules and guarantees
 
-- Endpoints are read-only. The handler produces rows; the ppl side coerces each value to the
-  declared `ColumnType` and rejects an uncoercible value with a clear error.
+- Endpoints are read-only. The handler produces rows; every value is surfaced as a string column,
+  and a query extracts and casts the fields it needs (for example with `json_extract` or `spath`).
 - `plugins.ppl.rest.allowed_endpoints` is the operator's explicit enable list: a name is queryable
   only when it is both registered by a provider and listed there; anything else is rejected before
   any transport call. Listing a name no provider registered has no effect.

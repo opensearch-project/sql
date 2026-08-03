@@ -5,17 +5,15 @@
 
 package org.opensearch.sql.opensearch.storage.rest;
 
-import static org.opensearch.sql.spi.rest.ColumnType.BOOLEAN;
-import static org.opensearch.sql.spi.rest.ColumnType.INTEGER;
-import static org.opensearch.sql.spi.rest.ColumnType.STRING;
-
-import java.util.LinkedHashMap;
+import java.io.IOException;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.sql.spi.rest.ArgSpec;
 import org.opensearch.sql.spi.rest.Column;
 import org.opensearch.sql.spi.rest.RestEndpointContext;
@@ -26,12 +24,14 @@ import org.opensearch.transport.client.node.NodeClient;
 /**
  * The built-in {@link RestEndpointProvider}. It ships a single read-only, in-cluster endpoint,
  * {@code /_cluster/health}, expressed as a {@link RestEndpointDefinition}. It is a uniform client
- * of the same SPI an external plugin uses; it holds no privileged position in {@link
- * RestEndpointRegistry}. Additional endpoints are left to follow-up changes.
+ * of the same SPI an external plugin uses. Additional endpoints are left to follow-up changes.
  *
  * <p>Like any external provider, it fetches at execution time through the transport node client the
  * context carries ({@link RestEndpointContext#client()}), so it holds no reference to the sql
  * storage client and runs under the caller's security thread-context.
+ *
+ * <p>It returns the full health response in a single JSON {@code response} column; a query extracts
+ * the fields it needs with the {@code spath} command or the {@code json_extract} function.
  */
 public final class CoreEndpointsProvider implements RestEndpointProvider {
 
@@ -40,18 +40,7 @@ public final class CoreEndpointsProvider implements RestEndpointProvider {
     return List.of(
         RestEndpointDefinition.builder()
             .name("/_cluster/health")
-            .schema(
-                List.of(
-                    Column.of("cluster_name", STRING),
-                    Column.of("status", STRING),
-                    Column.of("number_of_nodes", INTEGER),
-                    Column.of("number_of_data_nodes", INTEGER),
-                    Column.of("active_primary_shards", INTEGER),
-                    Column.of("active_shards", INTEGER),
-                    Column.of("relocating_shards", INTEGER),
-                    Column.of("initializing_shards", INTEGER),
-                    Column.of("unassigned_shards", INTEGER),
-                    Column.of("timed_out", BOOLEAN)))
+            .schema(List.of(Column.of("response")))
             .argSpec(ArgSpec.builder().arg("local", Set.of("true", "false")).build())
             .handler(CoreEndpointsProvider::clusterHealth)
             .build());
@@ -68,17 +57,11 @@ public final class CoreEndpointsProvider implements RestEndpointProvider {
       request.local(true);
     }
     ClusterHealthResponse response = client.admin().cluster().health(request).actionGet();
-    Map<String, Object> row = new LinkedHashMap<>();
-    row.put("cluster_name", response.getClusterName());
-    row.put("status", response.getStatus().name().toLowerCase(Locale.ROOT));
-    row.put("number_of_nodes", response.getNumberOfNodes());
-    row.put("number_of_data_nodes", response.getNumberOfDataNodes());
-    row.put("active_primary_shards", response.getActivePrimaryShards());
-    row.put("active_shards", response.getActiveShards());
-    row.put("relocating_shards", response.getRelocatingShards());
-    row.put("initializing_shards", response.getInitializingShards());
-    row.put("unassigned_shards", response.getUnassignedShards());
-    row.put("timed_out", response.isTimedOut());
-    return List.of(row);
+    try (XContentBuilder builder = XContentFactory.jsonBuilder()) {
+      response.toXContent(builder, ToXContent.EMPTY_PARAMS);
+      return List.of(Map.of("response", builder.toString()));
+    } catch (IOException e) {
+      throw new IllegalStateException("failed to serialize the /_cluster/health response", e);
+    }
   }
 }

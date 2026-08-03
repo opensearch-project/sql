@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.opensearch.sql.spi.rest.ColumnType.STRING;
 
 import java.util.List;
 import java.util.Map;
@@ -38,7 +37,7 @@ class RestEndpointExtensibilityTest {
       return List.of(
           RestEndpointDefinition.builder()
               .name("/_plugin/echo")
-              .schema(List.of(Column.of("message", STRING)))
+              .schema(List.of(Column.of("message")))
               .argSpec(ArgSpec.builder().arg("text").build())
               .handler(
                   ctx -> List.of(Map.of("message", ctx.args().getOrDefault("text", "default"))))
@@ -91,7 +90,7 @@ class RestEndpointExtensibilityTest {
             List.of(
                 RestEndpointDefinition.builder()
                     .name("/_cluster/health")
-                    .schema(List.of(Column.of("shadow", STRING)))
+                    .schema(List.of(Column.of("shadow")))
                     .handler(ctx -> List.of())
                     .build());
     RestEndpointRegistry registry =
