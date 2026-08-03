@@ -105,7 +105,6 @@ import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
 import org.opensearch.sql.opensearch.storage.rest.CoreEndpointsProvider;
-import org.opensearch.sql.opensearch.storage.rest.RedactorHolder;
 import org.opensearch.sql.opensearch.storage.rest.RestEndpointRegistry;
 import org.opensearch.sql.opensearch.storage.rest.RestEndpointRegistryHolder;
 import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine;
@@ -139,7 +138,6 @@ import org.opensearch.sql.spark.transport.config.AsyncExecutorServiceModule;
 import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionResponse;
 import org.opensearch.sql.spark.transport.model.CreateAsyncQueryActionResponse;
 import org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionResponse;
-import org.opensearch.sql.spi.rest.Redactor;
 import org.opensearch.sql.spi.rest.RestEndpointProvider;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
 import org.opensearch.sql.storage.DataSourceFactory;
@@ -199,7 +197,6 @@ public class SQLPlugin extends Plugin
     providers.add(new CoreEndpointsProvider());
     providers.addAll(this.restEndpointProviders);
     RestEndpointRegistryHolder.set(new RestEndpointRegistry(providers));
-    RedactorHolder.set(Redactor.NONE);
   }
 
   @Override

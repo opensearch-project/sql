@@ -7,7 +7,6 @@ package org.opensearch.sql.opensearch.storage.rest;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
@@ -15,7 +14,6 @@ import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.sql.spi.rest.ArgSpec;
-import org.opensearch.sql.spi.rest.Column;
 import org.opensearch.sql.spi.rest.RestEndpointContext;
 import org.opensearch.sql.spi.rest.RestEndpointDefinition;
 import org.opensearch.sql.spi.rest.RestEndpointProvider;
@@ -40,13 +38,12 @@ public final class CoreEndpointsProvider implements RestEndpointProvider {
     return List.of(
         RestEndpointDefinition.builder()
             .name("/_cluster/health")
-            .schema(List.of(Column.of("response")))
             .argSpec(ArgSpec.builder().arg("local", Set.of("true", "false")).build())
             .handler(CoreEndpointsProvider::clusterHealth)
             .build());
   }
 
-  private static List<Map<String, Object>> clusterHealth(RestEndpointContext ctx) {
+  private static List<String> clusterHealth(RestEndpointContext ctx) {
     NodeClient client = ctx.client();
     if (client == null) {
       throw new IllegalStateException(
@@ -59,7 +56,7 @@ public final class CoreEndpointsProvider implements RestEndpointProvider {
     ClusterHealthResponse response = client.admin().cluster().health(request).actionGet();
     try (XContentBuilder builder = XContentFactory.jsonBuilder()) {
       response.toXContent(builder, ToXContent.EMPTY_PARAMS);
-      return List.of(Map.of("response", builder.toString()));
+      return List.of(builder.toString());
     } catch (IOException e) {
       throw new IllegalStateException("failed to serialize the /_cluster/health response", e);
     }

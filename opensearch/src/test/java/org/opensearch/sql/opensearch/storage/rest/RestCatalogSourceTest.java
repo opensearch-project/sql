@@ -13,7 +13,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -25,7 +24,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
-import org.opensearch.sql.spi.rest.Column;
 import org.opensearch.sql.spi.rest.RestEndpointDefinition;
 import org.opensearch.sql.spi.rest.RestEndpointProvider;
 import org.opensearch.sql.utils.SystemIndexUtils.RestSpec;
@@ -53,14 +51,13 @@ class RestCatalogSourceTest {
     return new RestSpec("/_cluster/health", Map.of(), null, null);
   }
 
-  private static RestEndpointRegistry fakeHealthRegistry(List<Map<String, Object>> rows) {
+  private static RestEndpointRegistry fakeHealthRegistry(List<String> responses) {
     RestEndpointProvider provider =
         () ->
             List.of(
                 RestEndpointDefinition.builder()
                     .name("/_cluster/health")
-                    .schema(List.of(Column.of("status"), Column.of("number_of_nodes")))
-                    .handler(ctx -> rows)
+                    .handler(ctx -> responses)
                     .build());
     return new RestEndpointRegistry(List.of(provider));
   }
@@ -124,26 +121,21 @@ class RestCatalogSourceTest {
   @Test
   void restRequestShapesResponseRows() {
     when(client.getNodeClient()).thenReturn(Optional.empty());
-    Map<String, Object> health = new LinkedHashMap<>();
-    health.put("status", "green");
-    health.put("number_of_nodes", 1);
+    String response = "{\"status\":\"green\",\"number_of_nodes\":1}";
     RestCatalogSource source =
-        new RestCatalogSource(fakeHealthRegistry(List.of(health)), healthSpec(), client);
+        new RestCatalogSource(fakeHealthRegistry(List.of(response)), healthSpec(), client);
     List<ExprValue> rows = source.createRequest().search();
     assertEquals(1, rows.size());
-    assertEquals("green", rows.get(0).tupleValue().get("status").stringValue());
-    assertEquals("1", rows.get(0).tupleValue().get("number_of_nodes").stringValue());
+    assertEquals(response, rows.get(0).tupleValue().get("response").stringValue());
   }
 
   @Test
   void countTruncatesRows() {
     // count=0 exercises the truncation path (subList to empty) over a single-row response.
     when(client.getNodeClient()).thenReturn(Optional.empty());
-    Map<String, Object> health = new LinkedHashMap<>();
-    health.put("status", "green");
     RestCatalogSource source =
         new RestCatalogSource(
-            fakeHealthRegistry(List.of(health)),
+            fakeHealthRegistry(List.of("{\"status\":\"green\"}")),
             new RestSpec("/_cluster/health", Map.of(), 0, null),
             client);
     assertTrue(source.createRequest().search().isEmpty());

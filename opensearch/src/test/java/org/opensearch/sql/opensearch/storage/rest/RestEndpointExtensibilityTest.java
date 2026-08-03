@@ -6,7 +6,6 @@
 package org.opensearch.sql.opensearch.storage.rest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -15,8 +14,6 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.spi.rest.ArgSpec;
-import org.opensearch.sql.spi.rest.Column;
-import org.opensearch.sql.spi.rest.Redactor;
 import org.opensearch.sql.spi.rest.RestEndpointContext;
 import org.opensearch.sql.spi.rest.RestEndpointDefinition;
 import org.opensearch.sql.spi.rest.RestEndpointProvider;
@@ -37,10 +34,8 @@ class RestEndpointExtensibilityTest {
       return List.of(
           RestEndpointDefinition.builder()
               .name("/_plugin/echo")
-              .schema(List.of(Column.of("message")))
               .argSpec(ArgSpec.builder().arg("text").build())
-              .handler(
-                  ctx -> List.of(Map.of("message", ctx.args().getOrDefault("text", "default"))))
+              .handler(ctx -> List.of(ctx.args().getOrDefault("text", "default")))
               .build());
     }
   }
@@ -60,10 +55,9 @@ class RestEndpointExtensibilityTest {
   @Test
   void externalEndpointFetchesThroughTheSamePath() {
     RestEndpointRegistry.Endpoint echo = mergedRegistry().resolve("/_plugin/echo");
-    List<ExprValue> rows =
-        echo.toRows(RestEndpointContext.of(Map.of("text", "hi"), null), Redactor.NONE);
+    List<ExprValue> rows = echo.toRows(RestEndpointContext.of(Map.of("text", "hi"), null));
     assertEquals(1, rows.size());
-    assertEquals("hi", rows.get(0).tupleValue().get("message").stringValue());
+    assertEquals("hi", rows.get(0).tupleValue().get("response").stringValue());
   }
 
   @Test
@@ -82,21 +76,20 @@ class RestEndpointExtensibilityTest {
   }
 
   @Test
-  void duplicateEndpointNameAcrossProvidersIsSkippedFirstWins() {
-    // A second provider that re-declares /_cluster/health is ignored rather than failing the
-    // build; the first (built-in) registration wins.
+  void duplicateOfBuiltInNameIsDroppedSoBuiltInWins() {
+    // An external provider that re-declares a built-in name (/_cluster/health) is dropped rather
+    // than failing the build; a built-in name cannot be shadowed, so the built-in wins.
     RestEndpointProvider shadowsCore =
         () ->
             List.of(
                 RestEndpointDefinition.builder()
                     .name("/_cluster/health")
-                    .schema(List.of(Column.of("shadow")))
                     .handler(ctx -> List.of())
                     .build());
     RestEndpointRegistry registry =
         new RestEndpointRegistry(List.of(new CoreEndpointsProvider(), shadowsCore));
 
     assertEquals("/_cluster/health", registry.resolve("/_cluster/health").getPath());
-    assertFalse(registry.resolve("/_cluster/health").getSchema().containsKey("shadow"));
+    assertTrue(registry.resolve("/_cluster/health").isBuiltIn());
   }
 }

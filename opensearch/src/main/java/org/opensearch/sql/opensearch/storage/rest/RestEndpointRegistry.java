@@ -22,8 +22,6 @@ import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.spi.rest.ArgSpec;
-import org.opensearch.sql.spi.rest.Column;
-import org.opensearch.sql.spi.rest.Redactor;
 import org.opensearch.sql.spi.rest.RestEndpointContext;
 import org.opensearch.sql.spi.rest.RestEndpointDefinition;
 import org.opensearch.sql.spi.rest.RestEndpointHandler;
@@ -82,6 +80,9 @@ public final class RestEndpointRegistry {
     this.registry = m;
   }
 
+  /** The single column every rest endpoint surfaces: one JSON {@code response} string. */
+  static final String RESPONSE_COLUMN = "response";
+
   /** A single allow-listed endpoint, adapted from a provider's {@link RestEndpointDefinition}. */
   @Getter
   public static final class Endpoint {
@@ -93,25 +94,23 @@ public final class RestEndpointRegistry {
 
     Endpoint(RestEndpointDefinition definition, boolean builtIn) {
       this.path = definition.name();
-      this.schema = toExprSchema(definition.schema());
+      this.schema = new LinkedHashMap<>();
+      this.schema.put(RESPONSE_COLUMN, STRING);
       this.argSpec = definition.argSpec();
       this.handler = definition.handler();
       this.builtIn = builtIn;
     }
 
     /**
-     * Invoke the provider's handler, apply the platform {@link Redactor} to each raw row (with the
-     * endpoint name as scope), then shape it into fixed-schema rows. Runs at execution time (scan
-     * open). {@link Redactor#NONE} (the OSS default) passes rows through unchanged.
+     * Invoke the provider's handler and wrap each returned string into the single {@code response}
+     * column. Runs at execution time (scan open). A provider that masks sensitive values does so
+     * before serializing the response it returns, so the values surfaced here are already redacted.
      */
-    public List<ExprValue> toRows(RestEndpointContext ctx, Redactor redactor) {
+    public List<ExprValue> toRows(RestEndpointContext ctx) {
       List<ExprValue> out = new ArrayList<>();
-      for (Map<String, Object> raw : handler.fetch(ctx)) {
-        Map<String, Object> redacted = redactor.redact(path, raw);
+      for (String response : handler.fetch(ctx)) {
         LinkedHashMap<String, ExprValue> tuple = new LinkedHashMap<>();
-        for (Map.Entry<String, ExprType> col : schema.entrySet()) {
-          tuple.put(col.getKey(), coerce(redacted.get(col.getKey())));
-        }
+        tuple.put(RESPONSE_COLUMN, response == null ? ExprNullValue.of() : stringValue(response));
         out.add(new ExprTupleValue(tuple));
       }
       return out;
@@ -173,17 +172,5 @@ public final class RestEndpointRegistry {
         argSpec.validateValue(spec.getEndpoint(), arg, spec.getArgs().get(arg));
       }
     }
-  }
-
-  private static LinkedHashMap<String, ExprType> toExprSchema(List<Column> columns) {
-    LinkedHashMap<String, ExprType> schema = new LinkedHashMap<>();
-    for (Column column : columns) {
-      schema.put(column.name(), STRING);
-    }
-    return schema;
-  }
-
-  private static ExprValue coerce(Object value) {
-    return value == null ? ExprNullValue.of() : stringValue(String.valueOf(value));
   }
 }

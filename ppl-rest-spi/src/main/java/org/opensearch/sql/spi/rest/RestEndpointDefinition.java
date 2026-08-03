@@ -5,20 +5,19 @@
 
 package org.opensearch.sql.spi.rest;
 
-import java.util.List;
 import java.util.Objects;
 
 /**
  * One read-only {@code rest} endpoint from a {@link RestEndpointProvider}: a unique name (the token
- * after {@code rest}, e.g. {@code /_cluster/health}), a fixed {@link Column} schema, the {@link
- * ArgSpec} it accepts, and the {@link RestEndpointHandler} that produces its rows. Immutable; build
- * with {@link #builder()}.
+ * after {@code rest}, e.g. {@code /_cluster/health}), the {@link ArgSpec} it accepts, and the
+ * {@link RestEndpointHandler} that produces its rows. Every endpoint surfaces a single {@code
+ * response} string column; a query extracts the fields it needs with {@code spath} or {@code
+ * json_extract}. A provider that needs to mask sensitive values does so inside its handler before
+ * returning the response. Immutable; build with {@link #builder()}.
  */
 public interface RestEndpointDefinition {
 
   String name();
-
-  List<Column> schema();
 
   ArgSpec argSpec();
 
@@ -30,7 +29,6 @@ public interface RestEndpointDefinition {
 
   final class Builder {
     private String name;
-    private List<Column> schema = List.of();
     private ArgSpec argSpec = ArgSpec.NONE;
     private RestEndpointHandler handler;
 
@@ -38,11 +36,6 @@ public interface RestEndpointDefinition {
 
     public Builder name(String name) {
       this.name = name;
-      return this;
-    }
-
-    public Builder schema(List<Column> schema) {
-      this.schema = schema;
       return this;
     }
 
@@ -58,18 +51,12 @@ public interface RestEndpointDefinition {
 
     public RestEndpointDefinition build() {
       String endpointName = Objects.requireNonNull(name, "rest endpoint name is required");
-      List<Column> cols = List.copyOf(Objects.requireNonNull(schema, "schema is required"));
       ArgSpec spec = Objects.requireNonNull(argSpec, "argSpec is required");
       RestEndpointHandler endpointHandler = Objects.requireNonNull(handler, "handler is required");
       return new RestEndpointDefinition() {
         @Override
         public String name() {
           return endpointName;
-        }
-
-        @Override
-        public List<Column> schema() {
-          return cols;
         }
 
         @Override

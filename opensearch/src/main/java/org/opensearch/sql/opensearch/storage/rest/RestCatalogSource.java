@@ -13,7 +13,6 @@ import org.opensearch.sql.opensearch.request.system.OpenSearchSystemRequest;
 import org.opensearch.sql.opensearch.storage.system.CatalogSource;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
-import org.opensearch.sql.spi.rest.Redactor;
 import org.opensearch.sql.utils.SystemIndexUtils.RestSpec;
 
 /**
@@ -27,17 +26,10 @@ public class RestCatalogSource implements CatalogSource {
   private final OpenSearchClient client;
   private final RestSpec spec;
   private final RestEndpointRegistry.Endpoint endpoint;
-  private final Redactor redactor;
 
   public RestCatalogSource(RestEndpointRegistry registry, RestSpec spec, OpenSearchClient client) {
-    this(registry, spec, client, Redactor.NONE);
-  }
-
-  public RestCatalogSource(
-      RestEndpointRegistry registry, RestSpec spec, OpenSearchClient client, Redactor redactor) {
     this.client = client;
     this.spec = spec;
-    this.redactor = redactor;
     // Allow-list enforced here: unknown or mutating endpoints and disallowed args are rejected.
     this.endpoint = registry.resolve(spec.getEndpoint());
     registry.validate(spec);
@@ -50,7 +42,7 @@ public class RestCatalogSource implements CatalogSource {
 
   @Override
   public OpenSearchSystemRequest createRequest() {
-    return new RestRequest(client, endpoint, spec, redactor);
+    return new RestRequest(client, endpoint, spec);
   }
 
   @Override

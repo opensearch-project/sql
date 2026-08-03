@@ -20,7 +20,6 @@ import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.spi.rest.Redactor;
 import org.opensearch.sql.spi.rest.RestEndpointContext;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -51,9 +50,7 @@ class CoreEndpointsProviderTest {
 
     RestEndpointRegistry registry = new RestEndpointRegistry(List.of(new CoreEndpointsProvider()));
     List<ExprValue> rows =
-        registry
-            .resolve("/_cluster/health")
-            .toRows(RestEndpointContext.of(Map.of(), nodeClient), Redactor.NONE);
+        registry.resolve("/_cluster/health").toRows(RestEndpointContext.of(Map.of(), nodeClient));
 
     assertEquals(1, rows.size());
     String json = rows.get(0).tupleValue().get("response").stringValue();

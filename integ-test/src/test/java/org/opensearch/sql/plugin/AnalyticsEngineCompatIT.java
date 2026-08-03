@@ -64,7 +64,7 @@ public class AnalyticsEngineCompatIT extends OpenSearchSQLRestTestCase {
   /**
    * The {@code rest} row source is a Calcite Enumerable/Scannable scan with no backing index, so it
    * is never routed to the analytics (DataFusion) engine. This pins that {@code rest} returns its
-   * fixed schema and correct data unchanged when the analytics-engine plugin is present.
+   * single-column schema and correct data unchanged when the analytics-engine plugin is present.
    */
   @Test
   public void testRestCommandUnaffectedByAnalyticsEngine() throws IOException {
