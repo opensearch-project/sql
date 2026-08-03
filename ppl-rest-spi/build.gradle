@@ -41,6 +41,52 @@ test {
     }
 }
 
+// Published as a standalone Maven artifact so an external plugin can depend on the SPI
+// `compileOnly`. Intentionally NOT added to the root `publishedModules` list, which would prefix
+// the artifactId with `unified-query-`; this is a public extension SPI, so it keeps the plain
+// `ppl-rest-spi` artifactId.
+apply plugin: 'maven-publish'
+
+publishing {
+    publications {
+        restSpi(MavenPublication) {
+            from components.java
+            groupId = "org.opensearch.query"
+            artifactId = "ppl-rest-spi"
+
+            pom {
+                name = "ppl-rest-spi"
+                description = "OpenSearch PPL rest command extension SPI"
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        name = 'OpenSearch'
+                        url = 'https://github.com/opensearch-project/sql'
+                    }
+                }
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            name = "Snapshots"
+            url = "https://ci.opensearch.org/ci/dbc/snapshots/maven/"
+            url = System.getenv("MAVEN_SNAPSHOTS_S3_REPO")
+            credentials(AwsCredentials) {
+                accessKey = System.getenv("AWS_ACCESS_KEY_ID")
+                secretKey = System.getenv("AWS_SECRET_ACCESS_KEY")
+                sessionToken = System.getenv("AWS_SESSION_TOKEN")
+            }
+        }
+    }
+}
+
 spotless {
     java {
         target fileTree('.') {

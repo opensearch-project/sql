@@ -54,9 +54,6 @@ public class OpenSearchStorageEngine implements StorageEngine {
   private Table restTable(String name) {
     RestSpec spec = decodeRestSpec(name);
     RestEndpointRegistry registry = RestEndpointRegistryHolder.get();
-    if (registry == null) {
-      throw new IllegalStateException("the rest command is not available on this node");
-    }
     registry.resolve(spec.getEndpoint());
     List<String> allowed = settings.getSettingValue(Settings.Key.PPL_REST_ALLOWED_ENDPOINTS);
     if (allowed == null || !allowed.contains(spec.getEndpoint())) {

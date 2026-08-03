@@ -74,21 +74,18 @@ nodes
 | `RestEndpointProvider` | Your entry point: `List<RestEndpointDefinition> getEndpoints()`. |
 | `RestEndpointDefinition` | One endpoint: `name()`, `argSpec()`, `handler()`. Build with `RestEndpointDefinition.builder()`. Every endpoint surfaces a single `response` string column. |
 | `ArgSpec` | The query args the endpoint accepts and each arg's allowed value domain; an unknown or out-of-domain arg is rejected. `ArgSpec.NONE` accepts none. |
-| `RestEndpointHandler` | `List<String> fetch(RestEndpointContext)` — each string is one row's `response` cell (typically a serialized JSON document). Runs at scan execution (not planning), so the scan is lazy and `EXPLAIN` is side-effect free. |
+| `RestEndpointHandler` | `List<String> fetch(RestEndpointContext)`: each string is one row's `response` cell (typically a serialized JSON document). Runs at scan execution (not planning), so the scan is lazy and `EXPLAIN` is side-effect free. |
 | `RestEndpointContext` | The validated `args()` plus an optional core `NodeClient` (`client()`) for a handler that issues its own read-only transport action. |
 
 ## Add an endpoint
 
-1. Depend on the **published** `ppl-rest-spi` artifact `compileOnly`, and declare the sql plugin as
-   an extended plugin so `loadExtensions` discovers your provider. An external plugin must use the
-   published artifact (pinned to the sql-plugin version it targets) — a gradle
-   `project(':ppl-rest-spi')` reference only resolves inside the sql build, not from a separate
-   plugin. The installed sql plugin provides the SPI at runtime, so it is `compileOnly` and never
-   bundled:
+1. Depend on the published `ppl-rest-spi` artifact `compileOnly` (the installed sql plugin
+   provides it at runtime, so it is never bundled), and declare the sql plugin as an extended
+   plugin so `loadExtensions` discovers your provider:
 
    ```gradle
    dependencies {
-       compileOnly "org.opensearch.plugin:ppl-rest-spi:${sqlPluginVersion}"
+       compileOnly "org.opensearch.query:ppl-rest-spi:${sqlPluginVersion}"
    }
    opensearchplugin { extendedPlugins = ['opensearch-sql'] }
    ```
@@ -129,7 +126,7 @@ nodes
    plugins.ppl.rest.allowed_endpoints: ["/_cluster/health", "/_my/thing"]
    ```
 
-Then `rest '/_my/thing' verbose=true | spath input=response path=count output=count | where cast(count as int) > 0` composes like any scan — pull fields out of the `response` JSON with `spath` (or `json_extract`) and cast the ones you compute on.
+Then `rest '/_my/thing' verbose=true | spath input=response path=count output=count | where cast(count as int) > 0` composes like any scan; pull fields out of the `response` JSON with `spath` (or `json_extract`) and cast the ones you compute on.
 
 ## Rules and guarantees
 
@@ -139,7 +136,7 @@ Then `rest '/_my/thing' verbose=true | spath input=response path=count output=co
   only when it is both registered by a provider and listed there; anything else is rejected before
   any transport call. Listing a name no provider registered has no effect.
 - Endpoint names are global across all providers, and `allowed_endpoints` does not resolve name
-  collisions — it only enables names, it does not make two providers that claim the same name
+  collisions: it only enables names, it does not make two providers that claim the same name
   coexist. Collisions are handled separately, at registration time: a built-in name cannot be
   shadowed by an external provider (the built-in wins and the external duplicate is dropped with a
   logged warning), and if two external providers register the same name that name is disabled
