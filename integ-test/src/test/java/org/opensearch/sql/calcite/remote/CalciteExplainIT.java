@@ -69,7 +69,7 @@ public class CalciteExplainIT extends ExplainIT {
   // Only for Calcite: the rest row source explains as a CalciteScannableCatalogScan.
   @Test
   public void explainRestCommand() throws IOException {
-    String result = explainQueryToString("| rest '/_cluster/health' | fields status");
+    String result = explainQueryToString("| rest '/_cluster/health' | fields response");
     Assert.assertTrue(
         "Expected a rest scan node in the explain output, got: " + result,
         result.contains("CatalogScan"));

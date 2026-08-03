@@ -69,22 +69,19 @@ public class AnalyticsEngineCompatIT extends OpenSearchSQLRestTestCase {
   @Test
   public void testRestCommandUnaffectedByAnalyticsEngine() throws IOException {
     Request request = new Request("POST", "/_plugins/_ppl");
-    request.setJsonEntity(
-        "{\"query\": \"| rest '/_cluster/health' | fields status, number_of_nodes\"}");
+    request.setJsonEntity("{\"query\": \"| rest '/_cluster/health' | fields response\"}");
     Response response = client().performRequest(request);
     assertEquals(200, response.getStatusLine().getStatusCode());
 
     JSONObject result = new JSONObject(TestUtils.getResponseBody(response, true));
 
     JSONArray schema = result.getJSONArray("schema");
-    assertEquals(2, schema.length());
-    assertEquals("status", schema.getJSONObject(0).getString("name"));
+    assertEquals(1, schema.length());
+    assertEquals("response", schema.getJSONObject(0).getString("name"));
     assertEquals("string", schema.getJSONObject(0).getString("type"));
-    assertEquals("number_of_nodes", schema.getJSONObject(1).getString("name"));
-    assertEquals("int", schema.getJSONObject(1).getString("type"));
 
     JSONArray datarows = result.getJSONArray("datarows");
     assertEquals(1, datarows.length());
-    assertTrue(datarows.getJSONArray(0).getInt(1) >= 1);
+    assertTrue(datarows.getJSONArray(0).getString(0).contains("number_of_nodes"));
   }
 }

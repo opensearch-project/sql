@@ -56,14 +56,14 @@ public class RestCommandSecurityIT extends SecurityTestBase {
   @Test
   public void monitorUserCanRunClusterHealth() throws IOException {
     JSONObject result =
-        executeQueryAsUser("| rest '/_cluster/health' | fields status", MONITOR_USER);
-    verifyColumn(result, columnName("status"));
+        executeQueryAsUser("| rest '/_cluster/health' | fields response", MONITOR_USER);
+    verifyColumn(result, columnName("response"));
   }
 
   @Test
   public void userWithoutClusterMonitorCannotRunClusterHealth() throws IOException {
     assertDenied(
-        "| rest '/_cluster/health' | fields status", NO_MONITOR_USER, "cluster:monitor/health");
+        "| rest '/_cluster/health' | fields response", NO_MONITOR_USER, "cluster:monitor/health");
   }
 
   /**

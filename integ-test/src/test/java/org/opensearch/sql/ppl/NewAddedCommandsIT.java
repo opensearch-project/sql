@@ -37,7 +37,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   public void testRest() throws IOException {
     JSONObject result;
     try {
-      result = executeQuery("| rest '/_cluster/health' | fields status, number_of_nodes");
+      result = executeQuery("| rest '/_cluster/health' | fields response");
     } catch (ResponseException e) {
       result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
     }
