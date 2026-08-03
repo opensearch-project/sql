@@ -42,7 +42,7 @@ rest <endpoint-path> [count=<int>] [<get-arg>=<value> ...]
 
 `/_cluster/health` returns the full health response in a single `response` column as JSON. Extract the fields you need with `json_extract` (or the `spath` command):
 
-```ppl
+```ppl ignore
 | rest '/_cluster/health'
 | eval status = json_extract(response, 'status'),
        number_of_nodes = json_extract(response, 'number_of_nodes')
