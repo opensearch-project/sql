@@ -563,10 +563,9 @@ public interface PPLTypeChecker {
         && actual instanceof AbstractExprRelDataType<?> actUdt) {
       return expUdt.getUdt() == actUdt.getUdt();
     }
-    if (expected instanceof AbstractExprRelDataType<?>
-        || actual instanceof AbstractExprRelDataType<?>) {
-      return false;
-    }
+    // Fall back to SqlTypeName comparison when one operand is a UDT and the other is a plain
+    // RelDataType. This covers database-sourced fields (e.g. TIMESTAMP) that arrive as plain
+    // RelDataType against allowed signatures using UDT variants (e.g. TIMESTAMP_UDT).
     return expected.getSqlTypeName() == actual.getSqlTypeName();
   }
 
