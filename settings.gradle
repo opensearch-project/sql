@@ -18,6 +18,7 @@ include 'opensearch-sql-plugin'
 project(':opensearch-sql-plugin').projectDir = file('plugin')
 include 'api'
 include 'ppl'
+include 'ppl-rest-spi'
 include 'common'
 include 'opensearch'
 include 'core'

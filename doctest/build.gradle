@@ -205,6 +205,8 @@ testClusters {
         plugin(getJobSchedulerPlugin())
         plugin ':opensearch-sql-plugin'
         testDistribution = 'archive'
+        // Only /_cluster/health is registered; pin the allow-list to it so the rest.md examples run.
+        setting 'plugins.ppl.rest.allowed_endpoints', '/_cluster/health'
     }
 }
 tasks.register("runRestTestCluster", RunTask) {
