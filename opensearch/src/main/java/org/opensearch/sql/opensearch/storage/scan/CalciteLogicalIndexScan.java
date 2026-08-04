@@ -411,6 +411,17 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
         }
         return allowPartialFallback ? tryPartialResultAggregate(aggregate, project) : null;
       }
+      // Partial-result mode is decided BEFORE analyze, not after it fails. Since #5646 a group key
+      // that collapsed to text-without-keyword no longer fails to push down -- it pushes down as a
+      // per-document _source script, which is complete but scans every document. So the choice is
+      // between two working plans (fast subset vs. slow full scan), and only a check up front can
+      // pick the fast one.
+      if (allowPartialFallback) {
+        AbstractRelNode partial = tryPartialResultAggregate(aggregate, project, bucketNames);
+        if (partial != null) {
+          return partial;
+        }
+      }
       int queryBucketSize = osIndex.getQueryBucketSize();
       boolean bucketNullable = !PPLHintUtils.ignoreNullBucket(aggregate);
       AggregateAnalyzer.AggregateBuilderHelper helper =
@@ -444,22 +455,34 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
   }
 
   /**
-   * Partial-result fallback for a text/keyword mapping conflict on the aggregation's group key.
-   * When normal aggregate pushdown fails because the field collapsed to text-without-keyword across
-   * a wildcard pattern (so it would otherwise fall back to a per-shard document scan that opens a
-   * PIT on every shard), and the partial-result setting is enabled, narrow the scan to the subset
-   * of indices where the field is aggregatable, push the aggregation down over just that subset,
-   * and record a warning naming the excluded indices.
+   * Partial-result path for a text/keyword mapping conflict on the aggregation's group key. When
+   * the field is mapped as {@code keyword} in some indices of a wildcard pattern and bare {@code
+   * text} in others, the multi-index type merge collapses it to text-without-keyword. Aggregating
+   * that field is possible but expensive -- it runs as a per-document {@code _source} script over
+   * every document (see #5646). With the partial-result setting enabled, narrow the scan to the
+   * subset of indices where the field is natively aggregatable, push the aggregation down over just
+   * that subset, and record a warning naming the excluded indices.
+   *
+   * <p>This is consulted <b>before</b> the normal analyze, because the expensive plan succeeds:
+   * waiting for a failure would never trigger. It is also consulted again after a failure, so a
+   * group key that genuinely cannot push down (e.g. an array bucket) still gets the chance.
    *
    * <p>The result is <b>partial</b> — the excluded indices' documents are missing from the counts —
    * so this only runs behind an explicit opt-in and only when the response format can surface the
    * warning ({@link QueryContext#isWarningsSupported}). The partitioning decision lives in {@link
    * PartialResultAggregatePushdown}; this method owns the plan-time wiring (settings gate, mapping
    * lookup, narrowed-scan construction, warning emission). Returns {@code null} — leaving the
-   * aggregate un-pushed, as before — whenever partial mode does not apply.
+   * aggregate to the normal path — whenever partial mode does not apply.
    */
   private AbstractRelNode tryPartialResultAggregate(
       Aggregate aggregate, @Nullable Project project) {
+    List<String> outputFields = aggregate.getRowType().getFieldNames();
+    return tryPartialResultAggregate(
+        aggregate, project, outputFields.subList(0, aggregate.getGroupSet().cardinality()));
+  }
+
+  private AbstractRelNode tryPartialResultAggregate(
+      Aggregate aggregate, @Nullable Project project, List<String> bucketNames) {
     if (!isPartialResultEnabled()) {
       return null;
     }
@@ -469,8 +492,6 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
       return null;
     }
     try {
-      List<String> outputFields = aggregate.getRowType().getFieldNames();
-      List<String> bucketNames = outputFields.subList(0, aggregate.getGroupSet().cardinality());
       // Per-index mappings keyed by concrete index name (the wildcard is already resolved), reused
       // from the fetch that resolved this index's field types rather than re-requesting them.
       Map<String, IndexMapping> mappings = osIndex.getIndexMappings();

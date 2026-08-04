@@ -6,7 +6,6 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -20,19 +19,20 @@ import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Test;
 import org.opensearch.client.Request;
-import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 /**
- * End-to-end tests for the partial-result fallback on a text/keyword mapping conflict. A field
- * mapped as {@code keyword} in one index and {@code text} (without a {@code .keyword} sub-field) in
- * another collapses to text-without-keyword across the wildcard pattern, which defeats aggregation
- * pushdown and forces a per-shard document scan that opens a Point-In-Time context on every shard.
+ * End-to-end tests for the partial-result path on a text/keyword mapping conflict. A field mapped
+ * as {@code keyword} in one index and {@code text} (without a {@code .keyword} sub-field) in
+ * another collapses to text-without-keyword across the wildcard pattern. Aggregating that field is
+ * possible but expensive: since #5646 it pushes down as a per-document {@code _source} script that
+ * reads every document.
  *
  * <p>When {@code plugins.query.partial_result.on_mapping_conflict.enabled} is on, the aggregation
- * is instead pushed down over just the aggregatable (keyword) index subset — no PIT — and the
- * response carries a {@code PARTIAL_RESULT} warning naming the excluded index.
+ * is instead pushed down natively over just the aggregatable (keyword) index subset — far faster,
+ * but <b>incomplete</b> — and the response carries a {@code PARTIAL_RESULT} warning naming the
+ * excluded indices. When off, the complete (slow) result is returned with no warning.
  */
 public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
 
@@ -177,15 +177,16 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void partialResultOffFailsWhenPitExhausted() throws IOException {
+  public void partialResultOffReturnsCompleteResultWithoutWarning() throws IOException {
     setPartialResult(false);
-    // Below the shard count of the pattern (4 shards) so the forced scan cannot open its PITs.
-    setPitContextLimit("1");
-    ResponseException e =
-        assertThrows(
-            ResponseException.class,
-            () -> executeQuery(String.format("source=%s | stats count() by env", PATTERN)));
-    assertTrue(e.getResponse().getStatusLine().getStatusCode() >= 400);
+    // Since #5646 the collapsed text group key pushes down as a per-document _source script, so the
+    // complete answer is returned (slowly) rather than failing. Every index contributes: the
+    // keyword
+    // index (prod=2, dev=1) plus the text index (prod=1, qa=1).
+    JSONObject result =
+        executeQuery(String.format("source=%s | stats count() by env | sort env", PATTERN));
+    verifyDataRows(result, rows(1, "dev"), rows(1, "qa"), rows(3, "prod"));
+    assertTrue("a complete result carries no partial-result warning", !result.has("warnings"));
   }
 
   @Test
@@ -289,15 +290,16 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
   @Test
   public void partialResultRefusedForCsvFormat() throws IOException {
     setPartialResult(true);
-    setPitContextLimit("1");
-    // CSV has no warnings channel, so partial mode must NOT silently drop the text index. It falls
-    // through to the normal path, which still exhausts PIT contexts and errors.
-    ResponseException e =
-        assertThrows(
-            ResponseException.class,
-            () ->
-                executeCsvQuery(String.format("source=%s | stats count() by env", PATTERN), false));
-    assertTrue(e.getResponse().getStatusLine().getStatusCode() >= 400);
+    // CSV has no warnings channel, so partial mode must NOT silently drop the text index -- there
+    // would be no way to tell the caller the numbers are undercounted. It falls through to the
+    // normal (complete) path instead, so the text index's rows are still counted.
+    String csv =
+        executeCsvQuery(
+            String.format("source=%s | stats count() by env | sort env", PATTERN), false);
+    // qa exists only in the excluded text index: its presence proves nothing was dropped.
+    assertTrue(
+        "CSV must return the complete result, including the text index: " + csv,
+        csv.contains("qa"));
   }
 
   private void setPartialResult(boolean enabled) throws IOException {
