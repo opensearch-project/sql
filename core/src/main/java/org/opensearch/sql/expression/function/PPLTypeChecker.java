@@ -557,17 +557,49 @@ public interface PPLTypeChecker {
    * ExprUDT} tag — comparing {@code getClass()} is unsafe because addCharsetAndCollation collapses
    * ExprDateType/ExprTimeType/ExprTimeStampType/ExprBinaryType down to ExprSqlType, so different
    * UDTs would appear equal. Plain types match by SqlTypeName.
+   *
+   * <p>A UDT signature also accepts the equivalent plain Calcite type. Signatures such as {@code
+   * PPLOperandTypes.ANY_SCALAR} declare temporal/IP/BINARY operands as UDTs, but the analytics
+   * engine builds its row types from plain Calcite types plus its own markers, which extend
+   * Calcite's {@code AbstractSqlType} rather than {@link AbstractExprRelDataType}. Matching on
+   * class identity alone made {@code list(<date field>)} fail with an error that listed the very
+   * type it had just rejected.
    */
   private static boolean typesMatch(RelDataType expected, RelDataType actual) {
     if (expected instanceof AbstractExprRelDataType<?> expUdt
         && actual instanceof AbstractExprRelDataType<?> actUdt) {
       return expUdt.getUdt() == actUdt.getUdt();
     }
-    if (expected instanceof AbstractExprRelDataType<?>
-        || actual instanceof AbstractExprRelDataType<?>) {
-      return false;
+    if (expected instanceof AbstractExprRelDataType<?> expUdt) {
+      return matchesPlainType(expUdt.getUdt(), actual);
+    }
+    if (actual instanceof AbstractExprRelDataType<?> actUdt) {
+      return matchesPlainType(actUdt.getUdt(), expected);
     }
     return expected.getSqlTypeName() == actual.getSqlTypeName();
+  }
+
+  /**
+   * Whether a plain Calcite type is the non-UDT spelling of {@code udt}. The UDTs themselves are
+   * all VARCHAR-backed, so this maps the tag to the {@link SqlTypeName}s a backend would produce
+   * for the same logical type instead of comparing backing types.
+   */
+  private static boolean matchesPlainType(ExprUDT udt, RelDataType plain) {
+    return switch (udt) {
+      case EXPR_DATE -> plain.getSqlTypeName() == SqlTypeName.DATE;
+      case EXPR_TIME ->
+          switch (plain.getSqlTypeName()) {
+            case TIME, TIME_TZ, TIME_WITH_LOCAL_TIME_ZONE -> true;
+            default -> false;
+          };
+      case EXPR_TIMESTAMP ->
+          switch (plain.getSqlTypeName()) {
+            case TIMESTAMP, TIMESTAMP_TZ, TIMESTAMP_WITH_LOCAL_TIME_ZONE -> true;
+            default -> false;
+          };
+      // ip and binary both land as VARBINARY.
+      case EXPR_IP, EXPR_BINARY -> SqlTypeName.BINARY_TYPES.contains(plain.getSqlTypeName());
+    };
   }
 
   // Util Functions
