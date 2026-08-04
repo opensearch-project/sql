@@ -552,22 +552,50 @@ public interface PPLTypeChecker {
     };
   }
 
-  /**
-   * Compares two RelDataTypes for signature matching. Two UDTs match if they share the same {@link
-   * ExprUDT} tag — comparing {@code getClass()} is unsafe because addCharsetAndCollation collapses
-   * ExprDateType/ExprTimeType/ExprTimeStampType/ExprBinaryType down to ExprSqlType, so different
-   * UDTs would appear equal. Plain types match by SqlTypeName.
-   */
+  /** Compares SQL-private UDTs and analytics schema markers by their semantic PPL type. */
   private static boolean typesMatch(RelDataType expected, RelDataType actual) {
-    if (expected instanceof AbstractExprRelDataType<?> expUdt
-        && actual instanceof AbstractExprRelDataType<?> actUdt) {
-      return expUdt.getUdt() == actUdt.getUdt();
-    }
-    if (expected instanceof AbstractExprRelDataType<?>
-        || actual instanceof AbstractExprRelDataType<?>) {
-      return false;
+    ExprUDT expectedUdt = semanticUdt(expected);
+    ExprUDT actualUdt = semanticUdt(actual);
+    if (expectedUdt != null || actualUdt != null) {
+      return expectedUdt == actualUdt;
     }
     return expected.getSqlTypeName() == actual.getSqlTypeName();
+  }
+
+  private static ExprUDT semanticUdt(RelDataType type) {
+    if (type instanceof AbstractExprRelDataType<?> udt) {
+      return udt.getUdt();
+    }
+
+    // Analytics marker types retain these semantic names while using TIMESTAMP or VARBINARY
+    // internally. Inspecting the Calcite digest avoids loading the optional analytics-api classes.
+    String digest = type.getFullTypeString();
+    if (hasTypeName(digest, "DATE")) {
+      return ExprUDT.EXPR_DATE;
+    }
+    if (hasTypeName(digest, "TIME")) {
+      return ExprUDT.EXPR_TIME;
+    }
+    if (hasTypeName(digest, "IP")) {
+      return ExprUDT.EXPR_IP;
+    }
+    if (hasTypeName(digest, "BINARY")) {
+      return ExprUDT.EXPR_BINARY;
+    }
+
+    return switch (type.getSqlTypeName()) {
+      case DATE -> ExprUDT.EXPR_DATE;
+      case TIME, TIME_WITH_LOCAL_TIME_ZONE -> ExprUDT.EXPR_TIME;
+      case TIMESTAMP, TIMESTAMP_WITH_LOCAL_TIME_ZONE -> ExprUDT.EXPR_TIMESTAMP;
+      case BINARY, VARBINARY -> ExprUDT.EXPR_BINARY;
+      default -> null;
+    };
+  }
+
+  private static boolean hasTypeName(String digest, String typeName) {
+    return digest.equals(typeName)
+        || digest.startsWith(typeName + "(")
+        || digest.startsWith(typeName + " ");
   }
 
   // Util Functions
