@@ -64,8 +64,7 @@ import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.monitor.profile.MetricName;
-import org.opensearch.sql.monitor.profile.ProfileMetric;
-import org.opensearch.sql.monitor.profile.QueryProfiling;
+import org.opensearch.sql.monitor.profile.ProfileScope;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprGeoPointValue;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
@@ -331,14 +330,13 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     client.schedule(
         () -> {
           try (PreparedStatement statement = OpenSearchRelRunners.run(context, rel)) {
-            ProfileMetric metric = QueryProfiling.current().getOrCreateMetric(MetricName.EXECUTE);
-            long execTime = System.nanoTime();
-            ResultSet result = statement.executeQuery();
-            QueryResponse response =
-                buildResultSet(result, rel.getRowType(), context.sysLimit.querySizeLimit());
-            metric.add(System.nanoTime() - execTime);
+            QueryResponse response;
+            try (ProfileScope executePhase = ProfileScope.open(MetricName.EXECUTE)) {
+              ResultSet result = statement.executeQuery();
+              response =
+                  buildResultSet(result, rel.getRowType(), context.sysLimit.querySizeLimit());
+            }
             listener.onResponse(response);
-
           } catch (SQLException e) {
             if (isPitContextLimitReached(e)) {
               // reason (title) comes from the wrapped cause's message; keep it short and put the

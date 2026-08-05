@@ -28,7 +28,6 @@
 package org.opensearch.sql.calcite.utils;
 
 import static java.util.Objects.requireNonNull;
-import static org.opensearch.sql.monitor.profile.MetricName.OPTIMIZE;
 
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Type;
@@ -109,8 +108,9 @@ import org.opensearch.sql.calcite.profile.PlanProfileBuilder;
 import org.opensearch.sql.common.error.ErrorCode;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+import org.opensearch.sql.monitor.profile.MetricName;
 import org.opensearch.sql.monitor.profile.ProfileContext;
-import org.opensearch.sql.monitor.profile.ProfileMetric;
+import org.opensearch.sql.monitor.profile.ProfileScope;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
 
 /**
@@ -514,37 +514,35 @@ public class CalciteToolsHelper {
      * org.apache.calcite.tools.RelRunners#run(RelNode)}
      */
     public static PreparedStatement run(CalcitePlanContext context, RelNode rel) {
-      ProfileMetric optimizeTime = QueryProfiling.current().getOrCreateMetric(OPTIMIZE);
-      long startTime = System.nanoTime();
-      final RelShuttle shuttle =
-          new RelHomogeneousShuttle() {
-            @Override
-            public RelNode visit(TableScan scan) {
-              final RelOptTable table = scan.getTable();
-              if (scan instanceof LogicalTableScan
-                  && Bindables.BindableTableScan.canHandle(table)) {
-                // Always replace the LogicalTableScan with BindableTableScan
-                // because it's implementation does not require a "schema" as context.
-                return Bindables.BindableTableScan.create(scan.getCluster(), table);
+      try (ProfileScope optimizePhase = ProfileScope.open(MetricName.OPTIMIZE)) {
+        final RelShuttle shuttle =
+            new RelHomogeneousShuttle() {
+              @Override
+              public RelNode visit(TableScan scan) {
+                final RelOptTable table = scan.getTable();
+                if (scan instanceof LogicalTableScan
+                    && Bindables.BindableTableScan.canHandle(table)) {
+                  // Always replace the LogicalTableScan with BindableTableScan
+                  // because it's implementation does not require a "schema" as context.
+                  return Bindables.BindableTableScan.create(scan.getCluster(), table);
+                }
+                return super.visit(scan);
               }
-              return super.visit(scan);
-            }
-          };
-      rel = rel.accept(shuttle);
-      // the line we changed here
-      try (Connection connection = context.connection) {
-        final RelRunner runner = connection.unwrap(RelRunner.class);
-        PreparedStatement preparedStatement = runner.prepareStatement(rel);
-        optimizeTime.set(System.nanoTime() - startTime);
-        return preparedStatement;
-      } catch (SQLException e) {
-        // Detect if error is due to window functions in unsupported context (bins on time fields)
-        ErrorReport.Builder report =
-            ErrorReport.wrap(e)
-                .location("while compiling the optimized query plan for physical execution")
-                .code(ErrorCode.PLANNING_ERROR);
-        enrichErrorsForSpecialCases(report, e);
-        throw report.build();
+            };
+        rel = rel.accept(shuttle);
+
+        try (Connection connection = context.connection) {
+          final RelRunner runner = connection.unwrap(RelRunner.class);
+          return runner.prepareStatement(rel);
+        } catch (SQLException e) {
+          // Detect if error is due to window functions in unsupported context (bins on time fields)
+          ErrorReport.Builder report =
+              ErrorReport.wrap(e)
+                  .location("while compiling the optimized query plan for physical execution")
+                  .code(ErrorCode.PLANNING_ERROR);
+          enrichErrorsForSpecialCases(report, e);
+          throw report.build();
+        }
       }
     }
   }

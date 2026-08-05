@@ -142,6 +142,7 @@ import org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionRespons
 import org.opensearch.sql.spi.rest.RestEndpointProvider;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
 import org.opensearch.sql.storage.DataSourceFactory;
+import org.opensearch.telemetry.tracing.noop.NoopTracer;
 import org.opensearch.threadpool.ExecutorBuilder;
 import org.opensearch.threadpool.FixedExecutorBuilder;
 import org.opensearch.threadpool.ThreadPool;
@@ -403,7 +404,7 @@ public class SQLPlugin extends Plugin
     LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
     LocalClusterState.state().setClient(client);
     ModulesBuilder modules = new ModulesBuilder();
-    modules.add(new OpenSearchPluginModule(executionEngineExtensions));
+    modules.add(new OpenSearchPluginModule(executionEngineExtensions, NoopTracer.INSTANCE));
     modules.add(
         b -> {
           b.bind(NodeClient.class).toInstance((NodeClient) client);
