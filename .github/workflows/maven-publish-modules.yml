@@ -44,4 +44,5 @@ jobs:
           aws-region: us-east-1
       - name: publish snapshots to maven
         run: |
-          ./gradlew publishUnifiedQueryPublicationToSnapshotsRepository
+          ./gradlew publishUnifiedQueryPublicationToSnapshotsRepository \
+                    publishRestSpiPublicationToSnapshotsRepository
