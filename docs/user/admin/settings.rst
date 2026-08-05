@@ -287,6 +287,53 @@ Result set::
       }
     }
 
+plugins.query.partial_result.on_mapping_conflict.enabled
+========================================================
+
+Version
+-------
+3.8
+
+Description
+-----------
+
+Controls how an aggregation behaves when its group-by field is mapped inconsistently across the queried indices -- for example ``keyword`` in some indices of a wildcard pattern and ``text`` (without a ``.keyword`` sub-field) in others. Such a field collapses to ``text``-without-``.keyword`` across the pattern, which has no doc values, so the aggregation cannot be pushed down natively and instead runs as a per-document script over ``_source`` -- correct, but a full scan of every document.
+
+When this setting is ``false`` (the default), that complete-but-slow result is returned. When set to ``true``, the aggregation is pushed down over only the subset of indices where the field is aggregatable, and the response carries a ``PARTIAL_RESULT`` warning naming the excluded indices and the remedy (map the field as ``keyword`` everywhere). The result is therefore **partial** -- documents in the excluded indices are not counted -- so the setting is off by default and only takes effect for response formats that can surface the warning (the JSON format; CSV/raw/visualization responses fall through to the complete result rather than silently dropping data).
+
+The behavior can also be overridden per request with the ``partial_result`` boolean field in the query body, which takes precedence over this cluster setting. Here is an example enabling it at the cluster level::
+
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	  "transient" : {
+	    "plugins.query.partial_result.on_mapping_conflict.enabled" : true
+	  }
+	}'
+
+Result set::
+
+    {
+      "acknowledged" : true,
+      "persistent" : { },
+      "transient" : {
+        "plugins" : {
+          "query" : {
+            "partial_result" : {
+              "on_mapping_conflict" : {
+                "enabled" : "true"
+              }
+            }
+          }
+        }
+      }
+    }
+
+Per-request override example, opting a single query into a partial result regardless of the cluster setting::
+
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_ppl -d '{
+	  "query" : "source=logs-* | stats count() by service",
+	  "partial_result" : true
+	}'
+
 plugins.query.buckets
 =====================
 
