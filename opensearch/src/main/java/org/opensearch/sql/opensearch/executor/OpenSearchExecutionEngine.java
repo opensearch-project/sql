@@ -40,6 +40,7 @@ import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.locationtech.jts.geom.Point;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
@@ -51,6 +52,8 @@ import org.opensearch.sql.common.error.ErrorCode;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.common.error.ResourceLimitExceededException;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.common.utils.QueryPhaseTracker;
+import org.opensearch.sql.common.utils.QuerySourceHeaders;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -107,6 +110,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       ExecutionContext context,
       ResponseListener<QueryResponse> listener) {
     PhysicalPlan plan = executionProtector.protect(physicalPlan);
+    writePhaseHeader();
     client.schedule(
         () -> {
           try {
@@ -158,6 +162,27 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
             plan.close();
           }
         });
+  }
+
+  private void writePhaseHeader() {
+    QueryPhaseTracker tracker = QueryPhaseTracker.current();
+    if (tracker != null) {
+      try {
+        client
+            .getNodeClient()
+            .ifPresent(
+                nc -> {
+                  ThreadContext tc = nc.threadPool().getThreadContext();
+                  String header = tc.getHeader(QuerySourceHeaders.QUERY_PHASES_HEADER);
+                  if (header == null) {
+                    tc.putHeader(QuerySourceHeaders.QUERY_PHASES_HEADER, tracker.serialize());
+                  }
+                });
+      } catch (Exception e) {
+        // Best-effort — don't fail the query if phase header can't be written
+      }
+      QueryPhaseTracker.clear();
+    }
   }
 
   private Hook.Closeable getPhysicalPlanInHook(
@@ -328,6 +353,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
   @Override
   public void execute(
       RelNode rel, CalcitePlanContext context, ResponseListener<QueryResponse> listener) {
+    writePhaseHeader();
     client.schedule(
         () -> {
           try (PreparedStatement statement = OpenSearchRelRunners.run(context, rel)) {

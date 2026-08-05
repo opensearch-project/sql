@@ -99,6 +99,9 @@ public class SQLService {
           explainListener);
     } else {
       // 1.Parse query and convert parse tree (CST) to abstract syntax tree (AST)
+      org.opensearch.sql.common.utils.QueryPhaseTracker tracker =
+          org.opensearch.sql.common.utils.QueryPhaseTracker.start();
+      tracker.beginPhase("parse");
       ParseTree cst = parser.parse(request.getQuery());
       Statement statement =
           cst.accept(
@@ -109,6 +112,8 @@ public class SQLService {
                       .fetchSize(request.getFetchSize())
                       .format(request.getFormat())
                       .build()));
+      tracker.endCurrentPhase();
+      tracker.persist();
 
       return queryExecutionFactory.create(statement, queryListener, explainListener);
     }
