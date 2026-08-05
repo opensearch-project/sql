@@ -53,7 +53,8 @@ public abstract class LuceneQuery {
    */
   public boolean canSupport(FunctionExpression func) {
     return (func.getArguments().size() == 2)
-            && (func.getArguments().get(0) instanceof ReferenceExpression)
+            && (func.getArguments().get(0) instanceof ReferenceExpression
+                || referenceWrappedByRedundantDateCast(func.getArguments().get(0)))
             && (func.getArguments().get(1) instanceof LiteralExpression
                 || literalExpressionWrappedByCast(func))
         || isMultiParameterQuery(func);
@@ -98,6 +99,46 @@ public abstract class LuceneQuery {
   }
 
   /**
+   * Check if the left operand is a date/time cast (or the {@code timestamp()}/{@code date()}/{@code
+   * time()} builtin) applied to a reference whose field type is already an {@link
+   * OpenSearchDateType}. Wrapping an already date/time-typed field in such a cast does not change
+   * its ordering, so the wrap is redundant and can be unwrapped, letting the predicate push down to
+   * a native range/term query instead of falling back to a per-document script.
+   *
+   * @param arg left operand of the comparison.
+   * @return true if the operand is a redundant, range-preserving date/time cast over a reference.
+   */
+  protected boolean referenceWrappedByRedundantDateCast(Expression arg) {
+    if (arg instanceof FunctionExpression) {
+      FunctionExpression fn = (FunctionExpression) arg;
+      FunctionName name = fn.getFunctionName();
+      boolean isDateCast =
+          name.equals(BuiltinFunctionName.CAST_TO_TIMESTAMP.getName())
+              || name.equals(BuiltinFunctionName.CAST_TO_DATE.getName())
+              || name.equals(BuiltinFunctionName.CAST_TO_TIME.getName())
+              || name.equals(BuiltinFunctionName.TIMESTAMP.getName())
+              || name.equals(BuiltinFunctionName.DATE.getName())
+              || name.equals(BuiltinFunctionName.TIME.getName());
+      return isDateCast
+          && fn.getArguments().size() == 1
+          && fn.getArguments().get(0) instanceof ReferenceExpression
+          && fn.getArguments().get(0).type() instanceof OpenSearchDateType;
+    }
+    return false;
+  }
+
+  /**
+   * Return the underlying reference of the left operand, unwrapping a redundant date/time cast if
+   * present (see {@link #referenceWrappedByRedundantDateCast}).
+   */
+  private ReferenceExpression unwrapReference(Expression arg) {
+    if (arg instanceof ReferenceExpression) {
+      return (ReferenceExpression) arg;
+    }
+    return (ReferenceExpression) ((FunctionExpression) arg).getArguments().get(0);
+  }
+
+  /**
    * Build Lucene query from function expression. The cast function is converted to literal
    * expressions before generating DSL.
    *
@@ -105,7 +146,7 @@ public abstract class LuceneQuery {
    * @return query
    */
   public QueryBuilder build(FunctionExpression func) {
-    ReferenceExpression ref = (ReferenceExpression) func.getArguments().get(0);
+    ReferenceExpression ref = unwrapReference(func.getArguments().get(0));
     Expression expr = func.getArguments().get(1);
     ExprValue literalValue =
         expr instanceof LiteralExpression ? expr.valueOf() : cast((FunctionExpression) expr, ref);
