@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "id": "head-without-sort",
+      "ruleId": "head-without-sort",
+      "kind": "trigger",
+      "query": "source=accounts | head 5",
+      "expectedCount": 1,
+      "context": { "isCalcite": true }
+    },
+    {
+      "id": "head-with-sort-control",
+      "ruleId": "head-without-sort",
+      "kind": "control",
+      "query": "source=accounts | sort age | head 5",
+      "expectedCount": 0,
+      "context": { "isCalcite": true }
+    },
+    {
+      "id": "division-by-zero",
+      "ruleId": "division-by-zero",
+      "kind": "trigger",
+      "query": "source=accounts | eval ratio = balance / 0 | fields ratio",
+      "expectedCount": 1,
+      "context": { "isCalcite": true }
+    },
+    {
+      "id": "division-by-nonzero-control",
+      "ruleId": "division-by-zero",
+      "kind": "control",
+      "query": "source=accounts | eval ratio = balance / 2 | fields ratio",
+      "expectedCount": 0,
+      "context": { "isCalcite": true }
+    },
+    {
+      "id": "eventstats-rank",
+      "ruleId": "unsupported-window-function-in-eventstats",
+      "kind": "trigger",
+      "query": "source=accounts | eventstats rank() as rank_value",
+      "expectedCount": 1,
+      "context": { "isCalcite": true }
+    },
+    {
+      "id": "eventstats-avg-control",
+      "ruleId": "unsupported-window-function-in-eventstats",
+      "kind": "control",
+      "query": "source=accounts | eventstats avg(age) as avg_age",
+      "expectedCount": 0,
+      "context": { "isCalcite": true }
+    },
+    {
+      "id": "multisearch-single-subsearch",
+      "ruleId": "multisearch-min-subsearch",
+      "kind": "trigger",
+      "query": "multisearch [ search source=accounts ]",
+      "expectedCount": 1,
+      "context": { "isCalcite": true }
+    },
+    {
+      "id": "multisearch-two-subsearches-control",
+      "ruleId": "multisearch-min-subsearch",
+      "kind": "control",
+      "query": "multisearch [ search source=accounts ] [ search source=accounts ]",
+      "expectedCount": 0,
+      "context": { "isCalcite": true }
+    },
+    {
+      "id": "right-join-disabled",
+      "ruleId": "disabled-join-type",
+      "kind": "trigger",
+      "query": "source=accounts | join type=right left=l right=r on l.account_number=r.account_number accounts",
+      "expectedCount": 1,
+      "context": {
+        "isCalcite": true,
+        "settings": { "allJoinTypesAllowed": false }
+      }
+    },
+    {
+      "id": "inner-join-control",
+      "ruleId": "disabled-join-type",
+      "kind": "control",
+      "query": "source=accounts | join left=l right=r on l.account_number=r.account_number accounts",
+      "expectedCount": 0,
+      "context": {
+        "isCalcite": true,
+        "settings": { "allJoinTypesAllowed": false }
+      }
+    },
+    {
+      "id": "dedup-consecutive-true",
+      "ruleId": "dedup-consecutive-unsupported",
+      "kind": "trigger",
+      "query": "source=accounts | dedup firstname consecutive=true",
+      "expectedCount": 1,
+      "context": { "isCalcite": true }
+    },
+    {
+      "id": "dedup-plain-control",
+      "ruleId": "dedup-consecutive-unsupported",
+      "kind": "control",
+      "query": "source=accounts | dedup firstname",
+      "expectedCount": 0,
+      "context": { "isCalcite": true }
+    },
+    {
+      "id": "union-single-dataset",
+      "ruleId": "union-min-datasets",
+      "kind": "trigger",
+      "query": "union [ source=accounts ]",
+      "expectedCount": 1,
+      "context": { "isCalcite": true }
+    },
+    {
+      "id": "union-two-datasets-control",
+      "ruleId": "union-min-datasets",
+      "kind": "control",
+      "query": "union [ source=accounts ] [ source=accounts ]",
+      "expectedCount": 0,
+      "context": { "isCalcite": true }
+    },
+    {
+      "id": "replace-wildcard-count-mismatch",
+      "ruleId": "replace-wildcard-asymmetry",
+      "kind": "trigger",
+      "query": "source=accounts | replace \"*_a\" with \"b_*_*\" in firstname",
+      "expectedCount": 1,
+      "context": { "isCalcite": true }
+    },
+    {
+      "id": "replace-symmetric-control",
+      "ruleId": "replace-wildcard-asymmetry",
+      "kind": "control",
+      "query": "source=accounts | replace \"*_a\" with \"b_*\" in firstname",
+      "expectedCount": 0,
+      "context": { "isCalcite": true }
+    },
+    {
+      "id": "rex-capture-name-underscore",
+      "ruleId": "invalid-capture-group-name",
+      "kind": "trigger",
+      "query": "source=accounts | rex field=email \"(?<user_name>[^@]+)@(?<domain>.+)\"",
+      "expectedCount": 1,
+      "context": { "isCalcite": true }
+    },
+    {
+      "id": "rex-capture-name-alphanumeric-control",
+      "ruleId": "invalid-capture-group-name",
+      "kind": "control",
+      "query": "source=accounts | rex field=email \"(?<username>[^@]+)@(?<domain>.+)\"",
+      "expectedCount": 0,
+      "context": { "isCalcite": true }
+    }
+  ]
+}
