@@ -109,33 +109,41 @@ public abstract class LuceneQuery {
    * @return true if the operand is a redundant, range-preserving date/time cast over a reference.
    */
   protected boolean referenceWrappedByRedundantDateCast(Expression arg) {
-    if (arg instanceof FunctionExpression) {
-      FunctionExpression fn = (FunctionExpression) arg;
-      FunctionName name = fn.getFunctionName();
-      boolean isDateCast =
-          name.equals(BuiltinFunctionName.CAST_TO_TIMESTAMP.getName())
-              || name.equals(BuiltinFunctionName.CAST_TO_DATE.getName())
-              || name.equals(BuiltinFunctionName.CAST_TO_TIME.getName())
-              || name.equals(BuiltinFunctionName.TIMESTAMP.getName())
-              || name.equals(BuiltinFunctionName.DATE.getName())
-              || name.equals(BuiltinFunctionName.TIME.getName());
-      return isDateCast
-          && fn.getArguments().size() == 1
-          && fn.getArguments().get(0) instanceof ReferenceExpression
-          && fn.getArguments().get(0).type() instanceof OpenSearchDateType;
+    if (!(arg instanceof FunctionExpression)) {
+      return false;
     }
-    return false;
+    FunctionExpression fn = (FunctionExpression) arg;
+    FunctionName name = fn.getFunctionName();
+    boolean isDateCast =
+        name.equals(BuiltinFunctionName.CAST_TO_TIMESTAMP.getName())
+            || name.equals(BuiltinFunctionName.CAST_TO_DATE.getName())
+            || name.equals(BuiltinFunctionName.CAST_TO_TIME.getName())
+            || name.equals(BuiltinFunctionName.TIMESTAMP.getName())
+            || name.equals(BuiltinFunctionName.DATE.getName())
+            || name.equals(BuiltinFunctionName.TIME.getName());
+    if (!isDateCast || fn.getArguments().size() != 1) {
+      return false;
+    }
+    Expression inner = fn.getArguments().get(0);
+    return inner instanceof ReferenceExpression && inner.type() instanceof OpenSearchDateType;
   }
 
   /**
    * Return the underlying reference of the left operand, unwrapping a redundant date/time cast if
-   * present (see {@link #referenceWrappedByRedundantDateCast}).
+   * present (see {@link #referenceWrappedByRedundantDateCast}). Callers must ensure {@link
+   * #canSupport} returned true for the enclosing function; otherwise an {@link
+   * IllegalStateException} is thrown rather than allowing an unchecked cast to fail.
    */
   private ReferenceExpression unwrapReference(Expression arg) {
     if (arg instanceof ReferenceExpression) {
       return (ReferenceExpression) arg;
     }
-    return (ReferenceExpression) ((FunctionExpression) arg).getArguments().get(0);
+    if (referenceWrappedByRedundantDateCast(arg)) {
+      return (ReferenceExpression) ((FunctionExpression) arg).getArguments().get(0);
+    }
+    throw new IllegalStateException(
+        "Left operand must be a reference or a redundant date/time cast over a reference; "
+            + "canSupport() must be checked before build()");
   }
 
   /**
