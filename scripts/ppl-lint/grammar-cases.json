@@ -1,5 +1,15 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
+  "excludedRules": [
+    {
+      "ruleId": "operation-not-pushed",
+      "reason": "Requires backend explain data; backend execution is outside this grammar/linter check."
+    },
+    {
+      "ruleId": "operation-pushed-as-script",
+      "reason": "Requires backend explain data; backend execution is outside this grammar/linter check."
+    }
+  ],
   "cases": [
     {
       "id": "head-without-sort",
@@ -150,6 +160,182 @@
       "query": "source=accounts | rex field=email \"(?<username>[^@]+)@(?<domain>.+)\"",
       "expectedCount": 0,
       "context": { "isCalcite": true }
+    },
+    {
+      "id": "unknown-field-reference",
+      "ruleId": "field-validation",
+      "kind": "trigger",
+      "query": "source=accounts | where missing_field = 1",
+      "expectedCount": 1,
+      "context": {
+        "fields": ["age"]
+      }
+    },
+    {
+      "id": "known-field-reference-control",
+      "ruleId": "field-validation",
+      "kind": "control",
+      "query": "source=accounts | where age = 1",
+      "expectedCount": 0,
+      "context": {
+        "fields": ["age"]
+      }
+    },
+    {
+      "id": "aggregate-text-field",
+      "ruleId": "agg-on-text",
+      "kind": "trigger",
+      "query": "source=accounts | stats avg(name)",
+      "expectedCount": 1,
+      "context": {
+        "isCalcite": true,
+        "fields": ["name", "age"],
+        "typeMap": {
+          "name": "text",
+          "age": "long"
+        }
+      }
+    },
+    {
+      "id": "aggregate-numeric-field-control",
+      "ruleId": "agg-on-text",
+      "kind": "control",
+      "query": "source=accounts | stats avg(age)",
+      "expectedCount": 0,
+      "context": {
+        "isCalcite": true,
+        "fields": ["name", "age"],
+        "typeMap": {
+          "name": "text",
+          "age": "long"
+        }
+      }
+    },
+    {
+      "id": "flat-object-subfield-reference",
+      "ruleId": "flat-object-subfield",
+      "kind": "trigger",
+      "query": "source=accounts | fields attributes.child",
+      "expectedCount": 1,
+      "context": {
+        "isCalcite": true,
+        "typeMap": {
+          "attributes": "flat_object",
+          "name": "text"
+        }
+      }
+    },
+    {
+      "id": "non-flat-field-reference-control",
+      "ruleId": "flat-object-subfield",
+      "kind": "control",
+      "query": "source=accounts | fields name",
+      "expectedCount": 0,
+      "context": {
+        "isCalcite": true,
+        "typeMap": {
+          "attributes": "flat_object",
+          "name": "text"
+        }
+      }
+    },
+    {
+      "id": "numeric-field-text-comparison",
+      "ruleId": "type-mismatch-numeric",
+      "kind": "trigger",
+      "query": "source=accounts | where age = \"thirty\"",
+      "expectedCount": 1,
+      "context": {
+        "isCalcite": true,
+        "typeMap": {
+          "age": "long"
+        }
+      }
+    },
+    {
+      "id": "numeric-field-coercible-comparison-control",
+      "ruleId": "type-mismatch-numeric",
+      "kind": "control",
+      "query": "source=accounts | where age = \"32\"",
+      "expectedCount": 0,
+      "context": {
+        "isCalcite": true,
+        "typeMap": {
+          "age": "long"
+        }
+      }
+    },
+    {
+      "id": "disabled-object-subfield-reference",
+      "ruleId": "enabled-false-object",
+      "kind": "trigger",
+      "query": "source=accounts | where session.id = 1",
+      "expectedCount": 1,
+      "context": {
+        "isCalcite": true,
+        "fields": ["status"],
+        "disabledObjectFields": ["session"]
+      }
+    },
+    {
+      "id": "searchable-field-reference-control",
+      "ruleId": "enabled-false-object",
+      "kind": "control",
+      "query": "source=accounts | where status = 1",
+      "expectedCount": 0,
+      "context": {
+        "isCalcite": true,
+        "fields": ["status"],
+        "disabledObjectFields": ["session"]
+      }
+    },
+    {
+      "id": "wildcard-source-without-match",
+      "ruleId": "wildcard-source-zero-match",
+      "kind": "trigger",
+      "query": "source=nope-*",
+      "expectedCount": 1,
+      "context": {
+        "visibleIndices": ["logs-2024", "accounts"]
+      }
+    },
+    {
+      "id": "wildcard-source-with-match-control",
+      "ruleId": "wildcard-source-zero-match",
+      "kind": "control",
+      "query": "source=logs-*",
+      "expectedCount": 0,
+      "context": {
+        "visibleIndices": ["logs-2024", "accounts"]
+      }
+    },
+    {
+      "id": "rex-over-text-field",
+      "ruleId": "rex-scan-cost",
+      "kind": "trigger",
+      "query": "source=logs | rex field=raw_log \"GET (?<path>\\S+)\"",
+      "expectedCount": 1,
+      "context": {
+        "fields": ["raw_log", "host"],
+        "typeMap": {
+          "raw_log": "text",
+          "host": "keyword"
+        }
+      }
+    },
+    {
+      "id": "rex-over-keyword-field-control",
+      "ruleId": "rex-scan-cost",
+      "kind": "control",
+      "query": "source=logs | rex field=host \"(?<host>\\S+)\"",
+      "expectedCount": 0,
+      "context": {
+        "fields": ["raw_log", "host"],
+        "typeMap": {
+          "raw_log": "text",
+          "host": "keyword"
+        }
+      }
     }
   ]
 }

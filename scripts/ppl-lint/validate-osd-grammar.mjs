@@ -6,20 +6,27 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const HEADLESS = 'src/plugins/data/public/antlr/opensearch_ppl/headless_ppl_lint';
 const CATALOGS = [
   'packages/osd-monaco/ppl-lint',
   'packages/osd-monaco/src/ppl/lint/catalog',
 ];
+const MODULE_EXTENSIONS = ['', '.js', '.cjs', '.mjs', '.ts'];
+const INDEX_FILES = ['index.js', 'index.cjs', 'index.mjs', 'index.ts'];
 const SKIP_REASON = 'osd-headless-grammar-api-unavailable';
 const OPTIONS = ['grammar', 'cases', 'target', 'osd-root', 'osd-sha', 'report', 'summary'];
 
-class StructuralError extends Error {}
+class StructuralError extends Error {
+  constructor(message, coverage) {
+    super(message);
+    this.coverage = coverage;
+  }
+}
 
-function fail(message) {
-  throw new StructuralError(message);
+function fail(message, coverage) {
+  throw new StructuralError(message, coverage);
 }
 
 function parseArgs(argv) {
@@ -124,9 +131,25 @@ function validatePairing(target) {
   }
 }
 
-function modulePath(root, name) {
+function moduleCandidates(root, name) {
   const base = path.join(root, name);
-  return [base, `${base}.js`, `${base}.ts`].find((candidate) => fs.existsSync(candidate));
+  return [
+    ...MODULE_EXTENSIONS.map((extension) => `${base}${extension}`),
+    ...INDEX_FILES.map((file) => path.join(base, file)),
+  ];
+}
+
+function resolveModule(requireFromOsd, osdRoot, name) {
+  for (const candidate of moduleCandidates(osdRoot, name)) {
+    try {
+      return requireFromOsd.resolve(candidate);
+    } catch (error) {
+      if (error?.code !== 'MODULE_NOT_FOUND') {
+        fail(`Could not resolve OSD module ${name}: ${error.message}`);
+      }
+    }
+  }
+  return undefined;
 }
 
 function exportsOf(module) {
@@ -135,14 +158,30 @@ function exportsOf(module) {
     : module;
 }
 
-function loadApi(osdRoot) {
-  const requireFromOsd = createRequire(path.join(osdRoot, 'noop.js'));
-  let headless;
+async function importModule(requireFromOsd, resolved, name) {
   try {
-    headless = exportsOf(requireFromOsd(path.join(osdRoot, HEADLESS)));
+    if (path.extname(resolved) === '.mjs') {
+      return exportsOf(await import(pathToFileURL(resolved).href));
+    }
+    return exportsOf(requireFromOsd(resolved));
   } catch (error) {
-    fail(`OSD advertises ${HEADLESS}, but import failed: ${error.message}`);
+    if (error?.code === 'ERR_REQUIRE_ESM') {
+      try {
+        return exportsOf(await import(pathToFileURL(resolved).href));
+      } catch (importError) {
+        fail(`Could not import OSD module ${name} from ${resolved}: ${importError.message}`);
+      }
+    }
+    fail(`Could not import OSD module ${name} from ${resolved}: ${error.message}`);
   }
+}
+
+async function loadApi(osdRoot) {
+  const requireFromOsd = createRequire(path.join(osdRoot, 'noop.js'));
+  const resolvedHeadless = resolveModule(requireFromOsd, osdRoot, HEADLESS);
+  if (!resolvedHeadless) return undefined;
+
+  const headless = await importModule(requireFromOsd, resolvedHeadless, HEADLESS);
   if (
     typeof headless?.deserializeBundleOrThrow !== 'function' ||
     typeof headless?.lintQueryWithBundle !== 'function'
@@ -151,21 +190,23 @@ function loadApi(osdRoot) {
   }
 
   let catalogModule;
-  const errors = [];
+  const missingCatalogs = [];
   for (const name of CATALOGS) {
-    if (!modulePath(osdRoot, name)) continue;
-    try {
-      const candidate = exportsOf(requireFromOsd(path.join(osdRoot, name)));
-      if (typeof candidate?.getBundledCatalog === 'function') {
-        catalogModule = candidate;
-        break;
-      }
-      errors.push(`${name} has no getBundledCatalog export`);
-    } catch (error) {
-      errors.push(`${name}: ${error.message}`);
+    const resolved = resolveModule(requireFromOsd, osdRoot, name);
+    if (!resolved) {
+      missingCatalogs.push(name);
+      continue;
     }
+    const candidate = await importModule(requireFromOsd, resolved, name);
+    if (typeof candidate?.getBundledCatalog !== 'function') {
+      fail(`${name} must export getBundledCatalog.`);
+    }
+    catalogModule = candidate;
+    break;
   }
-  if (!catalogModule) fail(`Could not load OSD catalog${errors.length ? `: ${errors.join('; ')}` : '.'}`);
+  if (!catalogModule) {
+    fail(`Could not resolve an OSD catalog module: ${missingCatalogs.join(', ')}.`);
+  }
 
   let catalog;
   try {
@@ -182,8 +223,7 @@ function loadApi(osdRoot) {
   return {
     deserialize: headless.deserializeBundleOrThrow,
     lint: headless.lintQueryWithBundle,
-    buildTree: typeof headless.buildRuntimeTree === 'function' ? headless.buildRuntimeTree : undefined,
-    catalogIds,
+    catalogIds: [...catalogIds].sort(),
   };
 }
 
@@ -205,19 +245,70 @@ function loadGrammar(file, deserialize) {
   return { bundle, grammar };
 }
 
+function sorted(values) {
+  return [...new Set(values)].sort();
+}
+
+function makeCoverage(catalogIds, coveredRuleIds, excludedRules) {
+  const catalogRuleIds = sorted(catalogIds);
+  const covered = sorted(coveredRuleIds);
+  const excluded = [...excludedRules].sort((left, right) => left.ruleId.localeCompare(right.ruleId));
+  const catalog = new Set(catalogRuleIds);
+  const excludedRuleIds = sorted(excluded.map((entry) => entry.ruleId));
+  const excludedSet = new Set(excludedRuleIds);
+  const requiredRuleIds = catalogRuleIds.filter((ruleId) => !excludedSet.has(ruleId));
+  const required = new Set(requiredRuleIds);
+  const missingRuleIds = requiredRuleIds.filter((ruleId) => !covered.includes(ruleId));
+  const unexpectedRuleIds = sorted([
+    ...covered.filter((ruleId) => !required.has(ruleId)),
+    ...excludedRuleIds.filter((ruleId) => !catalog.has(ruleId)),
+  ]);
+  return {
+    catalogRuleIds,
+    requiredRuleIds,
+    coveredRuleIds: covered,
+    excludedRuleIds,
+    excludedRules: excluded,
+    missingRuleIds,
+    unexpectedRuleIds,
+    counts: {
+      catalog: catalogRuleIds.length,
+      required: requiredRuleIds.length,
+      covered: covered.length,
+      excluded: excludedRuleIds.length,
+      missing: missingRuleIds.length,
+      unexpected: unexpectedRuleIds.length,
+    },
+  };
+}
+
 function loadCases(file, catalogIds) {
-  const document = readJson(file, 'grammar cases');
-  const rawCases = Array.isArray(document) ? document : object(document, 'case document').cases;
-  if (!Array.isArray(rawCases) || !rawCases.length) fail('At least one grammar case is required.');
-  const knownRules = new Set(catalogIds);
-  const ids = new Set();
-  const cases = rawCases.map((rawCase, index) => {
+  const document = object(readJson(file, 'grammar cases'), 'case document');
+  if (document.schemaVersion !== 2) fail('case document schemaVersion must be 2.');
+  if (!Array.isArray(document.excludedRules)) fail('case document excludedRules must be an array.');
+  if (!Array.isArray(document.cases) || !document.cases.length) {
+    fail('At least one grammar case is required.');
+  }
+
+  const exclusionIds = new Set();
+  const duplicateExclusionIds = [];
+  const excludedRules = document.excludedRules.map((rawExclusion, index) => {
+    const exclusion = object(rawExclusion, `excludedRules[${index}]`);
+    const ruleId = string(exclusion.ruleId, `excludedRules[${index}].ruleId`);
+    const reason = string(exclusion.reason, `excludedRules[${index}].reason`);
+    if (exclusionIds.has(ruleId)) duplicateExclusionIds.push(ruleId);
+    exclusionIds.add(ruleId);
+    return { ruleId, reason };
+  });
+
+  const caseIds = new Set();
+  const duplicateCaseIds = [];
+  const cases = document.cases.map((rawCase, index) => {
     const candidate = object(rawCase, `case[${index}]`);
     const id = string(candidate.id, `case[${index}].id`);
     const ruleId = string(candidate.ruleId, `case ${id}.ruleId`);
-    if (ids.has(id)) fail(`Duplicate case ID ${JSON.stringify(id)}.`);
-    if (!knownRules.has(ruleId)) fail(`Case ${JSON.stringify(id)} names missing OSD rule ${JSON.stringify(ruleId)}.`);
-    ids.add(id);
+    if (caseIds.has(id)) duplicateCaseIds.push(id);
+    caseIds.add(id);
     if (!['trigger', 'control'].includes(candidate.kind)) fail(`Case ${id} has invalid kind.`);
     if (!Number.isInteger(candidate.expectedCount) || candidate.expectedCount < 0) {
       fail(`Case ${id} expectedCount must be a non-negative integer.`);
@@ -242,13 +333,45 @@ function loadCases(file, catalogIds) {
     };
   });
 
-  for (const ruleId of new Set(cases.map((entry) => entry.ruleId))) {
+  const coverage = makeCoverage(catalogIds, cases.map((entry) => entry.ruleId), excludedRules);
+  const catalog = new Set(coverage.catalogRuleIds);
+  const covered = new Set(coverage.coveredRuleIds);
+  if (duplicateExclusionIds.length) {
+    fail(
+      `Duplicate exclusion rule ID(s): ${sorted(duplicateExclusionIds).join(', ')}.`,
+      coverage
+    );
+  }
+  if (duplicateCaseIds.length) {
+    fail(`Duplicate case ID(s): ${sorted(duplicateCaseIds).join(', ')}.`, coverage);
+  }
+  const staleExclusions = coverage.excludedRuleIds.filter((ruleId) => !catalog.has(ruleId));
+  if (staleExclusions.length) {
+    fail(`Excluded rule(s) are absent from the OSD catalog: ${staleExclusions.join(', ')}.`, coverage);
+  }
+  const unknownCases = coverage.coveredRuleIds.filter((ruleId) => !catalog.has(ruleId));
+  if (unknownCases.length) {
+    fail(`Case rule(s) are absent from the OSD catalog: ${unknownCases.join(', ')}.`, coverage);
+  }
+  const overlap = coverage.excludedRuleIds.filter((ruleId) => covered.has(ruleId));
+  if (overlap.length) {
+    fail(`Rule(s) cannot be both covered and excluded: ${overlap.join(', ')}.`, coverage);
+  }
+  if (coverage.missingRuleIds.length || coverage.unexpectedRuleIds.length) {
+    fail(
+      `Case coverage must equal catalog rules minus exclusions; ` +
+        `missing: ${coverage.missingRuleIds.join(', ') || 'none'}; ` +
+        `unexpected: ${coverage.unexpectedRuleIds.join(', ') || 'none'}.`,
+      coverage
+    );
+  }
+  for (const ruleId of coverage.requiredRuleIds) {
     const kinds = new Set(cases.filter((entry) => entry.ruleId === ruleId).map((entry) => entry.kind));
     if (!kinds.has('trigger') || !kinds.has('control')) {
-      fail(`Selected rule ${JSON.stringify(ruleId)} must have trigger and control cases.`);
+      fail(`Required rule ${JSON.stringify(ruleId)} must have trigger and control cases.`, coverage);
     }
   }
-  return cases;
+  return { cases, coverage };
 }
 
 function contextFor(grammarCase, target, catalogIds) {
@@ -269,26 +392,6 @@ function contextFor(grammarCase, target, catalogIds) {
   };
 }
 
-function hasParseTree(result) {
-  if (!result) return false;
-  return typeof result === 'object' && 'tree' in result ? Boolean(result.tree) : true;
-}
-
-function parseTreeOf(result) {
-  return typeof result === 'object' && result && 'tree' in result ? result.tree : result;
-}
-
-function hasErrorNode(tree) {
-  const pending = [tree];
-  while (pending.length) {
-    const node = pending.pop();
-    if (!node || typeof node !== 'object') continue;
-    if (node.constructor?.name === 'ErrorNode') return true;
-    if (Array.isArray(node.children)) pending.push(...node.children);
-  }
-  return false;
-}
-
 function executeCases(api, grammar, cases, target) {
   return cases.map((grammarCase) => {
     const result = {
@@ -299,30 +402,26 @@ function executeCases(api, grammar, cases, target) {
       expectedCount: grammarCase.expectedCount,
     };
     try {
-      if (api.buildTree) {
-        const parse = api.buildTree(grammarCase.query, grammar);
-        if (!hasParseTree(parse)) throw new Error('candidate parser produced no parse tree');
-        if (hasErrorNode(parseTreeOf(parse))) {
-          throw new Error('candidate parser recovered from a syntax error');
-        }
-      }
       const lint = api.lint(grammarCase.query, grammar, contextFor(grammarCase, target, api.catalogIds));
       if (!Array.isArray(lint?.diagnostics)) throw new Error('lintQueryWithBundle returned no diagnostics array');
       result.actualCount = lint.diagnostics.filter((entry) => entry?.ruleId === grammarCase.ruleId).length;
-      result.parseTreeCheck = api.buildTree
-        ? 'verified'
-        : grammarCase.kind === 'trigger' && result.actualCount > 0
-          ? 'inferred-from-target-diagnostic'
-          : 'unavailable';
-      const countMatches = result.actualCount === result.expectedCount;
-      const treeVerified = result.parseTreeCheck !== 'unavailable';
-      result.status = countMatches && treeVerified ? 'passed' : 'failed';
-      if (!treeVerified) {
-        result.error = 'buildRuntimeTree is not exported; control parse tree cannot be verified';
+      const unexpectedDiagnosticRuleIds = sorted(
+        lint.diagnostics
+          .filter((entry) => entry?.ruleId !== grammarCase.ruleId)
+          .map((entry) => entry?.ruleId || '<missing>')
+      );
+      if (unexpectedDiagnosticRuleIds.length) {
+        result.unexpectedDiagnosticRuleIds = unexpectedDiagnosticRuleIds;
+        result.error =
+          `lintQueryWithBundle returned diagnostics for non-target rule(s): ` +
+          unexpectedDiagnosticRuleIds.join(', ');
       }
+      result.status =
+        result.actualCount === result.expectedCount && unexpectedDiagnosticRuleIds.length === 0
+          ? 'passed'
+          : 'failed';
     } catch (error) {
       result.actualCount = null;
-      result.parseTreeCheck = api.buildTree ? 'failed' : 'unavailable';
       result.status = 'failed';
       result.error = error instanceof Error ? error.message : String(error);
     }
@@ -334,43 +433,61 @@ function executeCases(api, grammar, cases, target) {
   });
 }
 
-function counts(results) {
+function caseCounts(results) {
   const passed = results.filter((entry) => entry.status === 'passed').length;
   return { selected: results.length, passed, failed: results.length - passed };
 }
 
-function makeReport(target, grammarHash, cases) {
-  const ruleResults = [...new Set(cases.map((entry) => entry.ruleId))].map((ruleId) => ({
-    status: cases.filter((entry) => entry.ruleId === ruleId).every((entry) => entry.status === 'passed')
-      ? 'passed'
-      : 'failed',
-  }));
+function ruleCounts(coverage, cases = []) {
+  const passed = coverage.requiredRuleIds.filter((ruleId) =>
+    cases.length > 0 &&
+    cases.filter((entry) => entry.ruleId === ruleId).every((entry) => entry.status === 'passed')
+  ).length;
+  return {
+    catalog: coverage.counts.catalog,
+    required: coverage.counts.required,
+    excluded: coverage.counts.excluded,
+    selected: coverage.counts.covered,
+    passed,
+    failed: cases.length > 0 ? coverage.counts.required - passed : 0,
+  };
+}
+
+function makeReport(target, grammarHash, coverage, cases) {
   const failures = cases.filter((entry) => entry.status === 'failed').map((entry) => ({
     ruleId: entry.ruleId,
     caseId: entry.caseId,
     query: entry.query,
     expectedCount: entry.expectedCount,
     actualCount: entry.actualCount,
+    ...(entry.unexpectedDiagnosticRuleIds
+      ? { unexpectedDiagnosticRuleIds: entry.unexpectedDiagnosticRuleIds }
+      : {}),
     ...(entry.error ? { error: entry.error } : {}),
   }));
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     status: failures.length ? 'failed' : 'passed',
     sql: target.sql,
     osd: target.osd,
     manualOverride: target.manualOverride,
     releaseLineValidationBypassed: target.releaseLineValidationBypassed,
     grammarHash,
-    rules: counts(ruleResults),
-    caseCounts: counts(cases),
+    coverage,
+    rules: ruleCounts(coverage, cases),
+    caseCounts: caseCounts(cases),
     cases,
     failures,
   };
 }
 
-function emptyReport(status, target, extra = {}) {
+function emptyCoverage() {
+  return makeCoverage([], [], []);
+}
+
+function emptyReport(status, target, extra = {}, coverage = emptyCoverage()) {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     status,
     ...extra,
     ...(target
@@ -381,7 +498,8 @@ function emptyReport(status, target, extra = {}) {
           releaseLineValidationBypassed: target.releaseLineValidationBypassed,
         }
       : {}),
-    rules: { selected: 0, passed: 0, failed: 0 },
+    coverage,
+    rules: ruleCounts(coverage),
     caseCounts: { selected: 0, passed: 0, failed: 0 },
     cases: [],
     failures: [],
@@ -400,7 +518,16 @@ function summary(report) {
     lines.push(`- Release-line validation bypassed: \`${report.releaseLineValidationBypassed}\``);
   }
   if (report.grammarHash) lines.push(`- Grammar: \`${report.grammarHash}\``);
-  lines.push(`- Rules: ${report.rules.selected} selected, ${report.rules.passed} passed, ${report.rules.failed} failed`);
+  lines.push(
+    `- Rules: ${report.rules.required} required, ${report.rules.selected} covered, ` +
+      `${report.rules.excluded} excluded, ${report.rules.passed} passed, ${report.rules.failed} failed`
+  );
+  if (report.coverage.missingRuleIds.length) {
+    lines.push(`- Missing rules: ${report.coverage.missingRuleIds.map((id) => `\`${id}\``).join(', ')}`);
+  }
+  if (report.coverage.unexpectedRuleIds.length) {
+    lines.push(`- Unexpected rules: ${report.coverage.unexpectedRuleIds.map((id) => `\`${id}\``).join(', ')}`);
+  }
   if (report.error) lines.push('', `Structural error: ${report.error.replaceAll('\n', ' ')}`);
   if (report.failures.length) {
     lines.push('', '| Rule | Case | Expected | Actual | Error |', '| --- | --- | ---: | ---: | --- |');
@@ -421,9 +548,10 @@ function writeOutputs(args, report) {
   fs.appendFileSync(args.summary, summary(report));
 }
 
-export function run(argv = process.argv.slice(2)) {
+export async function run(argv = process.argv.slice(2)) {
   let args;
   let target;
+  let coverage;
   try {
     args = parseArgs(argv);
     if (args.help) {
@@ -434,22 +562,29 @@ export function run(argv = process.argv.slice(2)) {
     validatePairing(target);
     const osdRoot = path.resolve(args['osd-root']);
     if (!fs.existsSync(osdRoot) || !fs.statSync(osdRoot).isDirectory()) fail(`Invalid OSD root ${osdRoot}.`);
-    if (!modulePath(osdRoot, HEADLESS)) {
+    const api = await loadApi(osdRoot);
+    if (!api) {
       writeOutputs(args, emptyReport('skipped', target, { skipReason: SKIP_REASON }));
       return 0;
     }
-    const api = loadApi(osdRoot);
     const { bundle, grammar } = loadGrammar(args.grammar, api.deserialize);
-    const cases = loadCases(args.cases, api.catalogIds);
-    const report = makeReport(target, bundle.grammarHash, executeCases(api, grammar, cases, target));
+    const loadedCases = loadCases(args.cases, api.catalogIds);
+    coverage = loadedCases.coverage;
+    const report = makeReport(
+      target,
+      bundle.grammarHash,
+      coverage,
+      executeCases(api, grammar, loadedCases.cases, target)
+    );
     writeOutputs(args, report);
     return report.status === 'passed' ? 0 : 1;
   } catch (error) {
+    coverage = error?.coverage || coverage;
     const message = error instanceof Error ? error.message : String(error);
     console.error(`[ppl-lint-grammar] ERROR: ${message}`);
     if (args?.report && args?.summary) {
       try {
-        writeOutputs(args, emptyReport('error', target, { error: message }));
+        writeOutputs(args, emptyReport('error', target, { error: message }, coverage));
       } catch (writeError) {
         console.error(`[ppl-lint-grammar] ERROR: could not write artifacts: ${writeError.message}`);
       }
@@ -459,5 +594,5 @@ export function run(argv = process.argv.slice(2)) {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  process.exitCode = run();
+  process.exitCode = await run();
 }

@@ -20,6 +20,7 @@ const WORKFLOW = path.join(
 );
 const WRAPPER = path.join(ROOT, 'scripts', 'ppl-lint-rule-validation.sh');
 const SOURCE = fs.readFileSync(WORKFLOW, 'utf8');
+const WRAPPER_SOURCE = fs.readFileSync(WRAPPER, 'utf8');
 
 function stepScript(name) {
   const lines = SOURCE.split('\n');
@@ -126,9 +127,7 @@ function resolveTarget(
     version = '4.2.1-SNAPSHOT',
     event = 'pull_request',
     target = 'main',
-    osdRepo = '',
     osdRef = '',
-    bypass = '',
   } = {}
 ) {
   const directory = initializeSqlCheckout(t, version);
@@ -141,9 +140,7 @@ function resolveTarget(
       EVENT_NAME: event,
       TARGET_BRANCH: target,
       SQL_HEAD_SHA: 'pull-request-head',
-      REQUESTED_OSD_REPO: osdRepo,
       REQUESTED_OSD_REF: osdRef,
-      REQUESTED_BYPASS: bypass,
       GITHUB_OUTPUT: output,
     },
   });
@@ -151,34 +148,6 @@ function resolveTarget(
     result,
     outputs: fs.existsSync(output) ? readOutputs(output) : {},
   };
-}
-
-function probeCapability(t, extension) {
-  const directory = temporaryDirectory(t);
-  const output = path.join(directory, 'github-output');
-  if (extension) {
-    const module = path.join(
-      directory,
-      '.ci',
-      'OpenSearch-Dashboards',
-      'src',
-      'plugins',
-      'data',
-      'public',
-      'antlr',
-      'opensearch_ppl',
-      `headless_ppl_lint.${extension}`
-    );
-    fs.mkdirSync(path.dirname(module), { recursive: true });
-    fs.writeFileSync(module, '');
-  }
-  const result = spawnSync('/bin/bash', ['-c', stepScript('Detect headless grammar capability')], {
-    cwd: directory,
-    encoding: 'utf8',
-    env: { ...process.env, GITHUB_OUTPUT: output },
-  });
-  assert.equal(result.status, 0, result.stderr);
-  return readOutputs(output).available;
 }
 
 test('workflow has focused triggers, read-only permissions, and no fixed product version', () => {
@@ -191,8 +160,13 @@ test('workflow has focused triggers, read-only permissions, and no fixed product
   assert.doesNotMatch(SOURCE, /^\s+schedule:$/m);
   assert.doesNotMatch(SOURCE, /\b(?:secrets|vars)\./);
   assert.doesNotMatch(SOURCE, /compiled-version|latestEligibleGa|release-tags/);
+  assert.doesNotMatch(SOURCE, /allow_release_line_mismatch|inputs\.osd_repo|REQUESTED_OSD_REPO/);
+  assert.doesNotMatch(SOURCE, /settings\.gradle/);
+  assert.doesNotMatch(SOURCE, /plugin\/(?:build\.gradle|src\/main)/);
   assert.equal(
-    SOURCE.match(/plugin\/src\/main\/java\/org\/opensearch\/sql\/plugin\/SQLPlugin\.java/g)
+    SOURCE.match(
+      /ppl\/src\/main\/java\/org\/opensearch\/sql\/ppl\/autocomplete\/PPLGrammarBundleExporter\.java/g
+    )
       ?.length,
     2
   );
@@ -203,37 +177,53 @@ test('workflow has focused triggers, read-only permissions, and no fixed product
   assert.deepEqual(fixedProductVersions, []);
 });
 
-test('skip path uses the adapter before bootstrap and supports TypeScript or JavaScript modules', (t) => {
-  const capability = SOURCE.indexOf('      - name: Detect headless grammar capability');
-  const skip = SOURCE.indexOf('      - name: Record unsupported paired branch with adapter');
+test('workflow and wrapper delegate capability to one adapter invocation', () => {
+  const exportGrammar = SOURCE.indexOf('      - name: Export candidate runtime grammar');
   const java = SOURCE.indexOf('      - name: Set up JDK 21');
-  const capture = SOURCE.indexOf('      - name: Capture candidate runtime grammar');
   const bootstrap = SOURCE.indexOf('      - name: Bootstrap OpenSearch Dashboards');
-  assert.ok(capability < skip);
-  assert.ok(skip < java);
-  assert.ok(skip < capture);
-  assert.ok(skip < bootstrap);
+  const validate = SOURCE.indexOf('      - name: Validate OSD linter against candidate grammar');
+  assert.ok(java < exportGrammar);
+  assert.ok(exportGrammar < bootstrap);
+  assert.ok(bootstrap < validate);
 
-  const skipScript = stepScript('Record unsupported paired branch with adapter');
+  const exportScript = stepScript('Export candidate runtime grammar');
+  assert.match(exportScript, /\.\/gradlew :ppl:exportPplGrammarBundle --no-daemon/);
   assert.match(
-    skipScript,
-    /^node "\$GITHUB_WORKSPACE\/scripts\/ppl-lint\/validate-osd-grammar\.mjs"/m
+    exportScript,
+    /"-PpplGrammarBundleOutput=\$GITHUB_WORKSPACE\/ppl-grammar-bundle\.json"/
   );
-  assert.doesNotMatch(skipScript, /node -r /);
-  assert.match(skipScript, /--grammar "\$GITHUB_WORKSPACE\/ppl-grammar-bundle\.json"/);
-  assert.match(skipScript, /--summary "\$GITHUB_STEP_SUMMARY"/);
+  const validateScript = stepScript('Validate OSD linter against candidate grammar');
+  assert.match(validateScript, /^set \+e$/m);
+  assert.match(validateScript, /^node -r \.\/src\/setup_node_env/m);
+  assert.match(validateScript, /--summary "\$GITHUB_STEP_SUMMARY"/);
 
-  assert.equal(probeCapability(t, 'ts'), 'true');
-  assert.equal(probeCapability(t, 'js'), 'true');
-  assert.equal(probeCapability(t), 'false');
+  assert.equal(
+    SOURCE.match(/scripts\/ppl-lint\/validate-osd-grammar\.mjs/g)?.length,
+    1
+  );
+  assert.equal(WRAPPER_SOURCE.match(/node -r \.\/src\/setup_node_env/g)?.length, 1);
+  for (const content of [SOURCE, WRAPPER_SOURCE]) {
+    assert.doesNotMatch(content, /Detect headless grammar capability/);
+    assert.doesNotMatch(content, /headless_ppl_lint/);
+    assert.doesNotMatch(content, /steps\.capability/);
+    assert.doesNotMatch(content, /opensearch-sql-plugin:run/);
+    assert.doesNotMatch(content, /\bcurl\b|127\.0\.0\.1:9200|ppl-grammar-cluster\.log/);
+    assert.doesNotMatch(content, /\btrap\b|gradle_pid|GRADLE_PID/);
+  }
+  assert.match(WRAPPER_SOURCE, /\.\/gradlew :ppl:exportPplGrammarBundle --no-daemon/);
 });
 
 test('pre-adapter failure fallback writes the structural report contract without target metadata', (t) => {
   const fallback = stepScript('Record pre-report failure');
   assert.match(fallback, /ppl-lint-grammar-compatibility-report\.json/);
+  assert.match(fallback, /schemaVersion: 2/);
   assert.match(fallback, /status: "error"/);
   assert.match(fallback, /error: \$error/);
   assert.match(fallback, /manualOverride: \(\.osd\.override \/\/ false\)/);
+  assert.match(fallback, /releaseLineValidationBypassed: false/);
+  assert.match(fallback, /catalogRuleIds: \[\]/);
+  assert.match(fallback, /excludedRuleIds: \[\]/);
+  assert.match(fallback, /excludedRules: \[\]/);
   assert.match(fallback, /caseCounts: \{selected: 0, passed: 0, failed: 0\}/);
   assert.match(fallback, /cases: \[\]/);
   assert.match(fallback, /failures: \[\]/);
@@ -259,8 +249,25 @@ test('pre-adapter failure fallback writes the structural report contract without
     )
   );
   assert.equal(report.status, 'error');
+  assert.equal(report.schemaVersion, 2);
   assert.match(report.error, /before the compatibility adapter/);
-  assert.deepEqual(report.rules, { selected: 0, passed: 0, failed: 0 });
+  assert.deepEqual(report.rules, {
+    catalog: 0,
+    required: 0,
+    excluded: 0,
+    selected: 0,
+    passed: 0,
+    failed: 0,
+  });
+  assert.deepEqual(report.coverage.counts, {
+    catalog: 0,
+    required: 0,
+    covered: 0,
+    excluded: 0,
+    missing: 0,
+    unexpected: 0,
+  });
+  assert.deepEqual(report.coverage.missingRuleIds, []);
   assert.equal('sql' in report, false);
 });
 
@@ -285,23 +292,28 @@ test('extracted resolver rejects mismatches and limits overrides to dispatch', (
 
   const pushOverride = resolveTarget(t, {
     event: 'push',
-    osdRepo: 'example/OpenSearch-Dashboards',
+    osdRef: 'candidate',
   });
   assert.notEqual(pushOverride.result.status, 0);
-  assert.match(pushOverride.result.stdout, /allowed only for workflow_dispatch/);
+  assert.match(pushOverride.result.stdout, /ref overrides are allowed only for workflow_dispatch/);
 
   const dispatch = resolveTarget(t, {
     event: 'workflow_dispatch',
-    target: '4.1',
-    osdRepo: 'example/OpenSearch-Dashboards',
     osdRef: 'candidate',
-    bypass: 'true',
   });
   assert.equal(dispatch.result.status, 0, dispatch.result.stderr);
-  assert.equal(dispatch.outputs.osd_repo, 'example/OpenSearch-Dashboards');
+  assert.equal(dispatch.outputs.osd_repo, 'opensearch-project/OpenSearch-Dashboards');
   assert.equal(dispatch.outputs.osd_ref, 'candidate');
   assert.equal(dispatch.outputs.osd_override, 'true');
-  assert.equal(dispatch.outputs.release_line_bypass, 'true');
+  assert.equal('release_line_bypass' in dispatch.outputs, false);
+
+  const dispatchMismatch = resolveTarget(t, {
+    event: 'workflow_dispatch',
+    target: '4.1',
+    osdRef: 'candidate',
+  });
+  assert.notEqual(dispatchMismatch.result.status, 0);
+  assert.match(dispatchMismatch.result.stdout, /does not match target branch 4\.1/);
 
   const featureBranch = resolveTarget(t, { target: 'feature/test' });
   assert.notEqual(featureBranch.result.status, 0);
@@ -312,7 +324,7 @@ test('extracted resolver rejects mismatches and limits overrides to dispatch', (
   assert.match(malformedVersion.result.stdout, /Invalid SQL product version/);
 });
 
-test('wrapper reproduces a dispatch release-line bypass on exact checkouts', (t) => {
+test('wrapper rejects stale target metadata before exporting a grammar', (t) => {
   const directory = temporaryDirectory(t);
   const osdRoot = initializeOsdCheckout(t);
   const target = path.join(directory, 'target.json');
@@ -326,18 +338,17 @@ test('wrapper reproduces a dispatch release-line bypass on exact checkouts', (t)
     target,
     JSON.stringify({
       sql: {
-        sha: gitHead(ROOT),
-        targetBranch: '9.9',
+        sha: 'stale-sql-sha',
+        targetBranch: 'main',
         versionRaw: sqlVersionRaw,
         version: sqlVersion,
       },
       osd: {
         repository: 'local/OpenSearch-Dashboards',
-        ref: '9.9',
+        ref: 'main',
         sha: gitHead(osdRoot),
         version: '3.7.0',
       },
-      releaseLineValidationBypassed: true,
     })
   );
 
@@ -346,10 +357,9 @@ test('wrapper reproduces a dispatch release-line bypass on exact checkouts', (t)
     ['--target', target, '--osd-root', osdRoot, '--report', report, '--summary', summary],
     { cwd: ROOT, encoding: 'utf8' }
   );
-  assert.equal(result.status, 0, result.stderr);
-  const output = JSON.parse(fs.readFileSync(report, 'utf8'));
-  assert.equal(output.status, 'skipped');
-  assert.equal(output.releaseLineValidationBypassed, true);
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /target SQL SHA stale-sql-sha does not match checkout/);
+  assert.equal(fs.existsSync(report), false);
 });
 
 test('wrapper refuses to label an unrelated local OSD checkout as the paired ref', (t) => {

@@ -7,53 +7,36 @@ on:
       - '[0-9]+.[0-9]+'
     paths:
       - build.gradle
-      - settings.gradle
       - ppl/build.gradle
       - ppl/src/main/antlr/OpenSearchPPLLexer.g4
       - ppl/src/main/antlr/OpenSearchPPLParser.g4
       - ppl/src/main/java/org/opensearch/sql/ppl/autocomplete/GrammarBundle.java
       - ppl/src/main/java/org/opensearch/sql/ppl/autocomplete/PPLGrammarBundleBuilder.java
-      - plugin/build.gradle
-      - plugin/src/main/java/org/opensearch/sql/plugin/SQLPlugin.java
-      - plugin/src/main/java/org/opensearch/sql/plugin/rest/RestPPLGrammarAction.java
+      - ppl/src/main/java/org/opensearch/sql/ppl/autocomplete/PPLGrammarBundleExporter.java
       - scripts/ppl-lint/**
       - scripts/ppl-lint-rule-validation.sh
       - .github/workflows/ppl-lint-grammar-compatibility.yml
-      - docs/dev/ppl-lint-grammar-compatibility-ci*.md
   push:
     branches:
       - main
       - '[0-9]+.[0-9]+'
     paths:
       - build.gradle
-      - settings.gradle
       - ppl/build.gradle
       - ppl/src/main/antlr/OpenSearchPPLLexer.g4
       - ppl/src/main/antlr/OpenSearchPPLParser.g4
       - ppl/src/main/java/org/opensearch/sql/ppl/autocomplete/GrammarBundle.java
       - ppl/src/main/java/org/opensearch/sql/ppl/autocomplete/PPLGrammarBundleBuilder.java
-      - plugin/build.gradle
-      - plugin/src/main/java/org/opensearch/sql/plugin/SQLPlugin.java
-      - plugin/src/main/java/org/opensearch/sql/plugin/rest/RestPPLGrammarAction.java
+      - ppl/src/main/java/org/opensearch/sql/ppl/autocomplete/PPLGrammarBundleExporter.java
       - scripts/ppl-lint/**
       - scripts/ppl-lint-rule-validation.sh
       - .github/workflows/ppl-lint-grammar-compatibility.yml
-      - docs/dev/ppl-lint-grammar-compatibility-ci*.md
   workflow_dispatch:
     inputs:
-      osd_repo:
-        description: Optional OpenSearch Dashboards repository override.
-        required: false
-        type: string
       osd_ref:
-        description: Optional OpenSearch Dashboards ref override.
+        description: Optional ref in opensearch-project/OpenSearch-Dashboards.
         required: false
         type: string
-      allow_release_line_mismatch:
-        description: Development-only bypass for exact release-line validation.
-        required: false
-        default: false
-        type: boolean
 
 permissions:
   contents: read
@@ -82,9 +65,7 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           TARGET_BRANCH: ${{ github.base_ref || github.ref_name }}
           SQL_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          REQUESTED_OSD_REPO: ${{ inputs.osd_repo }}
           REQUESTED_OSD_REF: ${{ inputs.osd_ref }}
-          REQUESTED_BYPASS: ${{ inputs.allow_release_line_mismatch }}
         run: |
           set -euo pipefail
           sql_raw=$(sed -nE 's/.*opensearch_version = System\.getProperty\("opensearch\.version", "([^"]+)"\).*/\1/p' build.gradle)
@@ -92,13 +73,12 @@ jobs:
             { echo "::error::Invalid SQL product version: $sql_raw"; exit 1; }
           sql_version="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
           sql_line="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
-          bypass=$([[ "$EVENT_NAME" == workflow_dispatch && "$REQUESTED_BYPASS" == true ]] && echo true || echo false)
           case "$TARGET_BRANCH" in
             main) canonical_ref=main ;;
             *)
               [[ "$TARGET_BRANCH" =~ ^[0-9]+\.[0-9]+$ ]] ||
                 { echo "::error::Target branch must be main or an exact X.Y release branch"; exit 1; }
-              [[ "$TARGET_BRANCH" == "$sql_line" || "$bypass" == true ]] ||
+              [[ "$TARGET_BRANCH" == "$sql_line" ]] ||
                 { echo "::error::SQL $sql_raw does not match target branch $TARGET_BRANCH"; exit 1; }
               canonical_ref="$TARGET_BRANCH"
               ;;
@@ -107,16 +87,15 @@ jobs:
           osd_repo="$canonical_repo"
           osd_ref="$canonical_ref"
           if [[ "$EVENT_NAME" == workflow_dispatch ]]; then
-            osd_repo="${REQUESTED_OSD_REPO:-$osd_repo}"
             osd_ref="${REQUESTED_OSD_REF:-$osd_ref}"
-          elif [[ -n "$REQUESTED_OSD_REPO$REQUESTED_OSD_REF" || "$REQUESTED_BYPASS" == true ]]; then
-            echo "::error::OSD overrides are allowed only for workflow_dispatch"
+          elif [[ -n "$REQUESTED_OSD_REF" ]]; then
+            echo "::error::OSD ref overrides are allowed only for workflow_dispatch"
             exit 1
           fi
-          [[ "$osd_repo$osd_ref" != *$'\n'* && "$osd_repo$osd_ref" != *$'\r'* ]] ||
-            { echo "::error::OSD overrides must be single-line values"; exit 1; }
+          [[ "$osd_ref" != *$'\n'* && "$osd_ref" != *$'\r'* ]] ||
+            { echo "::error::OSD ref override must be a single-line value"; exit 1; }
           sql_sha=$(git rev-parse HEAD)
-          override=$([[ "$osd_repo" != "$canonical_repo" || "$osd_ref" != "$canonical_ref" ]] && echo true || echo false)
+          override=$([[ "$osd_ref" != "$canonical_ref" ]] && echo true || echo false)
           {
             echo "target_branch=$TARGET_BRANCH"
             echo "sql_version_raw=$sql_raw"
@@ -127,7 +106,6 @@ jobs:
             echo "osd_repo=$osd_repo"
             echo "osd_ref=$osd_ref"
             echo "osd_override=$override"
-            echo "release_line_bypass=$bypass"
           } >> "$GITHUB_OUTPUT"
 
       - name: Checkout paired OpenSearch Dashboards
@@ -166,7 +144,6 @@ jobs:
           OSD_REF: ${{ steps.target.outputs.osd_ref }}
           OSD_SHA: ${{ steps.osd.outputs.sha }}
           OSD_OVERRIDE: ${{ steps.target.outputs.osd_override }}
-          RELEASE_LINE_BYPASS: ${{ steps.target.outputs.release_line_bypass }}
         run: |
           set -euo pipefail
           yarn_version=$(node -e "process.stdout.write(require('./package.json').engines.yarn.match(/[0-9]+\.[0-9]+\.[0-9]+/)[0])")
@@ -176,7 +153,7 @@ jobs:
             { echo "::error::Invalid OSD product version: $osd_raw"; exit 1; }
           osd_version="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
           osd_line="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
-          if [[ "$TARGET_BRANCH" != main && "$RELEASE_LINE_BYPASS" != true ]]; then
+          if [[ "$TARGET_BRANCH" != main ]]; then
             [[ "$SQL_RELEASE_LINE" == "$TARGET_BRANCH" && "$osd_line" == "$TARGET_BRANCH" ]] ||
               { echo "::error::Expected SQL and OSD versions on release line $TARGET_BRANCH"; exit 1; }
           fi
@@ -186,7 +163,7 @@ jobs:
             --arg sqlLine "$SQL_RELEASE_LINE" --arg sqlSha "$SQL_SHA" --arg headSha "$SQL_HEAD_SHA" \
             --arg osdRepo "$OSD_REPOSITORY" --arg osdRef "$OSD_REF" --arg osdSha "$OSD_SHA" \
             --arg osdRaw "$osd_raw" --arg osdVersion "$osd_version" --arg osdLine "$osd_line" \
-            --arg override "$OSD_OVERRIDE" --arg bypass "$RELEASE_LINE_BYPASS" \
+            --arg override "$OSD_OVERRIDE" \
             '{
               schemaVersion: 1,
               sql: {
@@ -197,92 +174,25 @@ jobs:
                 repository: $osdRepo, ref: $osdRef, sha: $osdSha,
                 versionRaw: $osdRaw, version: $osdVersion, releaseLine: $osdLine,
                 override: ($override == "true")
-              },
-              releaseLineValidationBypassed: ($bypass == "true")
+              }
             }' > "$GITHUB_WORKSPACE/resolved-target.json"
           echo "osd_version=$osd_version" >> "$GITHUB_OUTPUT"
           echo "osd_release_line=$osd_line" >> "$GITHUB_OUTPUT"
 
-      - name: Detect headless grammar capability
-        id: capability
-        run: |
-          set -euo pipefail
-          module=.ci/OpenSearch-Dashboards/src/plugins/data/public/antlr/opensearch_ppl/headless_ppl_lint
-          if [[ -f "${module}.ts" || -f "${module}.js" ]]; then
-            echo "available=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "available=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Record unsupported paired branch with adapter
-        if: ${{ steps.capability.outputs.available == 'false' }}
-        run: |
-          set -euo pipefail
-          node "$GITHUB_WORKSPACE/scripts/ppl-lint/validate-osd-grammar.mjs" \
-            --grammar "$GITHUB_WORKSPACE/ppl-grammar-bundle.json" \
-            --cases "$GITHUB_WORKSPACE/scripts/ppl-lint/grammar-cases.json" \
-            --target "$GITHUB_WORKSPACE/resolved-target.json" \
-            --osd-root "$GITHUB_WORKSPACE/.ci/OpenSearch-Dashboards" \
-            --osd-sha "${{ steps.osd.outputs.sha }}" \
-            --report "$GITHUB_WORKSPACE/ppl-lint-grammar-compatibility-report.json" \
-            --summary "$GITHUB_STEP_SUMMARY"
-
       - name: Set up JDK 21
-        if: ${{ steps.capability.outputs.available == 'true' }}
         uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
         with:
           distribution: temurin
           java-version: 21
           cache: gradle
 
-      - name: Capture candidate runtime grammar
-        if: ${{ steps.capability.outputs.available == 'true' }}
-        timeout-minutes: 25
+      - name: Export candidate runtime grammar
         run: |
           set -euo pipefail
-          ./gradlew :opensearch-sql-plugin:run --no-daemon > ppl-grammar-cluster.log 2>&1 &
-          gradle_pid=$!
-          cleanup() {
-            kill "$gradle_pid" 2>/dev/null || true
-            wait "$gradle_pid" 2>/dev/null || true
-          }
-          trap cleanup EXIT
-          ready=false
-          for attempt in $(seq 1 120); do
-            if curl --silent --fail http://127.0.0.1:9200/_cluster/health > /dev/null; then
-              ready=true
-              break
-            fi
-            kill -0 "$gradle_pid" 2>/dev/null ||
-              { echo "::error::Gradle run task stopped before cluster startup"; exit 1; }
-            echo "Waiting for candidate cluster (${attempt}/120)"
-            sleep 5
-          done
-          [[ "$ready" == true ]] || { echo "::error::Candidate cluster did not become ready"; exit 1; }
-          code=$(curl --silent --show-error --output ppl-grammar-bundle.json --write-out '%{http_code}' \
-            http://127.0.0.1:9200/_plugins/_ppl/_grammar)
-          [[ "$code" == 200 ]] || { echo "::error::Grammar endpoint returned HTTP $code"; exit 1; }
-          jq -e '
-            type == "object"
-            and (.bundleVersion | type == "string" and length > 0)
-            and (.antlrVersion | type == "string" and length > 0)
-            and (.grammarHash | type == "string" and test("^sha256:[0-9a-f]{64}$"))
-            and (.lexerSerializedATN | type == "array" and length > 0)
-            and (.lexerRuleNames | type == "array" and length > 0)
-            and (.channelNames | type == "array" and length > 0)
-            and (.modeNames | type == "array" and length > 0)
-            and (.parserSerializedATN | type == "array" and length > 0)
-            and (.parserRuleNames | type == "array" and length > 0)
-            and (.startRuleIndex | type == "number")
-            and (.literalNames | type == "array" and length > 0 and any(.[]; . == null))
-            and (.symbolicNames | type == "array" and length > 0 and any(.[]; . == null))
-            and (.tokenDictionary | type == "object" and length > 0)
-            and (.ignoredTokens | type == "array")
-            and (.rulesToVisit | type == "array" and length > 0)
-          ' ppl-grammar-bundle.json > /dev/null
+          ./gradlew :ppl:exportPplGrammarBundle --no-daemon \
+            "-PpplGrammarBundleOutput=$GITHUB_WORKSPACE/ppl-grammar-bundle.json"
 
       - name: Cache OSD Yarn dependencies
-        if: ${{ steps.capability.outputs.available == 'true' }}
         uses: actions/cache@0c907a75c2c80ebcb7f088228285e798b750cf8f # v4
         with:
           path: ~/.cache/yarn
@@ -290,13 +200,11 @@ jobs:
           restore-keys: ${{ runner.os }}-osd-yarn-
 
       - name: Bootstrap OpenSearch Dashboards
-        if: ${{ steps.capability.outputs.available == 'true' }}
         working-directory: .ci/OpenSearch-Dashboards
         run: yarn osd bootstrap --prefer-offline
 
       - name: Validate OSD linter against candidate grammar
         id: compatibility
-        if: ${{ steps.capability.outputs.available == 'true' }}
         working-directory: .ci/OpenSearch-Dashboards
         run: |
           set +e
@@ -320,24 +228,48 @@ jobs:
             error='workflow failed before the compatibility adapter produced a report'
             if [[ -s resolved-target.json ]]; then
               jq --arg error "$error" '{
-                schemaVersion: 1,
+                schemaVersion: 2,
                 status: "error",
                 error: $error,
                 sql: .sql,
                 osd: .osd,
                 manualOverride: (.osd.override // false),
-                releaseLineValidationBypassed: (.releaseLineValidationBypassed // false),
-                rules: {selected: 0, passed: 0, failed: 0},
+                releaseLineValidationBypassed: false,
+                coverage: {
+                  catalogRuleIds: [], requiredRuleIds: [], coveredRuleIds: [],
+                  excludedRuleIds: [], excludedRules: [],
+                  missingRuleIds: [], unexpectedRuleIds: [],
+                  counts: {
+                    catalog: 0, required: 0, covered: 0,
+                    excluded: 0, missing: 0, unexpected: 0
+                  }
+                },
+                rules: {
+                  catalog: 0, required: 0, excluded: 0,
+                  selected: 0, passed: 0, failed: 0
+                },
                 caseCounts: {selected: 0, passed: 0, failed: 0},
                 cases: [],
                 failures: []
               }' resolved-target.json > ppl-lint-grammar-compatibility-report.json
             else
               jq -n --arg error "$error" '{
-                schemaVersion: 1,
+                schemaVersion: 2,
                 status: "error",
                 error: $error,
-                rules: {selected: 0, passed: 0, failed: 0},
+                coverage: {
+                  catalogRuleIds: [], requiredRuleIds: [], coveredRuleIds: [],
+                  excludedRuleIds: [], excludedRules: [],
+                  missingRuleIds: [], unexpectedRuleIds: [],
+                  counts: {
+                    catalog: 0, required: 0, covered: 0,
+                    excluded: 0, missing: 0, unexpected: 0
+                  }
+                },
+                rules: {
+                  catalog: 0, required: 0, excluded: 0,
+                  selected: 0, passed: 0, failed: 0
+                },
                 caseCounts: {selected: 0, passed: 0, failed: 0},
                 cases: [],
                 failures: []
@@ -365,25 +297,20 @@ jobs:
             osd-revision.txt
             ppl-lint-grammar-compatibility-report.json
             ppl-grammar-bundle.json
-            ppl-grammar-cluster.log
           if-no-files-found: warn
 
       - name: Enforce compatibility result
         if: ${{ always() }}
         env:
-          CAPABILITY_AVAILABLE: ${{ steps.capability.outputs.available }}
           COMPATIBILITY_EXIT: ${{ steps.compatibility.outputs.exit_code }}
         run: |
           set -euo pipefail
-          if [[ "$CAPABILITY_AVAILABLE" == false ]]; then
-            jq -e '.status == "skipped"' ppl-lint-grammar-compatibility-report.json > /dev/null
-            exit 0
-          fi
           [[ -n "$COMPATIBILITY_EXIT" ]] ||
             { echo "::error::Compatibility validation did not produce an exit code"; exit 1; }
           if [[ "$COMPATIBILITY_EXIT" != 0 ]]; then
             echo "::error::PPL grammar compatibility validation exited $COMPATIBILITY_EXIT"
             exit "$COMPATIBILITY_EXIT"
           fi
-          jq -e '.status == "passed"' ppl-lint-grammar-compatibility-report.json > /dev/null ||
-            { echo "::error::Compatibility validation did not produce a passed report"; exit 1; }
+          jq -e '.status == "passed" or .status == "skipped"' \
+            ppl-lint-grammar-compatibility-report.json > /dev/null ||
+            { echo "::error::Compatibility validation did not produce a passed or skipped report"; exit 1; }

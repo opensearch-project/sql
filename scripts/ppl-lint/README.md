@@ -1,26 +1,26 @@
 # PPL grammar compatibility quick start
 
-This directory contains the grammar cases and the adapter used by
+This directory contains the SQL-owned inputs and adapter used by
 [PPL linter grammar compatibility CI](../../docs/dev/ppl-lint-grammar-compatibility-ci.md):
 
-- [grammar-cases.json](grammar-cases.json) contains grammar-only trigger and
-  control queries with expected diagnostic counts.
-- [validate-osd-grammar.mjs](validate-osd-grammar.mjs) loads the paired OSD
-  headless linter API and writes the compatibility report.
-- [ppl-lint-rule-validation.sh](../ppl-lint-rule-validation.sh) resolves local
-  metadata, captures the candidate SQL grammar, bootstraps OSD, and invokes the
-  adapter.
+- [grammar-cases.json](grammar-cases.json) contains trigger/control cases and
+  justified catalog exclusions.
+- [validate-osd-grammar.mjs](validate-osd-grammar.mjs) resolves the paired OSD
+  headless API, validates catalog coverage, and writes report schema version 2.
+- [ppl-lint-rule-validation.sh](../ppl-lint-rule-validation.sh) verifies the
+  selected checkouts, exports the candidate grammar, bootstraps OSD, and invokes
+  the adapter once.
 
-The temporary OpenSearch process serves only
-`GET /_plugins/_ppl/_grammar`. This validation creates no indices or fixtures
-and sends no backend PPL queries.
+The grammar is a build artifact of the generated ANTLR classes. The wrapper
+exports it through `:ppl:exportPplGrammarBundle`; it does not start OpenSearch,
+open a port, call the plugin REST endpoint, create indices, or execute PPL.
 
 ## Prerequisites
 
 - JDK 21;
 - Node from the selected OSD checkout's `.nvmrc`;
 - the Yarn version required by that checkout's `package.json`;
-- `curl`, `git`, `jq`, and an available local port `9200`; and
+- `git` and `jq`; and
 - either a local OSD checkout or permission to clone
   `opensearch-project/OpenSearch-Dashboards`.
 
@@ -32,9 +32,8 @@ From the SQL repository root:
 ./scripts/ppl-lint-rule-validation.sh
 ```
 
-With no options, the wrapper pairs local SQL with OSD `main` and clones OSD
-into `.ci/OpenSearch-Dashboards` when that checkout does not exist. To use a
-sibling checkout:
+With no options, the wrapper pairs local SQL with OSD `main` and manages a
+checkout in `.ci/OpenSearch-Dashboards`. To use a sibling checkout:
 
 ```bash
 ./scripts/ppl-lint-rule-validation.sh \
@@ -43,18 +42,22 @@ sibling checkout:
 ```
 
 For an exact release branch, check out the same `X.Y` line in both repositories
-and use `--target-branch X.Y --osd-ref X.Y`. The wrapper rejects SQL or OSD
-versions outside that release line. On `main`, it records both product versions
-without requiring their release lines to match.
+and use `--target-branch X.Y --osd-ref X.Y`. The wrapper requires both products
+to report `X.Y.z`. On `main`, it records both product versions without requiring
+their release lines to match.
 
-The wrapper checks OSD capability before starting OpenSearch. If the headless
-module is absent, it writes a `skipped` report and exits `0`.
+The adapter is the only authority on OSD headless API availability. The wrapper
+does not inspect module filenames or extensions. A truly absent legacy API
+produces a visible `skipped` report; an entry point that resolves but fails to
+load or lacks required exports is a structural failure.
+
+Set `PPL_LINT_SKIP_OSD_BOOTSTRAP=1` only when the selected checkout has already
+been bootstrapped and its generated targets are current.
 
 ## Exact CI reproduction
 
-Start with `resolved-target.json` from the
-`ppl-lint-grammar-compatibility` artifact. Check out the report's tested SQL SHA
-and OSD SHA, not current branch tips:
+Download `resolved-target.json` from the
+`ppl-lint-grammar-compatibility` artifact, then check out the exact tested SHAs:
 
 ```bash
 git checkout --detach "$(jq -r '.sql.sha' /path/to/resolved-target.json)"
@@ -66,12 +69,10 @@ git -C ../OpenSearch-Dashboards checkout --detach \
   --osd-root ../OpenSearch-Dashboards
 ```
 
-Fetch either SHA from its repository first if it is not present locally. The
-wrapper verifies both checkout SHAs and both product versions against the
-target file before doing any validation. For pull requests, `.sql.sha` is the
-tested merge revision; `.sql.headSha` is traceability metadata, not a
-substitute. A dispatch artifact with `releaseLineValidationBypassed: true`
-retains that development-only bypass during exact reproduction.
+Fetch either SHA first if it is not present locally. The wrapper verifies both
+checkout SHAs and both product versions before exporting or validating. For
+pull requests, `.sql.sha` is the tested merge revision; `.sql.headSha` is
+traceability metadata and is not a substitute.
 
 ## Local files
 
@@ -80,72 +81,36 @@ The wrapper defaults to these repository-root paths:
 | Path | Role |
 | --- | --- |
 | `resolved-target.json` | Generated SQL/OSD metadata when `--target` is omitted |
-| `ppl-grammar-bundle.json` | Captured production grammar endpoint response |
-| `scripts/ppl-lint/grammar-cases.json` | SQL-owned trigger/control input |
+| `ppl-grammar-bundle.json` | Direct grammar exporter output |
+| `scripts/ppl-lint/grammar-cases.json` | Cases and explicit exclusions |
 | `ppl-lint-grammar-compatibility-report.json` | Machine-readable result |
-| `ppl-lint-grammar-summary.md` | Local human-readable summary |
-| `ppl-grammar-cluster.log` | Gradle development-cluster output |
+| `ppl-lint-grammar-summary.md` | Human-readable summary |
 
-Override these with `--grammar`, `--cases`, `--report`, `--summary`, and
-`--cluster-log`.
-
-A capability skip does not start the cluster, so no bundle or cluster log is
-expected.
+Override output/input paths with `--grammar`, `--cases`, `--report`, and
+`--summary`.
 
 ## Primitive debugging
 
-Inspect the versions using the same sources as CI:
+Export the candidate bundle directly:
 
 ```bash
-sed -nE \
-  's/.*opensearch_version = System\.getProperty\("opensearch\.version", "([^"]+)"\).*/\1/p' \
-  build.gradle
-
-cd ../OpenSearch-Dashboards
-nvm use
-yarn --silent pkg-version
-```
-
-Check capability:
-
-```bash
-HEADLESS=../OpenSearch-Dashboards/src/plugins/data/public/antlr/opensearch_ppl/headless_ppl_lint
-test -f "${HEADLESS}.ts" || test -f "${HEADLESS}.js"
-```
-
-Start the existing SQL development cluster from the SQL root:
-
-```bash
-./gradlew :opensearch-sql-plugin:run
-```
-
-In another terminal, capture and inspect the endpoint:
-
-```bash
-curl --fail --silent --show-error \
-  http://127.0.0.1:9200/_plugins/_ppl/_grammar \
-  --output ppl-grammar-bundle.json
+./gradlew :ppl:exportPplGrammarBundle --no-daemon \
+  -PpplGrammarBundleOutput="$PWD/ppl-grammar-bundle.json"
 
 jq -e '
   (.grammarHash | test("^sha256:[0-9a-fA-F]{64}$")) and
   (.lexerSerializedATN | length > 0) and
-  (.parserSerializedATN | length > 0) and
-  (.lexerRuleNames | length > 0) and
-  (.parserRuleNames | length > 0)
+  (.parserSerializedATN | length > 0)
 ' ppl-grammar-bundle.json
 ```
 
-Stop the development cluster after capture. The wrapper is preferred for normal
-use because its trap stops the process on success and failure.
-
-To run only the adapter after `resolved-target.json` and the bundle exist,
-bootstrap the exact OSD checkout first with `yarn osd bootstrap` unless its
-generated targets already match that revision:
+To invoke only the adapter, bootstrap the exact OSD checkout first:
 
 ```bash
 SQL_ROOT=/absolute/path/to/sql
 OSD_ROOT=/absolute/path/to/OpenSearch-Dashboards
 cd "$OSD_ROOT"
+yarn osd bootstrap
 
 node -r ./src/setup_node_env \
   "$SQL_ROOT/scripts/ppl-lint/validate-osd-grammar.mjs" \
@@ -160,54 +125,55 @@ node -r ./src/setup_node_env \
 
 ## Report results
 
-Minimal passed result:
+Schema version 2 records catalog classification as well as behavior:
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "status": "passed",
   "sql": {"sha": "<sql-sha>", "targetBranch": "main", "version": "X.Y.Z"},
   "osd": {"ref": "main", "sha": "<osd-sha>", "version": "X.Y.Z"},
-  "manualOverride": false,
   "grammarHash": "sha256:<hash>",
-  "rules": {"selected": 9, "passed": 9, "failed": 0},
-  "caseCounts": {"selected": 18, "passed": 18, "failed": 0},
+  "coverage": {
+    "catalogRuleIds": ["..."],
+    "requiredRuleIds": ["..."],
+    "coveredRuleIds": ["..."],
+    "excludedRuleIds": ["..."],
+    "excludedRules": [{"ruleId": "...", "reason": "..."}],
+    "missingRuleIds": [],
+    "unexpectedRuleIds": [],
+    "counts": {
+      "catalog": 18, "required": 16, "covered": 16,
+      "excluded": 2, "missing": 0, "unexpected": 0
+    }
+  },
+  "rules": {
+    "catalog": 18, "required": 16, "excluded": 2,
+    "selected": 16, "passed": 16, "failed": 0
+  },
+  "caseCounts": {"selected": 32, "passed": 32, "failed": 0},
   "failures": []
 }
 ```
 
-Minimal skipped result:
-
-```json
-{
-  "schemaVersion": 1,
-  "status": "skipped",
-  "skipReason": "osd-headless-grammar-api-unavailable",
-  "sql": {"sha": "<sql-sha>", "targetBranch": "X.Y", "version": "X.Y.Z"},
-  "osd": {"ref": "X.Y", "sha": "<osd-sha>", "version": "X.Y.Z"},
-  "rules": {"selected": 0, "passed": 0, "failed": 0},
-  "caseCounts": {"selected": 0, "passed": 0, "failed": 0}
-}
-```
-
-Exit codes:
+A legacy skip has `status: "skipped"` and
+`skipReason: "osd-headless-grammar-api-unavailable"`.
 
 | Code | Meaning |
 | ---: | --- |
-| `0` | Passed, or skipped because the paired OSD API is absent |
+| `0` | Passed, or skipped because the paired OSD API is genuinely absent |
 | `1` | A diagnostic count mismatch or per-case execution failure |
-| `2` | Structural input, pairing, bundle, coverage, or advertised-API failure |
+| `2` | Pairing, input, bundle, coverage, or advertised-API failure |
 
 ## Common outcomes
 
 | Outcome | Action |
 | --- | --- |
-| Exact `X.Y` version mismatch | Verify both checkouts and branch-cut state; do not use OSD `main` |
-| `osd-headless-grammar-api-unavailable` | No product fix; confirm exact metadata and successful skip |
-| Module exists but exports fail to load | Treat as an OSD supported-path API regression |
-| Cluster startup or grammar GET fails | Inspect `ppl-grammar-cluster.log` |
-| Bundle is malformed or cannot deserialize | Check the SQL grammar endpoint schema and generated grammar |
-| Rule lacks trigger/control coverage | Add the missing grammar case before interpreting detector results |
-| Case names a missing OSD rule | Review the OSD catalog change, then update the stale SQL case |
-| Trigger count drops | SQL grammar and OSD rule owners inspect parser node names and tree shape |
-| Control count rises | OSD rule owner checks whether matching broadened intentionally |
+| Exact `X.Y` version mismatch | Verify both checkouts and branch-cut state; do not substitute OSD `main` |
+| `osd-headless-grammar-api-unavailable` | Confirm the exact old OSD SHA and the visible skip |
+| Module resolves but import/exports fail | Treat as an OSD headless API regression |
+| Export task fails | Inspect the `:ppl` build and generated ANTLR sources |
+| Bundle cannot deserialize | Check exporter schema and generated grammar compatibility |
+| Catalog coverage is incomplete | Add trigger/control cases or a justified exclusion |
+| Trigger count drops | Inspect SQL grammar changes and the OSD rule's parse-tree assumptions |
+| Control count rises | Check whether the OSD rule broadened intentionally |
