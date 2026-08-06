@@ -249,6 +249,13 @@ public class PredicateAnalyzer {
     }
   }
 
+  /**
+   * Date/time conversion operators, i.e. the ones that only reinterpret the value. A conversion to
+   * the type the field already has is a no-op and can be folded away; see {@link
+   * Visitor#isRedundantDateCastOverField}.
+   */
+  private static final Set<String> DATE_CONVERSION_OPERATORS = Set.of("TIMESTAMP", "DATE", "TIME");
+
   /** Traverses {@link RexNode} tree and builds OpenSearch query. */
   static class Visitor extends RexVisitorImpl<Expression> {
 
@@ -1026,6 +1033,14 @@ public class PredicateAnalyzer {
         return false;
       }
       if (!(call.getOperands().get(0) instanceof RexInputRef inputRef)) {
+        return false;
+      }
+      // Only a cast or a date/time conversion operator can be a no-op. The result type alone is not
+      // sufficient: other single-argument functions also return a date/time type while changing the
+      // value (LAST_DAY being the clearest example), and folding those away would be wrong.
+      if (call.getKind() != SqlKind.CAST
+          && !DATE_CONVERSION_OPERATORS.contains(
+              call.getOperator().getName().toUpperCase(Locale.ROOT))) {
         return false;
       }
       // Date/time values are modelled as UDTs (EXPR_DATE/EXPR_TIME/EXPR_TIMESTAMP) whose backing

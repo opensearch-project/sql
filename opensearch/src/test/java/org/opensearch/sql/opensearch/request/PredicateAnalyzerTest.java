@@ -1334,6 +1334,30 @@ public class PredicateAnalyzerTest {
   }
 
   @Test
+  void equals_lastDayOverTimestampField_isNotFoldedAndFallsBackToScript()
+      throws ExpressionNotAnalyzableException {
+    // LAST_DAY takes a single date/time argument and returns a date/time type, but it changes the
+    // value, so it must not be treated as a redundant conversion. Only CAST and the
+    // timestamp()/date()/time() conversion operators are foldable.
+    final RelDataType rowType =
+        builder
+            .getTypeFactory()
+            .builder()
+            .kind(StructKind.FULLY_QUALIFIED)
+            .add("a", builder.getTypeFactory().createSqlType(SqlTypeName.BIGINT))
+            .add("b", builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR))
+            .add("c", builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR))
+            .add("d", typeFactory.createUDT(ExprUDT.EXPR_TIMESTAMP))
+            .build();
+    RexNode wrapped = PPLFuncImpTable.INSTANCE.resolve(builder, "last_day", field4);
+    RexNode call = builder.makeCall(SqlStdOperatorTable.EQUALS, wrapped, dateTimeLiteral);
+    QueryBuilder result =
+        PredicateAnalyzer.analyzeExpression(call, schema, fieldTypes, rowType, cluster).builder();
+
+    assertInstanceOf(ScriptQueryBuilder.class, result);
+  }
+
+  @Test
   void lte_dateCastOverTimestampField_isNotFoldedAndFallsBackToScript()
       throws ExpressionNotAnalyzableException {
     // date(<timestamp field>) truncates the time component, so it is NOT a redundant wrap and must
