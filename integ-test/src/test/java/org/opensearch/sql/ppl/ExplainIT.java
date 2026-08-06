@@ -76,6 +76,36 @@ public class ExplainIT extends PPLIntegTestCase {
                 + "| where birthdate < '2018-11-09 00:00:00.000000000' "));
   }
 
+  /**
+   * Wrapping an already timestamp-typed field in timestamp() is a no-op, so the comparison must
+   * still push down to a native range query instead of falling back to a per-document script.
+   */
+  @Test
+  public void testFilterTimestampWrappedFieldPushDownExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_filter_push_timestamp_wrapped_field.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_bank"
+                + "| where timestamp(birthdate) > cast('2016-12-08 00:00:00' as timestamp) "
+                + "| where timestamp(birthdate) < cast('2018-11-09 00:00:00' as timestamp) "));
+  }
+
+  /**
+   * last_day() takes a single date argument and returns a date, but it changes the value, so it is
+   * not a redundant conversion and must not be folded to the bare field -- it stays on the script
+   * path rather than becoming a range query.
+   */
+  @Test
+  public void testFilterLastDayOverDateFieldNoPushDownExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_filter_last_day_no_push.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_date_formats | fields yyyy-MM-dd"
+                + "| where last_day(yyyy-MM-dd) = date('2018-11-30') "));
+  }
+
   @Test
   public void testFilterByCompareStringDatePushDownExplain() throws IOException {
     String expected = loadExpectedPlan("explain_filter_push_compare_date_string.yaml");
