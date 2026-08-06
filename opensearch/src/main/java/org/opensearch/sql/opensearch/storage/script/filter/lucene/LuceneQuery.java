@@ -52,11 +52,11 @@ public abstract class LuceneQuery {
    * @return return true if supported, otherwise false.
    */
   public boolean canSupport(FunctionExpression func) {
-    return (func.getArguments().size() == 2)
+    return ((func.getArguments().size() == 2)
             && (func.getArguments().get(0) instanceof ReferenceExpression
                 || referenceWrappedByRedundantDateCast(func.getArguments().get(0)))
             && (func.getArguments().get(1) instanceof LiteralExpression
-                || literalExpressionWrappedByCast(func))
+                || literalExpressionWrappedByCast(func)))
         || isMultiParameterQuery(func);
   }
 
@@ -98,34 +98,45 @@ public abstract class LuceneQuery {
     return false;
   }
 
+  /** Date/time cast functions mapped to the type each one produces. */
+  private static final Map<FunctionName, ExprCoreType> DATE_CAST_TARGET_TYPES =
+      ImmutableMap.<FunctionName, ExprCoreType>builder()
+          .put(BuiltinFunctionName.CAST_TO_TIMESTAMP.getName(), ExprCoreType.TIMESTAMP)
+          .put(BuiltinFunctionName.TIMESTAMP.getName(), ExprCoreType.TIMESTAMP)
+          .put(BuiltinFunctionName.CAST_TO_DATE.getName(), ExprCoreType.DATE)
+          .put(BuiltinFunctionName.DATE.getName(), ExprCoreType.DATE)
+          .put(BuiltinFunctionName.CAST_TO_TIME.getName(), ExprCoreType.TIME)
+          .put(BuiltinFunctionName.TIME.getName(), ExprCoreType.TIME)
+          .build();
+
   /**
    * Check if the left operand is a date/time cast (or the {@code timestamp()}/{@code date()}/{@code
-   * time()} builtin) applied to a reference whose field type is already an {@link
-   * OpenSearchDateType}. Wrapping an already date/time-typed field in such a cast does not change
-   * its ordering, so the wrap is redundant and can be unwrapped, letting the predicate push down to
-   * a native range/term query instead of falling back to a per-document script.
+   * time()} builtin) applied to a reference of <b>the same</b> date/time type. Such a wrap is a
+   * no-op, so it can be unwrapped, letting the predicate push down to a native range/term query
+   * instead of falling back to a per-document script.
+   *
+   * <p>The cast target must match the field type exactly. A cast that changes the date/time type is
+   * a real conversion and must not be folded: {@code date(<timestamp field>)} truncates the time
+   * component (so {@code date(ts) <= '2024-01-15'} is not {@code ts <= '2024-01-15'}), and {@code
+   * time(<timestamp field>)} extracts the time of day, which is not even monotonic with respect to
+   * the timestamp.
    *
    * @param arg left operand of the comparison.
-   * @return true if the operand is a redundant, range-preserving date/time cast over a reference.
+   * @return true if the operand is a redundant, order-preserving date/time cast over a reference.
    */
   protected boolean referenceWrappedByRedundantDateCast(Expression arg) {
     if (!(arg instanceof FunctionExpression)) {
       return false;
     }
     FunctionExpression fn = (FunctionExpression) arg;
-    FunctionName name = fn.getFunctionName();
-    boolean isDateCast =
-        name.equals(BuiltinFunctionName.CAST_TO_TIMESTAMP.getName())
-            || name.equals(BuiltinFunctionName.CAST_TO_DATE.getName())
-            || name.equals(BuiltinFunctionName.CAST_TO_TIME.getName())
-            || name.equals(BuiltinFunctionName.TIMESTAMP.getName())
-            || name.equals(BuiltinFunctionName.DATE.getName())
-            || name.equals(BuiltinFunctionName.TIME.getName());
-    if (!isDateCast || fn.getArguments().size() != 1) {
+    ExprCoreType castTarget = DATE_CAST_TARGET_TYPES.get(fn.getFunctionName());
+    if (castTarget == null || fn.getArguments().size() != 1) {
       return false;
     }
     Expression inner = fn.getArguments().get(0);
-    return inner instanceof ReferenceExpression && inner.type() instanceof OpenSearchDateType;
+    return inner instanceof ReferenceExpression
+        && inner.type() instanceof OpenSearchDateType dateType
+        && castTarget.equals(dateType.getExprCoreType());
   }
 
   /**

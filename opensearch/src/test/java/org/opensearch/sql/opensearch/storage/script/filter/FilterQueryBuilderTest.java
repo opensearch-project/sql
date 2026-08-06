@@ -183,6 +183,24 @@ class FilterQueryBuilderTest {
   }
 
   @Test
+  void should_not_push_down_when_date_cast_changes_the_date_type() {
+    // date()/time() over a timestamp field are real conversions, not no-ops: date() truncates the
+    // time component and time() extracts the time of day (not monotonic in the timestamp), so they
+    // must keep using the script path rather than being folded to the bare field.
+    mockToStringSerializer();
+    OpenSearchDateType dateType = OpenSearchDateType.of(TIMESTAMP);
+    Expression[] predicates = {
+      DSL.lte(DSL.date(ref("datetime", dateType)), DSL.castDate(literal("2021-11-08"))),
+      DSL.gte(DSL.time(ref("datetime", dateType)), DSL.castTime(literal("17:00:00")))
+    };
+    for (Expression predicate : predicates) {
+      String query = buildQuery(predicate);
+      assertTrue(query.contains("script"), query);
+      assertFalse(query.contains("\"range\""), query);
+    }
+  }
+
+  @Test
   void should_not_push_down_when_date_cast_wraps_non_date_field() {
     // Casting a non-date field to a timestamp is a real, not necessarily order-preserving,
     // conversion, so it must stay on the script path (the fold only applies to date-typed fields).
