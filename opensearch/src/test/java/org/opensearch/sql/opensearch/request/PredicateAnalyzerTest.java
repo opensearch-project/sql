@@ -1305,6 +1305,61 @@ public class PredicateAnalyzerTest {
   }
 
   @Test
+  void gte_redundantTimestampCastOverTimestampField_generatesRangeQuery()
+      throws ExpressionNotAnalyzableException {
+    // timestamp(<timestamp field>) is a no-op wrap, so the comparison must still push down to a
+    // native range query instead of falling back to a per-document script.
+    RexNode wrapped = PPLFuncImpTable.INSTANCE.resolve(builder, "timestamp", field4);
+    RexNode call =
+        builder.makeCall(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, wrapped, dateTimeLiteral);
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+
+    assertInstanceOf(RangeQueryBuilder.class, result);
+    assertEquals(
+        """
+        {
+          "range" : {
+            "d" : {
+              "from" : "1987-02-03T04:34:56.000Z",
+              "to" : null,
+              "include_lower" : true,
+              "include_upper" : true,
+              "format" : "date_time",
+              "boost" : 1.0
+            }
+          }
+        }\
+        """,
+        result.toString());
+  }
+
+  @Test
+  void lte_dateCastOverTimestampField_isNotFoldedAndFallsBackToScript()
+      throws ExpressionNotAnalyzableException {
+    // date(<timestamp field>) truncates the time component, so it is NOT a redundant wrap and must
+    // not be folded to the bare field: `date(ts) <= '1987-02-03'` is not `ts <= '1987-02-03'`.
+    // It therefore stays on the script path rather than becoming a range query.
+    final RelDataType rowType =
+        builder
+            .getTypeFactory()
+            .builder()
+            .kind(StructKind.FULLY_QUALIFIED)
+            .add("a", builder.getTypeFactory().createSqlType(SqlTypeName.BIGINT))
+            .add("b", builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR))
+            .add("c", builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR))
+            .add("d", typeFactory.createUDT(ExprUDT.EXPR_TIMESTAMP))
+            .build();
+    RexNode wrapped = PPLFuncImpTable.INSTANCE.resolve(builder, "date", field4);
+    RexNode dateLiteral =
+        builder.makeLiteral("1987-02-03", typeFactory.createUDT(ExprUDT.EXPR_DATE), true);
+    RexNode call = builder.makeCall(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, wrapped, dateLiteral);
+    QueryBuilder result =
+        PredicateAnalyzer.analyzeExpression(call, schema, fieldTypes, rowType, cluster).builder();
+
+    assertInstanceOf(ScriptQueryBuilder.class, result);
+  }
+
+  @Test
   void isTrue_booleanField_generatesTermQuery() throws ExpressionNotAnalyzableException {
     // IS_TRUE(boolean_field) should generate a term query with value true
     RexNode call = builder.makeCall(SqlStdOperatorTable.IS_TRUE, field5);

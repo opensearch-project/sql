@@ -365,6 +365,14 @@ public class PredicateAnalyzer {
 
     @Override
     public Expression visitCall(RexCall call) {
+      // Fold a redundant date/time cast over a field of the same date/time type -- e.g.
+      // timestamp(<timestamp field>) or CAST(<timestamp field> AS TIMESTAMP) -- to the bare field
+      // reference. Such a wrap is a no-op, so the enclosing comparison can push down to a native
+      // range query instead of falling back to a per-document script.
+      if (isRedundantDateCastOverField(call)) {
+        return visitInputRef((RexInputRef) call.getOperands().get(0));
+      }
+
       SqlSyntax syntax = call.getOperator().getSyntax();
       if (!supportedRexCall(call)) {
         String message = format(Locale.ROOT, "Unsupported call: [%s]", call);
@@ -998,6 +1006,39 @@ public class PredicateAnalyzer {
     private CastExpression toCastExpression(RexCall call) {
       TerminalExpression argument = (TerminalExpression) call.getOperands().get(0).accept(this);
       return new CastExpression(call.getType(), argument);
+    }
+
+    /**
+     * True if {@code call} is a date/time cast — a {@code CAST(... AS TIMESTAMP/DATE/TIME)} or the
+     * {@code timestamp()}/{@code date()}/{@code time()} builtins, both of which yield a date/time
+     * UDT — applied to a single field reference whose own type is <b>the same</b> date/time type.
+     * Such a wrap is a no-op, so it is redundant for a comparison and can be unwrapped to the bare
+     * field, letting the predicate push down instead of falling back to a per-document script.
+     *
+     * <p>The target type must match the field type exactly. A cast that changes the date/time type
+     * is a real conversion and must not be folded: {@code date(<timestamp field>)} truncates the
+     * time component (so {@code date(ts) <= '2024-01-15'} is not {@code ts <= '2024-01-15'}), and
+     * {@code time(<timestamp field>)} extracts the time of day, which is not even monotonic with
+     * respect to the timestamp.
+     */
+    private boolean isRedundantDateCastOverField(RexCall call) {
+      if (call.getOperands().size() != 1) {
+        return false;
+      }
+      if (!(call.getOperands().get(0) instanceof RexInputRef inputRef)) {
+        return false;
+      }
+      // Date/time values are modelled as UDTs (EXPR_DATE/EXPR_TIME/EXPR_TIMESTAMP) whose backing
+      // SqlTypeName is VARCHAR, so the UDT identifies the cast target -- not getSqlTypeName().
+      if (!(call.getType() instanceof ExprSqlType exprSqlType)) {
+        return false;
+      }
+      ExprUDT udt = exprSqlType.getUdt();
+      if (udt != ExprUDT.EXPR_TIMESTAMP && udt != ExprUDT.EXPR_DATE && udt != ExprUDT.EXPR_TIME) {
+        return false;
+      }
+      ExprType fieldType = new NamedFieldExpression(inputRef, schema, fieldTypes).getCoreExprType();
+      return udt.getExprCoreType().equals(fieldType);
     }
 
     private static NamedFieldExpression toNamedField(RexLiteral literal) {
@@ -1869,6 +1910,17 @@ public class PredicateAnalyzer {
               type.getOriginalExprType() instanceof OpenSearchDataType osType
                   ? osType.getExprCoreType()
                   : type.getOriginalExprType());
+    }
+
+    /** The field's underlying core type, unwrapping {@link OpenSearchDataType} if present. */
+    @Nullable
+    ExprType getCoreExprType() {
+      if (type == null) {
+        return null;
+      }
+      return type.getOriginalExprType() instanceof OpenSearchDataType osType
+          ? osType.getExprCoreType()
+          : type.getOriginalExprType();
     }
 
     boolean isTextType() {
