@@ -44,6 +44,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.calcite.OpenSearchSchema;
+import org.opensearch.sql.calcite.SearchPredicateCompiler;
 import org.opensearch.sql.calcite.SysLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;

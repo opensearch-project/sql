@@ -356,9 +356,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   /** Builds a query_string operand containing standard scalar subqueries for implicit format. */
   private UnresolvedExpression buildRuntimeSearchQuery(
-      SearchExpression expression,
-      CalcitePlanContext context,
-      Map<String, ExprType> typesByName) {
+      SearchExpression expression, CalcitePlanContext context, Map<String, ExprType> typesByName) {
     if (expression instanceof SearchSubquery subquery) {
       int maxResults = Math.max(0, context.sysLimit.subsearchLimit());
       Format format =
@@ -1041,7 +1039,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return context.relBuilder.peek();
   }
 
-  /** Collapses all user-facing input fields into one Splunk-compatible search expression. */
+  /** Collapses all user-facing input fields into one search expression. */
   @Override
   public RelNode visitFormat(Format node, CalcitePlanContext context) {
     visitChildren(node, context);

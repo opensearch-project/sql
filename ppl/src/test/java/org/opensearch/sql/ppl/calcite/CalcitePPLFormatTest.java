@@ -12,6 +12,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Assert;
 import org.junit.Test;
+import org.opensearch.sql.exception.SemanticCheckException;
 
 public class CalcitePPLFormatTest extends CalcitePPLAbstractTest {
 
@@ -176,9 +177,48 @@ public class CalcitePPLFormatTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testSearchOperatorFieldNameUsesPplIdentifierQuoting() {
+    withPPLQuery("source=EMP | head 1 | eval `AND`='reserved' | fields `AND` | format")
+        .expectResult("search=( ( `AND`=\"reserved\" ) )\n");
+  }
+
+  @Test
   public void testAllSixDelimitersAreRequired() {
     assertThrows(
         RuntimeException.class,
         () -> getRelNode("source=EMP | fields ENAME | format \"[\" \"[\" \"AND\""));
+  }
+
+  @Test
+  public void testUnsupportedMapFieldReportsActionableError() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                getRelNode(
+                    "source=EMP | head 1 | eval json='{\"status\":500}'"
+                        + " | spath input=json output=payload | fields payload | format"));
+
+    Assert.assertEquals(
+        "The format command cannot convert field 'payload' of type MAP<VARCHAR, VARCHAR> to text."
+            + " Select scalar fields before format.",
+        exception.getMessage());
+  }
+
+  @Test
+  public void testImplicitFormatRejectsUnsupportedMapFieldWithActionableError() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                getRelNode(
+                    "search source=EMP [ search source=EMP | head 1"
+                        + " | eval json='{\"status\":500}'"
+                        + " | spath input=json output=payload | fields payload ]"));
+
+    Assert.assertEquals(
+        "The subsearch cannot use field 'payload' of type MAP<VARCHAR, VARCHAR> in a search"
+            + " predicate. Return scalar fields from the subsearch instead.",
+        exception.getMessage());
   }
 }

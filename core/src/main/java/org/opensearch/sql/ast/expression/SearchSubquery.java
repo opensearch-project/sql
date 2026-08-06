@@ -6,11 +6,13 @@
 package org.opensearch.sql.ast.expression;
 
 import java.util.List;
+import java.util.function.Function;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.data.type.ExprType;
 
 /** A subsearch used as a predicate term by the parent {@code search} command. */
 @Getter
@@ -22,7 +24,7 @@ public class SearchSubquery extends SearchExpression {
   private final UnresolvedPlan query;
 
   @Override
-  public String toQueryString() {
+  public String toQueryString(Function<String, ExprType> fieldTypeResolver) {
     throw new IllegalStateException(
         "An implicit search subquery must be planned as a correlated runtime input");
   }

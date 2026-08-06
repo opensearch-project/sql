@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
 import org.junit.Test;
+import org.opensearch.sql.exception.SemanticCheckException;
 
 public class PPLSearchPredicateCompilerTest {
 
@@ -40,10 +41,23 @@ public class PPLSearchPredicateCompilerTest {
   @Test
   public void testCompileEmptyRawSearchFieldAsMatchAll() {
     assertEquals("*:*", compiler.compile(""));
+    assertEquals("*:*", compiler.compile(null));
+    assertEquals("*:*", compiler.compile("   "));
+  }
+
+  @Test
+  public void testCompileEmptyFormatResultIgnoresCaseAndWhitespace() {
+    assertEquals("*:* AND NOT *:*", compiler.compile("not (  )"));
   }
 
   @Test
   public void testGeneratedPredicateCannotInjectPipelineCommands() {
-    assertThrows(RuntimeException.class, () -> compiler.compile("status=500 | head 1"));
+    SemanticCheckException exception =
+        assertThrows(SemanticCheckException.class, () -> compiler.compile("status=500 | head 1"));
+
+    assertEquals(
+        "The subsearch produced a value that is not a valid search predicate. Ensure the 'search'"
+            + " field contains a search expression and does not include pipeline commands.",
+        exception.getMessage());
   }
 }

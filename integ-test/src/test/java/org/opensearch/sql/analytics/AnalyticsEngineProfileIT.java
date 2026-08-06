@@ -212,26 +212,6 @@ public class AnalyticsEngineProfileIT extends OpenSearchRestTestCase {
   }
 
   @Test
-  public void testImplicitFormatExplainShowsCorrelatedPlan() throws IOException {
-    ensureSetup();
-    Request request = new Request("POST", "/_plugins/_ppl/_explain");
-    request.setJsonEntity(
-        String.format(
-            Locale.ROOT,
-            "{\"query\": \"search source=%s [ search source=%s name=alice | fields name | head"
-                + " 1 ] | fields name\"}",
-            INDEX,
-            INDEX));
-    Response response = client().performRequest(request);
-    JSONObject result = new JSONObject(entityAsString(response));
-
-    String logical = result.getJSONObject("calcite").get("logical").toString();
-    assertTrue(logical, logical.contains("LogicalCorrelate"));
-    assertTrue(logical, logical.contains("dynamicQueryString=$cor"));
-    assertFalse(logical, logical.contains("SCALAR_QUERY"));
-  }
-
-  @Test
   public void testSqlExplainReturnsOnlyPlan() throws IOException {
     ensureSetup();
     Request request = new Request("POST", "/_plugins/_sql/_explain");

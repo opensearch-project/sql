@@ -22,6 +22,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.calcite.SearchPredicateCompiler;
 import org.opensearch.sql.common.setting.Settings;
@@ -72,6 +73,9 @@ class CalciteEnumerableIndexScanTest {
         (OSRequestBuilderAction) builder -> builder.pushDownFilterForCalcite(termQuery("age", 36)));
 
     RexNode runtimePart = mock(RexNode.class);
+    RelDataType runtimePartType = mock(RelDataType.class);
+    when(runtimePart.getType()).thenReturn(runtimePartType);
+    when(runtimePartType.getSqlTypeName()).thenReturn(SqlTypeName.VARCHAR);
     SearchPredicateCompiler compiler = mock(SearchPredicateCompiler.class);
     when(compiler.compile("( account_number=\"6\" )")).thenReturn("account_number:6");
     pushDownContext.setDynamicQueryString(

@@ -206,8 +206,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan
       RexNode condition, List<RexNode> runtimePredicates, SearchPredicateCompiler compiler) {
     RexNode queryExpression = queryArgument(condition);
     if (queryExpression == null) {
-      throw new IllegalArgumentException(
-          "Dynamic query_string condition is missing its query argument");
+      throw new IllegalStateException("The search command could not apply the subsearch result.");
     }
 
     CalciteLogicalIndexScan newScan = copy();

@@ -9,6 +9,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -98,5 +99,23 @@ public class CalciteFormatCommandIT extends PPLIntegTestCase {
         rows(
             "( ( account_number=\"13\" ) OR ( account_number=\"6\" ) OR "
                 + "( account_number=\"1\" ) )"));
+  }
+
+  @Test
+  public void testUnsupportedMapFieldReportsActionableError() {
+    Throwable exception =
+        assertThrowsWithReplace(
+            RuntimeException.class,
+            () ->
+                executeQuery(
+                    "source="
+                        + TEST_INDEX_BANK
+                        + " | head 1 | eval json='{}'"
+                        + " | spath input=json output=payload | fields payload | format"));
+
+    verifyErrorMessageContains(
+        exception,
+        "The format command cannot convert field 'payload' of type MAP<VARCHAR, VARCHAR> to text."
+            + " Select scalar fields before format.");
   }
 }

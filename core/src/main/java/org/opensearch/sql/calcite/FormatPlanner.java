@@ -11,10 +11,13 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.regex.Pattern;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
@@ -24,6 +27,7 @@ import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.tools.RelBuilder;
 import org.opensearch.sql.ast.tree.Format;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
 /** Lowers the PPL {@code format} command to Calcite projects and a global aggregation. */
@@ -36,6 +40,9 @@ public class FormatPlanner {
   private static final String FORMAT_ROW_FIELD = "__format_row";
   private static final String FORMAT_ROWS_FIELD = "__format_rows";
   private static final String FORMAT_ORDER_FIELD_PREFIX = "__format_order_";
+  private static final Pattern UNQUOTED_FIELD_NAME =
+      Pattern.compile("[A-Za-z_@][A-Za-z0-9_@-]*(\\.[A-Za-z_@][A-Za-z0-9_@-]*)*");
+  private static final Set<String> SEARCH_OPERATOR_KEYWORDS = Set.of("AND", "OR", "NOT");
 
   /** Builds a single-row relation containing the formatted search expression. */
   public RelNode plan(Format node, CalcitePlanContext context) {
@@ -53,6 +60,10 @@ public class FormatPlanner {
     if (fields.isEmpty()) {
       builder.values(new String[] {SEARCH_FIELD}, node.getEmptyString());
       return builder.peek();
+    }
+    for (RelDataTypeField field : fields) {
+      validateFieldType(
+          field.getName(), field.getType(), node.isImplicit(), builder.getTypeFactory());
     }
 
     Optional<RelDataTypeField> scalarSearchField =
@@ -90,7 +101,9 @@ public class FormatPlanner {
     RelBuilder builder = context.relBuilder;
     builder.limit(0, 1);
 
-    RexNode rawSearch = builder.cast(builder.field(searchField.getIndex()), SqlTypeName.VARCHAR);
+    RelDataType varchar = builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+    RexNode rawSearch =
+        castFieldValue(searchField, builder.field(searchField.getIndex()), varchar, node, context);
     List<RexNode> fallbackFields =
         fields.stream()
             .filter(field -> field != searchField)
@@ -217,7 +230,8 @@ public class FormatPlanner {
       RelDataType varcharArray = context.rexBuilder.getTypeFactory().createArrayType(varchar, -1);
       RexNode values =
           builder.call(
-              SqlLibraryOperators.ARRAY_COMPACT, context.rexBuilder.makeCast(varcharArray, value));
+              SqlLibraryOperators.ARRAY_COMPACT,
+              castFieldValue(field, value, varcharArray, node, context));
       values = escapeArrayValues(values, varchar, context);
       String repeatedValueSeparator = "\" " + node.getMvSeparator() + " " + fieldName + "=\"";
       RexNode joinedValues = arrayJoin(context, values, repeatedValueSeparator);
@@ -229,7 +243,8 @@ public class FormatPlanner {
               stringLiteral("\" )", context));
       hasValue = builder.call(SqlStdOperatorTable.AND, hasValue, isNotEmpty(joinedValues, context));
     } else {
-      RexNode stringValue = builder.cast(value, SqlTypeName.VARCHAR);
+      RelDataType varchar = builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+      RexNode stringValue = castFieldValue(field, value, varchar, node, context);
       formattedValue =
           concat(
               context,
@@ -243,6 +258,74 @@ public class FormatPlanner {
         hasValue,
         formattedValue,
         context.rexBuilder.makeNullLiteral(formattedValue.getType()));
+  }
+
+  static void validateFieldType(
+      String fieldName, RelDataType fieldType, boolean implicit, RelDataTypeFactory typeFactory) {
+    RelDataType varchar = typeFactory.createSqlType(SqlTypeName.VARCHAR);
+    RelDataType targetType =
+        SqlTypeUtil.isArray(fieldType) || SqlTypeUtil.isMultiset(fieldType)
+            ? typeFactory.createArrayType(varchar, -1)
+            : varchar;
+    if (SqlTypeUtil.canCastFrom(targetType, fieldType, true)) {
+      return;
+    }
+
+    throw unsupportedFieldType(fieldName, fieldType, implicit, null);
+  }
+
+  private RexNode castFieldValue(
+      RelDataTypeField field,
+      RexNode value,
+      RelDataType targetType,
+      Format node,
+      CalcitePlanContext context) {
+    try {
+      return context.rexBuilder.makeCast(targetType, value);
+    } catch (RuntimeException cause) {
+      throw unsupportedFieldType(field.getName(), field.getType(), node.isImplicit(), cause);
+    }
+  }
+
+  private static SemanticCheckException unsupportedFieldType(
+      String fieldName, RelDataType fieldType, boolean implicit, RuntimeException cause) {
+    String typeName = formatTypeName(fieldType);
+    String message;
+    if (implicit) {
+      message =
+          "The subsearch cannot use field '"
+              + fieldName
+              + "' of type "
+              + typeName
+              + " in a search predicate. Return scalar fields from the subsearch instead.";
+    } else {
+      message =
+          "The format command cannot convert field '"
+              + fieldName
+              + "' of type "
+              + typeName
+              + " to text. Select scalar fields before format.";
+    }
+    return cause == null
+        ? new SemanticCheckException(message)
+        : new SemanticCheckException(message, cause);
+  }
+
+  private static String formatTypeName(RelDataType type) {
+    if (SqlTypeUtil.isArray(type) || SqlTypeUtil.isMultiset(type)) {
+      return type.getSqlTypeName() + "<" + formatTypeName(type.getComponentType()) + ">";
+    }
+    if (SqlTypeUtil.isMap(type)) {
+      return "MAP<"
+          + formatTypeName(type.getKeyType())
+          + ", "
+          + formatTypeName(type.getValueType())
+          + ">";
+    }
+    if (type.isStruct()) {
+      return "OBJECT";
+    }
+    return type.getSqlTypeName().getName();
   }
 
   private RexNode escapeValue(RexNode value, CalcitePlanContext context) {
@@ -268,7 +351,8 @@ public class FormatPlanner {
   }
 
   private String formatFieldName(String fieldName) {
-    if (fieldName.matches("[A-Za-z_@][A-Za-z0-9_@-]*(\\.[A-Za-z_@][A-Za-z0-9_@-]*)*")) {
+    if (UNQUOTED_FIELD_NAME.matcher(fieldName).matches()
+        && !SEARCH_OPERATOR_KEYWORDS.contains(fieldName.toUpperCase())) {
       return fieldName;
     }
     return "`" + fieldName.replace("`", "``") + "`";

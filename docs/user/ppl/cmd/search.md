@@ -31,7 +31,51 @@ The search expression syntax supports:
 * **Grouping using parentheses**: `(expression)`.  
 * **The `IN` operator for multiple values**: `field IN (value1, value2, value3)`.  
 * **Wildcards**: `*` (zero or more characters), `?` (exactly one character).  
-  
+
+### Bracketed subsearch predicates
+
+A bracketed subsearch can be used directly as a search expression. PPL executes the subsearch,
+formats its result as a search predicate, and combines the predicate with other parent search terms.
+The subsearch can contain pipeline commands, including commands such as `fields`, `stats`, `head`,
+and `append`.
+
+For example, the following query returns the account selected by the subsearch:
+
+```ppl
+search source=accounts [ search source=accounts account_number=6 | fields account_number ]
+| fields account_number, firstname
+```
+
+The query returns the following result:
+
+```text
+fetched rows / total rows = 1/1
++----------------+-----------+
+| account_number | firstname |
+|----------------+-----------|
+| 6              | Hattie    |
++----------------+-----------+
+```
+
+Static and subsearch predicates can be combined. The following query applies both `age=36` and the
+account number returned by the subsearch:
+
+```ppl
+search source=accounts age=36 [ search source=accounts account_number=6 | fields account_number ]
+| fields account_number, firstname, age
+```
+
+The query returns the following result:
+
+```text
+fetched rows / total rows = 1/1
++----------------+-----------+-----+
+| account_number | firstname | age |
+|----------------+-----------+-----|
+| 6              | Hattie    | 36  |
++----------------+-----------+-----+
+```
+
 ### Full-text search
 
 Unlike other PPL commands, the `search` command supports both quoted and unquoted strings. Unquoted terms are limited to alphanumeric characters, hyphens, underscores, and wildcards. Any other characters require double quotation marks.

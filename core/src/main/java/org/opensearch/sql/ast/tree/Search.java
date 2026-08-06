@@ -45,7 +45,7 @@ public class Search extends UnresolvedPlan {
   }
 
   public boolean hasImplicitSubquery() {
-    return queryString == null;
+    return originalExpression != null && containsSubquery(originalExpression);
   }
 
   private static boolean containsSubquery(SearchExpression expression) {

@@ -35,6 +35,9 @@ import org.opensearch.sql.exception.SemanticCheckException;
 /** Rewrites runtime search scalar subqueries into a standard Calcite correlate. */
 public final class RuntimeSearchCorrelator {
 
+  private static final String SUBSEARCH_APPLICATION_ERROR =
+      "The search command could not apply the subsearch result.";
+
   private RuntimeSearchCorrelator() {}
 
   /**
@@ -48,9 +51,7 @@ public final class RuntimeSearchCorrelator {
       SearchPredicateCompiler searchPredicateCompiler,
       Predicate<RexSubQuery> isImplicitFormatSubquery) {
     if (!(filterNode instanceof Filter filter)) {
-      throw new IllegalStateException(
-          "Runtime search query must produce a filter, but got "
-              + filterNode.getClass().getSimpleName());
+      throw new IllegalStateException(SUBSEARCH_APPLICATION_ERROR);
     }
     List<RexSubQuery> subqueries =
         findImplicitFormatSubqueries(filter.getCondition(), isImplicitFormatSubquery);
@@ -117,12 +118,14 @@ public final class RuntimeSearchCorrelator {
         new RexVisitorImpl<Void>(true) {
           @Override
           public Void visitSubQuery(RexSubQuery subquery) {
-            if (isImplicitFormatSubquery.test(subquery) && seen.add(subquery)) {
+            if (isImplicitFormatSubquery.test(subquery)) {
               if (subquery.rel.getRowType().getFieldCount() != 1) {
                 throw new SemanticCheckException(
                     "Implicit format subsearch must return exactly one column");
               }
-              subqueries.add(subquery);
+              if (seen.add(subquery)) {
+                subqueries.add(subquery);
+              }
             }
             return null;
           }
@@ -131,6 +134,9 @@ public final class RuntimeSearchCorrelator {
   }
 
   private static RelNode combineSubqueries(List<RexSubQuery> subqueries, RexBuilder rexBuilder) {
+    if (subqueries.isEmpty()) {
+      throw new IllegalStateException(SUBSEARCH_APPLICATION_ERROR);
+    }
     RelNode result = subqueries.getFirst().rel;
     for (int i = 1; i < subqueries.size(); i++) {
       result =
@@ -153,7 +159,7 @@ public final class RuntimeSearchCorrelator {
       SearchPredicateCompiler searchPredicateCompiler) {
     if (input instanceof DynamicQueryStringPushDown pushDown) {
       if (searchPredicateCompiler == null) {
-        throw new IllegalStateException("No PPL search predicate compiler is configured");
+        throw new IllegalStateException(SUBSEARCH_APPLICATION_ERROR);
       }
       return pushDown.pushDownDynamicQueryString(
           condition, runtimePredicates, searchPredicateCompiler);

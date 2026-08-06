@@ -7,6 +7,7 @@ package org.opensearch.sql.ppl.parser;
 
 import org.opensearch.sql.ast.expression.SearchExpression;
 import org.opensearch.sql.calcite.SearchPredicateCompiler;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchPredicateContext;
 
@@ -28,10 +29,18 @@ public final class PPLSearchPredicateCompiler implements SearchPredicateCompiler
       return "*:* AND NOT *:*";
     }
 
-    SearchPredicateContext parsed = syntaxParser.parseSearchPredicate(trimmed);
-    AstBuilder astBuilder = new AstBuilder(trimmed);
-    SearchExpression expression =
-        (SearchExpression) new AstExpressionBuilder(astBuilder).visit(parsed.searchExpression());
-    return expression.toQueryString();
+    try {
+      SearchPredicateContext parsed = syntaxParser.parseSearchPredicate(trimmed);
+      AstBuilder astBuilder = new AstBuilder(trimmed);
+      SearchExpression expression =
+          (SearchExpression) new AstExpressionBuilder(astBuilder).visit(parsed.searchExpression());
+      return expression.toQueryString();
+    } catch (RuntimeException cause) {
+      throw new SemanticCheckException(
+          "The subsearch produced a value that is not a valid search predicate. Ensure the"
+              + " 'search' field contains a search expression and does not include pipeline"
+              + " commands.",
+          cause);
+    }
   }
 }

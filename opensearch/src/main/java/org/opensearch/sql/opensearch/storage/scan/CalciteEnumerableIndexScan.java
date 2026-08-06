@@ -145,7 +145,8 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
       public Enumerator<Object> enumerator() {
         OpenSearchRequestBuilder requestBuilder = pushDownContext.createRequestBuilder();
         if (runtimeQueryParts != null) {
-          String runtimeQuery = buildRuntimeQuery(runtimeQueryParts);
+          String runtimeQuery =
+              pushDownContext.getDynamicQueryString().buildRuntimeQuery(runtimeQueryParts);
           requestBuilder.pushDownFilterForCalcite(QueryBuilders.queryStringQuery(runtimeQuery));
         }
         return new OpenSearchIndexEnumerator(
@@ -158,17 +159,5 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
             osIndex.createOpenSearchResourceMonitor());
       }
     };
-  }
-
-  private String buildRuntimeQuery(String[] queryParts) {
-    StringBuilder query = new StringBuilder();
-    for (int i = 0; i < queryParts.length; i++) {
-      String part = queryParts[i];
-      if (pushDownContext.getDynamicQueryString().runtimePredicateParts().contains(i)) {
-        part = pushDownContext.getDynamicQueryString().compiler().compile(part);
-      }
-      query.append(part);
-    }
-    return query.toString();
   }
 }
