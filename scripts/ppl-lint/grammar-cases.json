@@ -2,31 +2,31 @@
   "schemaVersion": 2,
   "excludedRules": [
     {
+      "ruleId": "head-without-sort",
+      "reason": "Disabled by default in the approved OSD release catalog; outside the active compatibility gate."
+    },
+    {
+      "ruleId": "disabled-join-type",
+      "reason": "Disabled by default in the approved OSD release catalog; outside the active compatibility gate."
+    },
+    {
+      "ruleId": "dedup-consecutive-unsupported",
+      "reason": "Disabled by default in the approved OSD release catalog; outside the active compatibility gate."
+    },
+    {
+      "ruleId": "flat-object-subfield",
+      "reason": "Disabled by default in the approved OSD release catalog; outside the active compatibility gate."
+    },
+    {
       "ruleId": "operation-not-pushed",
-      "reason": "Requires backend explain data; backend execution is outside this grammar/linter check."
+      "reason": "Disabled by default and requires backend explain data; backend execution is outside this grammar/linter check."
     },
     {
       "ruleId": "operation-pushed-as-script",
-      "reason": "Requires backend explain data; backend execution is outside this grammar/linter check."
+      "reason": "Disabled by default and requires backend explain data; backend execution is outside this grammar/linter check."
     }
   ],
   "cases": [
-    {
-      "id": "head-without-sort",
-      "ruleId": "head-without-sort",
-      "kind": "trigger",
-      "query": "source=accounts | head 5",
-      "expectedCount": 1,
-      "context": { "isCalcite": true }
-    },
-    {
-      "id": "head-with-sort-control",
-      "ruleId": "head-without-sort",
-      "kind": "control",
-      "query": "source=accounts | sort age | head 5",
-      "expectedCount": 0,
-      "context": { "isCalcite": true }
-    },
     {
       "id": "division-by-zero",
       "ruleId": "division-by-zero",
@@ -72,44 +72,6 @@
       "ruleId": "multisearch-min-subsearch",
       "kind": "control",
       "query": "multisearch [ search source=accounts ] [ search source=accounts ]",
-      "expectedCount": 0,
-      "context": { "isCalcite": true }
-    },
-    {
-      "id": "right-join-disabled",
-      "ruleId": "disabled-join-type",
-      "kind": "trigger",
-      "query": "source=accounts | join type=right left=l right=r on l.account_number=r.account_number accounts",
-      "expectedCount": 1,
-      "context": {
-        "isCalcite": true,
-        "settings": { "allJoinTypesAllowed": false }
-      }
-    },
-    {
-      "id": "inner-join-control",
-      "ruleId": "disabled-join-type",
-      "kind": "control",
-      "query": "source=accounts | join left=l right=r on l.account_number=r.account_number accounts",
-      "expectedCount": 0,
-      "context": {
-        "isCalcite": true,
-        "settings": { "allJoinTypesAllowed": false }
-      }
-    },
-    {
-      "id": "dedup-consecutive-true",
-      "ruleId": "dedup-consecutive-unsupported",
-      "kind": "trigger",
-      "query": "source=accounts | dedup firstname consecutive=true",
-      "expectedCount": 1,
-      "context": { "isCalcite": true }
-    },
-    {
-      "id": "dedup-plain-control",
-      "ruleId": "dedup-consecutive-unsupported",
-      "kind": "control",
-      "query": "source=accounts | dedup firstname",
       "expectedCount": 0,
       "context": { "isCalcite": true }
     },
@@ -208,34 +170,6 @@
         "typeMap": {
           "name": "text",
           "age": "long"
-        }
-      }
-    },
-    {
-      "id": "flat-object-subfield-reference",
-      "ruleId": "flat-object-subfield",
-      "kind": "trigger",
-      "query": "source=accounts | fields attributes.child",
-      "expectedCount": 1,
-      "context": {
-        "isCalcite": true,
-        "typeMap": {
-          "attributes": "flat_object",
-          "name": "text"
-        }
-      }
-    },
-    {
-      "id": "non-flat-field-reference-control",
-      "ruleId": "flat-object-subfield",
-      "kind": "control",
-      "query": "source=accounts | fields name",
-      "expectedCount": 0,
-      "context": {
-        "isCalcite": true,
-        "typeMap": {
-          "attributes": "flat_object",
-          "name": "text"
         }
       }
     },

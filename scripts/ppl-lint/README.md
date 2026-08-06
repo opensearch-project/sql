@@ -143,15 +143,15 @@ Schema version 2 records catalog classification as well as behavior:
     "missingRuleIds": [],
     "unexpectedRuleIds": [],
     "counts": {
-      "catalog": 18, "required": 16, "covered": 16,
-      "excluded": 2, "missing": 0, "unexpected": 0
+      "catalog": 18, "required": 12, "covered": 12,
+      "excluded": 6, "missing": 0, "unexpected": 0
     }
   },
   "rules": {
-    "catalog": 18, "required": 16, "excluded": 2,
-    "selected": 16, "passed": 16, "failed": 0
+    "catalog": 18, "required": 12, "excluded": 6,
+    "selected": 12, "passed": 12, "failed": 0
   },
-  "caseCounts": {"selected": 32, "passed": 32, "failed": 0},
+  "caseCounts": {"selected": 24, "passed": 24, "failed": 0},
   "failures": []
 }
 ```

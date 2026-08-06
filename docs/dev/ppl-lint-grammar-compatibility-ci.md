@@ -76,9 +76,13 @@ coveredRuleIds == catalogRuleIds - excludedRuleIds
 
 Every covered rule needs trigger and control cases. Every exclusion needs a
 non-empty reason. Missing rules, unknown cases, stale exclusions, overlaps, and
-duplicate IDs fail structurally. The two explain-backed rules are excluded
-because a grammar-only run has no backend explain plan; the other 16 catalog
-rules are covered.
+duplicate IDs fail structurally. The blocking set is the 12 catalog rules
+enabled by default in the approved OSD release inventory. Four default-off
+headless rules are explicitly excluded from the active gate, and the two
+default-off explain-backed rules are excluded because a grammar-only run has no
+backend explain plan. The separately configured `command-suggestion` check is a
+syntax-channel feature, not a catalog detector, so it is outside this headless
+lint adapter.
 
 ## Events
 

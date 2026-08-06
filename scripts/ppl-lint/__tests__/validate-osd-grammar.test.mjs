@@ -570,15 +570,32 @@ test('case documents must use schema version two', (t) => {
   assert.match(result.stderr, /schemaVersion must be 2/);
 });
 
-test('the repository corpus covers 16 rules and excludes only two explain rules', () => {
+test('the repository corpus covers the 12 default-enabled catalog rules', () => {
   const corpus = JSON.parse(fs.readFileSync(CORPUS, 'utf8'));
   const coveredRuleIds = [...new Set(corpus.cases.map((entry) => entry.ruleId))].sort();
   const excludedRuleIds = corpus.excludedRules.map((entry) => entry.ruleId).sort();
 
   assert.equal(corpus.schemaVersion, 2);
-  assert.equal(corpus.cases.length, 32);
-  assert.equal(coveredRuleIds.length, 16);
+  assert.equal(corpus.cases.length, 24);
+  assert.deepEqual(coveredRuleIds, [
+    'agg-on-text',
+    'division-by-zero',
+    'enabled-false-object',
+    'field-validation',
+    'invalid-capture-group-name',
+    'multisearch-min-subsearch',
+    'replace-wildcard-asymmetry',
+    'rex-scan-cost',
+    'type-mismatch-numeric',
+    'union-min-datasets',
+    'unsupported-window-function-in-eventstats',
+    'wildcard-source-zero-match',
+  ]);
   assert.deepEqual(excludedRuleIds, [
+    'dedup-consecutive-unsupported',
+    'disabled-join-type',
+    'flat-object-subfield',
+    'head-without-sort',
     'operation-not-pushed',
     'operation-pushed-as-script',
   ]);
