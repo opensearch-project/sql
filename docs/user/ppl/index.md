@@ -38,23 +38,23 @@ source=accounts
   
 | Command Name | Version Introduced | Current Status | DataFusion Backend | Command Description |
 | --- | --- | --- | --- | --- |
-| [search command](cmd/search.md) | 1.0 | stable (since 1.0) | Yes | Retrieve documents from the index. |
+| [search command](cmd/search.md) | 1.0 | stable (since 1.0) | Partial | Retrieve documents from the index. |
 | [where command](cmd/where.md) | 1.0 | stable (since 1.0) | Yes | Filter the search result using boolean expressions. |
 | [subquery command](cmd/subquery.md) | 3.0 | experimental (since 3.0) | Yes | Embed one PPL query inside another for complex filtering and data retrieval operations. |
 | [fields command](cmd/fields.md) | 1.0 | stable (since 1.0) | Yes | Keep or remove fields from the search result. |
 | [rename command](cmd/rename.md) | 1.0 | stable (since 1.0) | Yes | Rename one or more fields in the search result. |
 | [eval command](cmd/eval.md) | 1.0 | stable (since 1.0) | Yes | Evaluate an expression and append the result to the search result. |
 | [foreach command](cmd/foreach.md) | 3.8 | experimental (since 3.8) | No | Run a templated evaluation for each selected field or collection element. |
-| [convert command](cmd/convert.md) | 3.5 | experimental (since 3.5) | Yes | Transform field values to numeric values using specialized conversion functions. |
+| [convert command](cmd/convert.md) | 3.5 | experimental (since 3.5) | Partial | Transform field values to numeric values using specialized conversion functions. |
 | [replace command](cmd/replace.md) | 3.4 | experimental (since 3.4) | Yes | Replace text in one or more fields in the search result |
 | [fillnull command](cmd/fillnull.md) | 3.0 | experimental (since 3.0) | Yes | Fill null with provided value in one or more fields in the search result. |
 | [expand command](cmd/expand.md) | 3.1 | experimental (since 3.1) | No | Transform a single document into multiple documents by expanding a nested array field. |
-| [flatten command](cmd/flatten.md) | 3.1 | experimental (since 3.1) | Yes | Flatten a struct or an object field into separate fields in a document. |
+| [flatten command](cmd/flatten.md) | 3.1 | experimental (since 3.1) | No | Flatten a struct or an object field into separate fields in a document. |
 | [table command](cmd/table.md) | 3.3 | experimental (since 3.3) | Yes | Keep or remove fields from the search result using enhanced syntax options. |
 | [stats command](cmd/stats.md) | 1.0 | stable (since 1.0) | Yes | Calculate aggregation from search results. |
 | [eventstats command](cmd/eventstats.md) | 3.1 | experimental (since 3.1) | Yes | Calculate aggregation statistics and add them as new fields to each event. |
 | [streamstats command](cmd/streamstats.md) | 3.4 | experimental (since 3.4) | Partial | Calculate cumulative or rolling statistics as events are processed in order. |
-| [bin command](cmd/bin.md) | 3.3 | experimental (since 3.3) | Yes | Group numeric values into buckets of equal intervals. |
+| [bin command](cmd/bin.md) | 3.3 | experimental (since 3.3) | Partial | Group numeric values into buckets of equal intervals. |
 | [timechart command](cmd/timechart.md) | 3.3 | experimental (since 3.3) | Yes | Create time-based charts and visualizations. |
 | [chart command](cmd/chart.md) | 3.4 | experimental (since 3.4) | Yes | Apply statistical aggregations to search results and group the data for visualizations. |
 | [trendline command](cmd/trendline.md) | 3.0 | experimental (since 3.0) | Yes | Calculate moving averages of fields. |
