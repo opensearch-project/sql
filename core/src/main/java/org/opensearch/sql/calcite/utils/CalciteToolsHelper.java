@@ -556,9 +556,27 @@ public class CalciteToolsHelper {
   private static final HepProgram HEP_PROGRAM =
       new HepProgramBuilder().addRuleCollection(hepRuleList).build();
 
+  // PPLSimplifyDedupRule collapses the ROW_NUMBER window form of dedup into a LogicalDedup so
+  // DedupPushdownRule can push it into a Lucene scan. The analytics engine has no such pushdown and
+  // cannot plan a LogicalDedup, so its optimization runs the standard window form directly.
+  private static final HepProgram ANALYTICS_HEP_PROGRAM =
+      new HepProgramBuilder()
+          .addRuleCollection(
+              hepRuleList.stream()
+                  .filter(rule -> rule != PPLSimplifyDedupRule.DEDUP_SIMPLIFY_RULE)
+                  .toList())
+          .build();
+
   public static RelNode optimize(RelNode plan, CalcitePlanContext context) {
     Util.discard(context);
     HepPlanner planner = new HepPlanner(HEP_PROGRAM);
+    planner.setRoot(plan);
+    return planner.findBestExp();
+  }
+
+  public static RelNode optimizeForAnalytics(RelNode plan, CalcitePlanContext context) {
+    Util.discard(context);
+    HepPlanner planner = new HepPlanner(ANALYTICS_HEP_PROGRAM);
     planner.setRoot(plan);
     return planner.findBestExp();
   }
