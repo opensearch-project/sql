@@ -936,8 +936,66 @@ public class PPLFuncImpTable {
       return needsLong ? SqlTypeName.BIGINT : SqlTypeName.INTEGER;
     }
 
+    /**
+     * Matches {@code [ARRAY<T>, scalar]} where the scalar is comparable with the array's element
+     * type. Drives the multi-valued-field comparison overloads: equality on an ARRAY-typed field
+     * is CONTAINS (any element equals the value), mirroring Lucene's term-match semantics on
+     * multi-valued fields. The scalar side must not itself be an ARRAY — array-to-array equality
+     * stays unsupported rather than silently meaning overlap.
+     */
+    private static final PPLTypeChecker ARRAY_ELEMENT_COMPARABLE =
+        new PPLTypeChecker() {
+          @Override
+          public boolean checkOperandTypes(List<RelDataType> types) {
+            if (types.size() != 2) {
+              return false;
+            }
+            RelDataType arrayType = types.get(0);
+            RelDataType valueType = types.get(1);
+            if (arrayType.getSqlTypeName() != SqlTypeName.ARRAY
+                || valueType.getSqlTypeName() == SqlTypeName.ARRAY) {
+              return false;
+            }
+            RelDataType elementType = arrayType.getComponentType();
+            return elementType != null
+                && PPLTypeChecker.PPLComparableTypeChecker.isComparable(elementType, valueType);
+          }
+
+          @Override
+          public String getAllowedSignatures() {
+            return "[ARRAY,ELEMENT_TYPE]";
+          }
+
+          @Override
+          public List<List<RelDataType>> getParameterTypes() {
+            RelDataType anyType = TYPE_FACTORY.createSqlType(SqlTypeName.ANY);
+            return List.of(List.of(anyType, anyType));
+          }
+        };
+
     void populate() {
       // register operators for comparison
+      //
+      // Equality against a multi-valued (ARRAY-typed) field means CONTAINS, matching
+      // OpenSearch/Lucene semantics where a term query on a multi-valued field matches a
+      // document if ANY value equals the term (SortedSetDocValues / inverted-index behavior).
+      // Registered BEFORE the scalar overloads so an [ARRAY<T>, T] argument pair resolves here;
+      // scalar comparisons are untouched. array_contains uses element equality (not regex),
+      // exactly mirroring a Lucene term match.
+      register(
+          EQUAL,
+          (FunctionImp2)
+              (builder, array, value) ->
+                  builder.makeCall(SqlLibraryOperators.ARRAY_CONTAINS, array, value),
+          ARRAY_ELEMENT_COMPARABLE);
+      register(
+          NOTEQUAL,
+          (FunctionImp2)
+              (builder, array, value) ->
+                  builder.makeCall(
+                      SqlStdOperatorTable.NOT,
+                      builder.makeCall(SqlLibraryOperators.ARRAY_CONTAINS, array, value)),
+          ARRAY_ELEMENT_COMPARABLE);
       registerOperator(NOTEQUAL, PPLBuiltinOperators.NOT_EQUALS_IP, SqlStdOperatorTable.NOT_EQUALS);
       registerOperator(EQUAL, PPLBuiltinOperators.EQUALS_IP, SqlStdOperatorTable.EQUALS);
       registerOperator(GREATER, PPLBuiltinOperators.GREATER_IP, SqlStdOperatorTable.GREATER_THAN);
