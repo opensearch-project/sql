@@ -91,4 +91,29 @@ public class CalcitePPLMultikvTest extends CalcitePPLAbstractTest {
     // rejected at the field-resolution phase with actionable guidance.
     expectError("source=EMP | eval _raw = ENAME | multikv", "fields clause");
   }
+
+  @Test
+  public void testMultikvTypedTextColumnAddsCast() {
+    // A declared type lowers to a SAFE_CAST over the extraction; the untyped form has none.
+    String typed =
+        plan("source=EMP | eval _raw = ENAME | multikv fields pctIdle:long | fields pctIdle");
+    assertTrue(typed, typed.contains("MULTIKV_EXTRACT"));
+    assertTrue(typed, typed.contains("SAFE_CAST"));
+    String untyped =
+        plan("source=EMP | eval _raw = ENAME | multikv fields pctIdle | fields pctIdle");
+    assertFalse(untyped, untyped.contains("SAFE_CAST"));
+  }
+
+  @Test
+  public void testMultikvRejectsUnsupportedInlineType() {
+    expectError(
+        "source=EMP | eval _raw = ENAME | multikv fields pctIdle:ip", "is not yet supported");
+  }
+
+  @Test
+  public void testMultikvRejectsNonTextInputField() {
+    // A scalar numeric input field (EMPNO) has no table text to parse, so multikv rejects it at
+    // plan time rather than silently treating it as text.
+    expectError("source=EMP | multikv field=EMPNO fields x", "reads table-formatted text");
+  }
 }

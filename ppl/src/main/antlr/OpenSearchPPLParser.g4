@@ -678,11 +678,23 @@ multikvCommand
     ;
 
 multikvParameter
-    : FIELDS fields = fieldList
+    : FIELDS fields = multikvFieldList
     | FIELD EQUAL inField = qualifiedName
     | FORCEHEADER EQUAL forceHeader = integerLiteral
     | NOHEADER EQUAL noHeader = booleanLiteral
     | RMORIG EQUAL rmOrig = booleanLiteral
+    ;
+
+// multikv-local typed field list (keeps the shared fieldList untouched). The case-insensitive lexer
+// folds "col:" into one CLUSTER token, so the typed form is CLUSTER + type and the name is that
+// token minus its trailing colon (a typed name must start with a letter or '*').
+multikvFieldList
+    : multikvField ((COMMA)? multikvField)*
+    ;
+
+multikvField
+    : CLUSTER convertedDataType
+    | fieldExpression
     ;
 
 flattenCommand

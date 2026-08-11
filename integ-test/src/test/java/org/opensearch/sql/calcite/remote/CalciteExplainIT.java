@@ -64,6 +64,25 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.CASCADED_NESTED);
     loadIndex(Index.MVEXPAND_EDGE_CASES);
     loadIndex(Index.GRAPH_EMPLOYEES);
+
+    // multikv fixtures: a text-table field and a structured array-of-objects field so the
+    // explain tests can plan both lowering paths.
+    if (!org.opensearch.sql.legacy.TestUtils.isIndexExist(client(), "test_multikv")) {
+      org.opensearch.sql.legacy.TestUtils.createIndexByRestClient(client(), "test_multikv", null);
+      Request doc = new Request("PUT", "/test_multikv/_doc/1?refresh=true");
+      doc.setJsonEntity("{\"raw\": \"CPU pctUser pctIdle\\nall 5 90\\n0 3 92\"}");
+      client().performRequest(doc);
+    }
+    if (!org.opensearch.sql.legacy.TestUtils.isIndexExist(client(), "test_multikv_struct")) {
+      String multikvStructMapping =
+          "{\"mappings\":{\"properties\":{\"procs\":{\"type\":\"nested\","
+              + "\"properties\":{\"pid\":{\"type\":\"long\"},\"cpu\":{\"type\":\"double\"}}}}}}";
+      org.opensearch.sql.legacy.TestUtils.createIndexByRestClient(
+          client(), "test_multikv_struct", multikvStructMapping);
+      Request doc = new Request("PUT", "/test_multikv_struct/_doc/1?refresh=true");
+      doc.setJsonEntity("{\"procs\":[{\"pid\":1,\"cpu\":0.5},{\"pid\":42,\"cpu\":9.1}]}");
+      client().performRequest(doc);
+    }
   }
 
   // Only for Calcite: the rest row source explains as a CalciteScannableCatalogScan.
@@ -78,6 +97,28 @@ public class CalciteExplainIT extends ExplainIT {
   @Override
   @Ignore("test only in v2")
   public void testExplainModeUnsupportedInV2() throws IOException {}
+
+  // multikv text mode lowers to a MULTIKV_EXTRACT projection over the source field.
+  @Test
+  public void explainMultikvTextMode() throws IOException {
+    String result =
+        explainQueryToString(
+            "source=test_multikv | multikv field=raw fields pctIdle | fields pctIdle");
+    Assert.assertTrue(
+        "Expected MULTIKV_EXTRACT in the explain output, got: " + result,
+        result.contains("MULTIKV_EXTRACT"));
+  }
+
+  // fields col:type wraps the extracted column in a plan-time safe cast to the declared type.
+  @Test
+  public void explainMultikvTypedTextColumn() throws IOException {
+    String result =
+        explainQueryToString(
+            "source=test_multikv | multikv field=raw fields pctIdle:long | fields pctIdle");
+    Assert.assertTrue(
+        "Expected a SAFE_CAST over MULTIKV_EXTRACT in the explain output, got: " + result,
+        result.contains("SAFE_CAST") && result.contains("MULTIKV_EXTRACT"));
+  }
 
   // Only for Calcite
   @Test

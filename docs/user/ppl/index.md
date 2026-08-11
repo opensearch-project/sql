@@ -84,7 +84,7 @@ source=accounts
 | [explain command](cmd/explain.md) | 3.1 | stable (since 3.1) | N/A | Explain the plan of query. |
 | [show datasources command](cmd/showdatasources.md) | 2.4 | stable (since 2.4) | N/A | Query datasources configured in the PPL engine. |
 | [makeresults command](cmd/makeresults.md) | 3.8 | experimental (since 3.8) | No | Generate in-memory rows for testing and seeding, optionally from inline CSV/JSON data. |
-| [multikv command](cmd/multikv.md) | 3.8 | experimental (since 3.8) | No | Extract fields from table-formatted text in a field, emitting one row per table data row. |
+| [multikv command](cmd/multikv.md) | 3.9 | experimental (since 3.9) | No | Extract fields from table-formatted text in a field, emitting one row per table data row. |
 | [addtotals command](cmd/addtotals.md) | 3.5 | stable (since 3.5) | Yes | Adds row and column values and appends a totals column and row. |
 | [addcoltotals command](cmd/addcoltotals.md) | 3.5 | stable (since 3.5) | Yes | Adds column values and appends a totals row. |
 | [transpose command](cmd/transpose.md) | 3.5 | stable (since 3.5) | Yes | Transpose rows to columns. |

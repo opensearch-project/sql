@@ -318,30 +318,7 @@ public final class MakeResultsDataParser {
   }
 
   private static ExprCoreType resolveType(String name) {
-    switch (name.toLowerCase(Locale.ROOT)) {
-      case "string":
-        return ExprCoreType.STRING;
-      case "boolean":
-        return ExprCoreType.BOOLEAN;
-      case "int":
-      case "integer":
-        return ExprCoreType.INTEGER;
-      case "long":
-        return ExprCoreType.LONG;
-      case "float":
-        return ExprCoreType.FLOAT;
-      case "double":
-        return ExprCoreType.DOUBLE;
-      case "date":
-      case "time":
-      case "timestamp":
-      case "ip":
-      case "json":
-        throw new SyntaxCheckException(
-            "makeresults inline type '" + name + "' is not yet supported; use string and cast");
-      default:
-        return null;
-    }
+    return PplInlineTypeResolver.resolve(name, "makeresults");
   }
 
   private static Object coerce(Object value, ExprCoreType type) {

@@ -13,6 +13,7 @@ import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.data.type.ExprCoreType;
 
 /**
  * AST node representing the {@code multikv} PPL command.
@@ -33,7 +34,7 @@ import org.opensearch.sql.ast.expression.Field;
 @Getter
 public class Multikv extends UnresolvedPlan {
 
-  /** Default Splunk input field for multikv. */
+  /** Default input field name used when {@code field=} is omitted. */
   public static final String DEFAULT_INPUT_FIELD = "_raw";
 
   private UnresolvedPlan child;
@@ -43,6 +44,12 @@ public class Multikv extends UnresolvedPlan {
 
   /** Declared output columns (the {@code fields} option). Null when not declared. */
   @Nullable private final List<Field> fields;
+
+  /**
+   * Per-column declared types aligned with {@link #fields} (the {@code col:type} syntax). Null when
+   * none declared.
+   */
+  @Nullable private final List<ExprCoreType> fieldTypes;
 
   /** Filter terms; a table row is kept only if it contains at least one term. Null when absent. */
   @Nullable private final List<String> filterTerms;
@@ -63,8 +70,20 @@ public class Multikv extends UnresolvedPlan {
       @Nullable Integer forceHeader,
       boolean noHeader,
       boolean rmOrig) {
+    this(inField, fields, null, filterTerms, forceHeader, noHeader, rmOrig);
+  }
+
+  public Multikv(
+      String inField,
+      @Nullable List<Field> fields,
+      @Nullable List<ExprCoreType> fieldTypes,
+      @Nullable List<String> filterTerms,
+      @Nullable Integer forceHeader,
+      boolean noHeader,
+      boolean rmOrig) {
     this.inField = inField;
     this.fields = fields;
+    this.fieldTypes = fieldTypes;
     this.filterTerms = filterTerms;
     this.forceHeader = forceHeader;
     this.noHeader = noHeader;

@@ -87,6 +87,7 @@ import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Xyseries;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings.Key;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.AstPlanningTestBase;
 import org.opensearch.sql.utils.SystemIndexUtils;
@@ -1222,6 +1223,33 @@ public class AstBuilderTest extends AstPlanningTestBase {
     assertEqual(
         "source=t | multikv field=message fields CPU",
         new Multikv("message", Arrays.asList(field("CPU")), null, null, false, true)
+            .attach(relation("t")));
+  }
+
+  @Test
+  public void testMultikvCommandWithTypedFields() {
+    assertEqual(
+        "source=t | multikv fields pctIdle:long",
+        new Multikv(
+                "_raw",
+                Arrays.asList(field("pctIdle")),
+                Arrays.asList(ExprCoreType.LONG),
+                null,
+                null,
+                false,
+                true)
+            .attach(relation("t")));
+    // an undeclared column keeps a null slot alongside the typed ones
+    assertEqual(
+        "source=t | multikv field=message fields CPU pctIdle:long ratio:double",
+        new Multikv(
+                "message",
+                Arrays.asList(field("CPU"), field("pctIdle"), field("ratio")),
+                Arrays.asList(null, ExprCoreType.LONG, ExprCoreType.DOUBLE),
+                null,
+                null,
+                false,
+                true)
             .attach(relation("t")));
   }
 

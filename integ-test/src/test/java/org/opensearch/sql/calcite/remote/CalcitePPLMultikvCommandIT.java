@@ -140,6 +140,59 @@ public class CalcitePPLMultikvCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testMultikvTypedTextColumn() throws IOException {
+    // fields col:type types pctIdle as long at plan time, so it filters and returns as a number.
+    JSONObject result =
+        executeQuery(
+            "source=test_multikv | eval _raw = raw | multikv fields pctIdle:long"
+                + " | where pctIdle > 90 | fields pctIdle");
+    verifySchema(result, schema("pctIdle", "bigint"));
+    verifyDataRows(result, rows(92));
+  }
+
+  @Test
+  public void testMultikvTypedStructuredColumns() throws IOException {
+    // Structured col:type casts each exploded column to the declared type.
+    JSONObject result =
+        executeQuery(
+            "source=test_multikv_struct | multikv field=procs fields pid:long cpu:double"
+                + " | where pid > 1 | fields pid cpu");
+    verifySchema(result, schema("pid", "bigint"), schema("cpu", "double"));
+    verifyDataRows(result, rows(42, 9.1));
+  }
+
+  @Test
+  public void testMultikvTextCastThenFilterKeepsSiblingColumn() throws IOException {
+    // Downstream consume: cast one extracted column, filter on it, project a sibling column.
+    JSONObject result =
+        executeQuery(
+            "source=test_multikv | eval _raw = raw | multikv fields CPU pctIdle"
+                + " | where cast(pctIdle as int) > 90 | fields CPU");
+    verifyDataRows(result, rows("0"));
+  }
+
+  @Test
+  public void testMultikvTypedTextFeedsAggregate() throws IOException {
+    // A typed text column feeds a numeric aggregate with no explicit downstream cast.
+    JSONObject result =
+        executeQuery(
+            "source=test_multikv | eval _raw = raw | multikv fields pctIdle:long"
+                + " | stats sum(pctIdle) as total");
+    verifyDataRows(result, rows(182));
+  }
+
+  @Test
+  public void testMultikvTypedStructuredSortAndProject() throws IOException {
+    // Typed structured columns sort numerically downstream with no explicit cast.
+    JSONObject result =
+        executeQuery(
+            "source=test_multikv_struct | multikv field=procs fields pid:long cpu:double"
+                + " | sort pid | fields pid cpu");
+    verifySchema(result, schema("pid", "bigint"), schema("cpu", "double"));
+    verifyDataRows(result, rows(1, 0.5), rows(42, 9.1));
+  }
+
+  @Test
   public void testBareMultikvRejectedWithGuidance() throws IOException {
     // Bare auto-header multikv referencing a column downstream must be rejected at plan time
     // with guidance to declare a fields clause.
