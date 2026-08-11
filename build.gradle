@@ -6,7 +6,7 @@
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.8.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.9.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
         version_tokens = opensearch_version.tokenize('-')
@@ -68,6 +68,7 @@ buildscript {
     repositories {
         mavenLocal()
         maven { url "https://ci.opensearch.org/maven2/" }
+        maven { url "https://ci.opensearch.org/m2/" }
         mavenCentral()
         maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
     }
@@ -93,13 +94,14 @@ apply plugin: 'opensearch.java-agent'
 // Repository on root level is for dependencies that project code depends on. And this block must be placed after plugins{}
 repositories {
     mavenLocal()
-    maven { url "https://ci.opensearch.org/maven2/" }
-    mavenCentral() // For Elastic Libs that you can use to get started coding until open OpenSearch libs are available
     maven {
         url 'https://jitpack.io'
         content { includeGroup "com.github.babbel" }
     }
     maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
+    maven { url "https://ci.opensearch.org/maven2/" }
+    maven { url "https://ci.opensearch.org/m2/" }
+    mavenCentral()
 }
 
 spotless {
@@ -175,14 +177,15 @@ allprojects {
 subprojects {
     repositories {
         mavenLocal()
-        maven { url "https://ci.opensearch.org/maven2/" }
-        mavenCentral()
         maven {
             url 'https://jitpack.io'
             content { includeGroup "com.github.babbel" }
         }
         maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
         maven { url "https://ci.opensearch.org/ci/dbc/snapshots/lucene/" }
+        maven { url "https://ci.opensearch.org/maven2/" }
+        maven { url "https://ci.opensearch.org/m2/" }
+        mavenCentral()
     }
 
     // Publish internal modules as Maven artifacts for external use, such as by opensearch-spark and opensearch-cli.

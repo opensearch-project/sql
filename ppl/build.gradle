@@ -123,3 +123,20 @@ jacocoTestCoverageVerification {
     }
 }
 check.dependsOn jacocoTestCoverageVerification
+
+tasks.register('exportPplGrammarBundle', JavaExec) {
+    group = 'build'
+    description = 'Exports the generated PPL grammar bundle as JSON.'
+    dependsOn classes
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass.set('org.opensearch.sql.ppl.autocomplete.PPLGrammarBundleExporter')
+
+    def outputProperty = providers.gradleProperty('pplGrammarBundleOutput')
+    doFirst {
+        if (!outputProperty.isPresent() || outputProperty.get().trim().isEmpty()) {
+            throw new GradleException(
+                    'Missing required property: -PpplGrammarBundleOutput=<output-file>')
+        }
+        setArgs([outputProperty.get()])
+    }
+}

@@ -5,10 +5,17 @@
 
 package org.opensearch.sql.calcite.utils;
 
+import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.OperandTypes;
 import org.apache.calcite.sql.type.SqlTypeFamily;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
 
 /**
@@ -20,41 +27,51 @@ public class PPLOperandTypes {
   // This class is not meant to be instantiated.
   private PPLOperandTypes() {}
 
+  // Convenience RelDataType constants used to express UDF signatures via wrapUDT(...).
+  // UDT-backed scalar types:
+  public static final RelDataType DATE_UDT = TYPE_FACTORY.createUDT(ExprUDT.EXPR_DATE);
+  public static final RelDataType TIME_UDT = TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME);
+  public static final RelDataType TIMESTAMP_UDT = TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP);
+  public static final RelDataType IP_UDT = TYPE_FACTORY.createUDT(ExprUDT.EXPR_IP);
+  public static final RelDataType BINARY_UDT = TYPE_FACTORY.createUDT(ExprUDT.EXPR_BINARY);
+  // Plain SQL scalar types:
+  public static final RelDataType BYTE_T = TYPE_FACTORY.createSqlType(SqlTypeName.TINYINT);
+  public static final RelDataType SHORT_T = TYPE_FACTORY.createSqlType(SqlTypeName.SMALLINT);
+  public static final RelDataType INTEGER_T = TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER);
+  public static final RelDataType LONG_T = TYPE_FACTORY.createSqlType(SqlTypeName.BIGINT);
+  public static final RelDataType FLOAT_T = TYPE_FACTORY.createSqlType(SqlTypeName.REAL);
+  public static final RelDataType DOUBLE_T = TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE);
+  public static final RelDataType STRING_T = TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR);
+  public static final RelDataType BOOLEAN_T = TYPE_FACTORY.createSqlType(SqlTypeName.BOOLEAN);
+
   /** List of all scalar type signatures (single parameter each) */
-  private static final java.util.List<java.util.List<org.opensearch.sql.data.type.ExprType>>
-      SCALAR_TYPES =
-          java.util.List.of(
-              // Numeric types
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.BYTE),
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.SHORT),
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.INTEGER),
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.LONG),
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.FLOAT),
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.DOUBLE),
-              // String type
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.STRING),
-              // Boolean type
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.BOOLEAN),
-              // Temporal types
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.DATE),
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.TIME),
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP),
-              // Special scalar types
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.IP),
-              java.util.List.of(org.opensearch.sql.data.type.ExprCoreType.BINARY));
+  private static final List<List<RelDataType>> SCALAR_TYPES =
+      List.of(
+          // Numeric types
+          List.of(BYTE_T),
+          List.of(SHORT_T),
+          List.of(INTEGER_T),
+          List.of(LONG_T),
+          List.of(FLOAT_T),
+          List.of(DOUBLE_T),
+          // String type
+          List.of(STRING_T),
+          // Boolean type
+          List.of(BOOLEAN_T),
+          // Temporal types
+          List.of(DATE_UDT),
+          List.of(TIME_UDT),
+          List.of(TIMESTAMP_UDT),
+          // Special scalar types
+          List.of(IP_UDT),
+          List.of(BINARY_UDT));
 
   /** Helper method to create scalar types with optional integer parameter */
-  private static java.util.List<java.util.List<org.opensearch.sql.data.type.ExprType>>
-      createScalarWithOptionalInteger() {
-    java.util.List<java.util.List<org.opensearch.sql.data.type.ExprType>> result =
-        new java.util.ArrayList<>(SCALAR_TYPES);
+  private static List<List<RelDataType>> createScalarWithOptionalInteger() {
+    List<List<RelDataType>> result = new ArrayList<>(SCALAR_TYPES);
 
     // Add scalar + integer combinations
-    SCALAR_TYPES.forEach(
-        scalarType ->
-            result.add(
-                java.util.List.of(
-                    scalarType.get(0), org.opensearch.sql.data.type.ExprCoreType.INTEGER)));
+    SCALAR_TYPES.forEach(scalarType -> result.add(List.of(scalarType.get(0), INTEGER_T)));
 
     return result;
   }

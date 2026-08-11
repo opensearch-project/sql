@@ -69,18 +69,21 @@ public class RestUnifiedQueryAction {
   private final ClusterService clusterService;
   private final org.opensearch.analytics.EngineContextProvider contextProvider;
   private final org.opensearch.sql.common.setting.Settings pluginSettings;
+  private final org.opensearch.sql.executor.ExecutionDispatcher executionDispatcher;
 
   public RestUnifiedQueryAction(
       NodeClient client,
       ClusterService clusterService,
       QueryPlanExecutor<RelNode, Iterable<Object[]>> planExecutor,
       org.opensearch.analytics.EngineContextProvider contextProvider,
-      org.opensearch.sql.common.setting.Settings pluginSettings) {
+      org.opensearch.sql.common.setting.Settings pluginSettings,
+      org.opensearch.sql.executor.ExecutionDispatcher executionDispatcher) {
     this.client = client;
     this.clusterService = clusterService;
     this.analyticsEngine = new AnalyticsExecutionEngine(planExecutor);
     this.contextProvider = contextProvider;
     this.pluginSettings = pluginSettings;
+    this.executionDispatcher = executionDispatcher;
   }
 
   /**
@@ -107,13 +110,14 @@ public class RestUnifiedQueryAction {
         .equals(
             IndicesService.CLUSTER_PLUGGABLE_DATAFORMAT_VALUE_SETTING.get(
                 clusterService.getSettings()))) {
-      // Analytics engine can't serve system catalog; SHOW/DESCRIBE fall back to default pipeline
+      // Analytics engine serves neither the system catalog nor the rest command's reserved
+      // in-cluster source; both fall back to the default (Calcite) pipeline.
       try (UnifiedQueryContext context = buildParsingContext(queryType)) {
-        boolean systemCatalog =
+        boolean defaultPipeline =
             extractIndexName(query, queryType, context)
-                .map(RestUnifiedQueryAction::isSystemCatalog)
+                .map(name -> isSystemCatalog(name) || SystemIndexUtils.isRestSource(name))
                 .orElse(false);
-        return !systemCatalog;
+        return !defaultPipeline;
       } catch (Exception e) {
         // Check legacy-syntax SHOW/DESCRIBE; otherwise let AE handle and surface the error.
         return !isLegacySystemCatalogQuery(query);
@@ -229,19 +233,25 @@ public class RestUnifiedQueryAction {
                     // string, so apply the equivalent top-level limit here before the system cap.
                     plan = addFetchSizeLimit(plan, planContext, fetchSize);
                     plan = addQuerySizeLimit(plan, planContext);
-                    if (profiling) {
-                      analyticsEngine.executeWithProfile(
-                          plan,
-                          planContext,
-                          queryCtx,
-                          createQueryListener(queryType, profileCtx, closingListener));
-                    } else {
-                      analyticsEngine.execute(
-                          plan,
-                          planContext,
-                          queryCtx,
-                          createQueryListener(queryType, profileCtx, closingListener));
-                    }
+                    plan =
+                        org.opensearch.sql.calcite.utils.CalciteToolsHelper.optimizeForAnalytics(
+                            plan, planContext);
+                    RelNode finalPlan = plan;
+                    Runnable executeTask =
+                        profiling
+                            ? () ->
+                                analyticsEngine.executeWithProfile(
+                                    finalPlan,
+                                    planContext,
+                                    queryCtx,
+                                    createQueryListener(queryType, profileCtx, closingListener))
+                            : () ->
+                                analyticsEngine.execute(
+                                    finalPlan,
+                                    planContext,
+                                    queryCtx,
+                                    createQueryListener(queryType, profileCtx, closingListener));
+                    executionDispatcher.dispatchTask(finalPlan, planContext, executeTask);
                   } catch (Exception e) {
                     closingListener.onFailure(e);
                   } finally {

@@ -32,8 +32,12 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.ProjectOperator;
 import org.opensearch.sql.storage.Table;
 
+/**
+ * Covers the generic {@link OpenSearchCatalogTable} through a {@link SystemIndexCatalogSource}:
+ * schema delegation, the predefined-table contract, and the V2 physical path.
+ */
 @ExtendWith(MockitoExtension.class)
-class OpenSearchSystemIndexTest {
+class OpenSearchCatalogTableTest {
 
   @Mock private OpenSearchClient client;
 
@@ -41,36 +45,37 @@ class OpenSearchSystemIndexTest {
 
   @Mock private Settings settings;
 
+  private OpenSearchCatalogTable systemTable(String name) {
+    return new OpenSearchCatalogTable(new SystemIndexCatalogSource(client, name), settings);
+  }
+
   @Test
   void testGetFieldTypesOfMetaTable() {
-    OpenSearchSystemIndex systemIndex = new OpenSearchSystemIndex(client, settings, TABLE_INFO);
-    final Map<String, ExprType> fieldTypes = systemIndex.getFieldTypes();
+    final Map<String, ExprType> fieldTypes = systemTable(TABLE_INFO).getFieldTypes();
     assertThat(fieldTypes, anyOf(hasEntry("TABLE_CAT", STRING)));
   }
 
   @Test
   void testGetFieldTypesOfMappingTable() {
-    OpenSearchSystemIndex systemIndex =
-        new OpenSearchSystemIndex(client, settings, mappingTable("test_index"));
-    final Map<String, ExprType> fieldTypes = systemIndex.getFieldTypes();
+    final Map<String, ExprType> fieldTypes =
+        systemTable(mappingTable("test_index")).getFieldTypes();
     assertThat(fieldTypes, anyOf(hasEntry("COLUMN_NAME", STRING)));
   }
 
   @Test
   void testIsExist() {
-    Table systemIndex = new OpenSearchSystemIndex(client, settings, TABLE_INFO);
-    assertTrue(systemIndex.exists());
+    assertTrue(systemTable(TABLE_INFO).exists());
   }
 
   @Test
   void testCreateTable() {
-    Table systemIndex = new OpenSearchSystemIndex(client, settings, TABLE_INFO);
+    Table systemIndex = systemTable(TABLE_INFO);
     assertThrows(UnsupportedOperationException.class, () -> systemIndex.create(ImmutableMap.of()));
   }
 
   @Test
   void implement() {
-    OpenSearchSystemIndex systemIndex = new OpenSearchSystemIndex(client, settings, TABLE_INFO);
+    OpenSearchCatalogTable systemIndex = systemTable(TABLE_INFO);
     NamedExpression projectExpr = named("TABLE_NAME", ref("TABLE_NAME", STRING));
 
     final PhysicalPlan plan =

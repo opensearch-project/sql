@@ -387,6 +387,8 @@ testClusters {
         plugin(getGeoSpatialPlugin())
         plugin ":opensearch-sql-plugin"
         setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
+        // Only /_cluster/health is registered; pin the allow-list to it for the rest ITs.
+        setting 'plugins.ppl.rest.allowed_endpoints', '/_cluster/health'
     }
     yamlRestTest {
         testDistribution = 'archive'
@@ -405,6 +407,8 @@ testClusters {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
         plugin ":opensearch-sql-plugin"
+        // Only /_cluster/health is registered; pin the allow-list to it for RestCommandSecurityIT.
+        setting 'plugins.ppl.rest.allowed_endpoints', '/_cluster/health'
     }
     remoteIntegTestWithSecurity {
         testDistribution = 'archive'
@@ -419,6 +423,8 @@ testClusters {
         plugin(getArrowFlightRpcPlugin())
         plugin(getAnalyticsEnginePlugin())
         plugin ":opensearch-sql-plugin"
+        // Composite-default cluster: PPL queries route to the analytics engine unless excluded.
+        setting 'cluster.pluggable.dataformat', 'composite'
     }
 }
 

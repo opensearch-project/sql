@@ -6,7 +6,9 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
+import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
@@ -39,6 +41,43 @@ public class CalciteTopCommandIT extends TopCommandIT {
             String.format("source=%s | top usenull=false age", TEST_INDEX_BANK_WITH_NULL_VALUES));
     verifySchemaInOrder(result, schema("age", "int"), schema("count", "bigint"));
     verifyNumOfRows(result, 5);
+  }
+
+  @Test
+  public void testTopCommandShowPerc() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | top showperc=true age", TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchemaInOrder(
+        result, schema("age", "int"), schema("count", "bigint"), schema("percent", "double"));
+    verifyNumOfRows(result, 6);
+    verifyDataRows(
+        result,
+        rows(36, 2, 28.571429),
+        rows(28, 1, 14.285714),
+        rows(32, 1, 14.285714),
+        rows(33, 1, 14.285714),
+        rows(34, 1, 14.285714),
+        rows(null, 1, 14.285714));
+  }
+
+  @Test
+  public void testTopCommandShowPercWithoutShowCount() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | top showperc=true showcount=false age",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchemaInOrder(result, schema("age", "int"), schema("percent", "double"));
+    verifyNumOfRows(result, 6);
+    verifyDataRows(
+        result,
+        rows(36, 28.571429),
+        rows(28, 14.285714),
+        rows(32, 14.285714),
+        rows(33, 14.285714),
+        rows(34, 14.285714),
+        rows(null, 14.285714));
   }
 
   @Test

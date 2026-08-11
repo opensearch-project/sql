@@ -26,17 +26,22 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.util.Pair;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-/** The physical relational operator representing a scan of an OpenSearchSystemIndex type. */
-public class CalciteEnumerableSystemIndexScan extends AbstractCalciteSystemIndexScan
+/** The physical relational operator representing a scan of an {@link OpenSearchCatalogTable}. */
+public class CalciteEnumerableCatalogScan extends AbstractCalciteCatalogScan
     implements EnumerableRel {
-  public CalciteEnumerableSystemIndexScan(
+  public CalciteEnumerableCatalogScan(
       RelOptCluster cluster,
       List<RelHint> hints,
       RelOptTable table,
-      OpenSearchSystemIndex sysIndex,
+      OpenSearchCatalogTable catalogTable,
       RelDataType schema) {
     super(
-        cluster, cluster.traitSetOf(EnumerableConvention.INSTANCE), hints, table, sysIndex, schema);
+        cluster,
+        cluster.traitSetOf(EnumerableConvention.INSTANCE),
+        hints,
+        table,
+        catalogTable,
+        schema);
   }
 
   @Override
@@ -60,7 +65,7 @@ public class CalciteEnumerableSystemIndexScan extends AbstractCalciteSystemIndex
     PhysType physType =
         PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(), pref.preferArray());
 
-    Expression scanOperator = implementor.stash(this, CalciteEnumerableSystemIndexScan.class);
+    Expression scanOperator = implementor.stash(this, CalciteEnumerableCatalogScan.class);
     return implementor.result(physType, Blocks.toBlock(Expressions.call(scanOperator, "scan")));
   }
 
@@ -68,10 +73,10 @@ public class CalciteEnumerableSystemIndexScan extends AbstractCalciteSystemIndex
     return new AbstractEnumerable<>() {
       @Override
       public Enumerator<Object> enumerator() {
-        return new OpenSearchSystemIndexEnumerator(
+        return new OpenSearchCatalogEnumerator(
             getFieldPath(),
-            sysIndex.getSystemIndexBundle().getRight(),
-            sysIndex.createOpenSearchResourceMonitor());
+            catalogTable.getSource().createRequest(),
+            catalogTable.createOpenSearchResourceMonitor());
       }
     };
   }

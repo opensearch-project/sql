@@ -71,6 +71,13 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<List<String>> PPL_REST_ALLOWED_ENDPOINTS_SETTING =
+      Setting.listSetting(
+          Key.PPL_REST_ALLOWED_ENDPOINTS.getKeyValue(),
+          List.of("/_cluster/health"),
+          Function.identity(),
+          Setting.Property.NodeScope);
+
   public static final Setting<TimeValue> PPL_QUERY_TIMEOUT_SETTING =
       Setting.positiveTimeSetting(
           Key.PPL_QUERY_TIMEOUT.getKeyValue(),
@@ -352,6 +359,13 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<Boolean> SQL_COMPLEX_WORKER_POOL_ENABLED_SETTING =
+      Setting.boolSetting(
+          Key.SQL_COMPLEX_WORKER_POOL_ENABLED.getKeyValue(),
+          true,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   /** Construct OpenSearchSetting. The OpenSearchSetting must be singleton. */
   @SuppressWarnings("unchecked")
   public OpenSearchSettings(ClusterSettings clusterSettings) {
@@ -380,6 +394,11 @@ public class OpenSearchSettings extends Settings {
         Key.PPL_ENABLED,
         PPL_ENABLED_SETTING,
         new Updater(Key.PPL_ENABLED));
+    registerNonDynamicSettings(
+        settingBuilder,
+        clusterSettings,
+        Key.PPL_REST_ALLOWED_ENDPOINTS,
+        PPL_REST_ALLOWED_ENDPOINTS_SETTING);
     register(
         settingBuilder,
         clusterSettings,
@@ -610,6 +629,12 @@ public class OpenSearchSettings extends Settings {
         Key.FIELD_TYPE_TOLERANCE,
         FIELD_TYPE_TOLERANCE_SETTING,
         new Updater(Key.FIELD_TYPE_TOLERANCE));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.SQL_COMPLEX_WORKER_POOL_ENABLED,
+        SQL_COMPLEX_WORKER_POOL_ENABLED_SETTING,
+        new Updater(Key.SQL_COMPLEX_WORKER_POOL_ENABLED));
     defaultSettings = settingBuilder.build();
   }
 
@@ -640,7 +665,9 @@ public class OpenSearchSettings extends Settings {
       Settings.Key key,
       Setting setting) {
     settingBuilder.put(key, setting);
-    latestSettings.put(key, clusterSettings.get(setting));
+    if (clusterSettings.get(setting) != null) {
+      latestSettings.put(key, clusterSettings.get(setting));
+    }
   }
 
   /**
@@ -703,6 +730,7 @@ public class OpenSearchSettings extends Settings {
         .add(SESSION_INACTIVITY_TIMEOUT_MILLIS_SETTING)
         .add(STREAMING_JOB_HOUSEKEEPER_INTERVAL_SETTING)
         .add(FIELD_TYPE_TOLERANCE_SETTING)
+        .add(SQL_COMPLEX_WORKER_POOL_ENABLED_SETTING)
         .build();
   }
 
@@ -711,6 +739,7 @@ public class OpenSearchSettings extends Settings {
     return new ImmutableList.Builder<Setting<?>>()
         .add(DATASOURCE_MASTER_SECRET_KEY)
         .add(DATASOURCE_CONFIG)
+        .add(PPL_REST_ALLOWED_ENDPOINTS_SETTING)
         .build();
   }
 

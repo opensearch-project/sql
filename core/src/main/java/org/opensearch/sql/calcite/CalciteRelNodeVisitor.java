@@ -38,6 +38,7 @@ import java.util.BitSet;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -172,6 +173,7 @@ import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.ast.tree.Xyseries;
 import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
 import org.opensearch.sql.calcite.plan.HighlightPushDown;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
@@ -223,6 +225,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   private final MapPathPreMaterializer mapPathMaterializer;
   private final ForeachPlanner foreachPlanner;
 
+  private static final int PERCENT_DECIMAL_PLACES = 6;
+
   public CalciteRelNodeVisitor(DataSourceService dataSourceService) {
     this.rexVisitor = new CalciteRexNodeVisitor(this);
     this.aggVisitor = new CalciteAggCallVisitor(rexVisitor);
@@ -232,15 +236,47 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   public RelNode analyze(UnresolvedPlan unresolved, CalcitePlanContext context) {
+    if (context.isTrackingEnabled()) {
+      int idBefore = context.relBuilder.size() > 0 ? context.relBuilder.peek().getId() : -1;
+      RelNode result = unresolved.accept(this, context);
+      int idAfter = context.relBuilder.peek().getId();
+      List<Integer> producedIds = new ArrayList<>();
+      for (int id = idBefore + 1; id <= idAfter; id++) {
+        producedIds.add(id);
+      }
+      context.recordMapping(unresolved.getClass().getSimpleName(), producedIds);
+      return result;
+    }
     return unresolved.accept(this, context);
   }
 
   @Override
   public RelNode visitChildren(Node node, CalcitePlanContext context) {
+    if (context.isTrackingEnabled() && node instanceof UnresolvedPlan) {
+      // Track each child's total contribution (the subtree it produces)
+      RelNode result = null;
+      for (Node child : node.getChild()) {
+        int idBefore = context.relBuilder.size() > 0 ? context.relBuilder.peek().getId() : -1;
+        RelNode childResult = child.accept(this, context);
+        result = childResult;
+        // After child.accept returns, the child's visit* method has fully completed,
+        // so all RelNodes produced by that child (including ITS children) are on the stack.
+        int idAfter = context.relBuilder.peek().getId();
+        if (child instanceof UnresolvedPlan) {
+          List<Integer> producedIds = new ArrayList<>();
+          for (int id = idBefore + 1; id <= idAfter; id++) {
+            producedIds.add(id);
+          }
+          context.recordMapping(child.getClass().getSimpleName(), producedIds);
+        }
+      }
+      if (node instanceof UnresolvedPlan plan) {
+        mapPathMaterializer.materializePaths(plan, context);
+      }
+      return result;
+    }
     RelNode result = super.visitChildren(node, context);
     if (node instanceof UnresolvedPlan plan) {
-      // Materialize MAP dotted paths as flat columns after children are analyzed
-      // (so MAP/struct types are known) but before the command's own visit logic runs.
       mapPathMaterializer.materializePaths(plan, context);
     }
     return result;
@@ -3232,6 +3268,39 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     orderKeys.add(countField);
     orderKeys.addAll(tieBreakKeys);
 
+    // 3. compute percentage if showperc=true
+    Boolean showPerc = (Boolean) argumentMap.get(RareTopN.Option.showPerc.name()).getValue();
+    if (showPerc) {
+      String percentFieldName =
+          (String) argumentMap.get(RareTopN.Option.percentField.name()).getValue();
+
+      RexNode totalWindowOver =
+          PlanUtils.makeOver(
+              context,
+              BuiltinFunctionName.SUM,
+              context.relBuilder.field(countFieldName),
+              List.of(),
+              partitionKeys,
+              List.of(),
+              WindowFrame.rowsUnbounded());
+
+      RexNode hundred = context.relBuilder.literal(new BigDecimal("100.0"));
+      RexNode countCast =
+          context.relBuilder.cast(context.relBuilder.field(countFieldName), SqlTypeName.DOUBLE);
+      RexNode totalCast = context.relBuilder.cast(totalWindowOver, SqlTypeName.DOUBLE);
+      RexNode numerator = context.relBuilder.call(SqlStdOperatorTable.MULTIPLY, hundred, countCast);
+      RexNode percValue = context.relBuilder.call(SqlStdOperatorTable.DIVIDE, numerator, totalCast);
+
+      // Round the percent value 6 decimal places
+      RexNode roundedPerc =
+          context.relBuilder.call(
+              SqlStdOperatorTable.ROUND,
+              percValue,
+              context.relBuilder.literal(PERCENT_DECIMAL_PLACES));
+
+      context.relBuilder.projectPlus(context.relBuilder.alias(roundedPerc, percentFieldName));
+    }
+
     RexNode rowNumberWindowOver =
         PlanUtils.makeOver(
             context,
@@ -3244,14 +3313,14 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     context.relBuilder.projectPlus(
         context.relBuilder.alias(rowNumberWindowOver, ROW_NUMBER_COLUMN_FOR_RARE_TOP));
 
-    // 3. filter row_number() <= k in each partition
+    // 4. filter row_number() <= k in each partition
     int k = node.getNoOfResults();
     context.relBuilder.filter(
         context.relBuilder.lessThanOrEqual(
             context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_RARE_TOP),
             context.relBuilder.literal(k)));
 
-    // 4. project final output. the default output is group by list + field list
+    // 5. project final output: group by list + field list, optionally count and percent
     Boolean showCount = (Boolean) argumentMap.get(RareTopN.Option.showCount.name()).getValue();
     if (showCount) {
       context.relBuilder.projectExcept(context.relBuilder.field(ROW_NUMBER_COLUMN_FOR_RARE_TOP));
@@ -4071,6 +4140,131 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       String nullStr = (String) argMap.getOrDefault("nullstr", Chart.DEFAULT_NULL_STR).getValue();
       return new ChartConfig(limit, top, useOther, useNull, otherStr, nullStr);
     }
+  }
+
+  @Override
+  public RelNode visitXyseries(Xyseries node, CalcitePlanContext context) {
+    visitChildren(node, context);
+
+    RelBuilder b = context.relBuilder;
+    RexBuilder rx = context.rexBuilder;
+
+    // Resolve x-field and y-name-field names
+    String xFieldName = resolveFieldName(node.getXField());
+    String yNameFieldName = resolveFieldName(node.getYNameField());
+
+    // Resolve y-data field names
+    List<String> yDataFieldNames =
+        node.getYDataFields().stream().map(this::resolveFieldName).collect(Collectors.toList());
+
+    List<String> pivotValues = node.getPivotValues() != null ? node.getPivotValues() : List.of();
+    String separator = node.getSeparator();
+    String format = node.getFormat();
+
+    // Build the pivot axis - cast to VARCHAR if needed for string comparison
+    RexNode yNameRef = b.field(yNameFieldName);
+    RelDataType yNameType = yNameRef.getType();
+    RexNode axis;
+    if (!SqlTypeUtil.isCharacter(yNameRef.getType())) {
+      if (!SqlTypeUtil.isAtomic(yNameType)) {
+        throw new IllegalArgumentException(
+            "xyseries y-name-field must be a scalar type, got: " + yNameType.getSqlTypeName());
+      }
+      RelDataType varchar =
+          rx.getTypeFactory()
+              .createTypeWithNullability(
+                  rx.getTypeFactory().createSqlType(SqlTypeName.VARCHAR), true);
+      axis = rx.makeCast(varchar, yNameRef, true);
+    } else {
+      axis = yNameRef;
+    }
+
+    // Build aggregate calls - MAX for each y-data field
+    List<AggCall> aggCalls =
+        yDataFieldNames.stream()
+            .map(name -> b.max(b.field(name)).as(name))
+            .collect(Collectors.toList());
+
+    // Build pivot value entries: alias -> [literal(value)]
+    // LinkedHashMap preserves insertion order for deterministic column ordering
+    LinkedHashMap<String, List<RexNode>> pivotValueMap = new LinkedHashMap<>();
+    for (String val : pivotValues) {
+      pivotValueMap.put(val, ImmutableList.of(b.literal(val)));
+    }
+
+    // Execute pivot: decomposes into GROUP BY x-field with FILTER-based aggregation
+    // Produces columns: x-field, {val1}_{agg1}, {val1}_{agg2}, {val2}_{agg1}, ...
+    b.pivot(
+        b.groupKey(b.field(xFieldName)),
+        aggCalls,
+        ImmutableList.of(axis),
+        pivotValueMap.entrySet());
+
+    // Pivot produces value-first column ordering: val1_agg1, val1_agg2, val2_agg1, ...
+    // Reorder to agg-first and apply custom column naming: agg1: val1, agg1: val2, ...
+    List<RexNode> reorderProjections = new ArrayList<>();
+    List<String> reorderNames = new ArrayList<>();
+
+    reorderProjections.add(b.field(xFieldName));
+    reorderNames.add(xFieldName);
+
+    for (String aggName : yDataFieldNames) {
+      for (String pivotVal : pivotValues) {
+        // Reference pivot output column by its generated name: {value}_{agg}
+        String pivotColName = pivotVal + "_" + aggName;
+        try {
+          reorderProjections.add(b.field(pivotColName));
+        } catch (IllegalArgumentException e) {
+          throw new IllegalStateException(
+              "xyseries: expected pivot output column '" + pivotColName + "' not found", e);
+        }
+        boolean singleDataField = yDataFieldNames.size() == 1;
+        reorderNames.add(generateColumnName(aggName, pivotVal, separator, format, singleDataField));
+      }
+    }
+    // Fail fast with a clear message if the naming scheme produced collisions
+    // (e.g. a format template that omits $VAL$ or $AGG$ with multiple series).
+    Set<String> seenNames = new HashSet<>();
+    for (String name : reorderNames) {
+      if (!seenNames.add(name)) {
+        throw new IllegalArgumentException(
+            "xyseries produced duplicate output column name '"
+                + name
+                + "'. Use a format template containing both $AGG$ and $VAL$ so column names"
+                + " are unique.");
+      }
+    }
+    b.project(reorderProjections, reorderNames, true);
+
+    // Order by x-field
+    b.sort(b.field(0));
+
+    return b.peek();
+  }
+
+  private String resolveFieldName(UnresolvedExpression expr) {
+    if (expr instanceof Field) {
+      return ((Field) expr).getField().toString();
+    }
+    if (expr instanceof Alias) {
+      return ((Alias) expr).getName();
+    }
+    return expr.toString();
+  }
+
+  private String generateColumnName(
+      String yDataFieldName,
+      String pivotValue,
+      String separator,
+      String format,
+      boolean singleDataField) {
+    if (format != null) {
+      return format.replace("$AGG$", yDataFieldName).replace("$VAL$", pivotValue);
+    }
+    if (singleDataField) {
+      return pivotValue;
+    }
+    return yDataFieldName + separator + pivotValue;
   }
 
   @Override

@@ -41,6 +41,13 @@ public class ForeachFunctionImplTest {
   }
 
   @Test
+  public void testJsonArraySafelyCoercesNumericElements() {
+    assertEquals(
+        Arrays.asList(10.0, 20.0, null),
+        ForeachJsonArrayFunctionImpl.eval("[10,\"20\",\"not-a-number\"]", "DOUBLE"));
+  }
+
+  @Test
   public void testStatePreservesHeterogeneousAndNullSlots() {
     assertEquals(
         Arrays.asList(3, null, "seen"),
