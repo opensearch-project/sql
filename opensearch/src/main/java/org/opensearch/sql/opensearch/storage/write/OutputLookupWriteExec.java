@@ -21,10 +21,8 @@ import org.opensearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.opensearch.action.admin.indices.get.GetIndexRequest;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
 import org.opensearch.action.admin.indices.refresh.RefreshRequest;
-import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.opensearch.action.support.WriteRequest.RefreshPolicy;
 import org.opensearch.cluster.metadata.AliasMetadata;
-import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -34,8 +32,8 @@ import org.opensearch.sql.opensearch.storage.write.WriteConfig.WriteMode;
 import org.opensearch.transport.client.node.NodeClient;
 
 /**
- * Write lifecycle for {@code outputlookup}: publishes the result as a {@code __lookup=<uuid>} slice
- * in a per-lookup backing index behind a filtered alias, gap-free on overwrite but weak/eventual.
+ * Publishes the outputlookup result as a __lookup slice behind a filtered alias. Overwrite repoints
+ * the alias to the new slice atomically; the previous slice is left unreferenced.
  */
 public final class OutputLookupWriteExec {
 
@@ -79,11 +77,9 @@ public final class OutputLookupWriteExec {
       switch (target.kind()) {
         case ABSENT:
           {
-            // append reuses a deterministic per-lookup discriminant so concurrent first-appends
-            // converge on one slice (no lost write); overwrite takes a fresh uuid
-            // (last-writer-wins).
+            // append uses a deterministic per-lookup slice so concurrent first-writes converge;
+            // overwrite takes a fresh uuid (last-writer-wins).
             String uuid = append ? stableUuid(name) : newUuid();
-            // Create the per-lookup backing index only on paths that actually write to it.
             LookupsIndex.ensureExists(client, backingIndex);
             writeSlice(client, backingIndex, fields, mode, keyFields, rows, uuid);
             addFilteredAlias(client, name, backingIndex, uuid);
@@ -104,9 +100,7 @@ public final class OutputLookupWriteExec {
                         + name
                         + "]: its alias filter has no __lookup discriminant; overwrite it first");
               }
-              // Append writes into the alias's existing primary index; no backing index is
-              // created here, so appending to an externally-created lookup (whose primary index
-              // is not <name>__lookup) never leaves an empty, unreferenced <name>__lookup shell.
+              // Append targets the alias's existing primary index; no backing index is created.
               writeSlice(
                   client,
                   target.primaryIndex(),
@@ -117,17 +111,12 @@ public final class OutputLookupWriteExec {
                   target.lookupUuid());
             } else {
               String uuid = newUuid();
-              // Overwrite writes a fresh slice into the backing index, so create it here.
               LookupsIndex.ensureExists(client, backingIndex);
               writeSlice(client, backingIndex, fields, mode, keyFields, rows, uuid);
               repointFilteredAlias(client, name, target.aliasIndices(), backingIndex, uuid);
-              // TODO(reaper, separate PR): the atomic repoint leaves the previous slice as an
-              // orphan (a __lookup uuid referenced by no alias). A reaper reclaims them per backing
-              // index: enumerate distinct __lookup uuids, subtract those referenced by any alias,
-              // delete_by_query the remainder.
               LOGGER.info(
                   "outputlookup overwrite of [{}] wrote a new slice into [{}] and repointed the"
-                      + " alias; the previous slice(s) on {} are orphaned pending the reaper",
+                      + " alias; the previous slice(s) on {} are now unreferenced",
                   name,
                   backingIndex,
                   target.aliasIndices());
@@ -148,10 +137,7 @@ public final class OutputLookupWriteExec {
     }
   }
 
-  /**
-   * {@code max} truncates silently; the {@code maxRows} operator ceiling fails loud, writing
-   * nothing.
-   */
+  /** max truncates silently; the maxRows ceiling fails loud, writing nothing. */
   private static List<Object[]> drain(
       Enumerator<@Nullable Object> input, @Nullable Integer max, int maxRows) {
     List<Object[]> rows = new ArrayList<>();
@@ -173,10 +159,7 @@ public final class OutputLookupWriteExec {
     return rows;
   }
 
-  /**
-   * Salts the keyed id with the slice uuid so keyed rows never collide across slices sharing an
-   * index.
-   */
+  /** Salts the keyed id with the slice uuid so keyed rows never collide across slices. */
   private static void writeSlice(
       NodeClient client,
       String index,
@@ -194,56 +177,18 @@ public final class OutputLookupWriteExec {
       sliceKeys.add(LookupsIndex.LOOKUP_FIELD);
     }
 
-    // Slice is unpublished, so redundancy/durability are restored after the refresh below, before
-    // the alias op.
-    applyLoadSettings(client, index);
-    try {
-      WriteConfig cfg =
-          new WriteConfig(index, sliceFields, mode, sliceKeys, BATCH_SIZE, RefreshPolicy.NONE);
-      try (OpenSearchBulkWriter writer = new OpenSearchBulkWriter(client, cfg)) {
-        for (Object[] row : rows) {
-          Object[] tagged = new Object[row.length + 1];
-          System.arraycopy(row, 0, tagged, 0, row.length);
-          tagged[row.length] = uuid;
-          writer.add(tagged);
-        }
+    WriteConfig cfg =
+        new WriteConfig(index, sliceFields, mode, sliceKeys, BATCH_SIZE, RefreshPolicy.NONE);
+    try (OpenSearchBulkWriter writer = new OpenSearchBulkWriter(client, cfg)) {
+      for (Object[] row : rows) {
+        Object[] tagged = new Object[row.length + 1];
+        System.arraycopy(row, 0, tagged, 0, row.length);
+        tagged[row.length] = uuid;
+        writer.add(tagged);
       }
-      // One refresh after the whole slice, not per batch: publication is via the alias op, so
-      // per-batch refresh is redundant and dominates cost at scale.
-      client.admin().indices().refresh(new RefreshRequest(index)).actionGet();
-    } finally {
-      restoreServeSettings(client, index);
     }
-  }
-
-  private static void applyLoadSettings(NodeClient client, String index) {
-    updateSettings(
-        client,
-        index,
-        Settings.builder()
-            .put("index.number_of_replicas", 0)
-            .put("index.translog.durability", "async")
-            .put("index.refresh_interval", "-1")
-            .build());
-  }
-
-  private static void restoreServeSettings(NodeClient client, String index) {
-    updateSettings(
-        client,
-        index,
-        Settings.builder()
-            .put("index.number_of_replicas", 1)
-            .put("index.translog.durability", "request")
-            .putNull("index.refresh_interval")
-            .build());
-  }
-
-  private static void updateSettings(NodeClient client, String index, Settings settings) {
-    client
-        .admin()
-        .indices()
-        .updateSettings(new UpdateSettingsRequest(index).settings(settings))
-        .actionGet();
+    // Refresh once after the slice, not per batch: publication is via the alias op.
+    client.admin().indices().refresh(new RefreshRequest(index)).actionGet();
   }
 
   private static String newUuid() {
@@ -266,9 +211,8 @@ public final class OutputLookupWriteExec {
   }
 
   /**
-   * Atomically move the alias from its current backing indices onto {@code newIndex} filtered on
-   * {@code uuid}. The remove and add actions are one aliases request, applied as a single
-   * cluster-state update, so a reader resolves either the whole old slice or the whole new one.
+   * Moves the alias onto the new index in one request, so readers see either the old or new slice
+   * whole.
    */
   private static void repointFilteredAlias(
       NodeClient client, String alias, List<String> oldIndices, String newIndex, String uuid) {
@@ -294,7 +238,7 @@ public final class OutputLookupWriteExec {
     }
   }
 
-  /** Probes at the indices level (no {@code cluster:monitor/state}): get-aliases then get-index. */
+  /** Probes at the indices level (no cluster:monitor/state): get-aliases then get-index. */
   private static Target resolveTarget(NodeClient client, String name) {
     Map<String, List<AliasMetadata>> aliases = getAliases(client, name);
     List<String> indices = new ArrayList<>();
@@ -324,7 +268,6 @@ public final class OutputLookupWriteExec {
     return new Target(Kind.INDEX, false, List.of(), null);
   }
 
-  /** Structurally parses the {@code __lookup} value from an alias filter; null if not present. */
   private static @Nullable String extractLookupUuid(@Nullable String filterJson) {
     if (filterJson == null) {
       return null;
@@ -339,11 +282,11 @@ public final class OutputLookupWriteExec {
         return null;
       }
       Object value = term.get(LookupsIndex.LOOKUP_FIELD);
-      if (value instanceof Map<?, ?> valueObject) { // {"term":{"__lookup":{"value":"<uuid>"}}}
+      if (value instanceof Map<?, ?> valueObject) {
         Object nested = valueObject.get("value");
         return nested == null ? null : nested.toString();
       }
-      return value == null ? null : value.toString(); // {"term":{"__lookup":"<uuid>"}}
+      return value == null ? null : value.toString();
     } catch (IOException e) {
       return null;
     }
