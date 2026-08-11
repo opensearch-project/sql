@@ -234,7 +234,7 @@ public class RestUnifiedQueryAction {
                     plan = addFetchSizeLimit(plan, planContext, fetchSize);
                     plan = addQuerySizeLimit(plan, planContext);
                     plan =
-                        org.opensearch.sql.calcite.utils.CalciteToolsHelper.optimize(
+                        org.opensearch.sql.calcite.utils.CalciteToolsHelper.optimizeForAnalytics(
                             plan, planContext);
                     RelNode finalPlan = plan;
                     Runnable executeTask =
