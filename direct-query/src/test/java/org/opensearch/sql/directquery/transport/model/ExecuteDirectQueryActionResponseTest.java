@@ -287,4 +287,30 @@ public class ExecuteDirectQueryActionResponseTest {
     PrometheusResult result = (PrometheusResult) response.getResults().get(dataSourceName);
     assertNotNull(result);
   }
+
+  @Test
+  public void testPrometheusResultWithTypeLabelInMetric() throws IOException {
+    // Regression test: metrics containing a label named "type" should not cause
+    // InvalidTypeIdException during deserialization (GitHub #5684)
+    String queryId = "query-type-label";
+    String sessionId = "session-type-label";
+    String rawResult =
+        "{\"resultType\":\"vector\",\"result\":[{\"metric\":"
+            + "{\"__name__\":\"cpu_usage\",\"type\":\"gauge\",\"instance\":\"localhost:9090\"},"
+            + "\"value\":[1625000000,\"0.5\"]}]}";
+    String dataSourceName = "prom-with-type-label";
+    String dataSourceType = "prometheus";
+
+    ExecuteDirectQueryActionResponse response =
+        new ExecuteDirectQueryActionResponse(
+            queryId, rawResult, sessionId, dataSourceName, dataSourceType);
+
+    assertEquals(queryId, response.getQueryId());
+    assertEquals(1, response.getResults().size());
+    assertInstanceOf(PrometheusResult.class, response.getResults().get(dataSourceName));
+    PrometheusResult result = (PrometheusResult) response.getResults().get(dataSourceName);
+    assertNotNull(result.getResult());
+    assertEquals(1, result.getResult().size());
+    assertEquals("gauge", result.getResult().get(0).getMetric().get("type"));
+  }
 }
