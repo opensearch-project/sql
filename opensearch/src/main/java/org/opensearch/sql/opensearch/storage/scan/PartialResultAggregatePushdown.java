@@ -16,23 +16,12 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 
 /**
- * Partial-result fallback for a text/keyword mapping conflict on an aggregation's group key.
- *
- * <p>When a field is mapped as {@code keyword} in some indices of a wildcard pattern and {@code
- * text} in others, the multi-index type merge must pick a single type valid on every shard, so it
- * collapses the field to {@code text}-without-{@code .keyword}. Text has no doc values, so the
- * aggregation cannot push down and instead falls back to a per-shard document scan that opens a
- * Point-In-Time (PIT) context on every shard -- exhausting {@code search.max_open_pit_context} on a
- * wide pattern.
- *
- * <p>This class computes which indices to keep so the aggregation can still push down: it
- * partitions the matched indices by how each maps the group field, then picks a single homogeneous
- * group by a deterministic priority (keyword first) and the warning describing what was excluded.
- * The caller ({@link CalciteLogicalIndexScan}) uses {@link Plan#keptIndices()} to build a narrowed
- * scan and re-runs pushdown over it.
- *
- * <p>Only the text/keyword conflict collapses aggregation pushdown this way, so this class handles
- * that case specifically rather than a general conflict framework.
+ * Selects which indices to keep so an aggregation on a text/keyword mapping conflict can push down
+ * natively. When a field is {@code keyword} in some indices of a wildcard pattern and {@code text}
+ * in others, the type merge collapses it to {@code text}-without-{@code .keyword}, which is not
+ * natively aggregatable. This partitions the matched indices by how each maps the group field and
+ * picks one homogeneous group by keyword-first priority, plus a warning naming what was excluded;
+ * the caller ({@link CalciteLogicalIndexScan}) re-runs pushdown over {@link Plan#keptIndices()}.
  */
 final class PartialResultAggregatePushdown {
 
@@ -88,12 +77,9 @@ final class PartialResultAggregatePushdown {
       }
     }
 
-    // Deterministic priority, not a count-based majority: keep the keyword group whenever one
-    // exists (the canonical aggregatable representation), so the returned data never depends on how
-    // many stray indices of another type match. Fall back to text-with-.keyword only when there is
-    // no keyword index. A mix of the two is still a text/keyword conflict that would re-collapse,
-    // so
-    // we never keep both -- recovering the excluded-but-aggregatable group needs a split-and-union.
+    // Keyword-first priority, not a count-based majority, so the result never depends on how many
+    // indices of each type match. Never keep both groups: their mix would re-collapse to a
+    // conflict.
     List<String> keptIndices;
     if (!keywordIndices.isEmpty()) {
       keptIndices = keywordIndices;

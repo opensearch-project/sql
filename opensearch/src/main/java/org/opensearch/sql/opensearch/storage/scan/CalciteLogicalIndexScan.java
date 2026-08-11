@@ -411,11 +411,8 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
         }
         return allowPartialFallback ? tryPartialResultAggregate(aggregate, project) : null;
       }
-      // Partial-result mode is decided BEFORE analyze, not after it fails. Since #5646 a group key
-      // that collapsed to text-without-keyword no longer fails to push down -- it pushes down as a
-      // per-document _source script, which is complete but scans every document. So the choice is
-      // between two working plans (fast subset vs. slow full scan), and only a check up front can
-      // pick the fast one.
+      // Decide partial mode before analyze: since #5646 the collapsed text key pushes down as a
+      // (slow) _source script rather than failing, so a post-failure fallback would never fire.
       if (allowPartialFallback) {
         AbstractRelNode partial = tryPartialResultAggregate(aggregate, project, bucketNames);
         if (partial != null) {
@@ -455,24 +452,11 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
   }
 
   /**
-   * Partial-result path for a text/keyword mapping conflict on the aggregation's group key. When
-   * the field is mapped as {@code keyword} in some indices of a wildcard pattern and bare {@code
-   * text} in others, the multi-index type merge collapses it to text-without-keyword. Aggregating
-   * that field is possible but expensive -- it runs as a per-document {@code _source} script over
-   * every document (see #5646). With the partial-result setting enabled, narrow the scan to the
-   * subset of indices where the field is natively aggregatable, push the aggregation down over just
-   * that subset, and record a warning naming the excluded indices.
-   *
-   * <p>This is consulted <b>before</b> the normal analyze, because the expensive plan succeeds:
-   * waiting for a failure would never trigger. It is also consulted again after a failure, so a
-   * group key that genuinely cannot push down (e.g. an array bucket) still gets the chance.
-   *
-   * <p>The result is <b>partial</b> — the excluded indices' documents are missing from the counts —
-   * so this only runs behind an explicit opt-in and only when the response format can surface the
-   * warning ({@link QueryContext#isWarningsSupported}). The partitioning decision lives in {@link
-   * PartialResultAggregatePushdown}; this method owns the plan-time wiring (settings gate, mapping
-   * lookup, narrowed-scan construction, warning emission). Returns {@code null} — leaving the
-   * aggregate to the normal path — whenever partial mode does not apply.
+   * On a text/keyword mapping conflict, narrow the scan to the index subset where the group field
+   * is aggregatable, push the aggregation over just that subset, and record a warning naming the
+   * excluded indices. Only runs behind the opt-in setting and only when the response format can
+   * carry the warning ({@link QueryContext#isWarningsSupported}); returns {@code null} otherwise.
+   * Partitioning lives in {@link PartialResultAggregatePushdown}.
    */
   private AbstractRelNode tryPartialResultAggregate(
       Aggregate aggregate, @Nullable Project project) {
@@ -486,14 +470,12 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
     if (!isPartialResultEnabled()) {
       return null;
     }
-    // A partial result is only safe if the response can surface the warning that says so. Refuse
-    // (fall through to the normal path) for formats without a warnings channel, e.g. CSV/RAW/VIZ.
+    // A format with no warnings channel (CSV/RAW/VIZ) must not silently drop indices.
     if (!QueryContext.isWarningsSupported()) {
       return null;
     }
     try {
-      // Per-index mappings keyed by concrete index name (the wildcard is already resolved), reused
-      // from the fetch that resolved this index's field types rather than re-requesting them.
+      // Reused from the field-type fetch, so no extra round trip.
       Map<String, IndexMapping> mappings = osIndex.getIndexMappings();
       PartialResultAggregatePushdown.Plan plan =
           PartialResultAggregatePushdown.plan(bucketNames, mappings);
@@ -513,8 +495,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
               narrowedIndex,
               getRowType(),
               pushDownContext.cloneWithOsIndex(narrowedIndex));
-      // allowPartialFallback = false: the subset is already narrowed, so a second attempt would be
-      // redundant. Keeps the fallback strictly one-shot.
+      // allowPartialFallback=false: the subset is already narrowed, so keep this one-shot.
       AbstractRelNode pushed = narrowedScan.pushDownAggregate(aggregate, project, false);
       if (pushed == null) {
         return null; // narrowed subset still can't push down -> leave un-pushed
