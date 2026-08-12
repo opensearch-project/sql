@@ -15,6 +15,8 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Singular;
 import org.apache.commons.lang3.tuple.Pair;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 
 /**
@@ -52,19 +54,30 @@ public class DefaultFunctionResolver implements FunctionResolver {
     if (FunctionSignature.isVarArgFunction(bestMatchEntry.getValue().getParamTypeList())
         && (unresolvedSignature.getParamTypeList().isEmpty()
             || unresolvedSignature.getParamTypeList().size() > 9)) {
-      throw new ExpressionEvaluationException(
-          String.format(
-              "%s function expected 1-9 arguments, but got %d",
-              functionName, unresolvedSignature.getParamTypeList().size()));
+      throw ErrorReport.wrap(
+              new ExpressionEvaluationException(
+                  String.format(
+                      "%s function expected 1-9 arguments, but got %d",
+                      functionName, unresolvedSignature.getParamTypeList().size())))
+          .code(ErrorCode.TYPE_ERROR)
+          .context("function", functionName.toString())
+          .context("actual_arg_count", unresolvedSignature.getParamTypeList().size())
+          .build();
     }
     if (FunctionSignature.NOT_MATCH.equals(bestMatchEntry.getKey())
         && !FunctionSignature.isVarArgFunction(bestMatchEntry.getValue().getParamTypeList())) {
-      throw new ExpressionEvaluationException(
-          String.format(
-              "%s function expected %s, but got %s",
-              functionName,
-              formatFunctions(functionBundle.keySet()),
-              unresolvedSignature.formatTypes()));
+      throw ErrorReport.wrap(
+              new ExpressionEvaluationException(
+                  String.format(
+                      "%s function expected %s, but got %s",
+                      functionName,
+                      formatFunctions(functionBundle.keySet()),
+                      unresolvedSignature.formatTypes())))
+          .code(ErrorCode.TYPE_ERROR)
+          .context("function", functionName.toString())
+          .context("expected_signatures", formatFunctions(functionBundle.keySet()))
+          .context("actual_types", unresolvedSignature.formatTypes())
+          .build();
     } else {
       FunctionSignature resolvedSignature = bestMatchEntry.getValue();
       return Pair.of(resolvedSignature, functionBundle.get(resolvedSignature));

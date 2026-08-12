@@ -17,6 +17,8 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -67,14 +69,18 @@ class SumAggregatorTest extends AggregationTest {
     SumAggregator sumAggregator =
         new SumAggregator(ImmutableList.of(DSL.ref("string_value", STRING)), ExprCoreType.STRING);
     SumState sumState = sumAggregator.create();
-    ExpressionEvaluationException exception =
+    ErrorReport exception =
         assertThrows(
-            ExpressionEvaluationException.class,
+            ErrorReport.class,
             () ->
                 sumAggregator.iterate(
                     ExprValueUtils.tupleValue(ImmutableMap.of("string_value", "m")).bindingTuples(),
                     sumState));
-    assertEquals("unexpected type [STRING] in sum aggregation", exception.getMessage());
+    assertEquals(
+        "sum aggregation does not support type STRING; expected a numeric type (INTEGER, LONG,"
+            + " FLOAT, or DOUBLE)",
+        exception.getMessage());
+    assertEquals(ErrorCode.TYPE_ERROR, exception.getCode());
   }
 
   @Test
