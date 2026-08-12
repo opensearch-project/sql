@@ -28,14 +28,17 @@ import org.opensearch.action.search.*;
 import org.opensearch.cluster.metadata.AliasMetadata;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.tasks.TaskId;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.IndexSettings;
 import org.opensearch.sql.common.error.ErrorCode;
 import org.opensearch.sql.common.error.ErrorReport;
+import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
+import org.opensearch.tasks.CancellableTask;
 import org.opensearch.transport.client.node.NodeClient;
 
 /** OpenSearch connection by node client. */
@@ -161,7 +164,18 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   @Override
   public OpenSearchResponse search(OpenSearchRequest request) {
     return request.search(
-        req -> client.search(req).actionGet(), req -> client.searchScroll(req).actionGet());
+        req -> {
+          applyParentTask(req);
+          return client.search(req).actionGet();
+        },
+        req -> client.searchScroll(req).actionGet());
+  }
+
+  private void applyParentTask(SearchRequest req) {
+    CancellableTask task = OpenSearchQueryManager.getCancellableTask();
+    if (task != null) {
+      req.setParentTask(new TaskId(client.getLocalNodeId(), task.getId()));
+    }
   }
 
   /**

@@ -7,6 +7,7 @@ package org.opensearch.sql.plugin;
 
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpenSearchDataSourceMetadata;
 import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_BACKGROUND_THREAD_POOL_NAME;
+import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_COMPLEX_WORKER_THREAD_POOL_NAME;
 import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_WORKER_THREAD_POOL_NAME;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_REQUEST_BUFFER_INDEX_NAME;
 
@@ -104,6 +105,9 @@ import org.opensearch.sql.legacy.plugin.RestSqlStatsAction;
 import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
+import org.opensearch.sql.opensearch.storage.rest.CoreEndpointsProvider;
+import org.opensearch.sql.opensearch.storage.rest.RestEndpointRegistry;
+import org.opensearch.sql.opensearch.storage.rest.RestEndpointRegistryHolder;
 import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine;
 import org.opensearch.sql.plugin.config.EngineExtensionsHolder;
 import org.opensearch.sql.plugin.config.OpenSearchPluginModule;
@@ -135,6 +139,7 @@ import org.opensearch.sql.spark.transport.config.AsyncExecutorServiceModule;
 import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionResponse;
 import org.opensearch.sql.spark.transport.model.CreateAsyncQueryActionResponse;
 import org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionResponse;
+import org.opensearch.sql.spi.rest.RestEndpointProvider;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.threadpool.ExecutorBuilder;
@@ -154,6 +159,7 @@ public class SQLPlugin extends Plugin
   private static final Logger LOGGER = LogManager.getLogger(SQLPlugin.class);
 
   private List<ExecutionEngine> executionEngineExtensions = List.of();
+  private List<RestEndpointProvider> restEndpointProviders = List.of();
   private ClusterService clusterService;
 
   /** Settings should be inited when bootstrap the plugin. */
@@ -182,6 +188,16 @@ public class SQLPlugin extends Plugin
           executionEngineExtensions.size(),
           executionEngineExtensions.stream().map(e -> e.getClass().getSimpleName()).toList());
     }
+
+    List<RestEndpointProvider> restProviders = loader.loadExtensions(RestEndpointProvider.class);
+    this.restEndpointProviders = restProviders != null ? List.copyOf(restProviders) : List.of();
+  }
+
+  private void publishRestCommandRegistries() {
+    List<RestEndpointProvider> providers = new ArrayList<>();
+    providers.add(new CoreEndpointsProvider());
+    providers.addAll(this.restEndpointProviders);
+    RestEndpointRegistryHolder.set(new RestEndpointRegistry(providers));
   }
 
   @Override
@@ -233,7 +249,13 @@ public class SQLPlugin extends Plugin
             }
             cached[0] =
                 new RestUnifiedQueryAction(
-                    client, clusterService, executor, contextProvider, pluginSettings);
+                    client,
+                    clusterService,
+                    executor,
+                    contextProvider,
+                    pluginSettings,
+                    new org.opensearch.sql.opensearch.executor.ThreadPoolExecutionDispatcher(
+                        client.threadPool(), pluginSettings));
           }
           return cached[0];
         };
@@ -372,6 +394,9 @@ public class SQLPlugin extends Plugin
     this.clusterService = clusterService;
     this.pluginSettings = new OpenSearchSettings(clusterService.getClusterSettings());
     this.client = (NodeClient) client;
+
+    publishRestCommandRegistries();
+
     this.dataSourceService = createDataSourceService();
     dataSourceService.createDataSource(defaultOpenSearchDataSourceMetadata());
     LocalClusterState.state().setClusterService(clusterService);
@@ -446,10 +471,12 @@ public class SQLPlugin extends Plugin
 
   @Override
   public List<ExecutorBuilder<?>> getExecutorBuilders(Settings settings) {
-    // The worker pool is the primary pool where most of the work is done. The background thread
-    // pool is a separate queue for asynchronous requests to other nodes. We keep them separate to
-    // prevent deadlocks during async fetches on small node counts. Tasks in the background pool
-    // should do no work except I/O to other services.
+    // The worker pool is the primary pool where most of the work is done. The complex-worker pool
+    // handles queries that require scripts (table scans that can't be pushed to Lucene) so they
+    // don't starve fast queries. The background thread pool is a separate queue for asynchronous
+    // requests to other nodes. We keep them separate to prevent deadlocks during async fetches on
+    // small node counts. Tasks in the background pool should do no work except I/O to other
+    // services.
     return List.of(
         new FixedExecutorBuilder(
             settings,
@@ -459,9 +486,15 @@ public class SQLPlugin extends Plugin
             "thread_pool." + SQL_WORKER_THREAD_POOL_NAME),
         new FixedExecutorBuilder(
             settings,
+            SQL_COMPLEX_WORKER_THREAD_POOL_NAME,
+            OpenSearchExecutors.allocatedProcessors(settings),
+            1000,
+            "thread_pool." + SQL_COMPLEX_WORKER_THREAD_POOL_NAME),
+        new FixedExecutorBuilder(
+            settings,
             SQL_BACKGROUND_THREAD_POOL_NAME,
             settings.getAsInt(
-                "thread_pool.search.size", OpenSearchExecutors.allocatedProcessors(settings)),
+                "thread_pool.search.size", 2 * OpenSearchExecutors.allocatedProcessors(settings)),
             1000,
             "thread_pool." + SQL_BACKGROUND_THREAD_POOL_NAME));
   }

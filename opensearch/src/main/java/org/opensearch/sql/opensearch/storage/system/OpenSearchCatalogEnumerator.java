@@ -16,8 +16,11 @@ import org.opensearch.sql.exception.NonFallbackCalciteException;
 import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.request.system.OpenSearchSystemRequest;
 
-/** Supports a simple iteration over a collection for OpenSearch system index */
-public class OpenSearchSystemIndexEnumerator implements Enumerator<Object> {
+/**
+ * Resource-monitored iteration over the rows produced by a read-only catalog {@link
+ * OpenSearchSystemRequest}.
+ */
+public class OpenSearchCatalogEnumerator implements Enumerator<Object> {
   /** How many moveNext() calls to perform resource check once. */
   private static final long NUMBER_OF_NEXT_CALL_TO_CHECK = 1000;
 
@@ -35,7 +38,7 @@ public class OpenSearchSystemIndexEnumerator implements Enumerator<Object> {
   /** ResourceMonitor. */
   private final ResourceMonitor monitor;
 
-  public OpenSearchSystemIndexEnumerator(
+  public OpenSearchCatalogEnumerator(
       List<String> fields, OpenSearchSystemRequest request, ResourceMonitor monitor) {
     this.fields = fields;
     this.request = request;
@@ -50,9 +53,13 @@ public class OpenSearchSystemIndexEnumerator implements Enumerator<Object> {
 
   @Override
   public Object current() {
-    return fields.stream()
-        .map(k -> current.tupleValue().getOrDefault(k, ExprNullValue.of()).valueForCalcite())
-        .toArray();
+    Object[] row =
+        fields.stream()
+            .map(k -> current.tupleValue().getOrDefault(k, ExprNullValue.of()).valueForCalcite())
+            .toArray();
+    // Calcite represents a single-column row as the bare scalar (the ARRAY row format optimizes to
+    // SCALAR for a one-field row type), so return the value directly instead of a length-one array.
+    return row.length == 1 ? row[0] : row;
   }
 
   @Override

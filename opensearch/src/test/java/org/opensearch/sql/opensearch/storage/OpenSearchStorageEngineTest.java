@@ -7,11 +7,16 @@ package org.opensearch.sql.opensearch.storage;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
 import static org.opensearch.sql.utils.SystemIndexUtils.TABLE_INFO;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -20,8 +25,12 @@ import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
-import org.opensearch.sql.opensearch.storage.system.OpenSearchSystemIndex;
+import org.opensearch.sql.opensearch.storage.rest.CoreEndpointsProvider;
+import org.opensearch.sql.opensearch.storage.rest.RestEndpointRegistry;
+import org.opensearch.sql.opensearch.storage.rest.RestEndpointRegistryHolder;
+import org.opensearch.sql.opensearch.storage.system.OpenSearchCatalogTable;
 import org.opensearch.sql.storage.Table;
+import org.opensearch.sql.utils.SystemIndexUtils;
 
 @ExtendWith(MockitoExtension.class)
 class OpenSearchStorageEngineTest {
@@ -29,6 +38,13 @@ class OpenSearchStorageEngineTest {
   @Mock private OpenSearchClient client;
 
   @Mock private Settings settings;
+
+  @BeforeEach
+  void publishRestRegistry() {
+    // restTable() reads the merged registry from the holder (published by SQLPlugin in production);
+    // publish a built-in-only registry here so the rest endpoints resolve in this unit test.
+    RestEndpointRegistryHolder.set(new RestEndpointRegistry(List.of(new CoreEndpointsProvider())));
+  }
 
   @Test
   public void getTable() {
@@ -52,6 +68,71 @@ class OpenSearchStorageEngineTest {
     OpenSearchStorageEngine engine = new OpenSearchStorageEngine(client, settings);
     Table table =
         engine.getTable(new DataSourceSchemaName(DEFAULT_DATASOURCE_NAME, "default"), TABLE_INFO);
-    assertAll(() -> assertNotNull(table), () -> assertTrue(table instanceof OpenSearchSystemIndex));
+    assertAll(
+        () -> assertNotNull(table), () -> assertTrue(table instanceof OpenSearchCatalogTable));
+  }
+
+  @Test
+  public void wildcardNoLongerEnablesEndpoints() {
+    when(settings.getSettingValue(Settings.Key.PPL_REST_ALLOWED_ENDPOINTS))
+        .thenReturn(List.of("*"));
+    OpenSearchStorageEngine engine = new OpenSearchStorageEngine(client, settings);
+    String name =
+        SystemIndexUtils.restTable(
+            new SystemIndexUtils.RestSpec("/_cluster/health", Map.of(), null, null));
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                engine.getTable(
+                    new DataSourceSchemaName(DEFAULT_DATASOURCE_NAME, "default"), name));
+    assertTrue(e.getMessage().contains("is not enabled on this cluster"));
+  }
+
+  @Test
+  public void getRestTableAllowedBySubset() {
+    when(settings.getSettingValue(Settings.Key.PPL_REST_ALLOWED_ENDPOINTS))
+        .thenReturn(List.of("/_cluster/health"));
+    OpenSearchStorageEngine engine = new OpenSearchStorageEngine(client, settings);
+    String name =
+        SystemIndexUtils.restTable(
+            new SystemIndexUtils.RestSpec("/_cluster/health", Map.of(), null, null));
+    assertTrue(
+        engine.getTable(new DataSourceSchemaName(DEFAULT_DATASOURCE_NAME, "default"), name)
+            instanceof OpenSearchCatalogTable);
+  }
+
+  @Test
+  public void getRestTableRejectedWhenEndpointNotInSubset() {
+    // The endpoint resolves in the registry but is absent from the (non-empty) enabled subset.
+    when(settings.getSettingValue(Settings.Key.PPL_REST_ALLOWED_ENDPOINTS))
+        .thenReturn(List.of("/_some/other"));
+    OpenSearchStorageEngine engine = new OpenSearchStorageEngine(client, settings);
+    String name =
+        SystemIndexUtils.restTable(
+            new SystemIndexUtils.RestSpec("/_cluster/health", Map.of(), null, null));
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                engine.getTable(
+                    new DataSourceSchemaName(DEFAULT_DATASOURCE_NAME, "default"), name));
+    assertTrue(e.getMessage().contains("is not enabled on this cluster"));
+  }
+
+  @Test
+  public void getRestTableDisabledWhenListEmpty() {
+    when(settings.getSettingValue(Settings.Key.PPL_REST_ALLOWED_ENDPOINTS)).thenReturn(List.of());
+    OpenSearchStorageEngine engine = new OpenSearchStorageEngine(client, settings);
+    String name =
+        SystemIndexUtils.restTable(
+            new SystemIndexUtils.RestSpec("/_cluster/health", Map.of(), null, null));
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                engine.getTable(
+                    new DataSourceSchemaName(DEFAULT_DATASOURCE_NAME, "default"), name));
+    assertTrue(e.getMessage().contains("disabled on this cluster"));
   }
 }

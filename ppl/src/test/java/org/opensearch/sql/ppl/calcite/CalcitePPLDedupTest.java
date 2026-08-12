@@ -14,6 +14,7 @@ import org.apache.calcite.test.CalciteAssert;
 import org.junit.Assert;
 import org.junit.Test;
 import org.opensearch.sql.calcite.plan.rule.PPLSimplifyDedupRule;
+import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 
 public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
 
@@ -486,5 +487,39 @@ public class CalcitePPLDedupTest extends CalcitePPLAbstractTest {
     HepPlanner planner = new HepPlanner(program);
     planner.setRoot(root);
     return planner.findBestExp();
+  }
+
+  /**
+   * {@code optimize} collapses dedup into a {@code LogicalDedup} (for Lucene pushdown), which the
+   * analytics engine cannot plan. {@code optimizeForAnalytics} omits that rule so dedup keeps the
+   * {@code ROW_NUMBER() OVER (PARTITION BY ...)} window form the analytics engine can plan
+   * (#22671).
+   */
+  @Test
+  public void testOptimizeForAnalyticsKeepsRowNumberForm() {
+    RelNode raw = getRelNodeRaw("source=EMP | where SAL > 1000 | dedup DEPTNO");
+
+    Assert.assertTrue(
+        "optimize() should collapse dedup into a LogicalDedup:\n",
+        CalciteToolsHelper.optimize(raw, null).explain().contains("LogicalDedup"));
+
+    String analytics = CalciteToolsHelper.optimizeForAnalytics(raw, null).explain();
+    Assert.assertFalse(
+        "optimizeForAnalytics should not produce a LogicalDedup:\n" + analytics,
+        analytics.contains("LogicalDedup"));
+    Assert.assertTrue(
+        "optimizeForAnalytics should keep the ROW_NUMBER window form:\n" + analytics,
+        analytics.contains("ROW_NUMBER"));
+    Assert.assertTrue(
+        "where predicate should be preserved:\n" + analytics, analytics.contains(">($5, 1000)"));
+  }
+
+  /** A dedup-free plan is identical under both optimize variants. */
+  @Test
+  public void testOptimizeForAnalyticsMatchesOptimizeWithoutDedup() {
+    RelNode raw = getRelNodeRaw("source=EMP | where SAL > 1000 | fields DEPTNO");
+    Assert.assertEquals(
+        CalciteToolsHelper.optimize(raw, null).explain(),
+        CalciteToolsHelper.optimizeForAnalytics(raw, null).explain());
   }
 }

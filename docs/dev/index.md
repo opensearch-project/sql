@@ -40,6 +40,7 @@
 + **Piped Processing Language**
   + [PPL Command Checklist](ppl-commands.md): A checklist of developing a new PPL command
   + [PPL Functions](ppl-functions.md): Guidance on developing a PPL function
+  + [PPL Linter Grammar Compatibility CI](ppl-lint-grammar-compatibility-ci.md): Guidance on validating SQL grammar changes against OpenSearch Dashboards PPL linter rules
 
 ### Query Processing
 

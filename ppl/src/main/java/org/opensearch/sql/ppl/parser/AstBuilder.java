@@ -115,6 +115,7 @@ import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Replace;
 import org.opensearch.sql.ast.tree.ReplacePair;
+import org.opensearch.sql.ast.tree.RestRelation;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
@@ -130,6 +131,7 @@ import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.ast.tree.Xyseries;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.common.antlr.AstBuildGuard;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
@@ -149,6 +151,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
 import org.opensearch.sql.ppl.utils.MakeResultsDataParser;
 import org.opensearch.sql.ppl.utils.UnresolvedPlanHelper;
+import org.opensearch.sql.utils.SystemIndexUtils;
 
 /** Class of building the AST. Refines the visit path and build the AST nodes */
 public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
@@ -258,6 +261,34 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitShowDataSourcesCommand(
       OpenSearchPPLParser.ShowDataSourcesCommandContext ctx) {
     return new DescribeRelation(qualifiedName(DATASOURCES_TABLE_NAME));
+  }
+
+  /**
+   * <b>Rest command.</b><br>
+   * Encodes the validated endpoint spec into a reserved table name (via {@link
+   * org.opensearch.sql.utils.SystemIndexUtils#restTable}) that resolves through the storage engine
+   * to a REST source table on the Calcite path, mirroring how DESCRIBE resolves to a system index.
+   */
+  @Override
+  public UnresolvedPlan visitRestCommand(OpenSearchPPLParser.RestCommandContext ctx) {
+    String endpoint = StringUtils.unquoteText(ctx.stringLiteral().getText());
+    LinkedHashMap<String, String> args = new LinkedHashMap<>();
+    Integer count = null;
+    String timeout = null;
+    for (OpenSearchPPLParser.RestArgumentContext arg : ctx.restArgument()) {
+      if (arg.COUNT() != null) {
+        count = Integer.parseInt(arg.integerLiteral().getText());
+      } else if (arg.TIMEOUT() != null) {
+        timeout = StringUtils.unquoteText(arg.stringLiteral().getText());
+      } else {
+        args.put(
+            StringUtils.unquoteIdentifier(arg.ident().getText()),
+            StringUtils.unquoteText(arg.literalValue().getText()));
+      }
+    }
+    String token =
+        SystemIndexUtils.restTable(new SystemIndexUtils.RestSpec(endpoint, args, count, timeout));
+    return new RestRelation(new QualifiedName(token));
   }
 
   /** makeresults command. */
@@ -1867,5 +1898,38 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         .usePIT(usePIT)
         .filter(filter)
         .build();
+  }
+
+  /** Xyseries command. */
+  @Override
+  public UnresolvedPlan visitXyseriesCommand(OpenSearchPPLParser.XyseriesCommandContext ctx) {
+    UnresolvedExpression xField = internalVisitExpression(ctx.xField);
+    UnresolvedExpression yNameField = internalVisitExpression(ctx.yNameField);
+
+    // Parse pivot values from IN (...) clause
+    List<String> pivotValues =
+        ctx.xyseriesPivotValues().stringLiteral().stream()
+            .map(s -> StringUtils.unquoteText(s.getText()))
+            .distinct()
+            .collect(Collectors.toList());
+
+    // Parse y-data fields
+    List<UnresolvedExpression> yDataFields =
+        ctx.yDataFields.fieldExpression().stream()
+            .map(this::internalVisitExpression)
+            .collect(Collectors.toList());
+
+    // Parse options
+    String separator = ": ";
+    String format = null;
+    for (OpenSearchPPLParser.XyseriesOptionContext optCtx : ctx.xyseriesOption()) {
+      if (optCtx.SEP() != null) {
+        separator = StringUtils.unquoteText(optCtx.sep.getText());
+      } else if (optCtx.FORMAT() != null) {
+        format = StringUtils.unquoteText(optCtx.format.getText());
+      }
+    }
+
+    return new Xyseries(xField, yNameField, pivotValues, yDataFields, separator, format);
   }
 }

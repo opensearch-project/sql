@@ -208,6 +208,35 @@ public class DataTypeIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void test_constant_keyword_data_type() throws Exception {
+    String index = "test_constant_keyword";
+    try {
+      Request createIndex = new Request("PUT", "/" + index);
+      createIndex.setJsonEntity(
+          "{\"mappings\":{\"properties\":{"
+              + "\"tenant\":{\"type\":\"constant_keyword\",\"value\":\"acme\"},"
+              + "\"message\":{\"type\":\"text\"}}}}");
+      client().performRequest(createIndex);
+
+      Request insertDoc = new Request("PUT", "/" + index + "/_doc/1?refresh=true");
+      insertDoc.setJsonEntity("{\"tenant\":\"acme\",\"message\":\"hello\"}");
+      client().performRequest(insertDoc);
+
+      JSONObject result = executeQuery(String.format("source=%s | fields tenant, message", index));
+      verifySchema(result, schema("tenant", "string"), schema("message", "string"));
+      verifyDataRows(result, rows("acme", "hello"));
+
+      // constant_keyword should filter like a regular string.
+      JSONObject filtered =
+          executeQuery(
+              String.format("source=%s | where tenant='acme' | fields tenant, message", index));
+      verifyDataRows(filtered, rows("acme", "hello"));
+    } finally {
+      client().performRequest(new Request("DELETE", "/" + index));
+    }
+  }
+
+  @Test
   @RequiresCapability(
       value = DOC_MUTATION,
       note = "Seeds + deletes a doc; the AE store doesn't support DELETE.")

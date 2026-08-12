@@ -10,7 +10,6 @@ import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonSyntaxException;
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.StreamSupport;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
@@ -20,6 +19,7 @@ import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.linq4j.tree.Types;
 import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
@@ -97,14 +97,19 @@ public class ForeachJsonArrayFunctionImpl extends ImplementorUDF {
     if (value == null) {
       return null;
     }
-    return switch (elementType) {
-      case DOUBLE -> ((Number) value).doubleValue();
-      case VARCHAR ->
-          value instanceof List<?> || value instanceof java.util.Map<?, ?>
-              ? gson.toJson(value)
-              : String.valueOf(value);
-      case DECIMAL -> BigDecimal.valueOf(((Number) value).doubleValue());
-      default -> value;
-    };
+    // Match Calcite SAFE_CAST semantics for runtime values whose type is unknown during planning.
+    try {
+      return switch (elementType) {
+        case DOUBLE -> SqlFunctions.toDouble(value);
+        case VARCHAR ->
+            value instanceof List<?> || value instanceof java.util.Map<?, ?>
+                ? gson.toJson(value)
+                : String.valueOf(value);
+        case DECIMAL -> SqlFunctions.toBigDecimal(value);
+        default -> value;
+      };
+    } catch (RuntimeException e) {
+      return null;
+    }
   }
 }

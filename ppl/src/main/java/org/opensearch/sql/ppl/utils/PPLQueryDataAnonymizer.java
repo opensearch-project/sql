@@ -97,6 +97,7 @@ import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Replace;
+import org.opensearch.sql.ast.tree.RestRelation;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
@@ -113,6 +114,7 @@ import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.ast.tree.Xyseries;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -124,6 +126,7 @@ import org.opensearch.sql.planner.logical.LogicalRareTopN;
 import org.opensearch.sql.planner.logical.LogicalRemove;
 import org.opensearch.sql.planner.logical.LogicalRename;
 import org.opensearch.sql.planner.logical.LogicalSort;
+import org.opensearch.sql.utils.SystemIndexUtils;
 
 /** Utility class to mask sensitive information in incoming PPL queries. */
 public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> {
@@ -167,6 +170,23 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitRelation(Relation node, String context) {
+    if (node instanceof RestRelation) {
+      SystemIndexUtils.RestSpec spec =
+          SystemIndexUtils.decodeRestSpec(node.getTableQualifiedName().toString());
+      StringBuilder sb = new StringBuilder("rest ").append(spec.getEndpoint());
+      if (spec.getCount() != null) {
+        sb.append(" count=").append(MASK_LITERAL);
+      }
+      if (spec.getTimeout() != null) {
+        sb.append(" timeout=").append(MASK_LITERAL);
+      }
+      if (spec.getArgs() != null) {
+        for (String key : spec.getArgs().keySet()) {
+          sb.append(' ').append(key).append('=').append(MASK_LITERAL);
+        }
+      }
+      return sb.toString();
+    }
     if (node instanceof DescribeRelation) {
       return StringUtils.format("describe %s", MASK_TABLE);
     }
@@ -459,13 +479,16 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     Integer noOfResults = node.getNoOfResults();
     String countField = (String) arguments.get(RareTopN.Option.countField.name()).getValue();
     Boolean showCount = (Boolean) arguments.get(RareTopN.Option.showCount.name()).getValue();
+    String percentField = (String) arguments.get(RareTopN.Option.percentField.name()).getValue();
+    Boolean showPerc = (Boolean) arguments.get(RareTopN.Option.showPerc.name()).getValue();
     Boolean useNull = (Boolean) arguments.get(RareTopN.Option.useNull.name()).getValue();
     String fields = visitFieldList(node.getFields());
     String group = visitExpressionList(node.getGroupExprList());
     String options =
         UnresolvedPlanHelper.isCalciteEnabled(settings)
             ? StringUtils.format(
-                "countield='%s' showcount=%s usenull=%s ", countField, showCount, useNull)
+                "countfield='%s' showcount=%s percentfield='%s' showperc=%s usenull=%s ",
+                countField, showCount, percentField, showPerc, useNull)
             : "";
     return StringUtils.format(
         "%s | %s %d %s%s",
@@ -828,6 +851,26 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
       anonymized.append(StringUtils.format(" %s=***", "column_name"));
     }
     return anonymized.toString();
+  }
+
+  @Override
+  public String visitXyseries(Xyseries node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    StringBuilder command = new StringBuilder();
+    command.append(" | xyseries");
+    if (node.getSeparator() != null && !": ".equals(node.getSeparator())) {
+      command.append(" sep=").append(MASK_LITERAL);
+    }
+    if (node.getFormat() != null) {
+      command.append(" format=").append(MASK_LITERAL);
+    }
+    command.append(" ").append(visitExpression(node.getXField()));
+    command.append(" ").append(visitExpression(node.getYNameField()));
+    command.append(" in (").append(MASK_LITERAL).append(")");
+    String dataFields =
+        node.getYDataFields().stream().map(this::visitExpression).collect(Collectors.joining(","));
+    command.append(" ").append(dataFields);
+    return StringUtils.format("%s%s", child, command.toString());
   }
 
   @Override

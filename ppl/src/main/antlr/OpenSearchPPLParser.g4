@@ -45,6 +45,7 @@ subSearch
 // commands
 pplCommands
    : describeCommand
+   | restCommand
    | showDataSourcesCommand
    | makeresultsCommand
    | searchCommand
@@ -99,6 +100,7 @@ commands
    | fieldformatCommand
    | nomvCommand
    | graphLookupCommand
+   | xyseriesCommand
    | unionCommand
    | outputlookupCommand
    | timewrapCommand
@@ -107,6 +109,7 @@ commands
 commandName
    : SEARCH
    | DESCRIBE
+   | REST
    | SHOW
    | WHERE
    | FIELDS
@@ -154,6 +157,7 @@ commandName
    | NOMV
    | TRANSPOSE
    | GRAPHLOOKUP
+   | XYSERIES
    | TIMEWRAP
    | MAKERESULTS
    ;
@@ -213,6 +217,16 @@ describeCommand
    : DESCRIBE tableSourceClause
    ;
 
+
+restCommand
+   : REST stringLiteral (restArgument)*
+   ;
+
+restArgument
+   : COUNT EQUAL integerLiteral
+   | TIMEOUT EQUAL stringLiteral
+   | ident EQUAL literalValue
+   ;
 showDataSourcesCommand
    : SHOW DATASOURCES
    ;
@@ -499,6 +513,8 @@ rareTopCommand
 rareTopOption
    : COUNTFIELD EQUAL countField = stringLiteral
    | SHOWCOUNT EQUAL showCount = booleanLiteral
+   | PERCENTFIELD EQUAL percentField = stringLiteral
+   | SHOWPERC EQUAL showPerc = booleanLiteral
    | USENULL EQUAL useNull = booleanLiteral
    ;
 
@@ -774,6 +790,19 @@ graphLookupArgs
    | (BATCH_MODE EQUAL booleanLiteral)
    | (USE_PIT EQUAL booleanLiteral)
    | (FILTER EQUAL LT_PRTHS logicalExpression RT_PRTHS)
+   ;
+
+xyseriesCommand
+   : XYSERIES xyseriesOption* xField = fieldExpression yNameField = fieldExpression IN LT_PRTHS xyseriesPivotValues RT_PRTHS yDataFields = fieldList
+   ;
+
+xyseriesOption
+   : SEP EQUAL sep = stringLiteral
+   | FORMAT EQUAL format = stringLiteral
+   ;
+
+xyseriesPivotValues
+   : stringLiteral (COMMA stringLiteral)*
    ;
 
 // clauses
@@ -1806,6 +1835,8 @@ searchableKeyWord
    | ANOMALY_SCORE_THRESHOLD
    | COUNTFIELD
    | SHOWCOUNT
+   | PERCENTFIELD
+   | SHOWPERC
    | MAXOUT
    | PATH
    | INPUT
@@ -1871,4 +1902,7 @@ searchableKeyWord
    | MAX_DEPTH
    | DEPTH_FIELD
    | EDGE
+   // rest command token, also usable as a free-text search term / identifier
+   | TIMEOUT
+   | SEP
    ;

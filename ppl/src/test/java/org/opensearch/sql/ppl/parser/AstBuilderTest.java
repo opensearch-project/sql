@@ -84,6 +84,7 @@ import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.MakeResults;
 import org.opensearch.sql.ast.tree.OutputLookup;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
+import org.opensearch.sql.ast.tree.Xyseries;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -741,6 +742,8 @@ public class AstBuilderTest extends AstPlanningTestBase {
                 argument("noOfResults", intLiteral(10)),
                 argument("countField", stringLiteral("count")),
                 argument("showCount", booleanLiteral(true)),
+                argument("percentField", stringLiteral("percent")),
+                argument("showPerc", booleanLiteral(false)),
                 argument("useNull", booleanLiteral(true))),
             emptyList(),
             field("a")));
@@ -757,6 +760,8 @@ public class AstBuilderTest extends AstPlanningTestBase {
                 argument("noOfResults", intLiteral(10)),
                 argument("countField", stringLiteral("count")),
                 argument("showCount", booleanLiteral(true)),
+                argument("percentField", stringLiteral("percent")),
+                argument("showPerc", booleanLiteral(false)),
                 argument("useNull", booleanLiteral(true))),
             exprList(field("b")),
             field("a")));
@@ -773,10 +778,48 @@ public class AstBuilderTest extends AstPlanningTestBase {
                 argument("noOfResults", intLiteral(10)),
                 argument("countField", stringLiteral("count")),
                 argument("showCount", booleanLiteral(true)),
+                argument("percentField", stringLiteral("percent")),
+                argument("showPerc", booleanLiteral(false)),
                 argument("useNull", booleanLiteral(true))),
             exprList(field("c")),
             field("a"),
             field("b")));
+  }
+
+  @Test
+  public void testRareCommandWithShowPerc() {
+    assertEqual(
+        "source=t | rare showperc=true a",
+        rareTopN(
+            relation("t"),
+            CommandType.RARE,
+            exprList(
+                argument("noOfResults", intLiteral(10)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true)),
+                argument("percentField", stringLiteral("percent")),
+                argument("showPerc", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
+            emptyList(),
+            field("a")));
+  }
+
+  @Test
+  public void testRareCommandWithShowPercAndGroupBy() {
+    assertEqual(
+        "source=t | rare showperc=true a by b",
+        rareTopN(
+            relation("t"),
+            CommandType.RARE,
+            exprList(
+                argument("noOfResults", intLiteral(10)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true)),
+                argument("percentField", stringLiteral("percent")),
+                argument("showPerc", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
+            exprList(field("b")),
+            field("a")));
   }
 
   @Test
@@ -790,6 +833,8 @@ public class AstBuilderTest extends AstPlanningTestBase {
                 argument("noOfResults", intLiteral(1)),
                 argument("countField", stringLiteral("count")),
                 argument("showCount", booleanLiteral(true)),
+                argument("percentField", stringLiteral("percent")),
+                argument("showPerc", booleanLiteral(false)),
                 argument("useNull", booleanLiteral(true))),
             emptyList(),
             field("a")));
@@ -806,6 +851,8 @@ public class AstBuilderTest extends AstPlanningTestBase {
                 argument("noOfResults", intLiteral(10)),
                 argument("countField", stringLiteral("count")),
                 argument("showCount", booleanLiteral(true)),
+                argument("percentField", stringLiteral("percent")),
+                argument("showPerc", booleanLiteral(false)),
                 argument("useNull", booleanLiteral(true))),
             emptyList(),
             field("a")));
@@ -822,6 +869,8 @@ public class AstBuilderTest extends AstPlanningTestBase {
                 argument("noOfResults", intLiteral(1)),
                 argument("countField", stringLiteral("count")),
                 argument("showCount", booleanLiteral(true)),
+                argument("percentField", stringLiteral("percent")),
+                argument("showPerc", booleanLiteral(false)),
                 argument("useNull", booleanLiteral(true))),
             exprList(field("b")),
             field("a")));
@@ -838,6 +887,8 @@ public class AstBuilderTest extends AstPlanningTestBase {
                 argument("noOfResults", intLiteral(1)),
                 argument("countField", stringLiteral("count")),
                 argument("showCount", booleanLiteral(true)),
+                argument("percentField", stringLiteral("percent")),
+                argument("showPerc", booleanLiteral(false)),
                 argument("useNull", booleanLiteral(true))),
             exprList(field("c")),
             field("a"),
@@ -855,7 +906,45 @@ public class AstBuilderTest extends AstPlanningTestBase {
                 argument("noOfResults", intLiteral(1)),
                 argument("countField", stringLiteral("count")),
                 argument("showCount", booleanLiteral(true)),
+                argument("percentField", stringLiteral("percent")),
+                argument("showPerc", booleanLiteral(false)),
                 argument("useNull", booleanLiteral(false))),
+            exprList(field("b")),
+            field("a")));
+  }
+
+  @Test
+  public void testTopCommandWithShowPerc() {
+    assertEqual(
+        "source=t | top showperc=true a",
+        rareTopN(
+            relation("t"),
+            CommandType.TOP,
+            exprList(
+                argument("noOfResults", intLiteral(10)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true)),
+                argument("percentField", stringLiteral("percent")),
+                argument("showPerc", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
+            emptyList(),
+            field("a")));
+  }
+
+  @Test
+  public void testTopCommandWithShowPercAndGroupBy() {
+    assertEqual(
+        "source=t | top showperc=true a by b",
+        rareTopN(
+            relation("t"),
+            CommandType.TOP,
+            exprList(
+                argument("noOfResults", intLiteral(10)),
+                argument("countField", stringLiteral("count")),
+                argument("showCount", booleanLiteral(true)),
+                argument("percentField", stringLiteral("percent")),
+                argument("showPerc", booleanLiteral(true)),
+                argument("useNull", booleanLiteral(true))),
             exprList(field("b")),
             field("a")));
   }
@@ -872,6 +961,8 @@ public class AstBuilderTest extends AstPlanningTestBase {
                 argument("noOfResults", intLiteral(1)),
                 argument("countField", stringLiteral("count")),
                 argument("showCount", booleanLiteral(true)),
+                argument("percentField", stringLiteral("percent")),
+                argument("showPerc", booleanLiteral(false)),
                 argument("useNull", booleanLiteral(false))),
             exprList(field("b")),
             field("a")));
@@ -1828,6 +1919,78 @@ public class AstBuilderTest extends AstPlanningTestBase {
     plan("source=t | invalidCmd |");
   }
 
+  // Xyseries tests
+
+  @Test
+  public void testXyseriesCommandBasic() {
+    Xyseries expected =
+        new Xyseries(
+            field("url"),
+            field("response"),
+            List.of("200", "404"),
+            List.of(field("host_cnt")),
+            ": ",
+            null);
+    expected.attach(relation("t"));
+    assertEqual("source=t | xyseries url response in (\"200\", \"404\") host_cnt", expected);
+  }
+
+  @Test
+  public void testXyseriesCommandMultipleDataFields() {
+    Xyseries expected =
+        new Xyseries(
+            field("url"),
+            field("response"),
+            List.of("200", "404"),
+            List.of(field("host_cnt"), field("method_cnt")),
+            ": ",
+            null);
+    expected.attach(relation("t"));
+    assertEqual(
+        "source=t | xyseries url response in (\"200\", \"404\") host_cnt, method_cnt", expected);
+  }
+
+  @Test
+  public void testXyseriesCommandWithSep() {
+    Xyseries expected =
+        new Xyseries(
+            field("url"), field("response"), List.of("200"), List.of(field("host_cnt")), "-", null);
+    expected.attach(relation("t"));
+    assertEqual("source=t | xyseries sep=\"-\" url response in (\"200\") host_cnt", expected);
+  }
+
+  @Test
+  public void testXyseriesCommandWithFormat() {
+    Xyseries expected =
+        new Xyseries(
+            field("url"),
+            field("response"),
+            List.of("200"),
+            List.of(field("host_cnt")),
+            ": ",
+            "$VAL$+$AGG$");
+    expected.attach(relation("t"));
+    assertEqual(
+        "source=t | xyseries format=\"$VAL$+$AGG$\" url response in (\"200\") host_cnt", expected);
+  }
+
+  @Test
+  public void testXyseriesCommandWithSepAndFormat() {
+    Xyseries expected =
+        new Xyseries(
+            field("url"),
+            field("response"),
+            List.of("200", "404"),
+            List.of(field("host_cnt")),
+            "-",
+            "$AGG$_$VAL$");
+    expected.attach(relation("t"));
+    assertEqual(
+        "source=t | xyseries sep=\"-\" format=\"$AGG$_$VAL$\" url response in (\"200\", \"404\")"
+            + " host_cnt",
+        expected);
+  }
+
   @Test
   public void testUnionWithSubsearches() {
     plan("| union [search source=t1 | where age > 30] " + "[search source=t2 | where age < 20]");
@@ -1994,5 +2157,33 @@ public class AstBuilderTest extends AstPlanningTestBase {
     expected.setAppend(true); // key_field implies append=true
     assertEqual(
         "source=t | outputlookup key_field=region,host hosts", expected.attach(relation("t")));
+  }
+
+  // rest command tests
+
+  @Test
+  public void testRestCommand() {
+    org.opensearch.sql.ast.tree.Project project =
+        (org.opensearch.sql.ast.tree.Project)
+            plan("| rest \"/_cluster/health\" | fields status, number_of_nodes");
+    org.opensearch.sql.ast.tree.RestRelation rest =
+        (org.opensearch.sql.ast.tree.RestRelation) project.getChild().get(0);
+    SystemIndexUtils.RestSpec spec =
+        SystemIndexUtils.decodeRestSpec(rest.getTableQualifiedName().toString());
+    assertEquals("/_cluster/health", spec.getEndpoint());
+    assertTrue(spec.getArgs().isEmpty());
+  }
+
+  @Test
+  public void testRestCommandWithArgs() {
+    org.opensearch.sql.ast.tree.RestRelation rest =
+        (org.opensearch.sql.ast.tree.RestRelation)
+            plan("| rest \"/_cluster/health\" count=5 timeout=\"30s\" level=\"indices\"");
+    SystemIndexUtils.RestSpec spec =
+        SystemIndexUtils.decodeRestSpec(rest.getTableQualifiedName().toString());
+    assertEquals("/_cluster/health", spec.getEndpoint());
+    assertEquals(Integer.valueOf(5), spec.getCount());
+    assertEquals("30s", spec.getTimeout());
+    assertEquals("indices", spec.getArgs().get("level"));
   }
 }

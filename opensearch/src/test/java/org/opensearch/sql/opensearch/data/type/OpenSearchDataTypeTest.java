@@ -91,6 +91,7 @@ class OpenSearchDataTypeTest {
     assertEquals("DOUBLE", OpenSearchDataType.of(MappingType.Double).typeName());
     assertEquals("KEYWORD", OpenSearchDataType.of(MappingType.Keyword).typeName());
     assertEquals("KEYWORD", OpenSearchDataType.of(MappingType.Keyword).typeName());
+    assertEquals("CONSTANT_KEYWORD", OpenSearchDataType.of(MappingType.ConstantKeyword).typeName());
   }
 
   @Test
@@ -115,6 +116,7 @@ class OpenSearchDataTypeTest {
     return Stream.of(
         Arguments.of(MappingType.Text, "text", OpenSearchTextType.of()),
         Arguments.of(MappingType.Keyword, "keyword", STRING),
+        Arguments.of(MappingType.ConstantKeyword, "constant_keyword", STRING),
         Arguments.of(MappingType.Byte, "byte", BYTE),
         Arguments.of(MappingType.Short, "short", SHORT),
         Arguments.of(MappingType.Integer, "integer", INTEGER),

@@ -32,6 +32,7 @@ plugins {
 
 dependencies {
     api project(':core')
+    api project(':ppl-rest-spi')
     api group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
     implementation "io.github.resilience4j:resilience4j-retry:${resilience4j_version}"
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${versions.jackson}"
