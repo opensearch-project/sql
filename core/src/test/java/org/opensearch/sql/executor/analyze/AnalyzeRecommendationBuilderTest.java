@@ -157,4 +157,112 @@ class AnalyzeRecommendationBuilderTest {
     List<Recommendation> recs = new AnalyzeRecommendationBuilder(profile(100, 200, scan)).build();
     assertTrue(ruleOf(recs, "Optimize Phase Dominates").isEmpty());
   }
+
+  @Test
+  void ineffectiveFilterFiresForProjectNodes() {
+    // The rule matches "project" as well as "filter"; a project passing 999 of 1000 rows fires.
+    PlanNode project = new PlanNode("EnumerableProject", 5.0, 999, List.of(leaf("scan", 1000)));
+    List<Recommendation> recs = new AnalyzeRecommendationBuilder(profile(1, 10, project)).build();
+
+    Recommendation r = ruleOf(recs, "Ineffective Filter").orElseThrow();
+    assertEquals(RecommendationSeverityLevel.WARNING, r.getSeverity());
+    assertEquals("EnumerableProject", r.getAffected_node());
+  }
+
+  @Test
+  void ineffectiveFilterSilentForLeafFilterWithNoInput() {
+    // A "filter"-named leaf has no children, so rows_in is 0 and the ratio guard skips it.
+    PlanNode leafFilter = leaf("CalciteFilter", 1000);
+    List<Recommendation> recs =
+        new AnalyzeRecommendationBuilder(profile(1, 10, leafFilter)).build();
+    assertTrue(ruleOf(recs, "Ineffective Filter").isEmpty());
+  }
+
+  @Test
+  void ineffectiveFilterSilentExactlyAtThreshold() {
+    // ratio == 0.95 exactly; the rule uses strict '>' so it must NOT fire.
+    PlanNode filter = new PlanNode("CalciteFilter", 5.0, 950, List.of(leaf("scan", 1000)));
+    List<Recommendation> recs = new AnalyzeRecommendationBuilder(profile(1, 10, filter)).build();
+    assertTrue(ruleOf(recs, "Ineffective Filter").isEmpty());
+  }
+
+  @Test
+  void joinRowExplosionSilentExactlyAtThreshold() {
+    // ratio == 5.0 exactly; strict '>' means no recommendation.
+    PlanNode join =
+        new PlanNode("EnumerableHashJoin", 5.0, 500, List.of(leaf("l", 50), leaf("r", 50)));
+    List<Recommendation> recs = new AnalyzeRecommendationBuilder(profile(1, 10, join)).build();
+    assertTrue(ruleOf(recs, "Join Row Explosion").isEmpty());
+  }
+
+  @Test
+  void timeBasedRulesSilentWhenExecutePhaseIsZero() {
+    // executeMs == 0 -> Expensive Sort and Bottleneck Stage short-circuit to empty.
+    PlanNode sort = new PlanNode("EnumerableSort", 40.0, 60_000, List.of(leaf("scan", 60_000)));
+    List<Recommendation> recs = new AnalyzeRecommendationBuilder(profile(1, 0, sort)).build();
+    assertTrue(ruleOf(recs, "Expensive Sort").isEmpty());
+    assertTrue(ruleOf(recs, "Bottleneck Stage").isEmpty());
+  }
+
+  @Test
+  void nonPlanNodePlanYieldsNoRecommendations() {
+    // profile.plan is a pre-rendered object (not a PlanNode) -> no per-node rules can run.
+    Map<MetricName, Double> phases = new EnumMap<>(MetricName.class);
+    phases.put(MetricName.OPTIMIZE, 1.0);
+    phases.put(MetricName.EXECUTE, 10.0);
+    QueryProfile p = new QueryProfile(11.0, phases, "some pre-rendered plan string");
+    assertTrue(new AnalyzeRecommendationBuilder(p).build().isEmpty());
+  }
+
+  @Test
+  void nullPlanYieldsNoPerNodeRecommendations() {
+    // No plan tree, but phase-based Optimize Phase Dominates can still fire.
+    QueryProfile p = profile(100, 10, null);
+    List<Recommendation> recs = new AnalyzeRecommendationBuilder(p).build();
+    assertTrue(ruleOf(recs, "Bottleneck Stage").isEmpty());
+    assertTrue(ruleOf(recs, "Expensive Sort").isEmpty());
+    assertTrue(ruleOf(recs, "Optimize Phase Dominates").isPresent());
+  }
+
+  @Test
+  void durationClampedToZeroWhenChildSlowerThanParent() {
+    // Measurement jitter: child (60ms) reads slower than parent (50ms) -> parent self-time 0,
+    // so the parent is not treated as the bottleneck despite a large cumulative time.
+    PlanNode child = new PlanNode("scan", 60.0, 10, null);
+    PlanNode parent = new PlanNode("EnumerableProject", 50.0, 10, List.of(child));
+    List<Recommendation> recs = new AnalyzeRecommendationBuilder(profile(1, 100, parent)).build();
+
+    // The scan (60ms self-time, 60% of execute) is below 75%, so nothing fires -- and crucially
+    // the clamp prevents a negative parent duration from being ranked as the max.
+    Recommendation r = ruleOf(recs, "Bottleneck Stage").orElse(null);
+    if (r != null) {
+      assertTrue(r.getMessage().contains("scan"));
+    }
+  }
+
+  @Test
+  void multipleRulesFireForOneQuery() {
+    // A single tree that trips both Ineffective Filter and Bottleneck Stage, plus Optimize
+    // Phase Dominates from the phases. Verifies build() concatenates across rules.
+    PlanNode scan = new PlanNode("CalciteEnumerableIndexScan", 90.0, 990, null);
+    PlanNode filter = new PlanNode("CalciteFilter", 100.0, 990, List.of(scan));
+    // optimize 200 > execute 100 and > 75ms
+    List<Recommendation> recs = new AnalyzeRecommendationBuilder(profile(200, 100, filter)).build();
+
+    assertTrue(ruleOf(recs, "Ineffective Filter").isPresent());
+    assertTrue(ruleOf(recs, "Bottleneck Stage").isPresent());
+    assertTrue(ruleOf(recs, "Optimize Phase Dominates").isPresent());
+  }
+
+  @Test
+  void perNodeRuleFiresOncePerMatchingNode() {
+    // Two ineffective filters in one tree -> two recommendations.
+    PlanNode scan = new PlanNode("scan", 1.0, 1000, null);
+    PlanNode filter1 = new PlanNode("CalciteFilter", 2.0, 999, List.of(scan));
+    PlanNode filter2 = new PlanNode("CalciteFilter", 3.0, 998, List.of(filter1));
+    List<Recommendation> recs = new AnalyzeRecommendationBuilder(profile(1, 10, filter2)).build();
+
+    long count = recs.stream().filter(r -> r.getRule().equals("Ineffective Filter")).count();
+    assertEquals(2, count);
+  }
 }

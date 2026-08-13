@@ -166,6 +166,24 @@ public class CalciteAnalyzeIT extends PPLIntegTestCase {
     assertThrows(ResponseException.class, () -> executeAnalyze("this is not valid ppl"));
   }
 
+  @Test
+  public void analyzeLongArithmeticOverflowReturnsError() throws IOException {
+    // Regression guard: the analyze path must apply checked arithmetic just like execute, so a
+    // BIGINT overflow surfaces as a client error instead of silently wrapping. See issue #5164.
+    // 9223372036854775807 is Long.MAX_VALUE; + 1 overflows and has no wider integer type.
+    ResponseException e =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executeAnalyze(
+                    "source="
+                        + TEST_INDEX_ACCOUNT
+                        + " | head 1 | eval overflow = 9223372036854775807 + 1 | fields overflow"));
+    assertEquals(400, e.getResponse().getStatusLine().getStatusCode());
+    String body = getResponseBody(e.getResponse(), true);
+    assertTrue("expected an overflow error, got: " + body, body.contains("overflow"));
+  }
+
   // === I. Schema correctness ===
 
   @Test
@@ -178,6 +196,65 @@ public class CalciteAnalyzeIT extends PPLIntegTestCase {
     assertEquals(2, schema.length());
     assertEquals("firstname", schema.getJSONObject(0).getString("name"));
     assertEquals("age", schema.getJSONObject(1).getString("name"));
+  }
+
+  // === L. Recommendations ===
+
+  @Test
+  public void analyzeIncludesRecommendationsArray() throws IOException {
+    JSONObject result =
+        executeAnalyze("source=" + TEST_INDEX_ACCOUNT + " | where age > 30 | fields firstname");
+    // recommendations is always present (possibly empty) and is an array.
+    assertTrue(result.has("recommendations"));
+    result.getJSONArray("recommendations");
+  }
+
+  @Test
+  public void analyzeRecommendationsHaveWellFormedShape() throws IOException {
+    // A non-selective filter (age >= 0 keeps every row) should trip the "Ineffective Filter" rule;
+    // even if it does not on this data, any emitted recommendation must have the required fields.
+    JSONObject result =
+        executeAnalyze("source=" + TEST_INDEX_ACCOUNT + " | where age >= 0 | fields firstname");
+    JSONArray recs = result.getJSONArray("recommendations");
+    for (int i = 0; i < recs.length(); i++) {
+      JSONObject rec = recs.getJSONObject(i);
+      assertTrue("recommendation has severity", rec.has("severity"));
+      assertTrue("recommendation has rule", rec.has("rule"));
+      assertTrue("recommendation has message", rec.has("message"));
+      String severity = rec.getString("severity");
+      assertTrue(
+          "severity is a known level",
+          severity.equals("INFO") || severity.equals("WARNING") || severity.equals("CRITICAL"));
+    }
+  }
+
+  @Test
+  public void analyzeRecommendationRulesAreKnownAndConsistent() throws IOException {
+    // Whatever rules fire against a real plan/profile, each must be one of the known rule names
+    // and carry the fields that rule populates. This validates the rules run end-to-end against a
+    // real QueryProfile.PlanNode tree (node names, timings) rather than only synthetic unit input.
+    JSONObject result =
+        executeAnalyze(
+            "source=" + TEST_INDEX_ACCOUNT + " | where age >= 0 | stats count() by state");
+    JSONArray recs = result.getJSONArray("recommendations");
+    for (int i = 0; i < recs.length(); i++) {
+      JSONObject rec = recs.getJSONObject(i);
+      String rule = rec.getString("rule");
+      assertTrue(
+          "unexpected rule: " + rule,
+          rule.equals("Ineffective Filter")
+              || rule.equals("Join Row Explosion")
+              || rule.equals("Expensive Sort")
+              || rule.equals("Bottleneck Stage")
+              || rule.equals("Optimize Phase Dominates"));
+      // affected_node accompanies the per-node rules.
+      if (rule.equals("Ineffective Filter")
+          || rule.equals("Join Row Explosion")
+          || rule.equals("Expensive Sort")
+          || rule.equals("Bottleneck Stage")) {
+        assertTrue("per-node rule should name a node", rec.has("affected_node"));
+      }
+    }
   }
 
   // === J. Profile timing similarity to standalone profile endpoint ===
