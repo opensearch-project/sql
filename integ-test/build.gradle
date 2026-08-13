@@ -523,6 +523,12 @@ testClusters.analyticsEngineSecurityIT {
     systemProperty 'io.netty.tryReflectionSetAccessible', 'true'
     systemProperty 'opensearch.experimental.feature.pluggable.dataformat.enabled', 'true'
     systemProperty 'opensearch.experimental.feature.transport.stream.enabled', 'true'
+    // Route ALL queries through analytics engine regardless of index name format (wildcard,
+    // alias, comma-separated). Without this, isAnalyticsIndex() only recognizes concrete
+    // index names via per-index metadata lookup — wildcards/aliases fall back to legacy PPL.
+    setting 'cluster.pluggable.dataformat', 'composite'
+    setting 'cluster.composite.primary_data_format', 'parquet'
+    setting 'cluster.composite.secondary_data_formats', '["lucene"]'
     // Native library path for DataFusion/parquet — pass via -PnativeLibPath=/path/to/release/
     if (project.findProperty('nativeLibPath')) {
         systemProperty 'java.library.path', project.findProperty('nativeLibPath')

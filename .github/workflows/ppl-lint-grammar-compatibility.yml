@@ -1,0 +1,316 @@
+name: "[Linter] PPL grammar compatibility"
+
+on:
+  pull_request:
+    branches:
+      - main
+      - '[0-9]+.[0-9]+'
+    paths:
+      - build.gradle
+      - ppl/build.gradle
+      - ppl/src/main/antlr/OpenSearchPPLLexer.g4
+      - ppl/src/main/antlr/OpenSearchPPLParser.g4
+      - ppl/src/main/java/org/opensearch/sql/ppl/autocomplete/GrammarBundle.java
+      - ppl/src/main/java/org/opensearch/sql/ppl/autocomplete/PPLGrammarBundleBuilder.java
+      - ppl/src/main/java/org/opensearch/sql/ppl/autocomplete/PPLGrammarBundleExporter.java
+      - scripts/ppl-lint/**
+      - scripts/ppl-lint-rule-validation.sh
+      - .github/workflows/ppl-lint-grammar-compatibility.yml
+  push:
+    branches:
+      - main
+      - '[0-9]+.[0-9]+'
+    paths:
+      - build.gradle
+      - ppl/build.gradle
+      - ppl/src/main/antlr/OpenSearchPPLLexer.g4
+      - ppl/src/main/antlr/OpenSearchPPLParser.g4
+      - ppl/src/main/java/org/opensearch/sql/ppl/autocomplete/GrammarBundle.java
+      - ppl/src/main/java/org/opensearch/sql/ppl/autocomplete/PPLGrammarBundleBuilder.java
+      - ppl/src/main/java/org/opensearch/sql/ppl/autocomplete/PPLGrammarBundleExporter.java
+      - scripts/ppl-lint/**
+      - scripts/ppl-lint-rule-validation.sh
+      - .github/workflows/ppl-lint-grammar-compatibility.yml
+  workflow_dispatch:
+    inputs:
+      osd_ref:
+        description: Optional ref in opensearch-project/OpenSearch-Dashboards.
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ppl-lint-grammar-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: PPL grammar compatibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout SQL
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Resolve SQL target and OSD pair
+        id: target
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          TARGET_BRANCH: ${{ github.base_ref || github.ref_name }}
+          SQL_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          REQUESTED_OSD_REF: ${{ inputs.osd_ref }}
+        run: |
+          set -euo pipefail
+          sql_raw=$(sed -nE 's/.*opensearch_version = System\.getProperty\("opensearch\.version", "([^"]+)"\).*/\1/p' build.gradle)
+          [[ "$sql_raw" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)([-+][0-9A-Za-z.-]+)?$ ]] ||
+            { echo "::error::Invalid SQL product version: $sql_raw"; exit 1; }
+          sql_version="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
+          sql_line="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
+          case "$TARGET_BRANCH" in
+            main) canonical_ref=main ;;
+            *)
+              [[ "$TARGET_BRANCH" =~ ^[0-9]+\.[0-9]+$ ]] ||
+                { echo "::error::Target branch must be main or an exact X.Y release branch"; exit 1; }
+              [[ "$TARGET_BRANCH" == "$sql_line" ]] ||
+                { echo "::error::SQL $sql_raw does not match target branch $TARGET_BRANCH"; exit 1; }
+              canonical_ref="$TARGET_BRANCH"
+              ;;
+          esac
+          canonical_repo=opensearch-project/OpenSearch-Dashboards
+          osd_repo="$canonical_repo"
+          osd_ref="$canonical_ref"
+          if [[ "$EVENT_NAME" == workflow_dispatch ]]; then
+            osd_ref="${REQUESTED_OSD_REF:-$osd_ref}"
+          elif [[ -n "$REQUESTED_OSD_REF" ]]; then
+            echo "::error::OSD ref overrides are allowed only for workflow_dispatch"
+            exit 1
+          fi
+          [[ "$osd_ref" != *$'\n'* && "$osd_ref" != *$'\r'* ]] ||
+            { echo "::error::OSD ref override must be a single-line value"; exit 1; }
+          sql_sha=$(git rev-parse HEAD)
+          override=$([[ "$osd_ref" != "$canonical_ref" ]] && echo true || echo false)
+          {
+            echo "target_branch=$TARGET_BRANCH"
+            echo "sql_version_raw=$sql_raw"
+            echo "sql_version=$sql_version"
+            echo "sql_release_line=$sql_line"
+            echo "sql_sha=$sql_sha"
+            echo "sql_head_sha=$SQL_HEAD_SHA"
+            echo "osd_repo=$osd_repo"
+            echo "osd_ref=$osd_ref"
+            echo "osd_override=$override"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Checkout paired OpenSearch Dashboards
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          repository: ${{ steps.target.outputs.osd_repo }}
+          ref: ${{ steps.target.outputs.osd_ref }}
+          path: .ci/OpenSearch-Dashboards
+          persist-credentials: false
+
+      - name: Record immutable OSD revision
+        id: osd
+        run: |
+          set -euo pipefail
+          sha=$(git -C .ci/OpenSearch-Dashboards rev-parse HEAD)
+          printf '%s\n' "$sha" > osd-revision.txt
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "OpenSearch Dashboards revision: $sha"
+
+      - name: Set up Node from OSD .nvmrc
+        uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
+        with:
+          node-version-file: .ci/OpenSearch-Dashboards/.nvmrc
+
+      - name: Pin OSD Yarn and validate checked-out versions
+        id: versions
+        working-directory: .ci/OpenSearch-Dashboards
+        env:
+          TARGET_BRANCH: ${{ steps.target.outputs.target_branch }}
+          SQL_VERSION_RAW: ${{ steps.target.outputs.sql_version_raw }}
+          SQL_VERSION: ${{ steps.target.outputs.sql_version }}
+          SQL_RELEASE_LINE: ${{ steps.target.outputs.sql_release_line }}
+          SQL_SHA: ${{ steps.target.outputs.sql_sha }}
+          SQL_HEAD_SHA: ${{ steps.target.outputs.sql_head_sha }}
+          OSD_REPOSITORY: ${{ steps.target.outputs.osd_repo }}
+          OSD_REF: ${{ steps.target.outputs.osd_ref }}
+          OSD_SHA: ${{ steps.osd.outputs.sha }}
+          OSD_OVERRIDE: ${{ steps.target.outputs.osd_override }}
+        run: |
+          set -euo pipefail
+          yarn_version=$(node -e "process.stdout.write(require('./package.json').engines.yarn.match(/[0-9]+\.[0-9]+\.[0-9]+/)[0])")
+          npm install --global "yarn@$yarn_version"
+          osd_raw=$(yarn --silent pkg-version)
+          [[ "$osd_raw" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)([-+][0-9A-Za-z.-]+)?$ ]] ||
+            { echo "::error::Invalid OSD product version: $osd_raw"; exit 1; }
+          osd_version="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.${BASH_REMATCH[3]}"
+          osd_line="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
+          if [[ "$TARGET_BRANCH" != main ]]; then
+            [[ "$SQL_RELEASE_LINE" == "$TARGET_BRANCH" && "$osd_line" == "$TARGET_BRANCH" ]] ||
+              { echo "::error::Expected SQL and OSD versions on release line $TARGET_BRANCH"; exit 1; }
+          fi
+          jq -n \
+            --arg target "$TARGET_BRANCH" \
+            --arg sqlRaw "$SQL_VERSION_RAW" --arg sqlVersion "$SQL_VERSION" \
+            --arg sqlLine "$SQL_RELEASE_LINE" --arg sqlSha "$SQL_SHA" --arg headSha "$SQL_HEAD_SHA" \
+            --arg osdRepo "$OSD_REPOSITORY" --arg osdRef "$OSD_REF" --arg osdSha "$OSD_SHA" \
+            --arg osdRaw "$osd_raw" --arg osdVersion "$osd_version" --arg osdLine "$osd_line" \
+            --arg override "$OSD_OVERRIDE" \
+            '{
+              schemaVersion: 1,
+              sql: {
+                sha: $sqlSha, headSha: $headSha, targetBranch: $target,
+                versionRaw: $sqlRaw, version: $sqlVersion, releaseLine: $sqlLine
+              },
+              osd: {
+                repository: $osdRepo, ref: $osdRef, sha: $osdSha,
+                versionRaw: $osdRaw, version: $osdVersion, releaseLine: $osdLine,
+                override: ($override == "true")
+              }
+            }' > "$GITHUB_WORKSPACE/resolved-target.json"
+          echo "osd_version=$osd_version" >> "$GITHUB_OUTPUT"
+          echo "osd_release_line=$osd_line" >> "$GITHUB_OUTPUT"
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Export candidate runtime grammar
+        run: |
+          set -euo pipefail
+          ./gradlew :ppl:exportPplGrammarBundle --no-daemon \
+            "-PpplGrammarBundleOutput=$GITHUB_WORKSPACE/ppl-grammar-bundle.json"
+
+      - name: Cache OSD Yarn dependencies
+        uses: actions/cache@0c907a75c2c80ebcb7f088228285e798b750cf8f # v4
+        with:
+          path: ~/.cache/yarn
+          key: ${{ runner.os }}-osd-yarn-${{ hashFiles('.ci/OpenSearch-Dashboards/yarn.lock') }}
+          restore-keys: ${{ runner.os }}-osd-yarn-
+
+      - name: Bootstrap OpenSearch Dashboards
+        working-directory: .ci/OpenSearch-Dashboards
+        run: yarn osd bootstrap --prefer-offline
+
+      - name: Validate OSD linter against candidate grammar
+        id: compatibility
+        working-directory: .ci/OpenSearch-Dashboards
+        run: |
+          set +e
+          node -r ./src/setup_node_env \
+            "$GITHUB_WORKSPACE/scripts/ppl-lint/validate-osd-grammar.mjs" \
+            --grammar "$GITHUB_WORKSPACE/ppl-grammar-bundle.json" \
+            --cases "$GITHUB_WORKSPACE/scripts/ppl-lint/grammar-cases.json" \
+            --target "$GITHUB_WORKSPACE/resolved-target.json" \
+            --osd-root "$PWD" \
+            --osd-sha "${{ steps.osd.outputs.sha }}" \
+            --report "$GITHUB_WORKSPACE/ppl-lint-grammar-compatibility-report.json" \
+            --summary "$GITHUB_STEP_SUMMARY"
+          result=$?
+          echo "exit_code=$result" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Record pre-report failure
+        if: ${{ always() }}
+        run: |
+          if [[ ! -s ppl-lint-grammar-compatibility-report.json ]]; then
+            error='workflow failed before the compatibility adapter produced a report'
+            if [[ -s resolved-target.json ]]; then
+              jq --arg error "$error" '{
+                schemaVersion: 2,
+                status: "error",
+                error: $error,
+                sql: .sql,
+                osd: .osd,
+                manualOverride: (.osd.override // false),
+                releaseLineValidationBypassed: false,
+                coverage: {
+                  catalogRuleIds: [], requiredRuleIds: [], coveredRuleIds: [],
+                  excludedRuleIds: [], excludedRules: [],
+                  missingRuleIds: [], unexpectedRuleIds: [],
+                  counts: {
+                    catalog: 0, required: 0, covered: 0,
+                    excluded: 0, missing: 0, unexpected: 0
+                  }
+                },
+                rules: {
+                  catalog: 0, required: 0, excluded: 0,
+                  selected: 0, passed: 0, failed: 0
+                },
+                caseCounts: {selected: 0, passed: 0, failed: 0},
+                cases: [],
+                failures: []
+              }' resolved-target.json > ppl-lint-grammar-compatibility-report.json
+            else
+              jq -n --arg error "$error" '{
+                schemaVersion: 2,
+                status: "error",
+                error: $error,
+                coverage: {
+                  catalogRuleIds: [], requiredRuleIds: [], coveredRuleIds: [],
+                  excludedRuleIds: [], excludedRules: [],
+                  missingRuleIds: [], unexpectedRuleIds: [],
+                  counts: {
+                    catalog: 0, required: 0, covered: 0,
+                    excluded: 0, missing: 0, unexpected: 0
+                  }
+                },
+                rules: {
+                  catalog: 0, required: 0, excluded: 0,
+                  selected: 0, passed: 0, failed: 0
+                },
+                caseCounts: {selected: 0, passed: 0, failed: 0},
+                cases: [],
+                failures: []
+              }' > ppl-lint-grammar-compatibility-report.json
+            fi
+            {
+              echo '## PPL lint grammar compatibility'
+              echo
+              echo "- Status: \`error\`"
+              echo "- Reason: $error"
+              if [[ -s resolved-target.json ]]; then
+                jq -r '"- SQL: `\(.sql.targetBranch)` / `\(.sql.version)` / `\(.sql.sha)`"' resolved-target.json
+                jq -r '"- OSD: `\(.osd.repository) @ \(.osd.ref)` / `\(.osd.version)` / `\(.osd.sha)`"' resolved-target.json
+              fi
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload grammar compatibility artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ppl-lint-grammar-compatibility
+          path: |
+            resolved-target.json
+            osd-revision.txt
+            ppl-lint-grammar-compatibility-report.json
+            ppl-grammar-bundle.json
+          if-no-files-found: warn
+
+      - name: Enforce compatibility result
+        if: ${{ always() }}
+        env:
+          COMPATIBILITY_EXIT: ${{ steps.compatibility.outputs.exit_code }}
+        run: |
+          set -euo pipefail
+          [[ -n "$COMPATIBILITY_EXIT" ]] ||
+            { echo "::error::Compatibility validation did not produce an exit code"; exit 1; }
+          if [[ "$COMPATIBILITY_EXIT" != 0 ]]; then
+            echo "::error::PPL grammar compatibility validation exited $COMPATIBILITY_EXIT"
+            exit "$COMPATIBILITY_EXIT"
+          fi
+          jq -e '.status == "passed" or .status == "skipped"' \
+            ppl-lint-grammar-compatibility-report.json > /dev/null ||
+            { echo "::error::Compatibility validation did not produce a passed or skipped report"; exit 1; }
