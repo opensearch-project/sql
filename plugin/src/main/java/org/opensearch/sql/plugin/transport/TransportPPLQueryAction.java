@@ -222,7 +222,7 @@ public class TransportPPLQueryAction
        * Removing `|| transformedRequest.profile()` from line 200 will separate the `profile` and
        * `analyze` endpoints. See PR #5568.
        */
-    } else if (transformedRequest.analyze() || transformedRequest.profile()) {
+    } else if (transformedRequest.analyze()) { // || transformedRequest.profile()) {
       pplService.analyze(
           transformedRequest, createAnalyzeResponseListener(transformedRequest, clearingListener));
     } else {
