@@ -191,11 +191,6 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
     return cachedFieldOpenSearchTypes;
   }
 
-  @Override
-  public long getDocCount() {
-    return client.getIndexDocCount(indexName.toString());
-  }
-
   /** Get the max result window setting of the table. */
   public Integer getMaxResultWindow() {
     if (cachedMaxResultWindow == null) {

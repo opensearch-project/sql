@@ -35,15 +35,6 @@ public interface Table {
     throw new UnsupportedOperationException("Unsupported Operation");
   }
 
-  /**
-   * Get the total document count for this table.
-   *
-   * @return total document count, or -1 if unavailable
-   */
-  default long getDocCount() {
-    return -1;
-  }
-
   /** Get the {@link ExprType} for each field in the table. */
   Map<String, ExprType> getFieldTypes();
 

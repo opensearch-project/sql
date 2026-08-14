@@ -89,19 +89,6 @@ public class OpenSearchRestClient implements OpenSearchClient {
   }
 
   @Override
-  public long getIndexDocCount(String indexExpression) {
-    try {
-      org.opensearch.client.core.CountRequest countRequest =
-          new org.opensearch.client.core.CountRequest(indexExpression);
-      org.opensearch.client.core.CountResponse response =
-          client.count(countRequest, RequestOptions.DEFAULT);
-      return response.getCount();
-    } catch (Exception e) {
-      return -1;
-    }
-  }
-
-  @Override
   public Map<String, Integer> getIndexMaxResultWindows(String... indexExpression) {
     GetSettingsRequest request =
         new GetSettingsRequest().indices(indexExpression).includeDefaults(true);
