@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.util.MatcherUtils.rows;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 
 import java.io.IOException;
@@ -19,6 +21,35 @@ public class CalciteSearchCommandIT extends SearchCommandIT {
   private static final String IDX_KEYWORD = "test_5682_keyword";
   private static final String IDX_TEXT = "test_5682_text";
 
+  /** Group 1-6 matrix: one value per wildcard-placement / special-character combination. */
+  private static final String MATRIX_DOCS =
+      "{\"index\":{}}\n{\"name\":\"foo\"}\n"
+          + "{\"index\":{}}\n{\"name\":\"foobar\"}\n"
+          + "{\"index\":{}}\n{\"name\":\"food\"}\n"
+          + "{\"index\":{}}\n{\"name\":\"FOO\"}\n"
+          + "{\"index\":{}}\n{\"name\":\"foo bar\"}\n"
+          + "{\"index\":{}}\n{\"name\":\"foo barbaz\"}\n"
+          + "{\"index\":{}}\n{\"name\":\"foo-bar\"}\n"
+          + "{\"index\":{}}\n{\"name\":\"foo_bar\"}\n"
+          + "{\"index\":{}}\n{\"name\":\"foo.bar\"}\n"
+          + "{\"index\":{}}\n{\"name\":\"foo/bar\"}\n"
+          + "{\"index\":{}}\n{\"name\":\"foo@bar\"}\n";
+
+  private static final String IDX_SPLIT_KEYWORD = "test_5682_split_keyword";
+  private static final String IDX_SPLIT_TEXT = "test_5682_split_text";
+
+  /**
+   * Group 7 fixture. {@code foo=bar} holds no whitespace, yet the text analyzer still splits it
+   * into [foo, bar] — so the single-token {@code foo} and {@code bar} docs used to OR-match a
+   * search for {@code "foo=bar"}.
+   */
+  private static final String SPLIT_DOCS =
+      "{\"index\":{}}\n{\"name\":\"foo=bar\"}\n"
+          + "{\"index\":{}}\n{\"name\":\"foo bar\"}\n"
+          + "{\"index\":{}}\n{\"name\":\"foo\"}\n"
+          + "{\"index\":{}}\n{\"name\":\"bar\"}\n"
+          + "{\"index\":{}}\n{\"name\":\"baz\"}\n";
+
   @Override
   public void init() throws Exception {
     super.init();
@@ -27,11 +58,13 @@ public class CalciteSearchCommandIT extends SearchCommandIT {
   }
 
   private void setupSpecIndices() throws IOException {
-    createSpecIndex(IDX_KEYWORD, "keyword");
-    createSpecIndex(IDX_TEXT, "text");
+    createSpecIndex(IDX_KEYWORD, "keyword", MATRIX_DOCS);
+    createSpecIndex(IDX_TEXT, "text", MATRIX_DOCS);
+    createSpecIndex(IDX_SPLIT_KEYWORD, "keyword", SPLIT_DOCS);
+    createSpecIndex(IDX_SPLIT_TEXT, "text", SPLIT_DOCS);
   }
 
-  private void createSpecIndex(String indexName, String fieldType) throws IOException {
+  private void createSpecIndex(String indexName, String fieldType, String docs) throws IOException {
     try {
       client().performRequest(new Request("DELETE", "/" + indexName));
     } catch (ResponseException ignore) {
@@ -53,18 +86,7 @@ public class CalciteSearchCommandIT extends SearchCommandIT {
     client().performRequest(createIndex);
 
     Request bulk = new Request("POST", "/" + indexName + "/_bulk?refresh=true");
-    bulk.setJsonEntity(
-        "{\"index\":{}}\n{\"name\":\"foo\"}\n"
-            + "{\"index\":{}}\n{\"name\":\"foobar\"}\n"
-            + "{\"index\":{}}\n{\"name\":\"food\"}\n"
-            + "{\"index\":{}}\n{\"name\":\"FOO\"}\n"
-            + "{\"index\":{}}\n{\"name\":\"foo bar\"}\n"
-            + "{\"index\":{}}\n{\"name\":\"foo barbaz\"}\n"
-            + "{\"index\":{}}\n{\"name\":\"foo-bar\"}\n"
-            + "{\"index\":{}}\n{\"name\":\"foo_bar\"}\n"
-            + "{\"index\":{}}\n{\"name\":\"foo.bar\"}\n"
-            + "{\"index\":{}}\n{\"name\":\"foo/bar\"}\n"
-            + "{\"index\":{}}\n{\"name\":\"foo@bar\"}\n");
+    bulk.setJsonEntity(docs);
     client().performRequest(bulk);
   }
 
@@ -130,10 +152,9 @@ public class CalciteSearchCommandIT extends SearchCommandIT {
 
   @Test
   public void testGroup2_3_text_hyphen() throws IOException {
-    // Emitted: name:foo\-bar (unquoted, - escaped so parser treats as literal).
-    // Analyzer tokenizes to [foo, bar]; boolean OR matches 7 docs whose analyzed tokens
-    // contain foo or bar.
-    verifyNumOfRows(search(IDX_TEXT, "name=\"foo-bar\""), 7);
+    // Quoted with no wildcard -> phrase. Analyzer yields [foo, bar]; PhraseQuery requires them
+    // adjacent, so this no longer OR-matches every doc holding either token.
+    verifyNumOfRows(search(IDX_TEXT, "name=\"foo-bar\""), 4);
   }
 
   @Test
@@ -143,9 +164,8 @@ public class CalciteSearchCommandIT extends SearchCommandIT {
 
   @Test
   public void testGroup2_4_text_slash() throws IOException {
-    // Emitted: name:foo\/bar (unquoted, / escaped). Analyzer tokenizes to [foo, bar];
-    // boolean OR matches 7 docs.
-    verifyNumOfRows(search(IDX_TEXT, "name=\"foo/bar\""), 7);
+    // Quoted with no wildcard -> phrase over [foo, bar].
+    verifyNumOfRows(search(IDX_TEXT, "name=\"foo/bar\""), 4);
   }
 
   @Test
@@ -155,9 +175,9 @@ public class CalciteSearchCommandIT extends SearchCommandIT {
 
   @Test
   public void testGroup2_5_text_at() throws IOException {
-    // Emitted: name:foo@bar (unquoted; @ is not a Lucene special). Analyzer tokenizes
-    // to [foo, bar]; boolean OR matches 7 docs.
-    verifyNumOfRows(search(IDX_TEXT, "name=\"foo@bar\""), 7);
+    // Quoted with no wildcard -> phrase over [foo, bar]. '@' splits in the analyzer even though it
+    // is not a query_string reserved character.
+    verifyNumOfRows(search(IDX_TEXT, "name=\"foo@bar\""), 4);
   }
 
   @Test
@@ -382,5 +402,33 @@ public class CalciteSearchCommandIT extends SearchCommandIT {
   @Test
   public void testGroup6_5_text_foo_space_bqmarkr() throws IOException {
     verifyNumOfRows(search(IDX_TEXT, "name=\"foo b?r\""), 0);
+  }
+
+  // =============================================================================
+  // Group 7 — a quoted value must not OR-match its halves. Uses SPLIT_DOCS.
+  // =============================================================================
+
+  @Test
+  public void testGroup7_1_text_quoted_split_value_excludes_halves() throws IOException {
+    // The `foo` and `bar` docs hold one half each and must be absent.
+    verifyDataRows(search(IDX_SPLIT_TEXT, "name=\"foo=bar\""), rows("foo=bar"), rows("foo bar"));
+  }
+
+  @Test
+  public void testGroup7_2_keyword_quoted_split_value_is_exact() throws IOException {
+    verifyDataRows(search(IDX_SPLIT_KEYWORD, "name=\"foo=bar\""), rows("foo=bar"));
+  }
+
+  @Test
+  public void testGroup7_3_text_quoted_wildcard_term_keeps_wildcard() throws IOException {
+    // Exception to 7.1: a wildcard with no whitespace stays unquoted, so `foo*` still matches
+    // `foobar` and `food` rather than collapsing to the phrase [foo].
+    verifyNumOfRows(search(IDX_TEXT, "name=\"foo*\""), 11);
+  }
+
+  @Test
+  public void testGroup7_4_keyword_quoting_is_irrelevant() throws IOException {
+    verifyDataRows(search(IDX_KEYWORD, "name=foo-bar"), rows("foo-bar"));
+    verifyDataRows(search(IDX_KEYWORD, "name=\"foo-bar\""), rows("foo-bar"));
   }
 }

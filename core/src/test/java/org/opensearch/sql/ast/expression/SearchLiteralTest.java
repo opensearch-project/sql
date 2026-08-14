@@ -14,16 +14,17 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.type.ExprType;
 
 /**
- * Field-type-aware emission for {@link SearchLiteral} and {@link SearchComparison}.
+ * Index-mapping-aware emission for {@link SearchLiteral} and {@link SearchComparison}.
  *
- * <p>Space + unescaped wildcard on a keyword field must not be phrase-quoted (the phrase form
- * silently strips wildcard semantics inside quotes on keyword). On text (or when the type is
- * unknown), the legacy phrase form is preserved to avoid regressing today's behavior — see the
- * repro matrix in issue #5682.
+ * <p>On <b>text</b>, the user's quoting is honored: unquoted keeps {@code *}/{@code ?} as
+ * query_string operators, quoted becomes a phrase. On the <b>keyword family</b>, quoting is
+ * irrelevant (the analyzer is a no-op) so we emit whole-value semantics — a wildcard pattern when
+ * the value holds an unescaped wildcard, otherwise an exact term. Other mappings keep legacy
+ * behavior.
  */
 class SearchLiteralTest {
 
-  /** Stub {@link ExprType} that reports a given legacyTypeName — enough for isTextLike(). */
+  /** Stub {@link ExprType} reporting a given legacyTypeName — enough for the mapping checks. */
   private static ExprType typeOf(String legacyName) {
     return new ExprType() {
       @Override
@@ -39,126 +40,156 @@ class SearchLiteralTest {
   }
 
   private static final ExprType KEYWORD = typeOf("KEYWORD");
+  private static final ExprType CONSTANT_KEYWORD = typeOf("CONSTANT_KEYWORD");
   private static final ExprType TEXT = typeOf("TEXT");
   private static final ExprType MATCH_ONLY_TEXT = typeOf("MATCH_ONLY_TEXT");
+  private static final ExprType DATE = typeOf("TIMESTAMP");
+  private static final ExprType LONG = typeOf("LONG");
 
-  private static SearchLiteral phrase(String value) {
+  /** Value the user wrote inside quotes. */
+  private static SearchLiteral q(String value) {
     return new SearchLiteral(new Literal(value, DataType.STRING), true);
   }
 
+  /** Value the user wrote bare. */
   private static SearchLiteral bare(String value) {
     return new SearchLiteral(new Literal(value, DataType.STRING), false);
   }
 
   // -------------------------------------------------------------------------
-  // Phrase without wildcard: unchanged on both field types (regression guard).
+  // TEXT: honor the user's quoting.
   // -------------------------------------------------------------------------
 
   @Test
-  void phrase_no_wildcard_keyword_stays_quoted() {
-    assertEquals("\"foo bar\"", phrase("foo bar").toQueryString(KEYWORD));
+  void text_quoted_emits_phrase() {
+    assertEquals("\"foo bar\"", q("foo bar").toQueryString(TEXT));
   }
 
   @Test
-  void phrase_no_wildcard_text_stays_quoted() {
-    assertEquals("\"foo bar\"", phrase("foo bar").toQueryString(TEXT));
-  }
-
-  // -------------------------------------------------------------------------
-  // Phrase with unescaped wildcard on keyword: emit escaped-space wildcard term.
-  // These are the D-family rows fixed by issue #5682.
-  // -------------------------------------------------------------------------
-
-  @Test
-  void phrase_trailing_wildcard_keyword_emits_escaped_space_prefix() {
-    // P6-k: name="foo bar*" → PrefixQuery on whole keyword term
-    assertEquals("foo\\ bar*", phrase("foo bar*").toQueryString(KEYWORD));
+  void text_unquoted_emits_bare_term() {
+    assertEquals("foo", bare("foo").toQueryString(TEXT));
   }
 
   @Test
-  void phrase_leading_wildcard_keyword_emits_escaped_space_wildcard() {
-    // L3-k: name="*foo bar"
-    assertEquals("*foo\\ bar", phrase("*foo bar").toQueryString(KEYWORD));
+  void text_quoted_wildcard_term_stays_unquoted() {
+    // Whitespace-free value with a wildcard: emitted unquoted so '*' keeps operator meaning.
+    // Quoting it would let the analyzer discard the wildcard.
+    assertEquals("foo*", q("foo*").toQueryString(TEXT));
+    assertEquals("f?o", q("f?o").toQueryString(TEXT));
   }
 
   @Test
-  void phrase_interior_wildcard_keyword_emits_escaped_space_wildcard() {
-    // I3-k: name="foo *baz"
-    assertEquals("foo\\ *baz", phrase("foo *baz").toQueryString(KEYWORD));
+  void text_quoted_wildcard_with_whitespace_emits_phrase() {
+    // With whitespace, unquoted would split into separate clauses and the tail would lose its
+    // field binding, so the phrase form is kept.
+    assertEquals("\"foo bar*\"", q("foo bar*").toQueryString(TEXT));
+    assertEquals("\"*foo bar\"", q("*foo bar").toQueryString(TEXT));
   }
 
   @Test
-  void phrase_question_wildcard_keyword_emits_escaped_space_wildcard() {
-    // Q5-k: name="foo b?r"
-    assertEquals("foo\\ b?r", phrase("foo b?r").toQueryString(KEYWORD));
+  void text_escaped_wildcard_is_not_a_wildcard_term() {
+    // '*' is escaped, so it is a literal — the value has no unescaped wildcard and stays a phrase.
+    assertEquals("\"foo\\*\"", q("foo\\*").toQueryString(TEXT));
   }
 
   @Test
-  void phrase_with_special_chars_and_wildcard_keyword_escapes_all() {
-    // D3-k repro: name="POST /test-logs/_search*" → PrefixQuery, special chars still escaped.
-    assertEquals(
-        "POST\\ \\/test\\-logs\\/_search*",
-        phrase("POST /test-logs/_search*").toQueryString(KEYWORD));
-  }
-
-  // -------------------------------------------------------------------------
-  // Phrase with unescaped wildcard on text / match_only_text / unknown: keep
-  // legacy phrase form (no regression on text; wildcard silently ignored by
-  // Lucene inside phrase, same as today).
-  // -------------------------------------------------------------------------
-
-  @Test
-  void phrase_wildcard_text_keeps_phrase_form() {
-    assertEquals("\"foo bar*\"", phrase("foo bar*").toQueryString(TEXT));
+  void text_unquoted_wildcard_keeps_operator() {
+    assertEquals("foo*", bare("foo*").toQueryString(TEXT));
   }
 
   @Test
-  void phrase_wildcard_match_only_text_keeps_phrase_form() {
-    assertEquals("\"foo bar*\"", phrase("foo bar*").toQueryString(MATCH_ONLY_TEXT));
+  void text_match_only_text_behaves_like_text() {
+    assertEquals("\"foo bar\"", q("foo bar").toQueryString(MATCH_ONLY_TEXT));
+    assertEquals("foo*", bare("foo*").toQueryString(MATCH_ONLY_TEXT));
   }
 
+  /**
+   * A quoted value the analyzer splits must not become an OR of tokens. These values hold no
+   * whitespace, so before the mapping split they were emitted unquoted.
+   */
   @Test
-  void phrase_wildcard_unknown_type_keeps_phrase_form() {
-    // Unknown → treat as text-like so we never regress an unresolvable field.
-    assertEquals("\"foo bar*\"", phrase("foo bar*").toQueryString((ExprType) null));
+  void text_quoted_value_the_analyzer_splits_emits_phrase() {
+    assertEquals("\"foo\\-bar\"", q("foo-bar").toQueryString(TEXT));
+    assertEquals("\"foo=bar\"", q("foo=bar").toQueryString(TEXT));
   }
 
   // -------------------------------------------------------------------------
-  // Phrase with escaped wildcard: user asked for a LITERAL '*'/'?' — keep the
-  // phrase form even on keyword. The isPhrase flag was set for a reason.
+  // KEYWORD FAMILY: quoting is irrelevant; wildcard presence selects the form.
   // -------------------------------------------------------------------------
 
   @Test
-  void phrase_escaped_wildcard_keyword_keeps_phrase_form() {
-    // Input string literally contains `foo \*` (backslash + '*'). hasUnescapedWildcard() sees the
-    // backslash and skips '*', so we treat this as a phrase with a literal '*' — no emission
-    // change. QueryStringUtils.escapeLuceneSpecialCharacters keeps '\\' and '*' untouched.
-    assertEquals("\"foo \\*\"", phrase("foo \\*").toQueryString(KEYWORD));
+  void keyword_no_wildcard_emits_exact_term_as_phrase() {
+    assertEquals("\"foo bar\"", q("foo bar").toQueryString(KEYWORD));
+    assertEquals("\"foo\"", bare("foo").toQueryString(KEYWORD));
   }
 
-  // -------------------------------------------------------------------------
-  // Non-phrase (no space): field type does not matter — legacy code path.
-  // -------------------------------------------------------------------------
+  @Test
+  void keyword_no_wildcard_quoting_is_irrelevant() {
+    assertEquals(q("foo-bar").toQueryString(KEYWORD), bare("foo-bar").toQueryString(KEYWORD));
+  }
 
   @Test
-  void bare_wildcard_keyword_emits_unquoted() {
-    // P1: name="foo*" — never a phrase, works today.
+  void keyword_wildcard_with_space_escapes_the_space() {
+    // The reported bug (#5682): whole-value pattern, not a phrase with a literal '*'.
+    assertEquals("foo\\ bar*", q("foo bar*").toQueryString(KEYWORD));
+  }
+
+  @Test
+  void keyword_wildcard_without_space_emits_bare_pattern() {
+    assertEquals("foo*", q("foo*").toQueryString(KEYWORD));
     assertEquals("foo*", bare("foo*").toQueryString(KEYWORD));
   }
 
   @Test
-  void bare_wildcard_text_emits_unquoted() {
-    assertEquals("foo*", bare("foo*").toQueryString(TEXT));
+  void keyword_leading_and_interior_wildcards_escape_spaces() {
+    assertEquals("*foo\\ bar", q("*foo bar").toQueryString(KEYWORD));
+    assertEquals("foo\\ *baz", q("foo *baz").toQueryString(KEYWORD));
+    assertEquals("foo\\ b?r", q("foo b?r").toQueryString(KEYWORD));
+  }
+
+  @Test
+  void keyword_wildcard_with_special_chars_escapes_all() {
+    assertEquals(
+        "POST\\ \\/test\\-logs\\/_search*", q("POST /test-logs/_search*").toQueryString(KEYWORD));
+  }
+
+  @Test
+  void keyword_escaped_wildcard_is_an_exact_term() {
+    // The user escaped '*', so it is a literal — no wildcard, so the exact-term form applies.
+    assertEquals("\"foo \\*\"", q("foo \\*").toQueryString(KEYWORD));
+  }
+
+  @Test
+  void constant_keyword_behaves_like_keyword() {
+    assertEquals("\"foo bar\"", q("foo bar").toQueryString(CONSTANT_KEYWORD));
+    assertEquals("foo\\ bar*", q("foo bar*").toQueryString(CONSTANT_KEYWORD));
   }
 
   // -------------------------------------------------------------------------
-  // Backwards-compat: arg-less toQueryString() must match the null-type branch
-  // (legacy phrase form) so callers that never wire the resolver see no change.
+  // OTHER MAPPINGS + unresolved: legacy behavior (space check), untouched.
   // -------------------------------------------------------------------------
 
   @Test
+  void date_field_keeps_legacy_unquoted_form() {
+    // Hyphens are escaped by the legacy path too — this is unchanged from before the mapping
+    // split, and query_string still parses the value as a date.
+    assertEquals("2024\\-01\\-15", q("2024-01-15").toQueryString(DATE));
+  }
+
+  @Test
+  void numeric_field_keeps_legacy_unquoted_form() {
+    assertEquals("not\\-a\\-number", q("not-a-number").toQueryString(LONG));
+  }
+
+  @Test
+  void unresolved_field_keeps_legacy_space_check() {
+    assertEquals("\"foo bar*\"", q("foo bar*").toQueryString((ExprType) null));
+    assertEquals("foo*", q("foo*").toQueryString((ExprType) null));
+  }
+
+  @Test
   void argless_toQueryString_matches_null_type_branch() {
-    SearchLiteral lit = phrase("foo bar*");
+    SearchLiteral lit = q("foo bar*");
     assertEquals(lit.toQueryString((ExprType) null), lit.toQueryString());
   }
 
@@ -166,38 +197,32 @@ class SearchLiteralTest {
   // End-to-end via SearchComparison + resolver — the actual planner call path.
   // -------------------------------------------------------------------------
 
+  private static SearchComparison cmp(String field, SearchLiteral value) {
+    return new SearchComparison(
+        new Field(new QualifiedName(field), List.of()), SearchComparison.Operator.EQUALS, value);
+  }
+
   @Test
-  void comparison_resolves_field_type_and_emits_wildcard_on_keyword() {
-    // name="foo bar*" on a keyword field → name:foo\ bar*
-    SearchComparison cmp =
-        new SearchComparison(
-            new Field(new QualifiedName("name"), List.of()),
-            SearchComparison.Operator.EQUALS,
-            phrase("foo bar*"));
+  void comparison_emits_wildcard_pattern_on_keyword() {
     Function<String, ExprType> resolver = Map.of("name", KEYWORD)::get;
-    assertEquals("name:foo\\ bar*", cmp.toQueryString(resolver));
+    assertEquals("name:foo\\ bar*", cmp("name", q("foo bar*")).toQueryString(resolver));
   }
 
   @Test
-  void comparison_resolves_field_type_and_keeps_phrase_on_text() {
-    SearchComparison cmp =
-        new SearchComparison(
-            new Field(new QualifiedName("name"), List.of()),
-            SearchComparison.Operator.EQUALS,
-            phrase("foo bar*"));
-    Function<String, ExprType> resolver = Map.of("name", TEXT)::get;
-    assertEquals("name:\"foo bar*\"", cmp.toQueryString(resolver));
+  void comparison_emits_phrase_on_text_when_quoted() {
+    Function<String, ExprType> resolver = Map.of("body", TEXT)::get;
+    assertEquals("body:\"foo=bar\"", cmp("body", q("foo=bar")).toQueryString(resolver));
   }
 
   @Test
-  void comparison_unknown_field_falls_back_to_phrase_form() {
-    SearchComparison cmp =
-        new SearchComparison(
-            new Field(new QualifiedName("unmapped"), List.of()),
-            SearchComparison.Operator.EQUALS,
-            phrase("foo bar*"));
-    // Resolver returns null for unknown fields.
+  void comparison_emits_bare_term_on_text_when_unquoted() {
+    Function<String, ExprType> resolver = Map.of("body", TEXT)::get;
+    assertEquals("body:foo*", cmp("body", bare("foo*")).toQueryString(resolver));
+  }
+
+  @Test
+  void comparison_unknown_field_falls_back_to_legacy_form() {
     Function<String, ExprType> resolver = f -> null;
-    assertEquals("unmapped:\"foo bar*\"", cmp.toQueryString(resolver));
+    assertEquals("unmapped:\"foo bar*\"", cmp("unmapped", q("foo bar*")).toQueryString(resolver));
   }
 }

@@ -1138,7 +1138,9 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
       // Use visit method to properly handle escaping
       Literal stringLit = (Literal) visit(ctx.stringLiteral());
       String content = (String) stringLit.getValue();
-      return new SearchLiteral(new Literal(content, DataType.STRING), content.contains(" "));
+      // The value came from a quoted literal. On a text field that is the user asking for phrase
+      // semantics; SearchLiteral decides what to emit per index mapping.
+      return new SearchLiteral(new Literal(content, DataType.STRING), true);
     } else if (ctx.numericLiteral() != null) {
       Literal numericLiteral = (Literal) visit(ctx.numericLiteral());
       return new SearchLiteral(numericLiteral, false);

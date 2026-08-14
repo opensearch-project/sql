@@ -23,7 +23,12 @@ import org.opensearch.sql.utils.QueryStringUtils;
 public class SearchLiteral extends SearchExpression {
 
   private final UnresolvedExpression literal;
-  private final boolean isPhrase;
+
+  /**
+   * Whether the user wrote this value inside quotes in the PPL query. On a text field this is the
+   * user's explicit request for phrase semantics — see {@link #toQueryString(ExprType)}.
+   */
+  private final boolean userQuoted;
 
   @Override
   public String toQueryString(Function<String, ExprType> fieldTypeResolver) {
@@ -33,14 +38,23 @@ public class SearchLiteral extends SearchExpression {
 
   /**
    * Emits the query_string form for a literal on the RHS of {@link SearchComparison} or inside
-   * {@link SearchIn}. The decision tree is documented in {@code
-   * docs/dev/ppl-search-command-contract-empirical.md} — briefly: whitespace + wildcard on a
-   * non-text index escapes the space so the parser keeps the value as one whole-value pattern;
-   * everything else falls through to phrase (with whitespace) or unquoted-escaped (without).
+   * {@link SearchIn}. Emission is driven by the enclosing field's index mapping, because the
+   * mapping decides whether the value gets analyzed:
    *
-   * @param indexType the enclosing field's OpenSearch index-mapping type (text/keyword/...) — used
-   *     only to distinguish text-like from everything else; null means unknown, treated as
-   *     text-like so we don't regress the phrase form.
+   * <ul>
+   *   <li><b>text</b> — honor the user's quoting. Unquoted passes through, so {@code *} and {@code
+   *       ?} stay query_string operators. Quoted becomes a phrase, which is how a user asks for
+   *       "this whole value, in order" against the analyzed tokens.
+   *   <li><b>keyword family</b> — quoting is irrelevant, because the analyzer is a no-op and a
+   *       quoted phrase resolves to the same single term as a bare one. Emit whole-value semantics
+   *       instead: a wildcard pattern when the value holds an unescaped wildcard, otherwise an
+   *       exact term. Whitespace is escaped in the wildcard form so query_string keeps the value as
+   *       one clause rather than splitting at the space and dropping the field binding.
+   *   <li><b>anything else</b> (date, numeric, ip, boolean, or unresolved) — legacy behavior,
+   *       untouched. Those mappings do their own value parsing and are out of scope here.
+   * </ul>
+   *
+   * @param indexType the enclosing field's OpenSearch index-mapping type, or null if unresolved
    */
   public String toQueryString(ExprType indexType) {
     if (literal instanceof Literal) {
@@ -56,36 +70,51 @@ public class SearchLiteral extends SearchExpression {
       if (val instanceof String) {
         String str = (String) val;
 
-        // [D] whitespace + wildcard on a non-text index: single term with space escaped, so the
-        // query_string parser keeps the value as one whole-value pattern (a raw space would
-        // split it into two clauses and drop the field binding on the right half).
-        if (isPhrase && !isTextLike(indexType) && hasUnescapedWildcard(str)) {
-          return QueryStringUtils.escapeLuceneSpecialCharacters(str).replace(" ", "\\ ");
+        if (isTextLike(indexType)) {
+          // Quoting requests phrase semantics. One exception: a whitespace-free value carrying an
+          // unescaped wildcard is emitted unquoted, because quoting would let the analyzer discard
+          // the wildcard (`foo*` would stop matching `foobar`). That is only safe without
+          // whitespace — with a space, an unquoted value would be split into separate clauses and
+          // the tail would lose its field binding, so those stay phrases.
+          boolean wildcardTerm = hasUnescapedWildcard(str) && !str.contains(" ");
+          return userQuoted && !wildcardTerm ? quoted(str) : unquoted(str);
         }
 
-        // [B]/[C] quoted phrase.
-        if (isPhrase) {
-          str = QueryStringUtils.escapeLuceneSpecialCharacters(str);
-          return "\"" + str + "\"";
+        if (isKeywordLike(indexType)) {
+          return hasUnescapedWildcard(str) ? unquoted(str).replace(" ", "\\ ") : quoted(str);
         }
 
-        // [A] unquoted; escape Lucene specials, wildcards preserved.
-        return QueryStringUtils.escapeLuceneSpecialCharacters(str);
+        // Other mappings (date, numeric, ip, boolean) and unresolved fields: legacy behavior.
+        return str.contains(" ") ? quoted(str) : unquoted(str);
       }
     }
 
-    String text = literal.toString();
-    return QueryStringUtils.escapeLuceneSpecialCharacters(text);
+    return unquoted(literal.toString());
+  }
+
+  private static String quoted(String str) {
+    return "\"" + QueryStringUtils.escapeLuceneSpecialCharacters(str) + "\"";
+  }
+
+  private static String unquoted(String str) {
+    return QueryStringUtils.escapeLuceneSpecialCharacters(str);
   }
 
   private static boolean isTextLike(ExprType type) {
     if (type == null) {
-      // Unknown type → treat as text-like so we take the phrase branch and avoid a text
-      // regression when the resolver fails to identify the field.
-      return true;
+      return false;
     }
     String legacyName = type.getOriginalExprType().legacyTypeName();
     return "TEXT".equalsIgnoreCase(legacyName) || "MATCH_ONLY_TEXT".equalsIgnoreCase(legacyName);
+  }
+
+  private static boolean isKeywordLike(ExprType type) {
+    if (type == null) {
+      return false;
+    }
+    String legacyName = type.getOriginalExprType().legacyTypeName();
+    return "KEYWORD".equalsIgnoreCase(legacyName)
+        || "CONSTANT_KEYWORD".equalsIgnoreCase(legacyName);
   }
 
   private static boolean hasUnescapedWildcard(String s) {
