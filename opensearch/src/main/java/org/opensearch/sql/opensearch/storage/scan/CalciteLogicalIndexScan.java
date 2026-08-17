@@ -379,8 +379,8 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
   }
 
   /**
-   * @param allowPartialFallback whether a failure may fall back to the partial-result path. False
-   *     when re-entering from that path, so the fallback is attempted at most once.
+   * @param allowPartialFallback whether the partial-result path may be tried. False when
+   *     re-entering from that path over the narrowed index subset, so it is attempted at most once.
    */
   private AbstractRelNode pushDownAggregate(
       Aggregate aggregate, @Nullable Project project, boolean allowPartialFallback) {
@@ -409,10 +409,12 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
         if (LOG.isDebugEnabled()) {
           LOG.debug("Cannot pushdown the aggregate due to bucket contains array (nested) type");
         }
-        return allowPartialFallback ? tryPartialResultAggregate(aggregate, project) : null;
+        return null;
       }
-      // Decide partial mode before analyze: since #5646 the collapsed text key pushes down as a
-      // (slow) _source script rather than failing, so a post-failure fallback would never fire.
+      // Decide partial mode before analyze, not after a failure: since #5646 a text/keyword
+      // conflict pushes down as a (slow) _source script rather than failing, so a post-failure
+      // fallback would never fire. Array/nested buckets (above) and other analyze failures are not
+      // text/keyword conflicts, so partial mode does not apply to them.
       if (allowPartialFallback) {
         AbstractRelNode partial = tryPartialResultAggregate(aggregate, project, bucketNames);
         if (partial != null) {
@@ -448,7 +450,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
         LOG.debug("Cannot pushdown the aggregate {}", aggregate, e);
       }
     }
-    return allowPartialFallback ? tryPartialResultAggregate(aggregate, project) : null;
+    return null;
   }
 
   /**
@@ -458,13 +460,6 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
    * carry the warning ({@link QueryContext#isWarningsSupported}); returns {@code null} otherwise.
    * Partitioning lives in {@link PartialResultAggregatePushdown}.
    */
-  private AbstractRelNode tryPartialResultAggregate(
-      Aggregate aggregate, @Nullable Project project) {
-    List<String> outputFields = aggregate.getRowType().getFieldNames();
-    return tryPartialResultAggregate(
-        aggregate, project, outputFields.subList(0, aggregate.getGroupSet().cardinality()));
-  }
-
   private AbstractRelNode tryPartialResultAggregate(
       Aggregate aggregate, @Nullable Project project, List<String> bucketNames) {
     if (!QueryContext.isPartialResultEnabled(osIndex.getSettings())) {
