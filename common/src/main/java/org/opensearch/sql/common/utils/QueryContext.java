@@ -8,6 +8,7 @@ package org.opensearch.sql.common.utils;
 import java.util.Map;
 import java.util.UUID;
 import org.apache.logging.log4j.ThreadContext;
+import org.opensearch.sql.common.setting.Settings;
 
 /**
  * Utility class for recording and accessing context for the query being executed. Implementation
@@ -125,11 +126,16 @@ public class QueryContext {
   }
 
   /**
-   * @return the per-request partial-result override, or {@code null} when the request expressed no
-   *     preference (in which case the cluster setting decides).
+   * Whether partial-result mode applies to the current query. The per-request override wins when
+   * present; otherwise the cluster setting decides.
+   *
+   * @param settings the plugin settings to read the cluster default from
    */
-  public static Boolean getPartialResultOverride() {
-    String value = ThreadContext.get(PARTIAL_RESULT_OVERRIDE_KEY);
-    return value == null ? null : Boolean.parseBoolean(value);
+  public static boolean isPartialResultEnabled(Settings settings) {
+    String override = ThreadContext.get(PARTIAL_RESULT_OVERRIDE_KEY);
+    if (override != null) {
+      return Boolean.parseBoolean(override);
+    }
+    return settings.getSettingValue(Settings.Key.PARTIAL_RESULT_ON_MAPPING_CONFLICT);
   }
 }

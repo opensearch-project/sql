@@ -467,7 +467,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
 
   private AbstractRelNode tryPartialResultAggregate(
       Aggregate aggregate, @Nullable Project project, List<String> bucketNames) {
-    if (!isPartialResultEnabled()) {
+    if (!QueryContext.isPartialResultEnabled(osIndex.getSettings())) {
       return null;
     }
     // A format with no warnings channel (CSV/RAW/VIZ) must not silently drop indices.
@@ -475,7 +475,6 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
       return null;
     }
     try {
-      // Reused from the field-type fetch, so no extra round trip.
       Map<String, IndexMapping> mappings = osIndex.getIndexMappings();
       PartialResultAggregatePushdown.Plan plan =
           PartialResultAggregatePushdown.plan(bucketNames, mappings);
@@ -509,20 +508,6 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
       }
       return null;
     }
-  }
-
-  /**
-   * Whether partial-result mode is enabled for this query. A per-request override (from the client,
-   * e.g. an OpenSearch Dashboards toggle) takes precedence when present; otherwise the cluster
-   * setting decides.
-   */
-  private boolean isPartialResultEnabled() {
-    Boolean override = QueryContext.getPartialResultOverride();
-    if (override != null) {
-      return override;
-    }
-    return (Boolean)
-        osIndex.getSettings().getSettingValue(Settings.Key.PARTIAL_RESULT_ON_MAPPING_CONFLICT);
   }
 
   public AbstractRelNode pushDownLimit(LogicalSort sort, Integer limit, Integer offset) {

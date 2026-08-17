@@ -287,17 +287,17 @@ Result set::
       }
     }
 
-plugins.query.partial_result.on_mapping_conflict.enabled
-========================================================
+plugins.query.partial_result.on_mapping_conflict.enabled [Experimental]
+=======================================================================
 
 Version
 -------
-3.8
+Since 3.9
 
 Description
 -----------
 
-Controls how an aggregation behaves when its group-by field is mapped inconsistently across the queried indices -- for example ``keyword`` in some indices of a wildcard pattern and ``text`` (without a ``.keyword`` sub-field) in others. Such a field collapses to ``text``-without-``.keyword`` across the pattern, which has no doc values, so the aggregation cannot be pushed down natively and instead runs as a per-document script over ``_source`` -- correct, but a full scan of every document.
+This setting is experimental; its name, values, and default may change in a future release. Controls how an aggregation behaves when its group-by field is mapped inconsistently across the queried indices -- for example ``keyword`` in some indices of a wildcard pattern and ``text`` (without a ``.keyword`` sub-field) in others. Such a field collapses to ``text``-without-``.keyword`` across the pattern, which has no doc values, so the aggregation cannot be pushed down natively and instead runs as a per-document script over ``_source`` -- correct, but a full scan of every document.
 
 When this setting is ``false`` (the default), that complete-but-slow result is returned. When set to ``true``, the aggregation is pushed down over only the subset of indices where the field is aggregatable, and the response carries a ``PARTIAL_RESULT`` warning naming the excluded indices and the remedy (map the field as ``keyword`` everywhere). The result is therefore **partial** -- documents in the excluded indices are not counted -- so the setting is off by default and only takes effect for response formats that can surface the warning (the JSON format; CSV/raw/visualization responses fall through to the complete result rather than silently dropping data).
 
