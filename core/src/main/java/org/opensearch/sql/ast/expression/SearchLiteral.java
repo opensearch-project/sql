@@ -42,16 +42,16 @@ public class SearchLiteral extends SearchExpression {
    * mapping decides whether the value gets analyzed:
    *
    * <ul>
+   *   <li><b>keyword family with a wildcard</b> — the analyzer is a no-op, so the value has to
+   *       reach Lucene as one term for the pattern to apply to the whole stored value. Emitted
+   *       unquoted with whitespace escaped.
    *   <li><b>text</b> — honor the user's quoting. Unquoted passes through, so {@code *} and {@code
    *       ?} stay query_string operators. Quoted becomes a phrase, which is how a user asks for
    *       "this whole value, in order" against the analyzed tokens.
-   *   <li><b>keyword family</b> — quoting is irrelevant, because the analyzer is a no-op and a
-   *       quoted phrase resolves to the same single term as a bare one. Emit whole-value semantics
-   *       instead: a wildcard pattern when the value holds an unescaped wildcard, otherwise an
-   *       exact term. Whitespace is escaped in the wildcard form so query_string keeps the value as
-   *       one clause rather than splitting at the space and dropping the field binding.
-   *   <li><b>anything else</b> (date, numeric, ip, boolean, or unresolved) — legacy behavior,
-   *       untouched. Those mappings do their own value parsing and are out of scope here.
+   *   <li><b>everything else</b> — keyword without a wildcard, plus date, numeric, ip, boolean and
+   *       unresolved fields. Legacy behavior. Note that quoting genuinely carries no information on
+   *       keyword: with a no-op analyzer a quoted phrase and a bare term both resolve to the same
+   *       single term, so there is nothing to gain by rewriting the emission here.
    * </ul>
    *
    * @param indexType the enclosing field's OpenSearch index-mapping type, or null if unresolved
@@ -70,6 +70,13 @@ public class SearchLiteral extends SearchExpression {
       if (val instanceof String) {
         String str = (String) val;
 
+        // A keyword-family field carries whole-value semantics, so a value holding a wildcard has
+        // to reach Lucene as a single term. Escaping the whitespace keeps query_string from
+        // splitting at the space and dropping the field binding on the tail.
+        if (isKeywordLike(indexType) && hasUnescapedWildcard(str)) {
+          return unquoted(str).replace(" ", "\\ ");
+        }
+
         if (isTextLike(indexType)) {
           // Quoting requests phrase semantics. One exception: a whitespace-free value carrying an
           // unescaped wildcard is emitted unquoted, because quoting would let the analyzer discard
@@ -80,11 +87,8 @@ public class SearchLiteral extends SearchExpression {
           return userQuoted && !wildcardTerm ? quoted(str) : unquoted(str);
         }
 
-        if (isKeywordLike(indexType)) {
-          return hasUnescapedWildcard(str) ? unquoted(str).replace(" ", "\\ ") : quoted(str);
-        }
-
-        // Other mappings (date, numeric, ip, boolean) and unresolved fields: legacy behavior.
+        // Everything else — keyword without a wildcard, plus date, numeric, ip, boolean and
+        // unresolved fields: legacy behavior, byte-identical to before this change.
         return str.contains(" ") ? quoted(str) : unquoted(str);
       }
     }

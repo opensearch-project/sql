@@ -118,9 +118,13 @@ class SearchLiteralTest {
   // -------------------------------------------------------------------------
 
   @Test
-  void keyword_no_wildcard_emits_exact_term_as_phrase() {
+  void keyword_no_wildcard_keeps_legacy_emission() {
+    // Quoting carries no information on keyword — a quoted phrase and a bare term both resolve to
+    // the same single term — so the emission is left exactly as it was.
+    assertEquals("foo", bare("foo").toQueryString(KEYWORD));
+    assertEquals("foo", q("foo").toQueryString(KEYWORD));
+    assertEquals("foo\\-bar", q("foo-bar").toQueryString(KEYWORD));
     assertEquals("\"foo bar\"", q("foo bar").toQueryString(KEYWORD));
-    assertEquals("\"foo\"", bare("foo").toQueryString(KEYWORD));
   }
 
   @Test
