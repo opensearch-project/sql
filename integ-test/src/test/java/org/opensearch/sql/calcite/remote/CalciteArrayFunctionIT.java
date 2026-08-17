@@ -552,6 +552,35 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testMvindexWithNonZeroIndexPushdown() throws IOException {
+    // Regression test for #5660: mvindex with non-zero literal index fails during pushdown
+    // because PLUS(1,1) gets widened to BIGINT but ITEM expects INTEGER.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('a', 'b', 'c'), result = mvindex(arr, 2)"
+                    + " | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "string"));
+    verifyDataRows(actual, rows("c"));
+  }
+
+  @Test
+  public void testMvindexWithStatsAggregationPushdown() throws IOException {
+    // Regression test for #5660: mvindex with non-zero index in aggregation context
+    // triggers pushdown script compilation where BIGINT/INTEGER mismatch occurred.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('x', 'y', 'z'), e = mvindex(arr, 1)"
+                    + " | stats count() by e",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("count()", "bigint"), schema("e", "string"));
+  }
+
+  @Test
   public void testMvfindWithMatch() throws IOException {
     JSONObject actual =
         executeQuery(
