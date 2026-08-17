@@ -126,6 +126,12 @@ public class OpenSearchNodeClient implements OpenSearchClient {
     }
   }
 
+  /**
+   * Fetch index.max_result_window settings according to index expression given.
+   *
+   * @param indexExpression index expression
+   * @return map from index name to its max result window
+   */
   @Override
   public Map<String, Integer> getIndexMaxResultWindows(String... indexExpression) {
     try {
