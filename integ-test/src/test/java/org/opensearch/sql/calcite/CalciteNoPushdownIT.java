@@ -46,6 +46,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalciteGeoIpFunctionsIT.class,
   CalciteGeoPointFormatsIT.class,
   CalciteHeadCommandIT.class,
+  CalciteIncludeMetadataIT.class,
   CalciteIPComparisonIT.class,
   CalciteIPFunctionsIT.class,
   CalciteLegacyAPICompatibilityIT.class,

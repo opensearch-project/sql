@@ -359,7 +359,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitAllFieldsExcludeMeta(AllFieldsExcludeMeta node, C context) {
-    return visitChildren(node, context);
+    // AllFieldsExcludeMeta is an AllFields, so fall back to visitAllFields by default. Visitors
+    // that need to tell the two apart override this method; visitors that don't would otherwise
+    // silently return null here and NPE in their caller.
+    return visitAllFields(node, context);
   }
 
   public T visitNestedAllTupleFields(NestedAllTupleFields node, C context) {

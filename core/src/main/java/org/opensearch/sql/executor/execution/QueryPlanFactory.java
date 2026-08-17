@@ -117,7 +117,8 @@ public class QueryPlanFactory
             node.getPlan(),
             node.getFetchSize(),
             queryService,
-            context.getLeft());
+            context.getLeft(),
+            node.isIncludeMetadata());
       } else {
         // This should be picked up by the legacy engine.
         throw new UnsupportedCursorRequestException();
@@ -129,7 +130,8 @@ public class QueryPlanFactory
           node.getPlan(),
           queryService,
           context.getLeft(),
-          node.getHighlightConfig());
+          node.getHighlightConfig(),
+          node.isIncludeMetadata());
     }
   }
 

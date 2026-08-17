@@ -152,9 +152,20 @@ public class QueryService {
       QueryType queryType,
       HighlightConfig highlightConfig,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
+    execute(plan, queryType, highlightConfig, false, listener);
+  }
+
+  /** Execute with optional highlight config and include metadata flag. */
+  public void execute(
+      UnresolvedPlan plan,
+      QueryType queryType,
+      HighlightConfig highlightConfig,
+      boolean includeMetadata,
+      ResponseListener<ExecutionEngine.QueryResponse> listener) {
     if (shouldUseCalcite(queryType)) {
-      executeWithCalcite(plan, queryType, highlightConfig, listener);
+      executeWithCalcite(plan, queryType, highlightConfig, includeMetadata, listener);
     } else {
+      // The V2 engine has no notion of metadata fields, so includeMetadata is ignored there.
       executeWithLegacy(plan, queryType, listener, Optional.empty());
     }
   }
@@ -175,20 +186,22 @@ public class QueryService {
       HighlightConfig highlightConfig,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
       ExplainMode mode) {
-    explain(plan, queryType, highlightConfig, listener, mode, null);
+    explain(plan, queryType, highlightConfig, false, listener, mode, null);
   }
 
-  /** Explain with optional highlight config and format. */
+  /** Explain with optional highlight config, include metadata flag, and format. */
   public void explain(
       UnresolvedPlan plan,
       QueryType queryType,
       HighlightConfig highlightConfig,
+      boolean includeMetadata,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
       ExplainMode mode,
       Format format) {
     if (shouldUseCalcite(queryType)) {
-      explainWithCalcite(plan, queryType, highlightConfig, listener, mode, format);
+      explainWithCalcite(plan, queryType, highlightConfig, includeMetadata, listener, mode, format);
     } else {
+      // The V2 engine has no notion of metadata fields, so includeMetadata is ignored there.
       explainWithLegacy(plan, queryType, listener, mode, Optional.empty());
     }
   }
@@ -197,6 +210,15 @@ public class QueryService {
       UnresolvedPlan plan,
       QueryType queryType,
       HighlightConfig highlightConfig,
+      ResponseListener<ExecutionEngine.QueryResponse> listener) {
+    executeWithCalcite(plan, queryType, highlightConfig, false, listener);
+  }
+
+  public void executeWithCalcite(
+      UnresolvedPlan plan,
+      QueryType queryType,
+      HighlightConfig highlightConfig,
+      boolean includeMetadata,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
     CalcitePlanContext.run(
         () -> {
@@ -209,7 +231,10 @@ public class QueryService {
                 () -> {
                   CalcitePlanContext context =
                       CalcitePlanContext.create(
-                          buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
+                          buildFrameworkConfig(),
+                          SysLimit.fromSettings(settings),
+                          queryType,
+                          includeMetadata);
 
                   context.setHighlightConfig(highlightConfig);
 
@@ -278,13 +303,14 @@ public class QueryService {
       HighlightConfig highlightConfig,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
       ExplainMode mode) {
-    explainWithCalcite(plan, queryType, highlightConfig, listener, mode, null);
+    explainWithCalcite(plan, queryType, highlightConfig, false, listener, mode, null);
   }
 
   public void explainWithCalcite(
       UnresolvedPlan plan,
       QueryType queryType,
       HighlightConfig highlightConfig,
+      boolean includeMetadata,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
       ExplainMode mode,
       Format format) {
@@ -296,7 +322,10 @@ public class QueryService {
                 () -> {
                   CalcitePlanContext context =
                       CalcitePlanContext.create(
-                          buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
+                          buildFrameworkConfig(),
+                          SysLimit.fromSettings(settings),
+                          queryType,
+                          includeMetadata);
                   context.setHighlightConfig(highlightConfig);
                   context.run(
                       () -> {

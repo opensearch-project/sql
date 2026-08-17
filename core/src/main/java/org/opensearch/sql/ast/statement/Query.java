@@ -26,7 +26,18 @@ public class Query extends Statement {
   protected final UnresolvedPlan plan;
   protected final int fetchSize;
   private final QueryType queryType;
+
+  /**
+   * Whether the request asked for metadata fields such as {@code _id}, {@code _index} and {@code
+   * _score} to be kept in the result.
+   */
+  private final boolean includeMetadata;
+
   private HighlightConfig highlightConfig;
+
+  public Query(UnresolvedPlan plan, int fetchSize, QueryType queryType) {
+    this(plan, fetchSize, queryType, false);
+  }
 
   @Override
   public <R, C> R accept(AbstractNodeVisitor<R, C> visitor, C context) {

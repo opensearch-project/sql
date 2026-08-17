@@ -726,10 +726,18 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
    *
    * <p>2. There is no other project ever visited in the main query
    *
+   * <p>Unless the request asked for metadata via {@code include_metadata}, in which case only the
+   * forced exclusion of case 1 still applies.
+   *
    * @param context CalcitePlanContext
    * @param excludeByForce whether exclude metadata fields by force
    */
   private static void tryToRemoveMetaFields(CalcitePlanContext context, boolean excludeByForce) {
+    // Join and subquery still strip metadata by force to keep their output schemas unambiguous.
+    if (context.isIncludeMetadata() && !excludeByForce) {
+      return;
+    }
+
     if (excludeByForce || !context.isProjectVisited()) {
       List<String> originalFields = context.relBuilder.peek().getRowType().getFieldNames();
       List<RexNode> metaFieldsRef =
