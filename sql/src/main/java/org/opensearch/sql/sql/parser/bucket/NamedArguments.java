@@ -14,7 +14,7 @@ import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
-import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 
 /**
  * Parses and validates named-argument style function arguments. The arg shape is {@code
@@ -56,21 +56,21 @@ public final class NamedArguments {
 
   /**
    * Parses the given args into a {@code NamedArguments}. Each arg must match the {@code
-   * 'key'=value} shape — a non-matching arg raises {@link SemanticCheckException}. Duplicate keys
-   * also raise {@link SemanticCheckException}.
+   * 'key'=value} shape — a non-matching arg raises {@link SyntaxCheckException}. Duplicate keys
+   * also raise {@link SyntaxCheckException}.
    */
   public static NamedArguments parse(List<UnresolvedExpression> args) {
     Map<String, UnresolvedExpression> arguments = new LinkedHashMap<>();
     for (UnresolvedExpression arg : args) {
       if (!isKeyValuePair(arg)) {
-        throw new SemanticCheckException("Named arguments must be of form 'key'=value; got " + arg);
+        throw new SyntaxCheckException("Named arguments must be of form 'key'=value; got " + arg);
       }
       Function fn = (Function) arg;
       Literal keyLiteral = (Literal) fn.getFuncArgs().get(0);
       String key = keyLiteral.getValue().toString().toLowerCase(Locale.ROOT);
       UnresolvedExpression value = fn.getFuncArgs().get(1);
       if (arguments.put(key, value) != null) {
-        throw new SemanticCheckException("Duplicate parameter: " + key);
+        throw new SyntaxCheckException("Duplicate parameter: " + key);
       }
     }
     return new NamedArguments(arguments);
@@ -85,7 +85,7 @@ public final class NamedArguments {
   public UnresolvedExpression require(String key, String funcName) {
     UnresolvedExpression value = arguments.remove(key);
     if (value == null) {
-      throw new SemanticCheckException(
+      throw new SyntaxCheckException(
           funcName.toLowerCase(Locale.ROOT) + " requires " + key + " parameter");
     }
     return value;
@@ -104,7 +104,7 @@ public final class NamedArguments {
 
   private static Literal asStringLiteral(UnresolvedExpression expr, String paramName) {
     if (!(expr instanceof Literal literal) || literal.getType() != DataType.STRING) {
-      throw new SemanticCheckException(
+      throw new SyntaxCheckException(
           paramName + " must be a string literal (e.g. '1d', '15m'); got " + expr);
     }
     return literal;
@@ -113,7 +113,7 @@ public final class NamedArguments {
   /** If {@code key} is present, throws with the supplied message; otherwise no-op. */
   public void rejectIfPresent(String key, String message) {
     if (arguments.remove(key) != null) {
-      throw new SemanticCheckException(message);
+      throw new SyntaxCheckException(message);
     }
   }
 
@@ -131,7 +131,7 @@ public final class NamedArguments {
     }
     String label = arguments.size() == 1 ? "parameter" : "parameters";
     String unsupported = String.join(", ", arguments.keySet());
-    throw new SemanticCheckException(
+    throw new SyntaxCheckException(
         funcName.toLowerCase(Locale.ROOT) + " does not accept " + label + ": " + unsupported);
   }
 

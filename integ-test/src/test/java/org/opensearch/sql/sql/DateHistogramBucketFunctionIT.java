@@ -182,6 +182,22 @@ public class DateHistogramBucketFunctionIT extends SQLIntegTestCase {
     verifyDataRows(response, rows(12), rows(24), rows(17), rows(19));
   }
 
+  /**
+   * The quoted-key form is not V2-only — legacy uses it too, with parameters V2 does not implement.
+   * `alias` is one, and CsvFormatResponseIT.dateHistogramTest has relied on it for years, so an
+   * unsupported parameter has to defer rather than fail.
+   */
+  @Test
+  public void unsupportedParameterStillReachesTheLegacyEngine() throws IOException {
+    JSONObject response =
+        executeQuery(
+            "SELECT COUNT(*) FROM "
+                + IDX
+                + " GROUP BY date_histogram('field'='ts','fixed_interval'='1h','alias'='hours')");
+
+    verifyDataRows(response, rows(12), rows(24), rows(17), rows(19));
+  }
+
   @Test
   public void positionalNumericHistogramStillReachesTheLegacyEngine() throws IOException {
     JSONObject response =

@@ -18,7 +18,6 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
-import org.opensearch.sql.exception.SemanticCheckException;
 
 /**
  * Lowers {@code date_histogram(...)} calls to a {@link Span} expression with the time unit inferred
@@ -85,11 +84,11 @@ final class DateHistogramExpander implements BucketFunctionExpander {
         Stream.of(interval, fixedInterval, calendarInterval).filter(Objects::nonNull).toList();
 
     if (suppliedIntervals.isEmpty()) {
-      throw new SemanticCheckException(
+      throw new SyntaxCheckException(
           "date_histogram requires one of: interval, fixed_interval, calendar_interval");
     }
     if (suppliedIntervals.size() > 1) {
-      throw new SemanticCheckException(
+      throw new SyntaxCheckException(
           "date_histogram accepts only one of: interval, fixed_interval, calendar_interval");
     }
     return suppliedIntervals.get(0);
@@ -125,7 +124,7 @@ final class DateHistogramExpander implements BucketFunctionExpander {
     try {
       offsetSeconds = ZoneOffset.of(tzString).getTotalSeconds();
     } catch (RuntimeException ex) {
-      throw new SemanticCheckException(
+      throw new SyntaxCheckException(
           "time_zone must be a valid offset like '+05:30' or 'Z'; got '" + tzString + "'");
     }
     return new Function(
