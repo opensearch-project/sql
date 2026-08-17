@@ -66,6 +66,14 @@ class PartialResultAggregatePushdownTest {
   }
 
   @Test
+  void resolveNonTextTypeIsConflictingType() {
+    assertEquals(
+        MappingResolution.CONFLICTING_TYPE,
+        resolveOne(Map.of("f", OpenSearchDataType.of(MappingType.Integer))),
+        "a numeric field is a type conflict, not a text/keyword collapse");
+  }
+
+  @Test
   void resolveMultiFieldTakesWeakestResolution() {
     // One keyword + one text-with-.keyword group key -> the weaker TEXT_WITH_KEYWORD wins.
     Map<String, OpenSearchDataType> mapping =
@@ -109,6 +117,16 @@ class PartialResultAggregatePushdownTest {
     assertNull(
         PartialResultAggregatePushdown.plan(
             List.of("f"), Map.of("txt1", bareTextIndex(), "txt2", bareTextIndex())));
+  }
+
+  @Test
+  void planNullOnNonTextTypeConflict() {
+    // keyword vs int is a type conflict, not a text/keyword collapse. The int index is
+    // aggregatable, so it must not be excluded -- partial mode bails and leaves it to the normal
+    // path.
+    assertNull(
+        PartialResultAggregatePushdown.plan(
+            List.of("f"), ordered("kw", keywordIndex(), "num", intIndex())));
   }
 
   // ---- plan: partitioning ----
@@ -207,6 +225,10 @@ class PartialResultAggregatePushdownTest {
 
   private static IndexMapping textWithKeywordIndex() {
     return new IndexMapping(Map.of("f", TEXT_WITH_KEYWORD_TYPE));
+  }
+
+  private static IndexMapping intIndex() {
+    return new IndexMapping(Map.of("f", OpenSearchDataType.of(MappingType.Integer)));
   }
 
   /** Build an insertion-ordered map so kept/excluded assertions are deterministic. */

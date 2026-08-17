@@ -36,8 +36,10 @@ final class PartialResultAggregatePushdown {
     KEYWORD,
     /** Every group field is aggregatable, at least one via a {@code .keyword} sub-field. */
     TEXT_WITH_KEYWORD,
-    /** At least one group field is not aggregatable here (bare {@code text}, or absent). */
-    NOT_AGGREGATABLE
+    /** At least one group field is bare {@code text} (no doc values), or absent. */
+    NOT_AGGREGATABLE,
+    /** A group field maps to a non-text type here (e.g. keyword vs int) -- not our conflict. */
+    CONFLICTING_TYPE
   }
 
   /**
@@ -73,6 +75,12 @@ final class PartialResultAggregatePushdown {
       switch (resolveBucketMapping(flatMapping, bucketNames)) {
         case KEYWORD -> keywordIndices.add(entry.getKey());
         case TEXT_WITH_KEYWORD -> textKeywordIndices.add(entry.getKey());
+        case CONFLICTING_TYPE -> {
+          // A non-text type conflict (e.g. keyword vs int) is not a text/keyword collapse, and the
+          // conflicting index is aggregatable -- excluding it would drop valid data. Leave it to
+          // the normal path.
+          return null;
+        }
         default -> excludedIndices.add(entry.getKey());
       }
     }
@@ -99,10 +107,11 @@ final class PartialResultAggregatePushdown {
   }
 
   /**
-   * Resolve how one index maps all grouped fields, as the weakest resolution across them: {@link
-   * MappingResolution#KEYWORD} only if every field is bare keyword; {@link
-   * MappingResolution#TEXT_WITH_KEYWORD} if every field is aggregatable but at least one relies on
-   * a {@code .keyword} sub-field; otherwise {@link MappingResolution#NOT_AGGREGATABLE}.
+   * Resolve how one index maps all grouped fields, as the weakest resolution across them: {@code
+   * KEYWORD} only if every field is bare keyword; {@code TEXT_WITH_KEYWORD} if every field is
+   * aggregatable but at least one relies on a {@code .keyword} sub-field; {@code NOT_AGGREGATABLE}
+   * for a bare {@code text} or absent field; {@code CONFLICTING_TYPE} if a field maps to some other
+   * type (e.g. int), which is a type conflict this fallback does not handle.
    */
   static MappingResolution resolveBucketMapping(
       Map<String, OpenSearchDataType> flatMapping, List<String> bucketNames) {
@@ -116,8 +125,10 @@ final class PartialResultAggregatePushdown {
         continue;
       } else if (hasKeywordSubField(type)) {
         combined = MappingResolution.TEXT_WITH_KEYWORD;
+      } else if (type.getMappingType() == MappingType.Text) {
+        return MappingResolution.NOT_AGGREGATABLE; // bare text: the text/keyword collapse we handle
       } else {
-        return MappingResolution.NOT_AGGREGATABLE;
+        return MappingResolution.CONFLICTING_TYPE; // e.g. keyword vs int -> not our conflict
       }
     }
     return combined;
