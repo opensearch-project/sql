@@ -229,8 +229,7 @@ Expected output (trimmed):
   ],
   "datarows": [],
   "total": 0,
-  "size": 0,
-  "possibleCacheHit": false
+  "size": 0
 }
 ```
 
@@ -246,7 +245,7 @@ Expected output (trimmed):
 | `datarows` | Array | Query result rows. |
 | `total` | Integer | Total number of result rows. |
 | `size` | Integer | Number of result rows returned. |
-| `possibleCacheHit` | Boolean | Returns whether or not the `analyze` query was potentially sped up due the cache. |
+
 
 ### Notes
 - Analyze output is only returned when the query finishes successfully.
