@@ -132,8 +132,8 @@ public class PPLQueryRequestFactory {
       if (queryId != null) {
         pplRequest.queryId(queryId);
       }
-      // set per-request partial-result override only when explicitly present, so a request that
-      // says nothing defers to the cluster setting rather than forcing the flag off.
+      // Set the override only when present, so a request that omits it defers to the cluster
+      // setting.
       if (jsonContent.has(QUERY_PARAMS_PARTIAL_RESULT)) {
         pplRequest.partialResult(jsonContent.optBoolean(QUERY_PARAMS_PARTIAL_RESULT));
       }

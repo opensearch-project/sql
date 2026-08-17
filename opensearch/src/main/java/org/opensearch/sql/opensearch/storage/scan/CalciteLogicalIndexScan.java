@@ -411,10 +411,8 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
         }
         return null;
       }
-      // Decide partial mode before analyze, not after a failure: since #5646 a text/keyword
-      // conflict pushes down as a (slow) _source script rather than failing, so a post-failure
-      // fallback would never fire. Array/nested buckets (above) and other analyze failures are not
-      // text/keyword conflicts, so partial mode does not apply to them.
+      // Try partial mode before analyze: since #5646 a text/keyword conflict pushes down as a slow
+      // _source script instead of failing, so a post-failure fallback would never fire.
       if (allowPartialFallback) {
         AbstractRelNode partial = tryPartialResultAggregate(aggregate, project, bucketNames);
         if (partial != null) {

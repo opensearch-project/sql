@@ -117,9 +117,8 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
         fieldTypes.putAll(indexMapping.getFieldMappings());
       }
     } else {
-      // Merge deep copies: MergeRuleHelper rewrites the accumulated type's nested `properties` in
-      // place, which would otherwise mutate the per-index mappings retained above (they are reused
-      // by partial-result partitioning, which needs to see each index's original mapping).
+      // Merge deep copies: MergeRuleHelper mutates the field mappings in place, and the per-index
+      // mappings retained above must stay intact for partial-result partitioning.
       for (IndexMapping indexMapping : indexMappings.values()) {
         MergeRuleHelper.merge(fieldTypes, deepCopy(indexMapping.getFieldMappings()));
       }

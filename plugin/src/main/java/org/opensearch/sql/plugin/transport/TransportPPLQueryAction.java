@@ -194,11 +194,10 @@ public class TransportPPLQueryAction
     // in order to use PPL service, we need to convert TransportPPLQueryRequest to PPLQueryRequest
     PPLQueryRequest transformedRequest = transportRequest.toPPLQueryRequest();
     QueryContext.setProfile(transformedRequest.profile());
-    // Only the JSON response shape carries a warnings channel. Features that return a
-    // knowingly-partial result gate on this so they never silently drop data into CSV/RAW/VIZ.
+    // Only the JSON shape carries warnings; gate partial results on it so CSV/RAW/VIZ never drop
+    // data silently.
     QueryContext.setWarningsSupported(warningsSupported(transformedRequest));
-    // Per-request partial-result override (e.g. from a Dashboards toggle); null defers to the
-    // cluster setting.
+    // Per-request override (e.g. a Dashboards toggle); null defers to the cluster setting.
     QueryContext.setPartialResultOverride(transformedRequest.partialResult());
 
     // Start root span with OTel DB semantic convention attributes
