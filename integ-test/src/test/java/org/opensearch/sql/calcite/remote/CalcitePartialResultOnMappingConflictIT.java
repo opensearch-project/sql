@@ -59,6 +59,13 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
   private static final String PRIORITY_TEXTKW_INDEX_2 = "partial_priority_textkw2";
   private static final String PRIORITY_PATTERN = "partial_priority_*";
 
+  // Multi-field expression fixture: two fields, both keyword in one index and both bare text in
+  // another. A group key like concat(city, region) must trace to BOTH fields and keep only the
+  // index where both are aggregatable.
+  private static final String MULTI_KEYWORD_INDEX = "partial_multi_keyword";
+  private static final String MULTI_TEXT_INDEX = "partial_multi_text";
+  private static final String MULTI_PATTERN = "partial_multi_*";
+
   @Override
   public void init() throws Exception {
     super.init();
@@ -162,6 +169,33 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
       bulk.setJsonEntity("{\"index\":{}}\n{\"env\":\"prod\"}\n");
       performRequest(client(), bulk);
     }
+    // Multi-field expression fixture: both fields keyword in one index, both bare text in another.
+    if (!isIndexExist(client(), MULTI_KEYWORD_INDEX)) {
+      String mapping =
+          "{\"settings\":{\"index\":{\"number_of_shards\":2,\"number_of_replicas\":0}},"
+              + "\"mappings\":{\"properties\":{\"city\":{\"type\":\"keyword\"},"
+              + "\"region\":{\"type\":\"keyword\"}}}}";
+      createIndexByRestClient(client(), MULTI_KEYWORD_INDEX, mapping);
+      Request bulk = new Request("POST", "/" + MULTI_KEYWORD_INDEX + "/_bulk?refresh=true");
+      bulk.setJsonEntity(
+          "{\"index\":{}}\n{\"city\":\"nyc\",\"region\":\"us\"}\n"
+              + "{\"index\":{}}\n{\"city\":\"nyc\",\"region\":\"us\"}\n"
+              + "{\"index\":{}}\n{\"city\":\"sf\",\"region\":\"us\"}\n");
+      performRequest(client(), bulk);
+    }
+    if (!isIndexExist(client(), MULTI_TEXT_INDEX)) {
+      String mapping =
+          "{\"settings\":{\"index\":{\"number_of_shards\":2,\"number_of_replicas\":0}},"
+              + "\"mappings\":{\"properties\":{\"city\":{\"type\":\"text\"},"
+              + "\"region\":{\"type\":\"text\"}}}}";
+      createIndexByRestClient(client(), MULTI_TEXT_INDEX, mapping);
+      Request bulk = new Request("POST", "/" + MULTI_TEXT_INDEX + "/_bulk?refresh=true");
+      bulk.setJsonEntity(
+          "{\"index\":{}}\n{\"city\":\"la\",\"region\":\"us\"}\n"
+              + "{\"index\":{}}\n{\"city\":\"sea\",\"region\":\"us\"}\n");
+      performRequest(client(), bulk);
+    }
+
     String bareTextMapping =
         "{\"settings\":{\"index\":{\"number_of_shards\":2,\"number_of_replicas\":0}},"
             + "\"mappings\":{\"properties\":{\"env\":{\"type\":\"text\"}}}}";
@@ -270,6 +304,31 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
     assertTrue(
         "warning should name the excluded text index",
         warning.getString("detail").contains(TEXT_INDEX));
+  }
+
+  @Test
+  public void partialResultOnHandlesMultiFieldExpressionGroupKey() throws IOException {
+    setPartialResult(true);
+    setPitContextLimit("1");
+    // The group key reads two fields (concat(city, region)); partitioning must trace it to BOTH and
+    // keep only the index where both are aggregatable. Keyword index: nycus=2, sfus=1; text
+    // excluded.
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval g = concat(city, region) | stats count() by g | sort g",
+                MULTI_PATTERN));
+    verifyDataRows(result, rows(2, "nycus"), rows(1, "sfus"));
+
+    JSONObject warning = result.getJSONArray("warnings").getJSONObject(0);
+    assertEquals("PARTIAL_RESULT", warning.getString("type"));
+    assertTrue(
+        "warning should name both underlying fields the expression reads",
+        warning.getString("detail").contains("city")
+            && warning.getString("detail").contains("region"));
+    assertTrue(
+        "warning should name the excluded text index",
+        warning.getString("detail").contains(MULTI_TEXT_INDEX));
   }
 
   @Test
