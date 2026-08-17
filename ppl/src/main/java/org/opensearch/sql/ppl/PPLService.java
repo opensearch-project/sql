@@ -121,7 +121,7 @@ public class PPLService {
 
       UnresolvedPlan unresolvedPlan = ((Query) statement).getPlan();
       queryManager.submit(
-          queryExecutionFactory.createAnalyzePlan(queryText, unresolvedPlan, PPL_QUERY, listener));
+          queryExecutionFactory.createAnalyzePlan(unresolvedPlan, PPL_QUERY, listener));
     } catch (Exception e) {
       listener.onFailure(e);
     }

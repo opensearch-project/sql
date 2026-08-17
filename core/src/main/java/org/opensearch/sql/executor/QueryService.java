@@ -6,10 +6,8 @@
 package org.opensearch.sql.executor;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nullable;
@@ -40,10 +38,8 @@ import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.opensearch.sql.analysis.AnalysisContext;
 import org.opensearch.sql.analysis.Analyzer;
-import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.ast.tree.HighlightConfig;
-import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
@@ -325,10 +321,7 @@ public class QueryService {
   }
 
   public void analyzeWithCalcite(
-      String query,
-      UnresolvedPlan plan,
-      QueryType queryType, // boolean disableCache,
-      ResponseListener<AnalyzeResponse> listener) {
+      UnresolvedPlan plan, QueryType queryType, ResponseListener<AnalyzeResponse> listener) {
     if (!shouldUseCalcite(queryType)) {
       listener.onFailure(
           new UnsupportedOperationException(
@@ -336,18 +329,10 @@ public class QueryService {
                   + " (plugins.calcite.enabled=true) and a PPL query type"));
       return;
     }
-    boolean disableCache = true;
     // Phase 1: Execute via the exact same path as executeWithCalcite + executionEngine.execute
     // to get identical profile timings. Use a latch to synchronize the async callback.
     // Force profiling on so executeWithCalcite activates QueryProfiling.
     QueryContext.setProfile(true);
-
-    String[] indexNames = extractIndexNames(plan);
-    long cacheHitsBefore = disableCache ? -1 : executionEngine.getRequestCacheHitCount(indexNames);
-
-    if (disableCache) {
-      CalcitePlanContext.disableRequestCache.set(true);
-    }
 
     AtomicReference<ExecutionEngine.QueryResponse> queryResponseRef = new AtomicReference<>();
     AtomicReference<QueryProfile> profileRef = new AtomicReference<>();
@@ -387,24 +372,14 @@ public class QueryService {
       latch.await();
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      CalcitePlanContext.disableRequestCache.remove();
       listener.onFailure(new RuntimeException("Interrupted while waiting for query execution", e));
       return;
-    } finally {
-      CalcitePlanContext.disableRequestCache.remove();
     }
 
     if (errorRef.get() != null) {
       listener.onFailure(errorRef.get());
       return;
     }
-
-    long cacheHitsAfter = disableCache ? -1 : executionEngine.getRequestCacheHitCount(indexNames);
-    boolean possibleCacheHit =
-        !disableCache
-            && cacheHitsBefore >= 0
-            && cacheHitsAfter >= 0
-            && cacheHitsAfter > cacheHitsBefore;
 
     ExecutionEngine.QueryResponse queryResponse = queryResponseRef.get();
     QueryProfile profile = profileRef.get();
@@ -479,12 +454,10 @@ public class QueryService {
 
                   AnalyzeResponse response =
                       AnalyzeResponse.builder()
-                          // .query(query)
                           .logicalPlan(logicalPlanNodes)
                           .physicalPlan(physicalPlanNodes)
                           .recommendations(recommendations)
                           .profile(profile)
-                          .possibleCacheHit(possibleCacheHit)
                           .schema(schema)
                           .datarows(datarows)
                           .total(datarows.length)
@@ -734,23 +707,6 @@ public class QueryService {
             .programs(Programs.standard())
             .typeSystem(OpenSearchTypeSystem.INSTANCE);
     return configBuilder.build();
-  }
-
-  private static String[] extractIndexNames(UnresolvedPlan plan) {
-    Set<String> names = new HashSet<>();
-    collectRelationNames(plan, names);
-    return names.toArray(String[]::new);
-  }
-
-  private static void collectRelationNames(Node node, Set<String> names) {
-    if (node instanceof Relation relation) {
-      names.add(relation.getTableQualifiedName().toString());
-    }
-    if (node.getChild() != null) {
-      for (Node child : node.getChild()) {
-        collectRelationNames(child, names);
-      }
-    }
   }
 
   /**

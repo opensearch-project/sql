@@ -159,17 +159,6 @@ class AnalyzeRecommendationBuilderTest {
   }
 
   @Test
-  void ineffectiveFilterFiresForProjectNodes() {
-    // The rule matches "project" as well as "filter"; a project passing 999 of 1000 rows fires.
-    PlanNode project = new PlanNode("EnumerableProject", 5.0, 999, List.of(leaf("scan", 1000)));
-    List<Recommendation> recs = new AnalyzeRecommendationBuilder(profile(1, 10, project)).build();
-
-    Recommendation r = ruleOf(recs, "Ineffective Filter").orElseThrow();
-    assertEquals(RecommendationSeverityLevel.WARNING, r.getSeverity());
-    assertEquals("EnumerableProject", r.getAffected_node());
-  }
-
-  @Test
   void ineffectiveFilterSilentForLeafFilterWithNoInput() {
     // A "filter"-named leaf has no children, so rows_in is 0 and the ratio guard skips it.
     PlanNode leafFilter = leaf("CalciteFilter", 1000);

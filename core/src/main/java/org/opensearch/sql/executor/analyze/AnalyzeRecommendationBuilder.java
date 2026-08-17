@@ -34,7 +34,7 @@ import org.opensearch.sql.monitor.profile.QueryProfile.PlanNode;
  */
 public class AnalyzeRecommendationBuilder {
 
-  // Configurable thresholds (defaults from the rule spec).
+  // Rule thresholds (defaults from the rule spec).
 
   /** Ineffective filter/project: fires when rows_out / rows_in exceeds this pass-through ratio. */
   private static final double INEFFECTIVE_FILTER_MAX_PASS_RATIO = 0.95;
@@ -55,7 +55,7 @@ public class AnalyzeRecommendationBuilder {
   private static final long EXPENSIVE_SORT_MIN_ROWS = 50_000;
 
   /** Bottleneck stage: fires when the slowest node's time fraction of execute exceeds this. */
-  private static final double BOTTLENECK_TIME_FRACTION = 0.60;
+  private static final double BOTTLENECK_TIME_FRACTION = 0.75;
 
   /** Optimize phase dominates: fires when optimize time exceeds this (ms) and beats execute. */
   private static final double OPTIMIZE_DOMINATES_MIN_MS = 75.0;
@@ -85,7 +85,7 @@ public class AnalyzeRecommendationBuilder {
     List<Recommendation> recommendations = new ArrayList<>();
     for (PlanNode node : planNodes()) {
       String name = node.getNode().toLowerCase(Locale.ROOT);
-      if (!name.contains("filter") && !name.contains("project")) {
+      if (!name.contains("filter")) {
         continue;
       }
       long rowsIn = rowsIn(node);

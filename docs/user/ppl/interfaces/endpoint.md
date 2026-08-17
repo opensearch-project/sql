@@ -252,7 +252,7 @@ Expected output (trimmed):
 - Analyze output is only returned when the query finishes successfully.
 - Analyze requires the Calcite engine to be enabled (`plugins.calcite.enabled=true`).
 - The `profile` section uses the same format as the `profile` endpoint.
-- The logic for `analyze` doesn't hold for queries that produce non-linear physical plan trees (for example, JOINs). In this scenario, `analyze` will return an output identical to the previous `profile` endpoint.
+
 
 
 ## Profile (Experimental) (Deprecated)

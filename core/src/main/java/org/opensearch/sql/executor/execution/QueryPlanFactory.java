@@ -151,10 +151,7 @@ public class QueryPlanFactory
 
   /** Create an AnalyzePlan that produces AST node and logical plan RelNode. */
   public AbstractPlan createAnalyzePlan(
-      String query,
-      UnresolvedPlan plan,
-      QueryType queryType,
-      ResponseListener<AnalyzeResponse> listener) {
-    return new AnalyzePlan(QueryId.queryId(), queryType, query, plan, queryService, listener);
+      UnresolvedPlan plan, QueryType queryType, ResponseListener<AnalyzeResponse> listener) {
+    return new AnalyzePlan(QueryId.queryId(), queryType, plan, queryService, listener);
   }
 }

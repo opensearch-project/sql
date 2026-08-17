@@ -359,30 +359,6 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
         });
   }
 
-  @Override
-  public long getRequestCacheHitCount(String... indexNames) {
-    Optional<NodeClient> nodeClientOpt = client.getNodeClient();
-    if (nodeClientOpt.isEmpty()) {
-      return -1;
-    }
-    try {
-      return nodeClientOpt
-          .get()
-          .admin()
-          .indices()
-          .prepareStats(indexNames)
-          .clear()
-          .setRequestCache(true)
-          .get()
-          .getTotal()
-          .getRequestCache()
-          .getHitCount();
-    } catch (Exception e) {
-      logger.warn("Failed to retrieve request cache stats", e);
-      return -1;
-    }
-  }
-
   /**
    * Substring of the error OpenSearch's {@code SearchService} raises when a node has no free PIT
    * contexts. The engine opens a PIT (one reader context per shard) to page over a query it cannot

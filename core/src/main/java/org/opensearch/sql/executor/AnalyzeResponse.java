@@ -13,7 +13,6 @@ import org.opensearch.sql.monitor.profile.QueryProfile;
 @Data
 @Builder
 public class AnalyzeResponse {
-  // private final String query;
   private final List<String> logicalPlan;
   private final List<String> physicalPlan;
   private final QueryProfile profile;
@@ -22,7 +21,6 @@ public class AnalyzeResponse {
   private final Object[][] datarows;
   private final long total;
   private final long size;
-  private final boolean possibleCacheHit;
 
   @Data
   @Builder

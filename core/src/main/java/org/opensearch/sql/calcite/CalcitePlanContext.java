@@ -46,10 +46,6 @@ public class CalcitePlanContext {
   /** This thread local variable is only used to skip script encoding in script pushdown. */
   public static final ThreadLocal<Boolean> skipEncoding = ThreadLocal.withInitial(() -> false);
 
-  /** When true, disables the OpenSearch shard request cache for the current query. */
-  public static final ThreadLocal<Boolean> disableRequestCache =
-      ThreadLocal.withInitial(() -> false);
-
   /** When true, the execution engine strips all-null columns from the result (used by timewrap). */
   public static final ThreadLocal<Boolean> stripNullColumns = ThreadLocal.withInitial(() -> false);
 

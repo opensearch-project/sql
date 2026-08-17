@@ -17,7 +17,6 @@ import org.opensearch.sql.executor.QueryType;
 /** Plan that produces an AnalyzeResponse (AST + logical plan). */
 public class AnalyzePlan extends AbstractPlan {
 
-  private final String query;
   private final UnresolvedPlan plan;
   private final QueryService queryService;
   private final ResponseListener<AnalyzeResponse> listener;
@@ -25,12 +24,10 @@ public class AnalyzePlan extends AbstractPlan {
   public AnalyzePlan(
       QueryId queryId,
       QueryType queryType,
-      String query,
       UnresolvedPlan plan,
       QueryService queryService,
       ResponseListener<AnalyzeResponse> listener) {
     super(queryId, queryType);
-    this.query = query;
     this.plan = plan;
     this.queryService = queryService;
     this.listener = listener;
@@ -38,7 +35,7 @@ public class AnalyzePlan extends AbstractPlan {
 
   @Override
   public void execute() {
-    queryService.analyzeWithCalcite(query, plan, getQueryType(), listener);
+    queryService.analyzeWithCalcite(plan, getQueryType(), listener);
   }
 
   @Override
