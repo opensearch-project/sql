@@ -7,9 +7,11 @@ package org.opensearch.sql.opensearch.storage.scan;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import lombok.Getter;
@@ -34,7 +36,9 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexVisitorImpl;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.commons.lang3.tuple.Pair;
@@ -414,9 +418,12 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
       // Try partial mode before analyze: since #5646 a text/keyword conflict pushes down as a slow
       // _source script instead of failing, so a post-failure fallback would never fire.
       if (allowPartialFallback) {
-        AbstractRelNode partial = tryPartialResultAggregate(aggregate, project, bucketNames);
-        if (partial != null) {
-          return partial;
+        List<String> partitionFields = resolvePartitionFields(aggregate, project);
+        if (partitionFields != null) {
+          AbstractRelNode partial = tryPartialResultAggregate(aggregate, project, partitionFields);
+          if (partial != null) {
+            return partial;
+          }
         }
       }
       int queryBucketSize = osIndex.getQueryBucketSize();
@@ -452,14 +459,57 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
   }
 
   /**
+   * Resolve the aggregation's group keys to the underlying scan fields to partition indices on. A
+   * key may be a bare field ({@code ... by city}) or an expression over fields ({@code eval g =
+   * lower(city) | ... by g}); in the latter case we partition on every field the expression reads,
+   * since a kept index must map all of them aggregatably. The {@code project} (when present) sits
+   * directly on the scan, so its input refs index into this scan's row type. Returns {@code null}
+   * if any key is a pure constant with no field to key on.
+   */
+  @Nullable
+  private List<String> resolvePartitionFields(Aggregate aggregate, @Nullable Project project) {
+    List<String> scanFields = getRowType().getFieldNames();
+    List<String> fields = new ArrayList<>();
+    for (int group : aggregate.getGroupSet()) {
+      Set<Integer> refs = new LinkedHashSet<>();
+      if (project == null) {
+        refs.add(group); // group key indexes directly into the scan
+      } else {
+        project
+            .getProjects()
+            .get(group)
+            .accept(
+                new RexVisitorImpl<Void>(true) {
+                  @Override
+                  public Void visitInputRef(RexInputRef ref) {
+                    refs.add(ref.getIndex());
+                    return null;
+                  }
+                });
+      }
+      if (refs.isEmpty()) {
+        return null; // constant group key -> nothing to partition on
+      }
+      for (int ref : refs) {
+        String name = scanFields.get(ref);
+        if (!fields.contains(name)) {
+          fields.add(name);
+        }
+      }
+    }
+    return fields;
+  }
+
+  /**
    * On a text/keyword mapping conflict, narrow the scan to the index subset where the group field
    * is aggregatable, push the aggregation over just that subset, and record a warning naming the
    * excluded indices. Only runs behind the opt-in setting and only when the response format can
    * carry the warning ({@link QueryContext#isWarningsSupported}); returns {@code null} otherwise.
-   * Partitioning lives in {@link PartialResultAggregatePushdown}.
+   * {@code partitionFields} are the scan fields the group keys resolve to (see {@link
+   * #resolvePartitionFields}). Partitioning lives in {@link PartialResultAggregatePushdown}.
    */
   private AbstractRelNode tryPartialResultAggregate(
-      Aggregate aggregate, @Nullable Project project, List<String> bucketNames) {
+      Aggregate aggregate, @Nullable Project project, List<String> partitionFields) {
     if (!QueryContext.isPartialResultEnabled(osIndex.getSettings())) {
       return null;
     }
@@ -470,7 +520,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
     try {
       Map<String, IndexMapping> mappings = osIndex.getIndexMappings();
       PartialResultAggregatePushdown.Plan plan =
-          PartialResultAggregatePushdown.plan(bucketNames, mappings);
+          PartialResultAggregatePushdown.plan(partitionFields, mappings);
       if (plan == null) {
         return null;
       }

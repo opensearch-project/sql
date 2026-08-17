@@ -51,7 +51,8 @@ final class PartialResultAggregatePushdown {
   /**
    * Decide the partial-result plan for a group key over a set of per-index mappings.
    *
-   * @param bucketNames the aggregation's group-by field names (dotted paths)
+   * @param bucketNames the storage fields the group keys resolve to (dotted paths); an expression
+   *     key like {@code lower(city)} resolves to the field(s) it reads, e.g. {@code city}
    * @param mappings per-index field mappings, keyed by concrete index name (from {@code
    *     getIndexMappings}); the wildcard has already been resolved to concrete indices
    * @return a plan naming the kept and excluded indices plus the warning, or {@code null} when

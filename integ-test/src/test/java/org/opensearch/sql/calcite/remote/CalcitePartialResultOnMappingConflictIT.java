@@ -249,6 +249,30 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void partialResultOnHandlesEvalDerivedGroupKey() throws IOException {
+    setPartialResult(true);
+    setPitContextLimit("1");
+    // The group key is an expression over the conflicting field (upper(env)), not the bare field.
+    // Partitioning traces it back to env, so the keyword index is kept and the text index excluded
+    // just as for a bare group key. Only the keyword index contributes: PROD=2, DEV=1.
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval g = upper(env) | stats count() by g | sort g", PATTERN));
+    verifyDataRows(result, rows(1, "DEV"), rows(2, "PROD"));
+
+    assertTrue("response should carry a warnings array", result.has("warnings"));
+    JSONObject warning = result.getJSONArray("warnings").getJSONObject(0);
+    assertEquals("PARTIAL_RESULT", warning.getString("type"));
+    assertTrue(
+        "warning should name the underlying field the expression reads",
+        warning.getString("detail").contains("env"));
+    assertTrue(
+        "warning should name the excluded text index",
+        warning.getString("detail").contains(TEXT_INDEX));
+  }
+
+  @Test
   public void partialResultKeepsKeywordGroupEvenWhenOutnumbered() throws IOException {
     setPartialResult(true);
     setPitContextLimit("1");
