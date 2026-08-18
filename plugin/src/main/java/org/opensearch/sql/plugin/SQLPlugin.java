@@ -101,6 +101,7 @@ import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.plugin.RestSqlAction;
+import org.opensearch.sql.legacy.plugin.SqlCoordinatorTaskDispatcher;
 import org.opensearch.sql.legacy.plugin.RestSqlStatsAction;
 import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
@@ -119,7 +120,11 @@ import org.opensearch.sql.plugin.rest.RestPPLStatsAction;
 import org.opensearch.sql.plugin.rest.RestQuerySettingsAction;
 import org.opensearch.sql.plugin.rest.RestUnifiedQueryAction;
 import org.opensearch.sql.plugin.transport.PPLQueryAction;
+import org.opensearch.sql.plugin.transport.SqlQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryAction;
+import org.opensearch.sql.plugin.transport.TransportSqlQueryAction;
+import org.opensearch.sql.plugin.transport.TransportSqlQueryRequest;
+import org.opensearch.sql.plugin.transport.TransportSqlQueryResponse;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.prometheus.storage.PrometheusStorageFactory;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
@@ -217,7 +222,8 @@ public class SQLPlugin extends Plugin
     return Arrays.asList(
         new RestPPLQueryAction(),
         new RestPPLGrammarAction(),
-        new RestSqlAction(settings, injector, createSqlAnalyticsRouter()),
+        new RestSqlAction(
+            settings, injector, createSqlAnalyticsRouter(), createSqlCoordinatorTaskDispatcher()),
         new RestSqlStatsAction(settings, restController),
         new RestPPLStatsAction(settings, restController),
         new RestQuerySettingsAction(settings, restController),
@@ -323,6 +329,30 @@ public class SQLPlugin extends Plugin
     };
   }
 
+  /**
+   * Dispatcher that runs each SQL execution under a coordinator {@link SqlQueryTask} via a local
+   * transport action, so the DSL search tasks the SQL engine spawns reference the SQL query as
+   * their parent.
+   */
+  private SqlCoordinatorTaskDispatcher createSqlCoordinatorTaskDispatcher() {
+    return (nodeClient, query, channel, work) ->
+        nodeClient.executeLocally(
+            SqlQueryAction.INSTANCE,
+            new TransportSqlQueryRequest(query, work, channel),
+            new ActionListener<TransportSqlQueryResponse>() {
+              @Override
+              public void onResponse(TransportSqlQueryResponse response) {
+                // The SQL result was already written to the REST channel by the execution path.
+              }
+
+              @Override
+              public void onFailure(Exception e) {
+                // Only reached when execution failed before sending any response.
+                RestSqlAction.handleException(channel, e);
+              }
+            });
+  }
+
   /** Register action and handler so that transportClient can find proxy for action. */
   @Override
   public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
@@ -330,6 +360,9 @@ public class SQLPlugin extends Plugin
         new ActionHandler<>(
             new ActionType<>(PPLQueryAction.NAME, TransportPPLQueryResponse::new),
             TransportPPLQueryAction.class),
+        new ActionHandler<>(
+            new ActionType<>(SqlQueryAction.NAME, TransportSqlQueryResponse::new),
+            TransportSqlQueryAction.class),
         new ActionHandler<>(
             new ActionType<>(
                 TransportCreateDataSourceAction.NAME, CreateDataSourceActionResponse::new),
@@ -505,15 +538,6 @@ public class SQLPlugin extends Plugin
         .addAll(OpenSearchSettings.pluginSettings())
         .addAll(OpenSearchSettings.pluginNonDynamicSettings())
         .build();
-  }
-
-  @Override
-  public Collection<String> getTaskHeaders() {
-    return List.of(
-        org.opensearch.sql.common.utils.QuerySourceHeaders.QUERY_SOURCE_HEADER,
-        org.opensearch.sql.common.utils.QuerySourceHeaders.ORIGINAL_QUERY_HEADER,
-        org.opensearch.sql.common.utils.QuerySourceHeaders.QUERY_EXECUTION_ID_HEADER,
-        org.opensearch.sql.common.utils.QuerySourceHeaders.QUERY_PHASES_HEADER);
   }
 
   @Override

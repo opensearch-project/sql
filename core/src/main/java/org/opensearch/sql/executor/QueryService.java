@@ -61,7 +61,6 @@ import org.opensearch.sql.common.error.StageErrorHandler;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
-import org.opensearch.sql.common.utils.QueryPhaseTracker;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.NonFallbackCalciteException;
@@ -202,8 +201,6 @@ public class QueryService {
     CalcitePlanContext.run(
         () -> {
           try {
-            QueryPhaseTracker tracker = QueryPhaseTracker.startOrRestore();
-            tracker.beginPhase("analyze");
             ProfileContext profileContext =
                 QueryProfiling.activate(QueryContext.isProfileEnabled());
             ProfileMetric analyzeMetric = profileContext.getOrCreateMetric(MetricName.ANALYZE);
@@ -223,7 +220,6 @@ public class QueryService {
                           () -> analyze(plan, context),
                           "while preparing and validating the query plan");
 
-                  tracker.beginPhase("plan");
                   // Wrap plan conversion with PLAN_CONVERSION stage tracking
                   RelNode calcitePlan =
                       StageErrorHandler.executeStage(
@@ -232,10 +228,6 @@ public class QueryService {
                               withCheckedArithmetic(
                                   convertToCalcitePlan(relNode, context), context),
                           "while converting the query to an executable plan");
-
-                  analyzeMetric.set(System.nanoTime() - analyzeStart);
-                  tracker.endCurrentPhase();
-                  tracker.endAll();
 
                   executeCalcitePlan(calcitePlan, context, listener, analyzeMetric, analyzeStart);
                 },
@@ -803,14 +795,11 @@ public class QueryService {
       ResponseListener<ExecutionEngine.QueryResponse> listener,
       Optional<Throwable> calciteFailure) {
     try {
-      QueryPhaseTracker tracker = QueryPhaseTracker.startOrRestore();
-      tracker.beginPhase("analyze");
-      LogicalPlan analyzed = analyze(plan, queryType);
-      tracker.beginPhase("plan");
-      executePlan(analyzed, PlanContext.emptyPlanContext(), listener);
+      executePlan(analyze(plan, queryType), PlanContext.emptyPlanContext(), listener);
     } catch (Exception e) {
       if (calciteFailure.isPresent()) {
         // This happens if Calcite fell back to V2 due to some issue, and then V2 also failed.
+        // Prefer the Calcite error.
         // https://github.com/opensearch-project/sql/issues/5060
         propagateCalciteError(calciteFailure.get(), listener);
       } else {
@@ -866,20 +855,16 @@ public class QueryService {
       PlanContext planContext,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
     try {
-      PhysicalPlan physicalPlan = plan(plan);
-      QueryPhaseTracker tracker = QueryPhaseTracker.current();
-      if (tracker != null) {
-        tracker.endCurrentPhase();
-        tracker.endAll();
-      }
       planContext
           .getSplit()
           .ifPresentOrElse(
-              split -> executionEngine.execute(physicalPlan, new ExecutionContext(split), listener),
+              split -> executionEngine.execute(plan(plan), new ExecutionContext(split), listener),
               () ->
                   executionEngine.execute(
-                      physicalPlan,
+                      plan(plan),
                       ExecutionContext.querySizeLimit(
+                          // For pagination, querySizeLimit shouldn't take effect.
+                          // See {@link PaginationWindowIT::testQuerySizeLimitDoesNotEffectPageSize}
                           plan instanceof LogicalPaginate
                               ? null
                               : SysLimit.fromSettings(settings).querySizeLimit()),

@@ -34,7 +34,6 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.common.utils.QueryContext;
-import org.opensearch.sql.common.utils.QuerySourceHeaders;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.legacy.antlr.OpenSearchLegacySqlAnalyzer;
@@ -91,14 +90,26 @@ public class RestSqlAction extends BaseRestHandler {
    */
   private final BiFunction<SQLQueryRequest, RestChannel, Boolean> analyticsRouter;
 
+  /** Runs the SQL execution under a coordinator task so DSL searches link back to the SQL query. */
+  private final SqlCoordinatorTaskDispatcher coordinatorTaskDispatcher;
+
   public RestSqlAction(
       Settings settings,
       Injector injector,
       BiFunction<SQLQueryRequest, RestChannel, Boolean> analyticsRouter) {
+    this(settings, injector, analyticsRouter, SqlCoordinatorTaskDispatcher.PASSTHROUGH);
+  }
+
+  public RestSqlAction(
+      Settings settings,
+      Injector injector,
+      BiFunction<SQLQueryRequest, RestChannel, Boolean> analyticsRouter,
+      SqlCoordinatorTaskDispatcher coordinatorTaskDispatcher) {
     super();
     this.allowExplicitIndex = MULTI_ALLOW_EXPLICIT_INDEX.get(settings);
     this.newSqlQueryHandler = new RestSQLQueryAction(injector);
     this.analyticsRouter = analyticsRouter;
+    this.coordinatorTaskDispatcher = coordinatorTaskDispatcher;
   }
 
   @Override
@@ -154,35 +165,21 @@ public class RestSqlAction extends BaseRestHandler {
               request.params(),
               sqlRequest.cursor());
 
-      // Tag the thread context so query-insights can identify this as a SQL-derived query.
-      client
-          .threadPool()
-          .getThreadContext()
-          .putHeader(QuerySourceHeaders.QUERY_SOURCE_HEADER, "sql");
-      client
-          .threadPool()
-          .getThreadContext()
-          .putHeader(
-              QuerySourceHeaders.QUERY_EXECUTION_ID_HEADER, java.util.UUID.randomUUID().toString());
-      String queryText = sqlRequest.getSql();
-      if (queryText != null) {
-        if (queryText.length() > QuerySourceHeaders.MAX_ORIGINAL_QUERY_LENGTH) {
-          queryText = queryText.substring(0, QuerySourceHeaders.MAX_ORIGINAL_QUERY_LENGTH);
-        }
-        client
-            .threadPool()
-            .getThreadContext()
-            .putHeader(QuerySourceHeaders.ORIGINAL_QUERY_HEADER, queryText);
-      }
-
       // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices.
       // The router returns true and sends the response directly if it handled the request.
       final SQLQueryRequest finalRequest = newSqlRequest;
-      return channel -> {
-        if (!analyticsRouter.apply(finalRequest, channel)) {
-          delegateToV2Engine(request, client, sqlRequest, finalRequest, format, channel);
-        }
-      };
+      // Run under a coordinator task so every DSL search the SQL engine issues carries a parent
+      // reference back to this SQL query (used by query-insights to correlate and recover source).
+      return channel ->
+          coordinatorTaskDispatcher.dispatch(
+              client,
+              sqlRequest.getSql(),
+              channel,
+              ch -> {
+                if (!analyticsRouter.apply(finalRequest, ch)) {
+                  delegateToV2Engine(request, client, sqlRequest, finalRequest, format, ch);
+                }
+              });
     } catch (Exception e) {
       return channel -> handleException(channel, e);
     }
