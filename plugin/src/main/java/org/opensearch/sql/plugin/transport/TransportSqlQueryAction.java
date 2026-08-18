@@ -44,6 +44,7 @@ public class TransportSqlQueryAction
       Task task,
       TransportSqlQueryRequest request,
       ActionListener<TransportSqlQueryResponse> listener) {
+    CancellableTask previous = OpenSearchQueryManager.getCancellableTask();
     if (task instanceof CancellableTask cancellableTask) {
       OpenSearchQueryManager.setCancellableTask(cancellableTask);
     }
@@ -56,6 +57,15 @@ public class TransportSqlQueryAction
       // Only surface here if the channel hasn't already reported completion (success or error).
       if (completed.compareAndSet(false, true)) {
         listener.onFailure(e);
+      }
+    } finally {
+      // Restore the initiating thread's prior task so this pooled transport worker does not retain
+      // a stale reference. Any async workers continuing the execution have already captured the
+      // task synchronously during work.accept above, so clearing here does not race them.
+      if (previous != null) {
+        OpenSearchQueryManager.setCancellableTask(previous);
+      } else {
+        OpenSearchQueryManager.clearCancellableTask();
       }
     }
   }

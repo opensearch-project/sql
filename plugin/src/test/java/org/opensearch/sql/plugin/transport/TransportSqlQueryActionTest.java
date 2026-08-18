@@ -5,13 +5,19 @@
 
 package org.opensearch.sql.plugin.transport;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -20,9 +26,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.opensearch.action.support.ActionFilters;
+import org.opensearch.common.io.stream.BytesStreamOutput;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.tasks.TaskId;
+import org.opensearch.core.xcontent.MediaType;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.RestChannel;
+import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestResponse;
 import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
 import org.opensearch.tasks.Task;
@@ -120,6 +130,82 @@ public class TransportSqlQueryActionTest {
 
     verify(listener, times(1)).onResponse(any(TransportSqlQueryResponse.class));
     verify(listener, never()).onFailure(any());
+  }
+
+  @Test
+  public void clearsCancellableTaskAfterExecution() {
+    RestChannel delegate = mock(RestChannel.class);
+    RestResponse response = mock(RestResponse.class);
+    Consumer<RestChannel> work = ch -> ch.sendResponse(response);
+    TransportSqlQueryRequest request = new TransportSqlQueryRequest("SELECT 1", work, delegate);
+
+    action.doExecute(newTask(), request, mockListener());
+
+    // The pooled transport thread must not retain the task after doExecute returns.
+    assertNull(OpenSearchQueryManager.getCancellableTask());
+  }
+
+  @Test
+  public void clearsCancellableTaskEvenWhenWorkThrows() {
+    RestChannel delegate = mock(RestChannel.class);
+    Consumer<RestChannel> work =
+        ch -> {
+          throw new RuntimeException("boom");
+        };
+    TransportSqlQueryRequest request = new TransportSqlQueryRequest("SELECT 1", work, delegate);
+
+    action.doExecute(newTask(), request, mockListener());
+
+    assertNull(OpenSearchQueryManager.getCancellableTask());
+  }
+
+  @Test
+  public void wrappedChannelDelegatesAllMethods() throws IOException {
+    RestChannel delegate = mock(RestChannel.class);
+    XContentBuilder builder = mock(XContentBuilder.class);
+    XContentBuilder errorBuilder = mock(XContentBuilder.class);
+    BytesStreamOutput bytesOutput = new BytesStreamOutput();
+    RestRequest restRequest = mock(RestRequest.class);
+    MediaType mediaType = mock(MediaType.class);
+    when(delegate.newBuilder()).thenReturn(builder);
+    when(delegate.newErrorBuilder()).thenReturn(errorBuilder);
+    when(delegate.newBuilder(any(MediaType.class), anyBoolean())).thenReturn(builder);
+    when(delegate.newBuilder(any(MediaType.class), any(MediaType.class), anyBoolean()))
+        .thenReturn(builder);
+    when(delegate.bytesOutput()).thenReturn(bytesOutput);
+    when(delegate.request()).thenReturn(restRequest);
+    when(delegate.detailedErrorsEnabled()).thenReturn(true);
+    when(delegate.detailedErrorStackTraceEnabled()).thenReturn(false);
+
+    AtomicReference<AssertionError> failure = new AtomicReference<>();
+    Consumer<RestChannel> work =
+        ch -> {
+          try {
+            assertSame(builder, ch.newBuilder());
+            assertSame(errorBuilder, ch.newErrorBuilder());
+            assertSame(builder, ch.newBuilder(mediaType, true));
+            assertSame(builder, ch.newBuilder(mediaType, mediaType, true));
+            assertSame(bytesOutput, ch.bytesOutput());
+            assertSame(restRequest, ch.request());
+            assertTrue(ch.detailedErrorsEnabled());
+            assertFalse(ch.detailedErrorStackTraceEnabled());
+          } catch (AssertionError e) {
+            failure.set(e);
+          } catch (IOException e) {
+            failure.set(new AssertionError(e));
+          }
+        };
+    TransportSqlQueryRequest request = new TransportSqlQueryRequest("SELECT 1", work, delegate);
+
+    action.doExecute(newTask(), request, mockListener());
+
+    if (failure.get() != null) {
+      throw failure.get();
+    }
+    verify(delegate, times(1)).newBuilder();
+    verify(delegate, times(1)).newErrorBuilder();
+    verify(delegate, times(1)).bytesOutput();
+    verify(delegate, times(1)).request();
   }
 
   @Test
