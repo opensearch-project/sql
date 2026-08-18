@@ -91,7 +91,23 @@ public abstract class LuceneQuery {
    * evaluated up front, so the comparison can still push down instead of falling back to a script.
    */
   protected boolean literalExpressionWrappedByCast(FunctionExpression func) {
-    return resolveLiteralOperand(func.getArguments().get(1)) != null;
+    return resolveLiteralOperand(
+            func.getArguments().get(1), fieldDateType(func.getArguments().get(0)))
+        != null;
+  }
+
+  /**
+   * The date/time type of the filtered field, or null when it is not a date/time field. Used to
+   * keep a date conversion on the bound from being resolved against a field of a different
+   * date/time type, which would silently change the bound (for example resolving a {@code
+   * timestamp('...')} bound against a {@code DATE} field drops the time component).
+   */
+  private ExprCoreType fieldDateType(Expression arg) {
+    Expression ref =
+        referenceWrappedByRedundantDateCast(arg)
+            ? ((FunctionExpression) arg).getArguments().get(0)
+            : arg;
+    return ref.type() instanceof OpenSearchDateType dateType ? dateType.getExprCoreType() : null;
   }
 
   /**
@@ -119,7 +135,8 @@ public abstract class LuceneQuery {
    * is resolved rather than evaluated here so that {@link #castMap} keeps parsing the literal
    * against the field's declared date formats.
    */
-  private Map.Entry<FunctionName, LiteralExpression> resolveLiteralOperand(Expression expr) {
+  private Map.Entry<FunctionName, LiteralExpression> resolveLiteralOperand(
+      Expression expr, ExprCoreType fieldDateType) {
     if (!(expr instanceof FunctionExpression fn)) {
       return null;
     }
@@ -131,6 +148,12 @@ public abstract class LuceneQuery {
     }
     FunctionName equivalentCast = DATE_CONVERSION_TO_CAST.get(name);
     if (equivalentCast == null || fn.getArguments().size() != 1) {
+      return null;
+    }
+    // Only resolve the conversion when it produces the type the field already has. Resolving across
+    // date/time types would re-format the bound into the field's format and change which documents
+    // match, so those are left on the script path.
+    if (!DATE_CAST_TARGET_TYPES.get(name).equals(fieldDateType)) {
       return null;
     }
     if (inner instanceof LiteralExpression literal) {
@@ -227,7 +250,8 @@ public abstract class LuceneQuery {
   }
 
   private ExprValue cast(FunctionExpression castFunction, ReferenceExpression ref) {
-    Map.Entry<FunctionName, LiteralExpression> resolved = resolveLiteralOperand(castFunction);
+    Map.Entry<FunctionName, LiteralExpression> resolved =
+        resolveLiteralOperand(castFunction, fieldDateType(ref));
     if (resolved == null) {
       throw new IllegalStateException(
           "Value operand must be a literal behind supported conversions; canSupport() must be"

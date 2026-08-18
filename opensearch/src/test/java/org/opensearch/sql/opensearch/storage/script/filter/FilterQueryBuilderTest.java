@@ -218,6 +218,21 @@ class FilterQueryBuilderTest {
   }
 
   @Test
+  void should_not_resolve_bound_conversion_of_a_different_type_than_the_field() {
+    // A timestamp() bound against a DATE field is not a no-op: resolving it would re-format the
+    // bound into the field's date-only format and drop the time component, changing which documents
+    // match. Such a bound stays on the script path.
+    mockToStringSerializer();
+    String query =
+        buildQuery(
+            DSL.gte(
+                ref("datefield", OpenSearchDateType.of(DATE)),
+                DSL.timestamp(literal("2021-11-08 17:00:00"))));
+    assertTrue(query.contains("script"), query);
+    assertFalse(query.contains("\"range\""), query);
+  }
+
+  @Test
   void should_not_push_down_when_date_cast_changes_the_date_type() {
     // date()/time() over a timestamp field are real conversions, not no-ops: date() truncates the
     // time component and time() extracts the time of day (not monotonic in the timestamp), so they
