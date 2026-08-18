@@ -39,7 +39,7 @@ public class LimitOperator extends PhysicalPlan {
     super.open();
 
     // skip the leading rows of offset size
-    while (input.hasNext() && count < offset) {
+    while (count < offset && input.hasNext()) {
       count++;
       input.next();
     }
