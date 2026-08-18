@@ -183,6 +183,41 @@ class FilterQueryBuilderTest {
   }
 
   @Test
+  void should_push_down_range_query_when_bound_wrapped_by_timestamp_builtin() {
+    // `field >= timestamp('...')` is the shape clients emit for a time-range bound (e.g. the
+    // Grafana OpenSearch data source's PPL time filter). PPL coerces the string argument first, so
+    // the operand arrives as timestamp(cast_to_timestamp('...')). Both forms must push down to a
+    // native range rather than falling back to a per-document script.
+    OpenSearchDateType dateType = OpenSearchDateType.of(TIMESTAMP);
+    Expression[] predicates = {
+      DSL.gte(ref("datetime", dateType), DSL.timestamp(literal("2021-11-08 17:00:00"))),
+      DSL.gte(
+          ref("datetime", dateType),
+          DSL.timestamp(DSL.castTimestamp(literal("2021-11-08 17:00:00"))))
+    };
+    for (Expression predicate : predicates) {
+      String query = buildQuery(predicate);
+      assertTrue(query.contains("\"range\""), query);
+      assertTrue(query.contains("datetime"), query);
+      assertFalse(query.contains("script"), query);
+    }
+  }
+
+  @Test
+  void should_not_push_down_when_bound_conversion_changes_the_date_type() {
+    // date(cast_to_timestamp(...)) truncates, so the outer conversion is not a no-op over the inner
+    // cast and the bound is not resolved up front.
+    mockToStringSerializer();
+    String query =
+        buildQuery(
+            DSL.gte(
+                ref("datetime", OpenSearchDateType.of(TIMESTAMP)),
+                DSL.date(DSL.castTimestamp(literal("2021-11-08 17:00:00")))));
+    assertTrue(query.contains("script"), query);
+    assertFalse(query.contains("\"range\""), query);
+  }
+
+  @Test
   void should_not_push_down_when_date_cast_changes_the_date_type() {
     // date()/time() over a timestamp field are real conversions, not no-ops: date() truncates the
     // time component and time() extracts the time of day (not monotonic in the timestamp), so they

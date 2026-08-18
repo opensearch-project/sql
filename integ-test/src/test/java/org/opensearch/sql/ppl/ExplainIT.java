@@ -92,6 +92,24 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   /**
+   * `field > timestamp('...')` is the shape clients emit for a time-range bound (for example the
+   * Grafana OpenSearch data source's PPL time filter). PPL coerces the string argument first, so
+   * the bound arrives as timestamp(cast_to_timestamp('...')); applying timestamp() to a value that
+   * is already a timestamp is a no-op, so the comparison must still push down to a native range
+   * query.
+   */
+  @Test
+  public void testFilterTimestampWrappedBoundPushDownExplain() throws IOException {
+    String expected = loadExpectedPlan("explain_filter_push_timestamp_wrapped_bound.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            "source=opensearch-sql_test_index_bank"
+                + "| where birthdate > timestamp('2016-12-08 00:00:00') "
+                + "| where birthdate < timestamp('2018-11-09 00:00:00') "));
+  }
+
+  /**
    * last_day() takes a single date argument and returns a date, but it changes the value, so it is
    * not a redundant conversion and must not be folded to the bare field -- it stays on the script
    * path rather than becoming a range query.

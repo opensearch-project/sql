@@ -87,15 +87,65 @@ public abstract class LuceneQuery {
   }
 
   /**
-   * Check if the second argument of the function is a literal expression wrapped by cast function.
+   * Check if the value operand of the function is a literal wrapped in conversions that can be
+   * evaluated up front, so the comparison can still push down instead of falling back to a script.
    */
   protected boolean literalExpressionWrappedByCast(FunctionExpression func) {
-    if (func.getArguments().get(1) instanceof FunctionExpression) {
-      FunctionExpression expr = (FunctionExpression) func.getArguments().get(1);
-      return castMap.containsKey(expr.getFunctionName())
-          && expr.getArguments().get(0) instanceof LiteralExpression;
+    return resolveLiteralOperand(func.getArguments().get(1)) != null;
+  }
+
+  /**
+   * The {@code timestamp()}/{@code date()}/{@code time()} builtins and the cast they are equal to.
+   */
+  private static final Map<FunctionName, FunctionName> DATE_CONVERSION_TO_CAST =
+      ImmutableMap.of(
+          BuiltinFunctionName.TIMESTAMP.getName(),
+          BuiltinFunctionName.CAST_TO_TIMESTAMP.getName(),
+          BuiltinFunctionName.DATE.getName(),
+          BuiltinFunctionName.CAST_TO_DATE.getName(),
+          BuiltinFunctionName.TIME.getName(),
+          BuiltinFunctionName.CAST_TO_TIME.getName());
+
+  /**
+   * Resolve the value operand to the cast that should be evaluated and the literal to evaluate it
+   * on, or null when the operand is not a literal behind supported conversions.
+   *
+   * <p>Besides the plain {@code CAST_TO_*(literal)} form, this accepts the {@code
+   * timestamp()}/{@code date()}/{@code time()} builtins, which are what clients typically emit for
+   * a time-range bound (for example the Grafana OpenSearch data source builds its PPL time filter
+   * as {@code where `field` >= timestamp('...')}). PPL coerces the string argument first, so the
+   * operand arrives as {@code timestamp(cast_to_timestamp('...'))}; applying {@code timestamp()} to
+   * a value that is already a timestamp is a no-op, so the inner cast alone is evaluated. The cast
+   * is resolved rather than evaluated here so that {@link #castMap} keeps parsing the literal
+   * against the field's declared date formats.
+   */
+  private Map.Entry<FunctionName, LiteralExpression> resolveLiteralOperand(Expression expr) {
+    if (!(expr instanceof FunctionExpression fn)) {
+      return null;
     }
-    return false;
+    FunctionName name = fn.getFunctionName();
+    Expression inner = fn.getArguments().isEmpty() ? null : fn.getArguments().get(0);
+
+    if (castMap.containsKey(name) && inner instanceof LiteralExpression literal) {
+      return Map.entry(name, literal);
+    }
+    FunctionName equivalentCast = DATE_CONVERSION_TO_CAST.get(name);
+    if (equivalentCast == null || fn.getArguments().size() != 1) {
+      return null;
+    }
+    if (inner instanceof LiteralExpression literal) {
+      return Map.entry(equivalentCast, literal);
+    }
+    if (inner instanceof FunctionExpression innerFn
+        && innerFn.getArguments().size() == 1
+        && innerFn.getArguments().get(0) instanceof LiteralExpression literal
+        && castMap.containsKey(innerFn.getFunctionName())
+        && DATE_CAST_TARGET_TYPES
+            .get(name)
+            .equals(DATE_CAST_TARGET_TYPES.get(innerFn.getFunctionName()))) {
+      return Map.entry(innerFn.getFunctionName(), literal);
+    }
+    return null;
   }
 
   /** Date/time cast functions mapped to the type each one produces. */
@@ -177,9 +227,13 @@ public abstract class LuceneQuery {
   }
 
   private ExprValue cast(FunctionExpression castFunction, ReferenceExpression ref) {
-    return castMap
-        .get(castFunction.getFunctionName())
-        .apply((LiteralExpression) castFunction.getArguments().get(0), ref);
+    Map.Entry<FunctionName, LiteralExpression> resolved = resolveLiteralOperand(castFunction);
+    if (resolved == null) {
+      throw new IllegalStateException(
+          "Value operand must be a literal behind supported conversions; canSupport() must be"
+              + " checked before build()");
+    }
+    return castMap.get(resolved.getKey()).apply(resolved.getValue(), ref);
   }
 
   /** Type converting map. */
