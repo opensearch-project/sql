@@ -10,6 +10,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -31,6 +35,7 @@ import static org.opensearch.sql.prometheus.utils.LogicalPlanUtils.indexScanAgg;
 import static org.opensearch.sql.prometheus.utils.LogicalPlanUtils.testLogicalPlanNode;
 
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -41,11 +46,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.schema.ScannableTable;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.json.JSONObject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
@@ -1052,5 +1064,149 @@ class PrometheusMetricTableTest {
         new PrometheusMetricTable(client, TestConstants.METRIC_NAME);
     TableScanBuilder tableScanBuilder = prometheusMetricTable.createScanBuilder();
     Assertions.assertNull(tableScanBuilder);
+  }
+
+  // ---- Calcite ScannableTable tests ----
+
+  @Test
+  void testImplementsScannableTable() {
+    PrometheusMetricTable prometheusMetricTable =
+        new PrometheusMetricTable(client, TestConstants.METRIC_NAME);
+    assertTrue(prometheusMetricTable instanceof ScannableTable);
+    assertTrue(prometheusMetricTable instanceof org.apache.calcite.schema.Table);
+  }
+
+  @Test
+  @SneakyThrows
+  void testGetRowTypeFromMetric() {
+    when(client.getLabels(TestConstants.METRIC_NAME)).thenReturn(List.of("job", "instance"));
+    PrometheusMetricTable prometheusMetricTable =
+        new PrometheusMetricTable(client, TestConstants.METRIC_NAME);
+
+    RelDataType rowType =
+        prometheusMetricTable.getRowType(OpenSearchTypeFactory.TYPE_FACTORY);
+
+    assertNotNull(rowType);
+    List<RelDataTypeField> fields = rowType.getFieldList();
+    assertTrue(fields.size() >= 2, "Should have at least @timestamp and @value fields");
+
+    // Verify @timestamp and @value fields exist
+    boolean hasTimestamp = fields.stream().anyMatch(f -> f.getName().equals("@timestamp"));
+    boolean hasValue = fields.stream().anyMatch(f -> f.getName().equals("@value"));
+    assertTrue(hasTimestamp, "Should have @timestamp field");
+    assertTrue(hasValue, "Should have @value field");
+  }
+
+  @Test
+  @SneakyThrows
+  void testGetRowTypeFromQueryRequest() {
+    PrometheusMetricTable prometheusMetricTable =
+        new PrometheusMetricTable(client, new PrometheusQueryRequest());
+
+    RelDataType rowType =
+        prometheusMetricTable.getRowType(OpenSearchTypeFactory.TYPE_FACTORY);
+
+    assertNotNull(rowType);
+    List<RelDataTypeField> fields = rowType.getFieldList();
+    // query_range returns @timestamp, @value, and @labels
+    assertTrue(fields.size() >= 3, "Should have @timestamp, @value, and @labels fields");
+  }
+
+  @Test
+  @SneakyThrows
+  void testScanWithMetricName() {
+    when(client.getLabels("test_metric")).thenReturn(List.of("job", "instance"));
+    String responseJson =
+        "{"
+            + "\"resultType\": \"matrix\","
+            + "\"result\": ["
+            + "  {"
+            + "    \"metric\": {\"job\": \"prometheus\", \"instance\": \"localhost:9090\"},"
+            + "    \"values\": [[1435781430.781, \"1.5\"]]"
+            + "  },"
+            + "  {"
+            + "    \"metric\": {\"job\": \"node\", \"instance\": \"localhost:9091\"},"
+            + "    \"values\": [[1435781430.781, \"2.5\"]]"
+            + "  }"
+            + "]"
+            + "}";
+    when(client.queryRange(eq("test_metric"), anyLong(), anyLong(), anyString()))
+        .thenReturn(new JSONObject(responseJson));
+
+    PrometheusMetricTable prometheusMetricTable = new PrometheusMetricTable(client, "test_metric");
+    Enumerable<Object[]> result = prometheusMetricTable.scan(null);
+
+    assertNotNull(result);
+    List<Object[]> rows = result.toList();
+    assertEquals(2, rows.size(), "Should have 2 rows (one per data point)");
+
+    // Verify row structure - each row should have values for all fields
+    for (Object[] row : rows) {
+      assertNotNull(row);
+      assertTrue(row.length > 0, "Row should have at least one column");
+    }
+  }
+
+  @Test
+  @SneakyThrows
+  void testScanWithQueryRequest() {
+    PrometheusQueryRequest request = new PrometheusQueryRequest();
+    request.setPromQl("up");
+    request.setStartTime(1435781400L);
+    request.setEndTime(1435785000L);
+    request.setStep("14");
+
+    String responseJson =
+        "{"
+            + "\"resultType\": \"matrix\","
+            + "\"result\": ["
+            + "  {"
+            + "    \"metric\": {\"__name__\": \"up\", \"job\": \"prometheus\"},"
+            + "    \"values\": [[1435781430.781, \"1\"]]"
+            + "  }"
+            + "]"
+            + "}";
+    when(client.queryRange("up", 1435781400L, 1435785000L, "14"))
+        .thenReturn(new JSONObject(responseJson));
+
+    PrometheusMetricTable prometheusMetricTable = new PrometheusMetricTable(client, request);
+    Enumerable<Object[]> result = prometheusMetricTable.scan(null);
+
+    assertNotNull(result);
+    List<Object[]> rows = result.toList();
+    assertEquals(1, rows.size(), "Should have 1 row");
+    verify(client).queryRange("up", 1435781400L, 1435785000L, "14");
+  }
+
+  @Test
+  @SneakyThrows
+  void testScanWithEmptyResult() {
+    when(client.getLabels("empty_metric")).thenReturn(List.of("job"));
+    String responseJson =
+        "{\"resultType\": \"matrix\", \"result\": []}";
+    when(client.queryRange(eq("empty_metric"), anyLong(), anyLong(), anyString()))
+        .thenReturn(new JSONObject(responseJson));
+
+    PrometheusMetricTable prometheusMetricTable =
+        new PrometheusMetricTable(client, "empty_metric");
+    Enumerable<Object[]> result = prometheusMetricTable.scan(null);
+
+    assertNotNull(result);
+    List<Object[]> rows = result.toList();
+    assertEquals(0, rows.size(), "Empty result should produce no rows");
+  }
+
+  @Test
+  @SneakyThrows
+  void testScanThrowsRuntimeExceptionOnIOError() {
+    when(client.queryRange(eq("error_metric"), anyLong(), anyLong(), anyString()))
+        .thenThrow(new IOException("Connection refused"));
+
+    PrometheusMetricTable prometheusMetricTable =
+        new PrometheusMetricTable(client, "error_metric");
+    RuntimeException exception =
+        assertThrows(RuntimeException.class, () -> prometheusMetricTable.scan(null));
+    assertTrue(exception.getMessage().contains("Error fetching data from Prometheus server"));
+    assertTrue(exception.getMessage().contains("Connection refused"));
   }
 }

@@ -45,6 +45,14 @@ public class OpenSearchSchema extends AbstractSchema {
                 new DataSourceSchemaName(
                     nameResolver.getDataSourceName(), nameResolver.getSchemaName()),
                 nameResolver.getIdentifierName());
-    tableMap.put(qualifiedName.toString(), (org.apache.calcite.schema.Table) table);
+    if (table instanceof org.apache.calcite.schema.Table calciteTable) {
+      tableMap.put(qualifiedName.toString(), calciteTable);
+    } else {
+      throw new UnsupportedOperationException(
+          "Table "
+              + qualifiedName
+              + " does not support Calcite integration. "
+              + "The storage engine table must implement org.apache.calcite.schema.Table.");
+    }
   }
 }

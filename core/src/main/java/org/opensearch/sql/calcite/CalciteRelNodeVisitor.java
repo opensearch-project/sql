@@ -285,17 +285,31 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     DataSourceSchemaIdentifierNameResolver nameResolver =
         new DataSourceSchemaIdentifierNameResolver(
             dataSourceService, node.getTableQualifiedName().getParts());
-    if (!nameResolver
-        .getDataSourceName()
-        .equals(DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME)) {
-      throw new CalciteUnsupportedException(
-          "Datasource " + nameResolver.getDataSourceName() + " is unsupported in Calcite");
-    }
     if (nameResolver.getIdentifierName().equals(DATASOURCES_TABLE_NAME)) {
       throw new CalciteUnsupportedException("SHOW DATASOURCES is unsupported in Calcite");
     }
     if (nameResolver.getSchemaName().equals(INFORMATION_SCHEMA_NAME)) {
       throw new CalciteUnsupportedException("information_schema is unsupported in Calcite");
+    }
+    // For non-default datasources, verify the table supports Calcite integration
+    // before proceeding. If it doesn't, fall back to V2 via CalciteUnsupportedException.
+    if (!nameResolver
+        .getDataSourceName()
+        .equals(DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME)) {
+      org.opensearch.sql.storage.Table storageTable =
+          dataSourceService
+              .getDataSource(nameResolver.getDataSourceName())
+              .getStorageEngine()
+              .getTable(
+                  new org.opensearch.sql.DataSourceSchemaName(
+                      nameResolver.getDataSourceName(), nameResolver.getSchemaName()),
+                  nameResolver.getIdentifierName());
+      if (!(storageTable instanceof org.apache.calcite.schema.Table)) {
+        throw new CalciteUnsupportedException(
+            "Datasource "
+                + nameResolver.getDataSourceName()
+                + " is unsupported in Calcite (table does not implement Calcite Table interface)");
+      }
     }
     context.relBuilder.scan(node.getTableQualifiedName().getParts());
     RelNode scan = context.relBuilder.peek();
