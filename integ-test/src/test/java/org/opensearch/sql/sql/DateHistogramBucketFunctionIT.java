@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.sql;
 
+import static org.opensearch.sql.util.Capability.LEGACY_ENGINE_FALLBACK;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
@@ -13,6 +14,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * Execution coverage for {@code date_histogram} and {@code histogram}. The expander unit tests
@@ -145,5 +147,45 @@ public class DateHistogramBucketFunctionIT extends SQLIntegTestCase {
 
     // value runs 1..72, so the 20-wide buckets hold 19, 20, 20 and 13 documents.
     verifyDataRowsInOrder(response, rows(0, 19), rows(20, 20), rows(40, 20), rows(60, 13));
+  }
+
+  /**
+   * Only the legacy V1 engine understands this spelling, and it answered before these names entered
+   * the V2 grammar. The expander has to keep declining with SyntaxCheckException so it still does.
+   */
+  @Test
+  @RequiresCapability(LEGACY_ENGINE_FALLBACK)
+  public void positionalCallReturnsHourlyBuckets() throws IOException {
+    JSONObject response =
+        executeQuery(
+            "SELECT COUNT(*) FROM " + IDX + " GROUP BY date_histogram(field='ts','interval'='1h')");
+
+    verifyDataRows(response, rows(12), rows(24), rows(17), rows(19));
+  }
+
+  /**
+   * `alias` has no lowering here but the legacy engine implements it, so the query still has to
+   * answer. CsvFormatResponseIT.dateHistogramTest has asserted this shape for years.
+   */
+  @Test
+  @RequiresCapability(LEGACY_ENGINE_FALLBACK)
+  public void callWithAliasParameterReturnsHourlyBuckets() throws IOException {
+    JSONObject response =
+        executeQuery(
+            "SELECT COUNT(*) FROM "
+                + IDX
+                + " GROUP BY date_histogram('field'='ts','fixed_interval'='1h','alias'='hours')");
+
+    verifyDataRows(response, rows(12), rows(24), rows(17), rows(19));
+  }
+
+  @Test
+  @RequiresCapability(LEGACY_ENGINE_FALLBACK)
+  public void positionalNumericHistogramReturnsBuckets() throws IOException {
+    JSONObject response =
+        executeQuery(
+            "SELECT COUNT(*) FROM " + IDX + " GROUP BY histogram(field='value','interval'='20')");
+
+    verifyDataRows(response, rows(19), rows(20), rows(20), rows(13));
   }
 }

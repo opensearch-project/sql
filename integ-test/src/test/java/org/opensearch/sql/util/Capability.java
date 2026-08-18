@@ -541,6 +541,17 @@ public enum Capability {
    * FRONTEND: legacy method-query syntax (regexp_query/wildcard_query) is not in the Calcite
    * grammar.
    */
+  /**
+   * FRONTEND: the legacy V1 engine answers call shapes the V2 grammar declines, but only on the
+   * default route. Requests reach it when RestSQLQueryAction catches a SyntaxCheckException; the
+   * analytics-engine route enters through RestUnifiedQueryAction, which has no such fallback.
+   */
+  LEGACY_ENGINE_FALLBACK(
+      "A call shape only the legacy V1 engine understands (e.g. positional"
+          + " date_histogram(field=<col>, ...), or an `alias` parameter) can't be answered on the"
+          + " analytics-engine route: reaching that engine depends on RestSQLQueryAction's"
+          + " SyntaxCheckException fallback, and the analytics route does not go through it."),
+
   LEGACY_METHOD_QUERY(
       "Legacy method-query syntax (regexp_query/wildcard_query/query/matchquery) is not in the"
           + " Calcite grammar used by the analytics-engine route."),
