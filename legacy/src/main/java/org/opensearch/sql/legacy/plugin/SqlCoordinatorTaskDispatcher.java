@@ -23,8 +23,7 @@ import org.opensearch.transport.client.node.NodeClient;
 public interface SqlCoordinatorTaskDispatcher {
 
   /** Default: run the work directly without establishing a coordinator task. */
-  SqlCoordinatorTaskDispatcher PASSTHROUGH =
-      (client, query, channel, work) -> work.accept(channel);
+  SqlCoordinatorTaskDispatcher PASSTHROUGH = (client, query, channel, work) -> work.accept(channel);
 
   /**
    * @param client node client used to dispatch the local coordinator-task action
@@ -32,6 +31,5 @@ public interface SqlCoordinatorTaskDispatcher {
    * @param channel REST channel the execution writes its response to
    * @param work the SQL execution to run under the coordinator task
    */
-  void dispatch(
-      NodeClient client, String query, RestChannel channel, Consumer<RestChannel> work);
+  void dispatch(NodeClient client, String query, RestChannel channel, Consumer<RestChannel> work);
 }

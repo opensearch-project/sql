@@ -10,10 +10,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.common.io.stream.BytesStreamOutput;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.MediaType;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.common.io.stream.BytesStreamOutput;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestResponse;
@@ -27,9 +27,9 @@ import org.opensearch.transport.TransportService;
  * framework registers the task (via {@link TransportSqlQueryRequest#createTask}) before {@link
  * #doExecute} runs and unregisters it when the response listener completes. We bind the task to the
  * executing thread's {@code OpenSearchQueryManager} ThreadLocal so the existing {@code
- * applyParentTask} logic in {@code OpenSearchNodeClient} stamps it as the parent on every DSL search
- * the SQL engine issues. The listener is completed once the wrapped REST channel emits its response,
- * keeping the task alive across the (possibly asynchronous) execution.
+ * applyParentTask} logic in {@code OpenSearchNodeClient} stamps it as the parent on every DSL
+ * search the SQL engine issues. The listener is completed once the wrapped REST channel emits its
+ * response, keeping the task alive across the (possibly asynchronous) execution.
  */
 public class TransportSqlQueryAction
     extends HandledTransportAction<TransportSqlQueryRequest, TransportSqlQueryResponse> {
@@ -100,7 +100,8 @@ public class TransportSqlQueryAction
     }
 
     @Override
-    public XContentBuilder newBuilder(MediaType mediaType, boolean useFiltering) throws IOException {
+    public XContentBuilder newBuilder(MediaType mediaType, boolean useFiltering)
+        throws IOException {
       return delegate.newBuilder(mediaType, useFiltering);
     }
 

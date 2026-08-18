@@ -19,8 +19,8 @@ import org.opensearch.tasks.Task;
 /**
  * Request for {@link SqlQueryAction}. Dispatched only locally via {@code
  * NodeClient.executeLocally}, so the {@link #work} and {@link #channel} references are carried
- * in-process (never serialized). The {@link #query} text becomes the coordinator task description so
- * consumers can recover the original SQL from the task.
+ * in-process (never serialized). The {@link #query} text becomes the coordinator task description
+ * so consumers can recover the original SQL from the task.
  */
 public class TransportSqlQueryRequest extends ActionRequest {
 
