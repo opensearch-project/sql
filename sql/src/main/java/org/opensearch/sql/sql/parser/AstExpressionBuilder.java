@@ -72,7 +72,6 @@ import static org.opensearch.sql.sql.parser.ParserUtils.createSortOption;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -193,23 +192,18 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
     UnresolvedExpression field = requireArg(args, "field", functionName);
     UnresolvedExpression missing = args.remove("missing");
     Literal interval = intervalOf(args, functionName);
-    Literal format = stringArg(args, "format");
-    Literal timeZone = stringArg(args, "time_zone");
 
-    // Anything left is a parameter with no lowering here. Some of them -- alias, min_doc_count,
-    // order -- are implemented by the legacy engine, so decline in the one way RestSQLQueryAction
-    // falls back on rather than failing the request outright.
+    // Anything left is a parameter this lowering has no equivalent for. The legacy engine
+    // implements all of them -- alias, format, time_zone, min_doc_count, order -- through the
+    // native date_histogram aggregation, so decline in the one way RestSQLQueryAction falls back
+    // on rather than failing a query it can answer.
     if (!args.isEmpty()) {
       throw new SyntaxCheckException(
           functionName + " does not accept parameter: " + String.join(", ", args.keySet()));
     }
 
-    UnresolvedExpression bucketed = substituteMissing(normalizeField(field), missing);
-    if (timeZone != null) {
-      bucketed = shiftByTimeZone(bucketed, timeZone);
-    }
-    Span span = AstDSL.spanFromSpanLengthLiteral(bucketed, interval);
-    return format == null ? span : new Function("date_format", List.of(span, format));
+    return AstDSL.spanFromSpanLengthLiteral(
+        substituteMissing(normalizeField(field), missing), interval);
   }
 
   private static UnresolvedExpression requireArg(
@@ -242,18 +236,6 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
     return supplied.get(0);
   }
 
-  private static Literal stringArg(Map<String, UnresolvedExpression> args, String name) {
-    UnresolvedExpression value = args.remove(name);
-    if (value == null) {
-      return null;
-    }
-    if (!(value instanceof Literal literal) || literal.getType() != DataType.STRING) {
-      throw new SemanticCheckException(
-          name + " must be a string literal (e.g. '1d', '15m'); got " + value);
-    }
-    return literal;
-  }
-
   private static Literal stringOrNumericArg(Map<String, UnresolvedExpression> args, String name) {
     UnresolvedExpression value = args.remove(name);
     if (value == null) {
@@ -281,24 +263,6 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   private static UnresolvedExpression substituteMissing(
       UnresolvedExpression field, UnresolvedExpression missing) {
     return missing == null ? field : new Function("ifnull", List.of(field, missing));
-  }
-
-  /**
-   * Shifts the field by a {@link ZoneOffset} before bucketing. Validated here so an invalid offset
-   * is reported rather than surfacing as an arithmetic failure at execution.
-   */
-  private static UnresolvedExpression shiftByTimeZone(
-      UnresolvedExpression field, Literal timeZone) {
-    String offset = timeZone.getValue().toString();
-    int seconds;
-    try {
-      seconds = ZoneOffset.of(offset).getTotalSeconds();
-    } catch (RuntimeException e) {
-      throw new SemanticCheckException(
-          "time_zone must be a valid offset like '+05:30' or 'Z'; got '" + offset + "'");
-    }
-    return new Function(
-        "timestampadd", List.of(AstDSL.stringLiteral("SECOND"), AstDSL.intLiteral(seconds), field));
   }
 
   @Override

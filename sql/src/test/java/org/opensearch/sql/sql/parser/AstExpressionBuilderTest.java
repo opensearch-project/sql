@@ -910,27 +910,6 @@ class AstExpressionBuilderTest {
         buildExprAst("date_histogram('field'=ts, 'interval'='1h', 'missing'='1970-01-01')"));
   }
 
-  @Test
-  public void canBuildDateHistogramWithTimeZoneShift() {
-    assertEquals(
-        new Span(
-            function(
-                "timestampadd", stringLiteral("SECOND"), intLiteral(19800), qualifiedName("ts")),
-            intLiteral(1),
-            SpanUnit.H),
-        buildExprAst("date_histogram('field'=ts, 'interval'='1h', 'time_zone'='+05:30')"));
-  }
-
-  @Test
-  public void canBuildDateHistogramWithFormat() {
-    assertEquals(
-        function(
-            "date_format",
-            new Span(qualifiedName("ts"), intLiteral(1), SpanUnit.D),
-            stringLiteral("yyyy-MM-dd")),
-        buildExprAst("date_histogram('field'=ts, 'interval'='1d', 'format'='yyyy-MM-dd')"));
-  }
-
   /**
    * A parameter with no lowering here has to raise SyntaxCheckException -- the one type
    * RestSQLQueryAction falls back on -- because the legacy engine implements alias, min_doc_count
@@ -944,6 +923,12 @@ class AstExpressionBuilderTest {
     assertThrows(
         SyntaxCheckException.class,
         () -> buildExprAst("histogram('field'=age, 'interval'=10, 'min_doc_count'=1)"));
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> buildExprAst("date_histogram('field'=ts, 'interval'='1d', 'format'='yyyy-MM-dd')"));
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> buildExprAst("date_histogram('field'=ts, 'interval'='1h', 'time_zone'='+05:30')"));
   }
 
   /** A bad argument inside a shape we own must not fall back, so the caller sees this message. */
@@ -955,15 +940,6 @@ class AstExpressionBuilderTest {
     assertThrows(
         SemanticCheckException.class,
         () -> buildExprAst("date_histogram('field'=ts, 'interval'='1d', 'fixed_interval'='2d')"));
-    assertThrows(
-        SemanticCheckException.class,
-        () -> buildExprAst("date_histogram('field'=ts, 'interval'='1d', 'time_zone'='nope')"));
-    assertThrows(
-        SemanticCheckException.class,
-        () -> buildExprAst("date_histogram('field'=ts, 'interval'='1d', 'format'=7)"));
-    assertThrows(
-        SemanticCheckException.class,
-        () -> buildExprAst("date_histogram('field'=ts, 'interval'='1d', 'format'=other)"));
     assertThrows(
         SemanticCheckException.class,
         () -> buildExprAst("date_histogram('field'=ts, 'interval'=ts)"));

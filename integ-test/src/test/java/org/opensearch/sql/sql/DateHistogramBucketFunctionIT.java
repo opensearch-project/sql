@@ -186,8 +186,9 @@ public class DateHistogramBucketFunctionIT extends SQLIntegTestCase {
   }
 
   /**
-   * `alias` has no lowering here but the legacy engine implements it, so the query still has to
-   * answer. CsvFormatResponseIT.dateHistogramTest has asserted this shape for years.
+   * The legacy engine implements alias, format, time_zone, min_doc_count and order through the
+   * native date_histogram aggregation; this lowering has no equivalent, so those queries still have
+   * to reach it. CsvFormatResponseIT.dateHistogramTest has asserted this shape for years.
    */
   @Test
   @RequiresCapability(LEGACY_ENGINE_FALLBACK)
