@@ -8,10 +8,6 @@ package org.opensearch.sql.expression.function.jsonUDF;
 import static java.util.stream.Collectors.toMap;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -33,6 +29,11 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.core.ObjectReadContext;
+import tools.jackson.core.json.JsonFactory;
 
 /**
  * UDF which extract all the fields from JSON to a MAP. Items are collected from input JSON and
@@ -106,7 +107,7 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
     Map<String, Object> resultMap = new HashMap<>();
     Stack<String> pathStack = new Stack<>();
 
-    try (JsonParser parser = JSON_FACTORY.createParser(jsonStr)) {
+    try (JsonParser parser = JSON_FACTORY.createParser(ObjectReadContext.empty(), jsonStr)) {
       JsonToken token;
 
       while ((token = parser.nextToken()) != null) {
@@ -131,7 +132,7 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
             }
             break;
 
-          case FIELD_NAME:
+          case PROPERTY_NAME:
             String fieldName = parser.currentName();
             pathStack.push(fieldName);
             break;
@@ -158,7 +159,7 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
             break;
         }
       }
-    } catch (IOException e) {
+    } catch (JacksonException e) {
       // ignore exception, and current result will be returned
     }
     return resultMap;
@@ -188,7 +189,7 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
     return path.size() >= 1 && path.getLast().equals(ARRAY_SUFFIX);
   }
 
-  private static Object extractValue(JsonParser parser, JsonToken token) throws IOException {
+  private static Object extractValue(JsonParser parser, JsonToken token) throws JacksonException {
     switch (token) {
       case VALUE_STRING:
         return parser.getValueAsString();
@@ -207,7 +208,7 @@ public class JsonExtractAllFunctionImpl extends ImplementorUDF {
     }
   }
 
-  private static Object getIntValue(JsonParser parser) throws IOException {
+  private static Object getIntValue(JsonParser parser) throws JacksonException {
     if (parser.getNumberType() == JsonParser.NumberType.INT) {
       return parser.getIntValue();
     } else if (parser.getNumberType() == JsonParser.NumberType.LONG) {

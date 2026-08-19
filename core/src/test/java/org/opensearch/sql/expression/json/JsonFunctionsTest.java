@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.*;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,6 +21,7 @@ import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.function.jsonUDF.JsonDeleteFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonSetFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonUtils;
+import tools.jackson.databind.JsonNode;
 
 @ExtendWith(MockitoExtension.class)
 public class JsonFunctionsTest {

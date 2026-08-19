@@ -8,12 +8,13 @@ package org.opensearch.sql.datasources.storage;
 import static org.opensearch.sql.datasource.model.DataSourceStatus.ACTIVE;
 import static org.opensearch.sql.datasources.storage.OpenSearchDataSourceMetadataStorage.DATASOURCE_INDEX_NAME;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.module.SimpleModule;
+import tools.jackson.databind.ser.std.StdSerializer;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -701,7 +702,7 @@ public class OpenSearchDataSourceMetadataStorageTest {
         .hasIndex(DATASOURCE_INDEX_NAME);
   }
 
-  private String getBasicDataSourceMetadataString() throws JsonProcessingException {
+  private String getBasicDataSourceMetadataString() throws JacksonException {
     Map<String, String> properties = new HashMap<>();
     properties.put("prometheus.auth.type", "basicauth");
     properties.put("prometheus.auth.username", "username");
@@ -721,7 +722,7 @@ public class OpenSearchDataSourceMetadataStorageTest {
     return "{\"name\":\"testDS\",\"description\":\"\",\"connector\":\"PROMETHEUS\",\"allowedRoles\":[\"prometheus_access\"],\"properties\":{\"prometheus.auth.password\":\"password\",\"prometheus.auth.username\":\"username\",\"prometheus.auth.uri\":\"https://localhost:9090\",\"prometheus.auth.type\":\"basicauth\"},\"resultIndex\":\"query_execution_result_testds\"}";
   }
 
-  private String getAWSSigv4DataSourceMetadataString() throws JsonProcessingException {
+  private String getAWSSigv4DataSourceMetadataString() throws JacksonException {
     Map<String, String> properties = new HashMap<>();
     properties.put("prometheus.auth.type", "awssigv4");
     properties.put("prometheus.auth.secret_key", "secret_key");
@@ -738,7 +739,7 @@ public class OpenSearchDataSourceMetadataStorageTest {
   }
 
   private String getDataSourceMetadataStringWithBasicAuthentication()
-      throws JsonProcessingException {
+      throws JacksonException {
     Map<String, String> properties = new HashMap<>();
     properties.put("prometheus.auth.uri", "https://localhost:9090");
     properties.put("prometheus.auth.type", "basicauth");
@@ -754,7 +755,7 @@ public class OpenSearchDataSourceMetadataStorageTest {
     return serialize(dataSourceMetadata);
   }
 
-  private String getDataSourceMetadataStringWithNoAuthentication() throws JsonProcessingException {
+  private String getDataSourceMetadataStringWithNoAuthentication() throws JacksonException {
     Map<String, String> properties = new HashMap<>();
     properties.put("prometheus.auth.uri", "https://localhost:9090");
     DataSourceMetadata dataSourceMetadata =
@@ -781,29 +782,22 @@ public class OpenSearchDataSourceMetadataStorageTest {
         .build();
   }
 
-  private String serialize(DataSourceMetadata dataSourceMetadata) throws JsonProcessingException {
+  private String serialize(DataSourceMetadata dataSourceMetadata) throws JacksonException {
     return getObjectMapper().writeValueAsString(dataSourceMetadata);
   }
 
   private ObjectMapper getObjectMapper() {
-    ObjectMapper mapper = new ObjectMapper();
-    addSerializerForDataSourceType(mapper);
-    return mapper;
-  }
-
-  /** It is needed to serialize DataSourceType as string. */
-  private void addSerializerForDataSourceType(ObjectMapper mapper) {
     SimpleModule module = new SimpleModule();
     module.addSerializer(DataSourceType.class, getDataSourceTypeSerializer());
-    mapper.registerModule(module);
+    return JsonMapper.builder().addModule(module).build();
   }
 
   private StdSerializer<DataSourceType> getDataSourceTypeSerializer() {
     return new StdSerializer<>(DataSourceType.class) {
       @Override
       public void serialize(
-          DataSourceType dsType, JsonGenerator jsonGen, SerializerProvider provider)
-          throws IOException {
+          DataSourceType dsType, JsonGenerator jsonGen, SerializationContext ctxt)
+          throws JacksonException {
         jsonGen.writeString(dsType.name());
       }
     };

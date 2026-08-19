@@ -9,7 +9,6 @@ import static org.apache.calcite.runtime.JsonFunctions.jsonRemove;
 import static org.opensearch.sql.calcite.utils.PPLReturnTypes.STRING_FORCE_NULLABLE;
 import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.*;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
@@ -23,6 +22,7 @@ import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
+import tools.jackson.core.JacksonException;
 
 public class JsonDeleteFunctionImpl extends ImplementorUDF {
   public JsonDeleteFunctionImpl() {
@@ -51,7 +51,7 @@ public class JsonDeleteFunctionImpl extends ImplementorUDF {
     }
   }
 
-  public static Object eval(Object... args) throws JsonProcessingException {
+  public static Object eval(Object... args) throws JacksonException {
     List<Object> jsonPaths = Arrays.asList(args).subList(1, args.length);
     String[] pathSpecs =
         jsonPaths.stream()

@@ -18,7 +18,6 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasItems;
 import static org.junit.Assert.assertEquals;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.google.gson.JsonParser;
 import java.math.BigDecimal;
@@ -42,6 +41,7 @@ import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.utils.YamlFormatter;
+import tools.jackson.databind.ObjectMapper;
 
 public class MatcherUtils {
 

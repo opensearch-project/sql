@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.opensearch.executor;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Suppliers;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -75,6 +74,7 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.storage.TableScanOperator;
 import org.opensearch.transport.client.node.NodeClient;
+import tools.jackson.databind.ObjectMapper;
 
 /** OpenSearch execution engine implementation. */
 public class OpenSearchExecutionEngine implements ExecutionEngine {

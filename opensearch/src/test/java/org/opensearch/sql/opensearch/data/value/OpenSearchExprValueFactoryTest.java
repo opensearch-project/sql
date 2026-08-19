@@ -35,8 +35,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -62,6 +60,8 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.utils.OpenSearchJsonContent;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory.JsonPath;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 class OpenSearchExprValueFactoryTest {
 
@@ -137,7 +137,7 @@ class OpenSearchExprValueFactoryTest {
   }
 
   @Test
-  public void iterateArrayValue() throws JsonProcessingException {
+  public void iterateArrayValue() throws JacksonException {
     ObjectMapper mapper = new ObjectMapper();
     var arrayIt = new OpenSearchJsonContent(mapper.readTree("[\"zz\",\"bb\"]")).array();
     assertAll(
@@ -147,7 +147,7 @@ class OpenSearchExprValueFactoryTest {
   }
 
   @Test
-  public void iterateArrayValueWithOneElement() throws JsonProcessingException {
+  public void iterateArrayValueWithOneElement() throws JacksonException {
     ObjectMapper mapper = new ObjectMapper();
     var arrayIt = new OpenSearchJsonContent(mapper.readTree("[\"zz\"]")).array();
     assertAll(

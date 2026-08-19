@@ -1,18 +1,7 @@
 root:
-  name: ProjectOperator
-  description:
-    fields: "[count(), process.name, cloud.region]"
   children:
-    - name: TakeOrderedOperator
-      description:
-        limit: 10
-        offset: 0
-        sortList:
-          count():
-            sortOrder: DESC
-            nullOrder: NULL_LAST
-      children:
-        - name: OpenSearchIndexScan
+    - children:
+        - children: []
           description:
             request: "OpenSearchQueryRequest(indexName=big5, sourceBuilder={\"from\"\
               :0,\"size\":0,\"timeout\":\"1m\",\"query\":{\"bool\":{\"filter\":[{\"\
@@ -27,4 +16,15 @@ root:
               :true,\"missing_order\":\"first\",\"order\":\"asc\"}}}]},\"aggregations\"\
               :{\"count()\":{\"value_count\":{\"field\":\"_index\"}}}}}}, pitId=*,\
               \ cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
-          children: []
+          name: OpenSearchIndexScan
+      description:
+        limit: 10
+        offset: 0
+        sortList:
+          count():
+            sortOrder: DESC
+            nullOrder: NULL_LAST
+      name: TakeOrderedOperator
+  description:
+    fields: "[count(), process.name, cloud.region]"
+  name: ProjectOperator
