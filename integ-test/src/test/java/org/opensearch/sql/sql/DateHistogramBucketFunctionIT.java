@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.sql;
 
+import static org.junit.Assert.assertThrows;
 import static org.opensearch.sql.util.Capability.LEGACY_ENGINE_FALLBACK;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -13,6 +14,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.client.ResponseException;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.util.RequiresCapability;
 
@@ -38,7 +40,10 @@ public class DateHistogramBucketFunctionIT extends SQLIntegTestCase {
     loadIndex(Index.DATE_HISTOGRAM_TEST);
   }
 
-  /** The planner rejects {@code GROUP BY <expression>}, so the bucket is aliased in a subquery. */
+  /**
+   * The bucket has to be projected in a derived table before it can be grouped on; see {@link
+   * #groupingOnTheBucketWithoutADerivedTableIsRejected}. This is also the shape Dashboards emits.
+   */
   private static String bucketed(String bucketExpr) {
     return "SELECT b, COUNT(*) FROM (SELECT "
         + bucketExpr
@@ -99,10 +104,7 @@ public class DateHistogramBucketFunctionIT extends SQLIntegTestCase {
     }
   }
 
-  /**
-   * The scan sits in its own derived table because the V2 engine cannot resolve the span's field
-   * otherwise when a second grouping key is present.
-   */
+  /** A second grouping key needs the scan in a derived table of its own as well. */
   @Test
   public void bucketsCombineWithAnAdditionalGroupingKey() throws IOException {
     JSONObject response =
@@ -214,5 +216,32 @@ public class DateHistogramBucketFunctionIT extends SQLIntegTestCase {
                 + ") sub GROUP BY b ORDER BY b");
 
     verifyDataRowsInOrder(response, rows(0, 19), rows(20, 20), rows(40, 20), rows(60, 13));
+  }
+
+  /**
+   * A span over a bare table scan cannot resolve its field, with or without a select alias, so the
+   * bucket always has to be projected in a derived table first. Both routes reject this; only the
+   * message differs, so the assertion is on the rejection alone.
+   */
+  @Test
+  public void groupingOnTheBucketWithoutADerivedTableIsRejected() {
+    assertThrows(
+        ResponseException.class,
+        () ->
+            executeQuery(
+                "SELECT date_histogram('field'=ts, 'interval'='1h') AS b, COUNT(*) FROM "
+                    + IDX
+                    + " GROUP BY date_histogram('field'=ts, 'interval'='1h')"));
+  }
+
+  /** Calendar units: Dashboards emits 1M and 1y at the wider zoom levels. */
+  @Test
+  public void calendarIntervalsBucketByMonthAndYear() throws IOException {
+    verifyDataRows(
+        executeQuery(bucketed("date_histogram('field'=ts, 'interval'='1M')")),
+        rows("2026-01-01 00:00:00", 72));
+    verifyDataRows(
+        executeQuery(bucketed("date_histogram('field'=ts, 'interval'='1y')")),
+        rows("2026-01-01 00:00:00", 72));
   }
 }

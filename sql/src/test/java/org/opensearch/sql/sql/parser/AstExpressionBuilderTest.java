@@ -959,6 +959,20 @@ class AstExpressionBuilderTest {
         () -> buildExprAst("date_histogram('field'=ts, 'interval'='1d', 'interval'='2d')"));
   }
 
+  /**
+   * Bare argument names let anything parse, so a name the legacy engine does not implement either
+   * is a typo. Reporting it keeps a misspelling from silently becoming a legacy-engine query.
+   */
+  @Test
+  public void unknownBucketParameterIsReportedRatherThanDeferred() {
+    assertThrows(
+        SemanticCheckException.class,
+        () -> buildExprAst("date_histogram('field'=ts, 'interval'='1d', 'feild'='ts')"));
+    assertThrows(
+        SemanticCheckException.class,
+        () -> buildExprAst("date_histogram('field'=ts, 'interval'='1d', 'alias'='d', 'nope'=1)"));
+  }
+
   private Node buildExprAst(String expr) {
     return buildExprAst(expr, astExprBuilder);
   }

@@ -8,6 +8,7 @@ package org.opensearch.sql.sql.parser;
 import static org.opensearch.sql.ast.dsl.AstDSL.between;
 import static org.opensearch.sql.ast.dsl.AstDSL.not;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.IFNULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LIKE;
@@ -81,6 +82,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.antlr.v4.runtime.RuleContext;
@@ -109,6 +111,10 @@ import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
 
 /** Expression builder to parse text to expression in AST. */
 public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedExpression> {
+
+  /** Bucket parameters a span cannot express, which the legacy engine answers instead. */
+  private static final Set<String> LEGACY_ONLY_BUCKET_ARGS =
+      Set.of("alias", "format", "time_zone", "min_doc_count", "order");
 
   private final AstBuildGuard guard;
 
@@ -173,9 +179,9 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
 
   /**
    * Lowers {@code histogram} and {@code date_histogram} to a {@link Span} over the bucketed field.
-   * The grammar admits only the {@code 'name'=value} form, so the positional spelling the legacy
-   * engine has always answered never reaches here -- it stays an unknown scalar function, and
-   * RestSQLQueryAction hands it back to that engine.
+   * Parameters the span cannot express are implemented by the legacy engine through the native
+   * date_histogram aggregation, so those calls are declined as a syntax check to let
+   * RestSQLQueryAction hand them back to it.
    */
   @Override
   public UnresolvedExpression visitBucketFunctionCall(BucketFunctionCallContext ctx) {
@@ -193,13 +199,12 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
     UnresolvedExpression missing = args.remove("missing");
     Literal interval = intervalOf(args, functionName);
 
-    // Anything left is a parameter this lowering has no equivalent for. The legacy engine
-    // implements all of them -- alias, format, time_zone, min_doc_count, order -- through the
-    // native date_histogram aggregation, so decline in the one way RestSQLQueryAction falls back
-    // on rather than failing a query it can answer.
     if (!args.isEmpty()) {
-      throw new SyntaxCheckException(
-          functionName + " does not accept parameter: " + String.join(", ", args.keySet()));
+      String names = String.join(", ", args.keySet());
+      if (LEGACY_ONLY_BUCKET_ARGS.containsAll(args.keySet())) {
+        throw new SyntaxCheckException(functionName + " does not accept parameter: " + names);
+      }
+      throw new SemanticCheckException(functionName + " does not accept parameter: " + names);
     }
 
     return AstDSL.spanFromSpanLengthLiteral(
@@ -262,7 +267,9 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
    */
   private static UnresolvedExpression substituteMissing(
       UnresolvedExpression field, UnresolvedExpression missing) {
-    return missing == null ? field : new Function("ifnull", List.of(field, missing));
+    return missing == null
+        ? field
+        : new Function(IFNULL.getName().getFunctionName(), List.of(field, missing));
   }
 
   @Override
