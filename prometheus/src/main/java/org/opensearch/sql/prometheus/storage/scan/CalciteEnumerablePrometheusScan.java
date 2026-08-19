@@ -25,9 +25,12 @@ import org.apache.calcite.linq4j.tree.Blocks;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCost;
+import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.json.JSONObject;
@@ -68,6 +71,22 @@ public class CalciteEnumerablePrometheusScan extends TableScan
   @Override
   public RelDataType deriveRowType() {
     return schema;
+  }
+
+  @Override
+  public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
+    RelOptCost baseCost = super.computeSelfCost(planner, mq);
+    if (baseCost == null) {
+      return null;
+    }
+    double factor = 1.0;
+    if (pushDownContext.isTimeRangePushed()) {
+      factor *= 0.5;
+    }
+    if (pushDownContext.isLabelFilterPushed()) {
+      factor *= 0.7;
+    }
+    return baseCost.multiplyBy(factor);
   }
 
   @Override
