@@ -335,6 +335,7 @@ functionCall
    | extractFunction                                            # extractFunctionCall
    | getFormatFunction                                          # getFormatFunctionCall
    | timestampFunction                                          # timestampFunctionCall
+   | bucketFunction                                             # bucketFunctionCall
    ;
 
 timestampFunction
@@ -396,6 +397,14 @@ highlightFunction
    : HIGHLIGHT LR_BRACKET relevanceField (COMMA highlightArg)* RR_BRACKET
    ;
 
+bucketFunction
+   : bucketFunctionName LR_BRACKET bucketArg (COMMA bucketArg)* RR_BRACKET
+   ;
+
+bucketArg
+   : bucketArgName EQUAL_SYMBOL bucketArgValue
+   ;
+
 positionFunction
    : POSITION LR_BRACKET functionArg IN functionArg RR_BRACKET
    ;
@@ -411,7 +420,6 @@ scalarFunctionName
    | flowControlFunctionName
    | systemFunctionName
    | nestedFunctionName
-   | bucketFunctionName
    ;
 
 bucketFunctionName
@@ -762,6 +770,10 @@ highlightArgName
    | HIGHLIGHT_PRE_TAGS
    ;
 
+bucketArgName
+   : stringLiteral
+   ;
+
 relevanceFieldAndWeight
    : field = relevanceField
    | field = relevanceField weight = relevanceFieldWeight
@@ -784,6 +796,11 @@ relevanceQuery
 relevanceArgValue
    : qualifiedName
    | constant
+   ;
+
+bucketArgValue
+   : constant
+   | qualifiedName
    ;
 
 highlightArgValue

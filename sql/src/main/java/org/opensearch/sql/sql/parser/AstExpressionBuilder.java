@@ -20,6 +20,8 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.AlternateM
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BetweenPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BinaryComparisonPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BooleanContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BucketArgContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BucketFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CaseFuncAlternativeContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CaseFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ColumnFilterContext;
@@ -70,14 +72,18 @@ import static org.opensearch.sql.sql.parser.ParserUtils.createSortOption;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.RuleNode;
@@ -89,6 +95,7 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.common.antlr.AstBuildGuard;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.AlternateMultiMatchQueryContext;
@@ -100,8 +107,6 @@ import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.NestedExpressionA
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.OrExpressionContext;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.TableNameContext;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
-import org.opensearch.sql.sql.parser.bucket.BucketFunctionExpander;
-import org.opensearch.sql.sql.parser.bucket.BucketFunctionRegistry;
 
 /** Expression builder to parse text to expression in AST. */
 public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedExpression> {
@@ -164,18 +169,131 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitScalarFunctionCall(ScalarFunctionCallContext ctx) {
-    String functionName = ctx.scalarFunctionName().getText();
-    List<UnresolvedExpression> args =
-        ctx.functionArgs().functionArg().stream()
-            .map(this::visitFunctionArg)
-            .collect(Collectors.toList());
+    return buildFunction(ctx.scalarFunctionName().getText(), ctx.functionArgs().functionArg());
+  }
 
-    Optional<BucketFunctionExpander> bucketExpander = BucketFunctionRegistry.lookup(functionName);
-    if (bucketExpander.isPresent()) {
-      return bucketExpander.get().expand(args);
+  /**
+   * Lowers {@code histogram} and {@code date_histogram} to a {@link Span} over the bucketed field.
+   * The grammar admits only the {@code 'name'=value} form, so the positional spelling the legacy
+   * engine has always answered never reaches here -- it stays an unknown scalar function, and
+   * RestSQLQueryAction hands it back to that engine.
+   */
+  @Override
+  public UnresolvedExpression visitBucketFunctionCall(BucketFunctionCallContext ctx) {
+    String functionName =
+        ctx.bucketFunction().bucketFunctionName().getText().toLowerCase(Locale.ROOT);
+    Map<String, UnresolvedExpression> args = new LinkedHashMap<>();
+    for (BucketArgContext arg : ctx.bucketFunction().bucketArg()) {
+      String name = StringUtils.unquoteText(arg.bucketArgName().getText()).toLowerCase(Locale.ROOT);
+      if (args.put(name, visit(arg.bucketArgValue())) != null) {
+        throw new SemanticCheckException("Duplicate parameter: " + name);
+      }
     }
 
-    return new Function(functionName, args);
+    UnresolvedExpression field = requireArg(args, "field", functionName);
+    UnresolvedExpression missing = args.remove("missing");
+    Literal interval = intervalOf(args, functionName);
+    Literal format = stringArg(args, "format");
+    Literal timeZone = stringArg(args, "time_zone");
+
+    // Anything left is a parameter with no lowering here. Some of them -- alias, min_doc_count,
+    // order -- are implemented by the legacy engine, so decline in the one way RestSQLQueryAction
+    // falls back on rather than failing the request outright.
+    if (!args.isEmpty()) {
+      throw new SyntaxCheckException(
+          functionName + " does not accept parameter: " + String.join(", ", args.keySet()));
+    }
+
+    UnresolvedExpression bucketed = coalesceMissing(normalizeField(field), missing);
+    if (timeZone != null) {
+      bucketed = shiftByTimeZone(bucketed, timeZone);
+    }
+    Span span = AstDSL.spanFromSpanLengthLiteral(bucketed, interval);
+    return format == null ? span : new Function("date_format", List.of(span, format));
+  }
+
+  private static UnresolvedExpression requireArg(
+      Map<String, UnresolvedExpression> args, String name, String functionName) {
+    UnresolvedExpression value = args.remove(name);
+    if (value == null) {
+      throw new SemanticCheckException(functionName + " requires " + name + " parameter");
+    }
+    return value;
+  }
+
+  /**
+   * {@code interval}, {@code fixed_interval} and {@code calendar_interval} are synonyms; exactly
+   * one must be present. The distinction between calendar and fixed intervals is not preserved.
+   */
+  private static Literal intervalOf(Map<String, UnresolvedExpression> args, String functionName) {
+    List<Literal> supplied =
+        Stream.of("interval", "fixed_interval", "calendar_interval")
+            .map(key -> stringOrNumericArg(args, key))
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
+    if (supplied.isEmpty()) {
+      throw new SemanticCheckException(
+          functionName + " requires one of: interval, fixed_interval, calendar_interval");
+    }
+    if (supplied.size() > 1) {
+      throw new SemanticCheckException(
+          functionName + " accepts only one of: interval, fixed_interval, calendar_interval");
+    }
+    return supplied.get(0);
+  }
+
+  private static Literal stringArg(Map<String, UnresolvedExpression> args, String name) {
+    UnresolvedExpression value = args.remove(name);
+    if (value == null) {
+      return null;
+    }
+    if (!(value instanceof Literal literal) || literal.getType() != DataType.STRING) {
+      throw new SemanticCheckException(
+          name + " must be a string literal (e.g. '1d', '15m'); got " + value);
+    }
+    return literal;
+  }
+
+  private static Literal stringOrNumericArg(Map<String, UnresolvedExpression> args, String name) {
+    UnresolvedExpression value = args.remove(name);
+    if (value == null) {
+      return null;
+    }
+    if (!(value instanceof Literal literal)) {
+      throw new SemanticCheckException(name + " must be a literal; got " + value);
+    }
+    return literal;
+  }
+
+  /** A string literal naming a column is coerced so downstream sees a column reference. */
+  private static UnresolvedExpression normalizeField(UnresolvedExpression field) {
+    if (field instanceof Literal literal && literal.getType() == DataType.STRING) {
+      return AstDSL.qualifiedName(literal.getValue().toString());
+    }
+    return field;
+  }
+
+  private static UnresolvedExpression coalesceMissing(
+      UnresolvedExpression field, UnresolvedExpression missing) {
+    return missing == null ? field : new Function("coalesce", List.of(field, missing));
+  }
+
+  /**
+   * Shifts the field by a {@link ZoneOffset} before bucketing. Validated here so an invalid offset
+   * is reported rather than surfacing as an arithmetic failure at execution.
+   */
+  private static UnresolvedExpression shiftByTimeZone(
+      UnresolvedExpression field, Literal timeZone) {
+    String offset = timeZone.getValue().toString();
+    int seconds;
+    try {
+      seconds = ZoneOffset.of(offset).getTotalSeconds();
+    } catch (RuntimeException e) {
+      throw new SemanticCheckException(
+          "time_zone must be a valid offset like '+05:30' or 'Z'; got '" + offset + "'");
+    }
+    return new Function(
+        "timestampadd", List.of(AstDSL.stringLiteral("SECOND"), AstDSL.intLiteral(seconds), field));
   }
 
   @Override
