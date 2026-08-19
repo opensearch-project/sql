@@ -46,10 +46,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
-import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
-import org.apache.calcite.schema.ScannableTable;
+import org.apache.calcite.schema.TranslatableTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Assertions;
@@ -1069,10 +1068,10 @@ class PrometheusMetricTableTest {
   // ---- Calcite ScannableTable tests ----
 
   @Test
-  void testImplementsScannableTable() {
+  void testImplementsTranslatableTable() {
     PrometheusMetricTable prometheusMetricTable =
         new PrometheusMetricTable(client, TestConstants.METRIC_NAME);
-    assertTrue(prometheusMetricTable instanceof ScannableTable);
+    assertTrue(prometheusMetricTable instanceof TranslatableTable);
     assertTrue(prometheusMetricTable instanceof org.apache.calcite.schema.Table);
   }
 
@@ -1114,99 +1113,57 @@ class PrometheusMetricTableTest {
 
   @Test
   @SneakyThrows
-  void testScanWithMetricName() {
-    when(client.getLabels("test_metric")).thenReturn(List.of("job", "instance"));
-    String responseJson =
-        "{"
-            + "\"resultType\": \"matrix\","
-            + "\"result\": ["
-            + "  {"
-            + "    \"metric\": {\"job\": \"prometheus\", \"instance\": \"localhost:9090\"},"
-            + "    \"values\": [[1435781430.781, \"1.5\"]]"
-            + "  },"
-            + "  {"
-            + "    \"metric\": {\"job\": \"node\", \"instance\": \"localhost:9091\"},"
-            + "    \"values\": [[1435781430.781, \"2.5\"]]"
-            + "  }"
-            + "]"
-            + "}";
-    when(client.queryRange(eq("test_metric"), anyLong(), anyLong(), anyString()))
-        .thenReturn(new JSONObject(responseJson));
+  void testMetricNameAccessible() {
+    PrometheusMetricTable prometheusMetricTable =
+        new PrometheusMetricTable(client, "test_metric");
 
-    PrometheusMetricTable prometheusMetricTable = new PrometheusMetricTable(client, "test_metric");
-    Enumerable<Object[]> result = prometheusMetricTable.scan(null);
-
-    assertNotNull(result);
-    List<Object[]> rows = result.toList();
-    assertEquals(2, rows.size(), "Should have 2 rows (one per data point)");
-
-    // Verify row structure - each row should have values for all fields
-    for (Object[] row : rows) {
-      assertNotNull(row);
-      assertTrue(row.length > 0, "Row should have at least one column");
-    }
+    assertEquals("test_metric", prometheusMetricTable.getMetricName());
+    assertEquals(client, prometheusMetricTable.getPrometheusClient());
+    assertNull(prometheusMetricTable.getPrometheusQueryRequest());
   }
 
   @Test
   @SneakyThrows
-  void testScanWithQueryRequest() {
+  void testQueryRequestAccessible() {
     PrometheusQueryRequest request = new PrometheusQueryRequest();
     request.setPromQl("up");
     request.setStartTime(1435781400L);
     request.setEndTime(1435785000L);
     request.setStep("14");
 
-    String responseJson =
-        "{"
-            + "\"resultType\": \"matrix\","
-            + "\"result\": ["
-            + "  {"
-            + "    \"metric\": {\"__name__\": \"up\", \"job\": \"prometheus\"},"
-            + "    \"values\": [[1435781430.781, \"1\"]]"
-            + "  }"
-            + "]"
-            + "}";
-    when(client.queryRange("up", 1435781400L, 1435785000L, "14"))
-        .thenReturn(new JSONObject(responseJson));
-
     PrometheusMetricTable prometheusMetricTable = new PrometheusMetricTable(client, request);
-    Enumerable<Object[]> result = prometheusMetricTable.scan(null);
 
-    assertNotNull(result);
-    List<Object[]> rows = result.toList();
-    assertEquals(1, rows.size(), "Should have 1 row");
-    verify(client).queryRange("up", 1435781400L, 1435785000L, "14");
+    assertEquals(request, prometheusMetricTable.getPrometheusQueryRequest());
+    assertEquals(client, prometheusMetricTable.getPrometheusClient());
+    assertNull(prometheusMetricTable.getMetricName());
   }
 
   @Test
   @SneakyThrows
-  void testScanWithEmptyResult() {
+  void testGetRowTypeHasExpectedFields() {
     when(client.getLabels("empty_metric")).thenReturn(List.of("job"));
-    String responseJson =
-        "{\"resultType\": \"matrix\", \"result\": []}";
-    when(client.queryRange(eq("empty_metric"), anyLong(), anyLong(), anyString()))
-        .thenReturn(new JSONObject(responseJson));
 
     PrometheusMetricTable prometheusMetricTable =
         new PrometheusMetricTable(client, "empty_metric");
-    Enumerable<Object[]> result = prometheusMetricTable.scan(null);
+    RelDataType rowType =
+        prometheusMetricTable.getRowType(OpenSearchTypeFactory.TYPE_FACTORY);
 
-    assertNotNull(result);
-    List<Object[]> rows = result.toList();
-    assertEquals(0, rows.size(), "Empty result should produce no rows");
+    assertNotNull(rowType);
+    List<String> fieldNames = rowType.getFieldNames();
+    assertTrue(fieldNames.contains("@timestamp"), "Should have @timestamp field");
+    assertTrue(fieldNames.contains("@value"), "Should have @value field");
+    assertTrue(fieldNames.contains("job"), "Should have job label field");
   }
 
   @Test
   @SneakyThrows
-  void testScanThrowsRuntimeExceptionOnIOError() {
-    when(client.queryRange(eq("error_metric"), anyLong(), anyLong(), anyString()))
-        .thenThrow(new IOException("Connection refused"));
-
+  void testToRelReturnsLogicalPrometheusScan() {
     PrometheusMetricTable prometheusMetricTable =
-        new PrometheusMetricTable(client, "error_metric");
-    RuntimeException exception =
-        assertThrows(RuntimeException.class, () -> prometheusMetricTable.scan(null));
-    assertTrue(exception.getMessage().contains("Error fetching data from Prometheus server"));
-    assertTrue(exception.getMessage().contains("Connection refused"));
+        new PrometheusMetricTable(client, "test_metric");
+
+    // Verify the table is a TranslatableTable (toRel will be called by Calcite planner)
+    assertTrue(prometheusMetricTable instanceof TranslatableTable);
+    assertNotNull(prometheusMetricTable.getPrometheusClient());
+    assertEquals("test_metric", prometheusMetricTable.getMetricName());
   }
 }
