@@ -110,6 +110,13 @@ public final class OutputLookupWriteExec {
                   rows,
                   target.lookupUuid());
             } else {
+              if (target.lookupUuid() == null) {
+                throw new IllegalArgumentException(
+                    "outputlookup cannot overwrite ["
+                        + name
+                        + "]: its alias filter has no __lookup discriminant, so it is a filtered"
+                        + " alias this command does not manage");
+              }
               String uuid = newUuid();
               LookupsIndex.ensureExists(client, backingIndex);
               writeSlice(client, backingIndex, fields, mode, keyFields, rows, uuid);

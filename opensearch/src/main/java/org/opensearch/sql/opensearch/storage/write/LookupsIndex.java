@@ -39,6 +39,8 @@ public final class LookupsIndex {
                 "fields",
                 Map.of("keyword", Map.of("type", "keyword", "ignore_above", 256))));
     return Map.of(
+        "_meta",
+        Map.of("managed_by", "outputlookup"),
         "dynamic_templates",
         List.of(Map.of("strings_as_text_and_keyword", stringAsTextAndKeyword)),
         "date_detection",
