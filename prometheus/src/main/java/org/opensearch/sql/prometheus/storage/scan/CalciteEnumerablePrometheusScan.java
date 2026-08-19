@@ -29,6 +29,7 @@ import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -87,6 +88,15 @@ public class CalciteEnumerablePrometheusScan extends TableScan
       factor *= 0.7;
     }
     return baseCost.multiplyBy(factor);
+  }
+
+  @Override
+  public RelWriter explainTerms(RelWriter pw) {
+    super.explainTerms(pw);
+    if (!pushDownContext.getLabelMatchers().isEmpty() || pushDownContext.isTimeRangePushed()) {
+      pw.item("PushDownContext", pushDownContext.toString());
+    }
+    return pw;
   }
 
   @Override

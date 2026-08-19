@@ -105,6 +105,21 @@ public class PrometheusPushDownContext {
     return step != null ? step : DEFAULT_STEP;
   }
 
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder("[");
+    List<String> parts = new ArrayList<>();
+    if (!labelMatchers.isEmpty()) {
+      parts.add("LABELS->" + labelMatchers);
+    }
+    if (timeRangePushed) {
+      parts.add("TIME_RANGE->[" + startTime + "," + endTime + "]");
+    }
+    sb.append(String.join(", ", parts));
+    sb.append("]");
+    return sb.toString();
+  }
+
   /**
    * Builds the PromQL metric selector string. For a metric named "up" with labels {job="node"},
    * returns: up{job="node"}

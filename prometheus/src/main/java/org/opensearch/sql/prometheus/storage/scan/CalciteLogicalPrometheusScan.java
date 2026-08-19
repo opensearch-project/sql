@@ -16,6 +16,7 @@ import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -66,6 +67,15 @@ public class CalciteLogicalPrometheusScan extends TableScan {
   @Override
   public RelDataType deriveRowType() {
     return schema;
+  }
+
+  @Override
+  public RelWriter explainTerms(RelWriter pw) {
+    super.explainTerms(pw);
+    if (!pushDownContext.getLabelMatchers().isEmpty() || pushDownContext.isTimeRangePushed()) {
+      pw.item("PushDownContext", pushDownContext.toString());
+    }
+    return pw;
   }
 
   @Override
