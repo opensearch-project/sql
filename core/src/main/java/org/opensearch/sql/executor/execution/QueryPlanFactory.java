@@ -7,7 +7,6 @@ package org.opensearch.sql.executor.execution;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -154,12 +153,7 @@ public class QueryPlanFactory
 
   /** Create an AnalyzePlan that produces AST node and logical plan RelNode. */
   public AbstractPlan createAnalyzePlan(
-      String query,
-      List<AnalyzeResponse.QuerySegment> querySegments,
-      UnresolvedPlan plan,
-      QueryType queryType,
-      ResponseListener<AnalyzeResponse> listener) {
-    return new AnalyzePlan(
-        QueryId.queryId(), queryType, query, querySegments, plan, queryService, listener);
+      UnresolvedPlan plan, QueryType queryType, ResponseListener<AnalyzeResponse> listener) {
+    return new AnalyzePlan(QueryId.queryId(), queryType, plan, queryService, listener);
   }
 }

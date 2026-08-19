@@ -154,7 +154,7 @@ calcite:
 ```
 ## Analyze (Experimental)
 
-You can enable analysis on the PPL endpoint to capture query execution details including per-stage timings, logical and physical plans, operator tree with pushdown visibility, and optimization recommendations. Analysis is returned only for regular query execution (not explain) and only when using the default `format=jdbc`.
+You can enable analysis on the PPL endpoint to capture query execution details including per-phase timings, logical and physical plans, and optimization recommendations. Analysis is returned only for regular query execution (not explain) and only when using the default `format=jdbc`.
 
 ### Example
 
@@ -162,7 +162,7 @@ You can enable analysis on the PPL endpoint to capture query execution details i
 curl -sS -H 'Content-Type: application/json' \
   -X POST localhost:9200/_plugins/_ppl \
   -d '{
-        "query": "source=accounts | where age < 30 | eval full_name = firstname + \" \" + lastname | fields full_name, email, age", 
+        "query": "source=test_data | where bytes_sent < 30 | eval full_trip =  client_city + \" \" + client_country | fields full_trip",
         "analyze": true
       }'
 ```
@@ -171,58 +171,65 @@ Expected output (trimmed):
 
 ```json
 {
-  "query": "source=accounts | where age < 30 | eval full_name = firstname + \" \" + lastname | fields full_name, email, age",
-  "querySegments": [
-    {"nodeType": "SearchFrom", "source": "source=accounts"},
-    {"nodeType": "WhereCommand", "source": "where age < 30"},
-  ],
   "logicalPlan": [
-    "LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT]): rowcount = 5000.0, cumulative cost = {114000.0 rows, 145000.0 cpu, 0.0 io}, id = 4229",
-    "LogicalProject(full_name=[||(||($0, ' '), $4)], email=[$3], age=[$2]): rowcount = 5000.0, cumulative cost = {109000.0 rows, 25000.0 cpu, 0.0 io}, id = 4228",
-    "LogicalFilter(condition=[<($2, 30)]): rowcount = 5000.0, cumulative cost = {104000.0 rows, 10000.0 cpu, 0.0 io}, id = 4226",
-    "CalciteLogicalIndexScan(table=[[OpenSearch, accounts]]): rowcount = 10000.0, cumulative cost = {99000.0 rows, 0.0 cpu, 0.0 io}, id = 4225"
+    "LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT]): rowcount = 5000.0, cumulative cost = {645000.0 rows, 95000.0 cpu, 0.0 io}, id = 15952",
+    "LogicalProject(full_trip=[||(||($22, ' '), $59)]): rowcount = 5000.0, cumulative cost = {640000.0 rows, 15000.0 cpu, 0.0 io}, id = 15951",
+    "LogicalFilter(condition=[<($50, 30)]): rowcount = 5000.0, cumulative cost = {635000.0 rows, 10000.0 cpu, 0.0 io}, id = 15949",
+    "CalciteLogicalIndexScan(table=[[OpenSearch, test_data]]): rowcount = 10000.0, cumulative cost = {630000.0 rows, 0.0 cpu, 0.0 io}, id = 15948"
   ],
   "physicalPlan": [
-    "EnumerableCalc(expr#0..3=[{inputs}], expr#4=[' '], expr#5=[||($t0, $t4)], expr#6=[||($t5, $t3)], full_name=[$t6], email=[$t2], age=[$t1]): rowcount = 5000.0, cumulative cost = {22996.4 rows, 50000.0 cpu, 0.0 io}, id = 4319",
-    "CalciteEnumerableIndexScan(table=[[OpenSearch, accounts]], PushDownContext=[[PROJECT->[firstname, age, email, lastname], FILTER-><($1, 30), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"query\":{
+    "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[' '], expr#3=[||($t0, $t2)], expr#4=[||($t3, $t1)], full_trip=[$t4]): rowcount = 5000.0, cumulative cost = {13998.2 rows, 30000.0 cpu, 0.0 io}, id = 16035",
+    "CalciteEnumerableIndexScan(table=[[OpenSearch, test_data]], PushDownContext=[[PROJECT->[client_city, bytes_sent, client_country], FILTER-><($1, 30), LIMIT->10000, PROJECT->[client_city, client_country]], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"query\":{\"range\":{\"bytes_sent\":{\"from\":null,\"to\":30,\"include_lower\":true,\"include_upper\":false,\"boost\":1.0}}},\"_source\":{\"includes\":[\"client_city\",\"client_country\"]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)]): rowcount = 5000.0, cumulative cost = {8998.2 rows, 0.0 cpu, 0.0 io}, id = 16027"
   ],
   "profile": {
     "summary": {
-      "total_time_ms": 37.13
+      "total_time_ms": 40.85
     },
     "phases": {
-      "analyze": { "time_ms": 7.06 },
-      "optimize": { "time_ms": 25.29 },
-      "execute": { "time_ms": 4.73 },
-      "format": { "time_ms": 0.03 }
+      "analyze": {
+        "time_ms": 4.52
+      },
+      "optimize": {
+        "time_ms": 20.04
+      },
+      "execute": {
+        "time_ms": 16.17
+      },
+      "format": {
+        "time_ms": 0.0
+      }
     },
     "plan": {
       "node": "EnumerableCalc",
-      "time_ms": 3.44,
-      "rows": 3,
+      "time_ms": 14.4,
+      "rows": 0,
       "children": [
-        { "node": "CalciteEnumerableIndexScan", "time_ms": 3.31, "rows": 3 }
+        {
+          "node": "CalciteEnumerableIndexScan",
+          "time_ms": 14.19,
+          "rows": 0
+        }
       ]
-    }
-  },
-  "operator_tree": [
-    {
-      "source": "source=accounts | where age < 30",
-      "node_type": [
-        "SearchFrom",
-        "WhereCommand"
-      ],
-      "description": [
-        "CalciteLogicalIndexScan(table=[[OpenSearch, accounts]]): rowcount = 10000.0, cumulative cost = {99000.0 rows, 0.0 cpu, 0.0 io}, id = 4225",
-        "LogicalFilter(condition=[<($2, 30)]): rowcount = 5000.0, cumulative cost = {104000.0 rows, 10000.0 cpu, 0.0 io}, id = 4226"
-      ],
-      "estimated_rows": 5000,
-      "actual_time_ms": "3.31 ms",
-      "actual_rows": 3,
-      "is_pushed_down": true
     },
+    "thread_pool": "sql-worker"
+  },
+  "recommendations": [
+    {
+      "severity": "INFO",
+      "rule": "Bottleneck Stage",
+      "message": "CalciteEnumerableIndexScan took 14.19 ms (88% of execution)",
+      "affected_node": "CalciteEnumerableIndexScan"
+    }
   ],
-  "recommendations": []
+  "schema": [
+    {
+      "name": "full_trip",
+      "type": "STRING"
+    }
+  ],
+  "datarows": [],
+  "total": 0,
+  "size": 0
 }
 ```
 
@@ -230,11 +237,8 @@ Expected output (trimmed):
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `query` | String | The original PPL query. |
-| `querySegments` | Array | Breakdown of the query into AST segments with `nodeType` and `source`. |
 | `logicalPlan` | Array | Calcite logical plan nodes (top-down). |
 | `physicalPlan` | Array | Calcite physical plan nodes after optimization. |
-| `operator_tree` | Array | Per-stage execution details linking query segments to plan operators. |
 | `recommendations` | Array | Optimization suggestions generated from the execution profile. |
 | `profile` | Object | Per-phase timing breakdown (same format as the profile endpoint). |
 | `schema` | Array | Column names and types of the query result. |
@@ -242,32 +246,15 @@ Expected output (trimmed):
 | `total` | Integer | Total number of result rows. |
 | `size` | Integer | Number of result rows returned. |
 
-### Operator tree fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `source` | String | The PPL query fragment(s) that produced this operator. |
-| `node_type` | Array | AST node type(s) (e.g. `Relation`, `Filter`, `Project`). |
-| `description` | Array | Logical plan node descriptions. |
-| `estimated_rows` | Long | Estimated row count from Calcite metadata. |
-| `actual_time_ms` | String | Exclusive wall-clock time for this operator. |
-| `actual_rows` | Long | Actual rows produced by this operator. |
-| `is_pushed_down` | Boolean | Whether the operator was pushed down to the storage engine. |
-
-
 
 ### Notes
 - Analyze output is only returned when the query finishes successfully.
 - Analyze requires the Calcite engine to be enabled (`plugins.calcite.enabled=true`).
-- Operator tree nodes with `is_pushed_down: true` were executed within the OpenSearch storage engine (single network round-trip). Remaining operators ran in-memory on the coordinating node.
-- This endpoint is meant to replace/override the existing `profile` endpoint. As a result, any POST requests with either `"analyze": true` or `"profile": true` (or both) will be routed to this endpoint.
-  - The `profile` section uses the same format as the previous `profile` endpoint. This means current consumers of `profile` should not face any breaking changes.
-- The logic for `analyze` doesn't hold for queries that produce non-linear physical plan trees (for example, JOINs). In this scenario, `analyze` will return an output identical to the previous `profile` endpoint.
+- The `profile` section uses the same format as the `profile` endpoint.
+
 
 
 ## Profile (Experimental) (Deprecated)
-
-**<u>This endpoint is outdated, see the `analyze` section above.</u>**
 
 You can enable profiling on the PPL endpoint to capture per-stage timings in milliseconds. Profiling is returned only for regular query execution (not explain) and only when using the default `format=jdbc`.
 

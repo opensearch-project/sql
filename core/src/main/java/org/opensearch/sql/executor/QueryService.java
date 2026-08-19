@@ -6,13 +6,8 @@
 package org.opensearch.sql.executor;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nullable;
@@ -64,6 +59,7 @@ import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.NonFallbackCalciteException;
+import org.opensearch.sql.executor.analyze.AnalyzeRecommendationBuilder;
 import org.opensearch.sql.monitor.profile.MetricName;
 import org.opensearch.sql.monitor.profile.ProfileContext;
 import org.opensearch.sql.monitor.profile.ProfileMetric;
@@ -354,11 +350,7 @@ public class QueryService {
   }
 
   public void analyzeWithCalcite(
-      String query,
-      List<AnalyzeResponse.QuerySegment> querySegments,
-      UnresolvedPlan plan,
-      QueryType queryType,
-      ResponseListener<AnalyzeResponse> listener) {
+      UnresolvedPlan plan, QueryType queryType, ResponseListener<AnalyzeResponse> listener) {
     if (!shouldUseCalcite(queryType)) {
       listener.onFailure(
           new UnsupportedOperationException(
@@ -370,6 +362,7 @@ public class QueryService {
     // to get identical profile timings. Use a latch to synchronize the async callback.
     // Force profiling on so executeWithCalcite activates QueryProfiling.
     QueryContext.setProfile(true);
+
     AtomicReference<ExecutionEngine.QueryResponse> queryResponseRef = new AtomicReference<>();
     AtomicReference<QueryProfile> profileRef = new AtomicReference<>();
     AtomicReference<Exception> errorRef = new AtomicReference<>();
@@ -420,41 +413,7 @@ public class QueryService {
     ExecutionEngine.QueryResponse queryResponse = queryResponseRef.get();
     QueryProfile profile = profileRef.get();
 
-    // If the profile plan tree has branching (any node with >1 child), our linear
-    // operator tree logic won't work. Return a response that 'fallsback' on `profile`
-    // by only including fields mirroring the `profile` endpoint.
-    if (profile != null && profile.getPlan() != null && !isLinearPlanTree(profile)) {
-      List<AnalyzeResponse.SchemaColumn> schema = new ArrayList<>();
-      if (queryResponse.getSchema() != null) {
-        for (ExecutionEngine.Schema.Column col : queryResponse.getSchema().getColumns()) {
-          schema.add(
-              AnalyzeResponse.SchemaColumn.builder()
-                  .name(col.getName())
-                  .type(col.getExprType().typeName())
-                  .build());
-        }
-      }
-      Object[][] datarows = new Object[queryResponse.getResults().size()][];
-      int rowIdx = 0;
-      for (var exprValue : queryResponse.getResults()) {
-        datarows[rowIdx++] =
-            exprValue.tupleValue().entrySet().stream()
-                .map(e -> e.getValue().value())
-                .toArray(Object[]::new);
-      }
-      listener.onResponse(
-          AnalyzeResponse.builder()
-              // .query(query)
-              .profile(profile)
-              .schema(schema)
-              .datarows(datarows)
-              .total(datarows.length)
-              .size(datarows.length)
-              .build());
-      return;
-    }
-
-    // Phase 2: Re-run with tracking to capture logical/physical plans and node mappings.
+    // Phase 2: Re-run to capture logical/physical plans.
     // This run benefits from warm caches but we don't report its timings.
     CalcitePlanContext.run(
         () -> {
@@ -465,17 +424,15 @@ public class QueryService {
                   CalcitePlanContext context =
                       CalcitePlanContext.create(
                           buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
-                  context.setTrackingEnabled(true);
                   RelNode relNode = analyze(plan, context);
-                  RelNode calcitePlan = convertToCalcitePlan(relNode, context);
+                  RelNode calcitePlan =
+                      withCheckedArithmetic(convertToCalcitePlan(relNode, context), context);
 
                   AtomicReference<String> physicalPlanRef = new AtomicReference<>();
-                  AtomicReference<RelNode> physicalRelRef = new AtomicReference<>();
                   try (Hook.Closeable closeable =
                       Hook.PLAN_BEFORE_IMPLEMENTATION.addThread(
                           obj -> {
                             RelRoot relRoot = (RelRoot) obj;
-                            physicalRelRef.set(relRoot.rel);
                             physicalPlanRef.set(
                                 RelOptUtil.toString(relRoot.rel, SqlExplainLevel.ALL_ATTRIBUTES));
                           })) {
@@ -499,16 +456,6 @@ public class QueryService {
                           .filter(s -> !s.isEmpty())
                           .toList();
 
-                  // Build operator tree using phase 2's tracking data + phase 1's profile.
-                  List<AnalyzeResponse.OperatorNode> operatorTree =
-                      buildOperatorTree(
-                          querySegments,
-                          logicalPlanNodes,
-                          context.getNodeIdMappings(),
-                          calcitePlan,
-                          physicalRelRef.get(),
-                          profile);
-
                   // Convert QueryResponse results to analyze format.
                   List<AnalyzeResponse.SchemaColumn> schema = new ArrayList<>();
                   if (queryResponse.getSchema() != null) {
@@ -531,14 +478,14 @@ public class QueryService {
                             .toArray(Object[]::new);
                   }
 
+                  List<AnalyzeResponse.Recommendation> recommendations =
+                      new AnalyzeRecommendationBuilder(profile).build();
+
                   AnalyzeResponse response =
                       AnalyzeResponse.builder()
-                          .query(query)
-                          .querySegments(querySegments)
                           .logicalPlan(logicalPlanNodes)
                           .physicalPlan(physicalPlanNodes)
-                          .operator_tree(operatorTree)
-                          .recommendations(List.of())
+                          .recommendations(recommendations)
                           .profile(profile)
                           .schema(schema)
                           .datarows(datarows)
@@ -557,265 +504,6 @@ public class QueryService {
           }
         },
         settings);
-  }
-
-  private List<AnalyzeResponse.OperatorNode> buildOperatorTree(
-      List<AnalyzeResponse.QuerySegment> querySegments,
-      List<String> logicalPlanNodes,
-      List<CalcitePlanContext.NodeIdMapping> nodeIdMappings,
-      RelNode logicalPlan,
-      RelNode physicalPlan,
-      QueryProfile profile) {
-    // Build a map from RelNode id to its logical plan description string.
-    Map<Integer, String> idToDescription = new HashMap<>();
-    for (String node : logicalPlanNodes) {
-      int idIdx = node.lastIndexOf("id = ");
-      if (idIdx >= 0) {
-        String idStr = node.substring(idIdx + 5).trim();
-        try {
-          int id = Integer.parseInt(idStr);
-          idToDescription.put(id, node);
-        } catch (NumberFormatException ignored) {
-        }
-      }
-    }
-
-    // Compute exclusive ids per mapping by subtracting the previous mapping's ids.
-    // Mappings are recorded bottom-up: [Relation:[0], Filter:[0,1], Project:[0,1,2]]
-    // Exclusive: Relation=[0], Filter=[1], Project=[2]
-    List<Set<Integer>> exclusiveIds = new ArrayList<>();
-    Set<Integer> previousIds = new HashSet<>();
-    for (CalcitePlanContext.NodeIdMapping mapping : nodeIdMappings) {
-      Set<Integer> current = new HashSet<>(mapping.relNodeIds());
-      Set<Integer> exclusive = new HashSet<>(current);
-      exclusive.removeAll(previousIds);
-      exclusiveIds.add(exclusive);
-      previousIds = current;
-    }
-
-    // Determine how many segments from the bottom were pushed into the physical scan.
-    // The physical plan's leaf node (the scan) absorbs logical nodes from the bottom up.
-    // Physical depth tells us how many separate physical operators exist; everything else
-    // was pushed down. We count segments bottom-up until we've covered all pushed logical nodes.
-    int physicalDepth = getLinearDepth(physicalPlan);
-    int logicalDepth = getLinearDepth(logicalPlan);
-    int pushedNodeCount = logicalDepth - physicalDepth;
-
-    // log.info(
-    //     "buildOperatorTree: logicalDepth={}, physicalDepth={}, pushedNodeCount={},"
-    //         + " segments={}, exclusiveIds={}",
-    //     logicalDepth,
-    //     physicalDepth,
-    //     pushedNodeCount,
-    //     querySegments.size(),
-    //     exclusiveIds);
-
-    // Walk segments bottom-up (they're already in bottom-up order) and greedily assign
-    // them to the pushed group until we've accounted for all pushed logical nodes.
-    // The LogicalSystemLimit added by convertToCalcitePlan counts toward the logical depth
-    // but has no segment, so we only count nodes that appear in exclusiveIds.
-    long pushedLogicalNodes = 0;
-    int pushedSegments = 0;
-    for (int idx = 0; idx < querySegments.size() && pushedLogicalNodes < pushedNodeCount; idx++) {
-      Set<Integer> ids = idx < exclusiveIds.size() ? exclusiveIds.get(idx) : Set.of();
-      long planNodeCount = ids.stream().filter(idToDescription::containsKey).count();
-      pushedLogicalNodes += planNodeCount;
-      pushedSegments++;
-    }
-
-    // log.info(
-    //     "buildOperatorTree: pushedSegments={}, pushedLogicalNodes={}",
-    //     pushedSegments,
-    //     pushedLogicalNodes);
-
-    // Compute estimated row counts from the logical plan using RelMetadataQuery.
-    // Walk the logical plan bottom-up to get rowcount per node by id.
-    org.apache.calcite.rel.metadata.RelMetadataQuery mq =
-        logicalPlan.getCluster().getMetadataQuery();
-    Map<Integer, Double> idToRowCount = new HashMap<>();
-    collectRowCounts(logicalPlan, mq, idToRowCount);
-
-    // Compute exclusive time and rows per physical node from the profile plan tree.
-    // The plan tree is top-down; we flatten it bottom-up to match operator tree order.
-    List<double[]> physicalTimings = new ArrayList<>();
-    if (profile != null && profile.getPlan() != null) {
-      List<QueryProfile.PlanNode> planNodes = new ArrayList<>();
-      QueryProfile.PlanNode current = (QueryProfile.PlanNode) profile.getPlan();
-      while (current != null) {
-        planNodes.add(current);
-        current =
-            (current.getChildren() != null && !current.getChildren().isEmpty())
-                ? current.getChildren().get(0)
-                : null;
-      }
-      // planNodes is top-down; reverse to bottom-up
-      java.util.Collections.reverse(planNodes);
-      for (int p = 0; p < planNodes.size(); p++) {
-        double inclusive = planNodes.get(p).getTimeMillis();
-        double childInclusive = (p > 0) ? planNodes.get(p - 1).getTimeMillis() : 0;
-        double exclusive = Math.max(0, inclusive - childInclusive);
-        long rows = planNodes.get(p).getRows();
-        physicalTimings.add(new double[] {exclusive, rows});
-      }
-    }
-
-    List<AnalyzeResponse.OperatorNode> operators = new ArrayList<>();
-    int physicalIdx = 0;
-
-    // Build the pushed-down merged entry (first pushedSegments segments)
-    if (pushedSegments > 1) {
-      List<AnalyzeResponse.QuerySegment> mergedSegments = querySegments.subList(0, pushedSegments);
-      List<String> descriptions = new ArrayList<>();
-      for (int idx = 0; idx < pushedSegments; idx++) {
-        Set<Integer> ids = idx < exclusiveIds.size() ? exclusiveIds.get(idx) : Set.of();
-        ids.stream()
-            .sorted()
-            .map(idToDescription::get)
-            .filter(Objects::nonNull)
-            .forEach(descriptions::add);
-      }
-      String combinedSource =
-          mergedSegments.stream()
-              .map(AnalyzeResponse.QuerySegment::getSource)
-              .reduce((a, b) -> a + " | " + b)
-              .orElse("");
-      List<String> nodeTypes =
-          mergedSegments.stream().map(AnalyzeResponse.QuerySegment::getNodeType).toList();
-      // Collect all plan node ids in the pushed group for estimated_rows
-      Set<Integer> allPushedPlanIds = new HashSet<>();
-      for (int i = 0; i < pushedSegments; i++) {
-        Set<Integer> ids = i < exclusiveIds.size() ? exclusiveIds.get(i) : Set.of();
-        ids.stream().filter(idToDescription::containsKey).forEach(allPushedPlanIds::add);
-      }
-      double[] timing =
-          physicalIdx < physicalTimings.size() ? physicalTimings.get(physicalIdx) : null;
-      physicalIdx++;
-      operators.add(
-          AnalyzeResponse.OperatorNode.builder()
-              .source(combinedSource)
-              .node_type(nodeTypes)
-              .description(descriptions.isEmpty() ? null : descriptions)
-              .is_pushed_down(true)
-              .estimated_rows(getEstimatedRows(allPushedPlanIds, idToRowCount))
-              .actual_time_ms(timing != null ? String.format("%.2f ms", timing[0]) : null)
-              .actual_rows(timing != null ? (long) timing[1] : null)
-              .build());
-    } else if (pushedSegments == 1) {
-      AnalyzeResponse.QuerySegment seg = querySegments.get(0);
-      Set<Integer> ids = !exclusiveIds.isEmpty() ? exclusiveIds.get(0) : Set.of();
-      Set<Integer> planIds =
-          ids.stream()
-              .filter(idToDescription::containsKey)
-              .collect(java.util.stream.Collectors.toSet());
-      List<String> descriptions =
-          ids.stream().sorted().map(idToDescription::get).filter(Objects::nonNull).toList();
-      double[] timing =
-          physicalIdx < physicalTimings.size() ? physicalTimings.get(physicalIdx) : null;
-      physicalIdx++;
-      operators.add(
-          AnalyzeResponse.OperatorNode.builder()
-              .source(seg.getSource())
-              .node_type(List.of(seg.getNodeType()))
-              .description(descriptions.isEmpty() ? null : descriptions)
-              .estimated_rows(getEstimatedRows(planIds, idToRowCount))
-              .actual_time_ms(timing != null ? String.format("%.2f ms", timing[0]) : null)
-              .actual_rows(timing != null ? (long) timing[1] : null)
-              .build());
-    }
-
-    // Remaining segments map to non-scan physical nodes (physicalDepth - 1 of them).
-    // Each physical node corresponds to one logical plan node. Group segments so that each
-    // group covers exactly one logical plan node; segments with 0 plan nodes merge into the
-    // next group that has one.
-    int idx = pushedSegments;
-    while (idx < querySegments.size()) {
-      List<AnalyzeResponse.QuerySegment> group = new ArrayList<>();
-      List<String> descriptions = new ArrayList<>();
-      Set<Integer> groupPlanIds = new HashSet<>();
-      long logicalNodesInGroup = 0;
-      while (idx < querySegments.size() && logicalNodesInGroup < 1) {
-        group.add(querySegments.get(idx));
-        Set<Integer> ids = idx < exclusiveIds.size() ? exclusiveIds.get(idx) : Set.of();
-        ids.stream()
-            .sorted()
-            .map(idToDescription::get)
-            .filter(Objects::nonNull)
-            .forEach(descriptions::add);
-        ids.stream().filter(idToDescription::containsKey).forEach(groupPlanIds::add);
-        logicalNodesInGroup += ids.stream().filter(idToDescription::containsKey).count();
-        idx++;
-      }
-      String combinedSource =
-          group.stream()
-              .map(AnalyzeResponse.QuerySegment::getSource)
-              .reduce((a, b) -> a + " | " + b)
-              .orElse("");
-      List<String> nodeTypes =
-          group.stream().map(AnalyzeResponse.QuerySegment::getNodeType).toList();
-      double[] timing =
-          physicalIdx < physicalTimings.size() ? physicalTimings.get(physicalIdx) : null;
-      physicalIdx++;
-      operators.add(
-          AnalyzeResponse.OperatorNode.builder()
-              .source(combinedSource)
-              .node_type(nodeTypes)
-              .description(descriptions.isEmpty() ? null : descriptions)
-              .estimated_rows(getEstimatedRows(groupPlanIds, idToRowCount))
-              .actual_time_ms(timing != null ? String.format("%.2f ms", timing[0]) : null)
-              .actual_rows(timing != null ? (long) timing[1] : null)
-              .build());
-    }
-
-    return operators;
-  }
-
-  private static boolean isLinearPlanTree(QueryProfile profile) {
-    QueryProfile.PlanNode current = (QueryProfile.PlanNode) profile.getPlan();
-    while (current != null) {
-      if (current.getChildren() != null && current.getChildren().size() > 1) {
-        return false;
-      }
-      current =
-          (current.getChildren() != null && !current.getChildren().isEmpty())
-              ? current.getChildren().get(0)
-              : null;
-    }
-    return true;
-  }
-
-  private static int getLinearDepth(RelNode node) {
-    int depth = 0;
-    RelNode current = node;
-    while (current != null) {
-      depth++;
-      List<RelNode> inputs = current.getInputs();
-      current = inputs.isEmpty() ? null : inputs.get(0);
-    }
-    return depth;
-  }
-
-  private void collectRowCounts(
-      RelNode node,
-      org.apache.calcite.rel.metadata.RelMetadataQuery mq,
-      Map<Integer, Double> idToRowCount) {
-    try {
-      Double rowCount = mq.getRowCount(node);
-      if (rowCount != null) {
-        idToRowCount.put(node.getId(), rowCount);
-      }
-    } catch (Exception ignored) {
-    }
-    for (RelNode input : node.getInputs()) {
-      collectRowCounts(input, mq, idToRowCount);
-    }
-  }
-
-  private Long getEstimatedRows(Set<Integer> ids, Map<Integer, Double> idToRowCount) {
-    return ids.stream()
-        .filter(idToRowCount::containsKey)
-        .max(Integer::compareTo)
-        .map(id -> Math.round(idToRowCount.get(id)))
-        .orElse(null);
   }
 
   public void executeWithLegacy(

@@ -13,15 +13,10 @@ import org.opensearch.sql.monitor.profile.QueryProfile;
 @Data
 @Builder
 public class AnalyzeResponse {
-
-  private final String query;
-  private final List<QuerySegment> querySegments;
-  // private final String ast;
   private final List<String> logicalPlan;
   private final List<String> physicalPlan;
   private final QueryProfile profile;
-  private final List<OperatorNode> operator_tree;
-  private final List<String> recommendations;
+  private final List<Recommendation> recommendations;
   private final List<SchemaColumn> schema;
   private final Object[][] datarows;
   private final long total;
@@ -34,23 +29,19 @@ public class AnalyzeResponse {
     private final String type;
   }
 
-  @Data
-  @Builder
-  public static class QuerySegment {
-    private final String nodeType;
-    private final String source;
+  public enum RecommendationSeverityLevel {
+    INFO,
+    WARNING,
+    CRITICAL
   }
 
   @Data
   @Builder
-  public static class OperatorNode {
-    private final String source;
-    private final List<String> node_type;
-    private final List<String> description;
-    private final String estimated_cost;
-    private final Long estimated_rows;
-    private final String actual_time_ms;
-    private final Long actual_rows;
-    private final Boolean is_pushed_down;
+  public static class Recommendation {
+    private final RecommendationSeverityLevel severity;
+    private final String rule;
+    private final String message;
+    private final String affected_node;
+    private final String suggestion;
   }
 }
