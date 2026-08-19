@@ -871,6 +871,17 @@ class AstExpressionBuilderTest {
         buildExprAst("date_histogram('field'=ts, 'interval'='1h')"));
   }
 
+  /** Bare argument names are the spelling the legacy engine accepts; both forms lower alike. */
+  @Test
+  public void canBuildBucketFunctionWithUnquotedArgumentNames() {
+    assertEquals(
+        new Span(qualifiedName("ts"), intLiteral(1), SpanUnit.H),
+        buildExprAst("date_histogram(field=ts, interval='1h')"));
+    assertEquals(
+        new Span(qualifiedName("age"), intLiteral(10), SpanUnit.NONE),
+        buildExprAst("histogram(field=age, interval=10)"));
+  }
+
   @Test
   public void canBuildDateHistogramWithIntervalSynonyms() {
     Span expected = new Span(qualifiedName("ts"), intLiteral(1), SpanUnit.D);

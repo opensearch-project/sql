@@ -171,18 +171,21 @@ public class DateHistogramBucketFunctionIT extends SQLIntegTestCase {
     verifyDataRowsInOrder(response, rows(0, 19), rows(20, 20), rows(40, 20), rows(60, 13));
   }
 
-  /**
-   * Only the legacy V1 engine understands this spelling, and it answered before these names entered
-   * the V2 grammar. The expander has to keep declining with SyntaxCheckException so it still does.
-   */
+  /** Argument names may be written bare, the spelling the legacy engine has always accepted. */
   @Test
-  @RequiresCapability(LEGACY_ENGINE_FALLBACK)
-  public void positionalCallReturnsHourlyBuckets() throws IOException {
+  public void unquotedArgumentNamesReturnHourlyBuckets() throws IOException {
     JSONObject response =
         executeQuery(
-            "SELECT COUNT(*) FROM " + IDX + " GROUP BY date_histogram(field='ts','interval'='1h')");
+            "SELECT b, COUNT(*) FROM (SELECT date_histogram(field=ts, interval='1h') AS b FROM "
+                + IDX
+                + ") sub GROUP BY b ORDER BY b");
 
-    verifyDataRows(response, rows(12), rows(24), rows(17), rows(19));
+    verifyDataRowsInOrder(
+        response,
+        rows("2026-01-01 00:00:00", 12),
+        rows("2026-01-01 01:00:00", 24),
+        rows("2026-01-01 02:00:00", 17),
+        rows("2026-01-01 03:00:00", 19));
   }
 
   /**
@@ -203,12 +206,13 @@ public class DateHistogramBucketFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
-  @RequiresCapability(LEGACY_ENGINE_FALLBACK)
-  public void positionalNumericHistogramReturnsBuckets() throws IOException {
+  public void unquotedArgumentNamesReturnNumericBuckets() throws IOException {
     JSONObject response =
         executeQuery(
-            "SELECT COUNT(*) FROM " + IDX + " GROUP BY histogram(field='value','interval'='20')");
+            "SELECT b, COUNT(*) FROM (SELECT histogram(field=value, interval=20) AS b FROM "
+                + IDX
+                + ") sub GROUP BY b ORDER BY b");
 
-    verifyDataRows(response, rows(19), rows(20), rows(20), rows(13));
+    verifyDataRowsInOrder(response, rows(0, 19), rows(20, 20), rows(40, 20), rows(60, 13));
   }
 }

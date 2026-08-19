@@ -805,6 +805,11 @@ highlightArgName
 
 bucketArgName
    : stringLiteral
+   | ident
+   | INTERVAL
+   | MISSING
+   | ORDER
+   | TIME_ZONE
    ;
 
 relevanceFieldAndWeight
