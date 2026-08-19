@@ -24,6 +24,7 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.sql.parser.AstBuilderTestBase;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -84,20 +85,18 @@ class DateHistogramExpanderTest extends AstBuilderTestBase {
   }
 
   /**
-   * Every rejection is a SyntaxCheckException, the one type RestSQLQueryAction falls back on, so
-   * anything this expander cannot lower goes to the legacy engine exactly as it did before these
-   * names entered the V2 grammar. `alias` is the case that matters: legacy accepts it, V2 does not,
-   * and it arrives in the same quoted-key form V2 uses.
+   * The split matters. A call shape this expander does not own has to raise SyntaxCheckException,
+   * the one type RestSQLQueryAction falls back on, so the legacy engine keeps answering the
+   * positional form and parameters like `alias` that it implements and this one does not. A bad
+   * argument inside a shape we do own raises SemanticCheckException instead, so the caller gets
+   * this message rather than an opaque legacy parser error -- the same choice
+   * AstBuilder.visitTableFunctionRelation makes.
    */
   @Test
-  void every_rejection_defers_to_the_legacy_engine() {
+  void unowned_shapes_defer_but_bad_arguments_do_not() {
     assertThrows(
         SyntaxCheckException.class,
         () -> expander.expand(List.of(AstDSL.qualifiedName("ts"), AstDSL.stringLiteral("1d"))));
-
-    assertThrows(
-        SyntaxCheckException.class,
-        () -> expander.expand(List.of(kv("field", AstDSL.qualifiedName("ts")))));
 
     assertThrows(
         SyntaxCheckException.class,
@@ -107,12 +106,25 @@ class DateHistogramExpanderTest extends AstBuilderTestBase {
                     kv("field", AstDSL.stringLiteral("ts")),
                     kv("fixed_interval", AstDSL.stringLiteral("4d")),
                     kv("alias", AstDSL.stringLiteral("days")))));
+
+    assertThrows(
+        SemanticCheckException.class,
+        () -> expander.expand(List.of(kv("field", AstDSL.stringLiteral("ts")))));
+
+    assertThrows(
+        SemanticCheckException.class,
+        () ->
+            expander.expand(
+                List.of(
+                    kv("field", AstDSL.stringLiteral("ts")),
+                    kv("interval", AstDSL.stringLiteral("1d")),
+                    kv("time_zone", AstDSL.stringLiteral("not-an-offset")))));
   }
 
   @Test
   void property_bag_rejects_both_interval_and_fixed_interval() {
     assertThrows(
-        SyntaxCheckException.class,
+        SemanticCheckException.class,
         () ->
             expander.expand(
                 List.of(
@@ -181,9 +193,9 @@ class DateHistogramExpanderTest extends AstBuilderTestBase {
 
   @Test
   void property_bag_rejects_invalid_time_zone() {
-    SyntaxCheckException ex =
+    SemanticCheckException ex =
         assertThrows(
-            SyntaxCheckException.class,
+            SemanticCheckException.class,
             () ->
                 expander.expand(
                     List.of(
@@ -312,7 +324,7 @@ class DateHistogramExpanderTest extends AstBuilderTestBase {
   @Test
   void property_bag_rejects_duplicate_keys() {
     assertThrows(
-        SyntaxCheckException.class,
+        SemanticCheckException.class,
         () ->
             expander.expand(
                 List.of(
@@ -324,15 +336,15 @@ class DateHistogramExpanderTest extends AstBuilderTestBase {
   @Test
   void property_bag_rejects_missing_field() {
     assertThrows(
-        SyntaxCheckException.class,
+        SemanticCheckException.class,
         () -> expander.expand(List.of(kv("interval", AstDSL.stringLiteral("1d")))));
   }
 
   @Test
   void property_bag_rejects_when_no_interval_synonym_provided() {
-    SyntaxCheckException ex =
+    SemanticCheckException ex =
         assertThrows(
-            SyntaxCheckException.class,
+            SemanticCheckException.class,
             () -> expander.expand(List.of(kv("field", AstDSL.stringLiteral("ts")))));
     assertTrue(ex.getMessage().contains("requires one of"));
   }

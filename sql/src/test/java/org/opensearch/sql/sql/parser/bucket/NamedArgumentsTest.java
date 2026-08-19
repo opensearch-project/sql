@@ -21,6 +21,7 @@ import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.exception.SemanticCheckException;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class NamedArgumentsTest {
@@ -87,7 +88,7 @@ class NamedArgumentsTest {
     NamedArguments bag =
         NamedArguments.parse(List.of(kv("interval", AstDSL.qualifiedName("not_a_literal"))));
 
-    assertThrows(SyntaxCheckException.class, () -> bag.requireStringIfPresent("interval"));
+    assertThrows(SemanticCheckException.class, () -> bag.requireStringIfPresent("interval"));
   }
 
   @Test
@@ -105,9 +106,9 @@ class NamedArgumentsTest {
 
   @Test
   void parse_rejects_duplicate_keys() {
-    SyntaxCheckException ex =
+    SemanticCheckException ex =
         assertThrows(
-            SyntaxCheckException.class,
+            SemanticCheckException.class,
             () ->
                 NamedArguments.parse(
                     List.of(
@@ -119,9 +120,9 @@ class NamedArgumentsTest {
   @Test
   void parse_rejects_non_key_value_arg_with_clear_message() {
     UnresolvedExpression bareColumn = AstDSL.qualifiedName("age");
-    SyntaxCheckException ex =
+    SemanticCheckException ex =
         assertThrows(
-            SyntaxCheckException.class,
+            SemanticCheckException.class,
             () ->
                 NamedArguments.parse(List.of(kv("field", AstDSL.stringLiteral("a")), bareColumn)));
     assertTrue(ex.getMessage().contains("'key'=value"));
@@ -146,8 +147,8 @@ class NamedArgumentsTest {
   @Test
   void require_throws_when_missing_with_function_name_in_message() {
     NamedArguments bag = NamedArguments.parse(List.of(kv("other", AstDSL.intLiteral(1))));
-    SyntaxCheckException ex =
-        assertThrows(SyntaxCheckException.class, () -> bag.require("field", "HISTOGRAM"));
+    SemanticCheckException ex =
+        assertThrows(SemanticCheckException.class, () -> bag.require("field", "HISTOGRAM"));
     assertTrue(ex.getMessage().contains("histogram"));
     assertTrue(ex.getMessage().contains("field"));
   }
@@ -162,7 +163,8 @@ class NamedArgumentsTest {
   @Test
   void requireString_rejects_non_string_value() {
     NamedArguments bag = NamedArguments.parse(List.of(kv("interval", AstDSL.intLiteral(100))));
-    assertThrows(SyntaxCheckException.class, () -> bag.requireString("interval", "date_histogram"));
+    assertThrows(
+        SemanticCheckException.class, () -> bag.requireString("interval", "date_histogram"));
   }
 
   @Test
@@ -180,7 +182,7 @@ class NamedArgumentsTest {
   @Test
   void requireStringIfPresent_rejects_non_string_value_when_present() {
     NamedArguments bag = NamedArguments.parse(List.of(kv("format", AstDSL.intLiteral(2024))));
-    assertThrows(SyntaxCheckException.class, () -> bag.requireStringIfPresent("format"));
+    assertThrows(SemanticCheckException.class, () -> bag.requireStringIfPresent("format"));
   }
 
   @Test

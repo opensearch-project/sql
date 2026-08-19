@@ -15,6 +15,7 @@ import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.exception.SemanticCheckException;
 
 /**
  * Parses and validates named-argument style function arguments. The arg shape is {@code
@@ -63,14 +64,14 @@ public final class NamedArguments {
     Map<String, UnresolvedExpression> arguments = new LinkedHashMap<>();
     for (UnresolvedExpression arg : args) {
       if (!isKeyValuePair(arg)) {
-        throw new SyntaxCheckException("Named arguments must be of form 'key'=value; got " + arg);
+        throw new SemanticCheckException("Named arguments must be of form 'key'=value; got " + arg);
       }
       Function fn = (Function) arg;
       Literal keyLiteral = (Literal) fn.getFuncArgs().get(0);
       String key = keyLiteral.getValue().toString().toLowerCase(Locale.ROOT);
       UnresolvedExpression value = fn.getFuncArgs().get(1);
       if (arguments.put(key, value) != null) {
-        throw new SyntaxCheckException("Duplicate parameter: " + key);
+        throw new SemanticCheckException("Duplicate parameter: " + key);
       }
     }
     return new NamedArguments(arguments);
@@ -85,7 +86,7 @@ public final class NamedArguments {
   public UnresolvedExpression require(String key, String funcName) {
     UnresolvedExpression value = arguments.remove(key);
     if (value == null) {
-      throw new SyntaxCheckException(
+      throw new SemanticCheckException(
           funcName.toLowerCase(Locale.ROOT) + " requires " + key + " parameter");
     }
     return value;
@@ -104,7 +105,7 @@ public final class NamedArguments {
 
   private static Literal asStringLiteral(UnresolvedExpression expr, String paramName) {
     if (!(expr instanceof Literal literal) || literal.getType() != DataType.STRING) {
-      throw new SyntaxCheckException(
+      throw new SemanticCheckException(
           paramName + " must be a string literal (e.g. '1d', '15m'); got " + expr);
     }
     return literal;

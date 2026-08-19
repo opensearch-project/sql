@@ -24,6 +24,7 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.sql.parser.AstBuilderTestBase;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -186,7 +187,7 @@ class HistogramExpanderTest extends AstBuilderTestBase {
   @Test
   void property_bag_rejects_duplicate_keys() {
     assertThrows(
-        SyntaxCheckException.class,
+        SemanticCheckException.class,
         () ->
             expander.expand(
                 List.of(
@@ -198,14 +199,14 @@ class HistogramExpanderTest extends AstBuilderTestBase {
   @Test
   void property_bag_rejects_missing_field() {
     assertThrows(
-        SyntaxCheckException.class,
+        SemanticCheckException.class,
         () -> expander.expand(List.of(kv("interval", AstDSL.intLiteral(10)))));
   }
 
   @Test
   void property_bag_rejects_missing_interval() {
     assertThrows(
-        SyntaxCheckException.class,
+        SemanticCheckException.class,
         () -> expander.expand(List.of(kv("field", AstDSL.stringLiteral("age")))));
   }
 
