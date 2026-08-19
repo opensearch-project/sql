@@ -17,6 +17,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
+import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
@@ -87,6 +88,18 @@ public class CalciteLogicalPrometheusScan extends TableScan {
   }
 
   @Override
+  public double estimateRowCount(RelMetadataQuery mq) {
+    double baseCount = super.estimateRowCount(mq);
+    if (pushDownContext.isLabelFilterPushed()) {
+      baseCount *= 0.1; // Label filter significantly reduces number of time series
+    }
+    if (pushDownContext.isTimeRangePushed()) {
+      baseCount *= 0.5;
+    }
+    return Math.max(baseCount, 1.0);
+  }
+
+  @Override
   public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
     RelOptCost baseCost = super.computeSelfCost(planner, mq);
     if (baseCost == null) {
@@ -104,13 +117,18 @@ public class CalciteLogicalPrometheusScan extends TableScan {
   }
 
   /**
-   * Attempts to push a filter condition into the Prometheus scan. Returns a new scan with the
+   * Attempts to push a filter condition into the Prometheus scan. Returns a new plan with the
    * pushed-down condition removed, or null if nothing could be pushed.
    *
    * <p>Handles: - Time range comparisons on @timestamp (>, >=, <, <=) - Label equality conditions
    * (label = 'value')
+   *
+   * @param filter the Filter RelNode above this scan
+   * @return a new plan (scan-only if fully pushed, or filter.copy with remaining condition), or
+   *     null if nothing could be pushed
    */
-  public RelNode pushDownFilter(RexNode condition) {
+  public RelNode pushDownFilter(Filter filter) {
+    RexNode condition = filter.getCondition();
     List<String> fieldNames = getRowType().getFieldNames();
     PrometheusPushDownContext newContext = pushDownContext.copy();
     RexNode remaining = pushDownCondition(condition, fieldNames, newContext);
@@ -130,14 +148,9 @@ public class CalciteLogicalPrometheusScan extends TableScan {
             getCluster(), getTraitSet(), table, prometheusTable, schema, newContext);
 
     if (remaining != null) {
-      // Some conditions couldn't be pushed — keep them as a Filter on top
-      return getCluster()
-          .getPlanner()
-          .getContext()
-          .unwrap(org.apache.calcite.tools.RelBuilder.class)
-          == null
-          ? org.apache.calcite.rel.logical.LogicalFilter.create(newScan, remaining)
-          : org.apache.calcite.rel.logical.LogicalFilter.create(newScan, remaining);
+      // Some conditions couldn't be pushed — use filter.copy() to preserve VolcanoPlanner
+      // equivalence semantics (same pattern as OpenSearch's FilterIndexScanRule)
+      return filter.copy(filter.getTraitSet(), newScan, remaining);
     }
     return newScan;
   }

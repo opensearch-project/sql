@@ -75,6 +75,18 @@ public class CalciteEnumerablePrometheusScan extends TableScan
   }
 
   @Override
+  public double estimateRowCount(RelMetadataQuery mq) {
+    double baseCount = super.estimateRowCount(mq);
+    if (pushDownContext.isLabelFilterPushed()) {
+      baseCount *= 0.1; // Label filter significantly reduces number of time series
+    }
+    if (pushDownContext.isTimeRangePushed()) {
+      baseCount *= 0.5;
+    }
+    return Math.max(baseCount, 1.0);
+  }
+
+  @Override
   public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
     RelOptCost baseCost = super.computeSelfCost(planner, mq);
     if (baseCost == null) {

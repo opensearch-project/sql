@@ -44,7 +44,7 @@ public class PrometheusFilterPushDownRule extends RelOptRule {
     final LogicalFilter filter = call.rel(0);
     final CalciteLogicalPrometheusScan scan = call.rel(1);
 
-    RelNode newNode = scan.pushDownFilter(filter.getCondition());
+    RelNode newNode = scan.pushDownFilter(filter);
     if (newNode != null) {
       call.transformTo(newNode);
       PlanUtils.tryPruneRelNodes(call);
