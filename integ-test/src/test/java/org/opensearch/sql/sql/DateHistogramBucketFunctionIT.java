@@ -137,6 +137,28 @@ public class DateHistogramBucketFunctionIT extends SQLIntegTestCase {
         rows("2026-01-01 03:00:00", 19));
   }
 
+  /**
+   * `missing` substitutes a value for a null field before bucketing. Asserted end to end because
+   * the AST alone cannot show whether the substitution function is one the engine evaluates —
+   * `coalesce` is a registered name with no V2 implementation, `ifnull` is the one that runs.
+   *
+   * <p>Uses the numeric field: substituting into a date needs a timestamp-typed replacement, and
+   * the grammar admits only literals here, so a date `missing` reaches IFNULL as TIMESTAMP against
+   * STRING. V2 accepts that pair, the analytics engine rejects it, and a test asserting either
+   * result would disagree with the other route.
+   */
+  @Test
+  public void missingParameterSubstitutesBeforeBucketing() throws IOException {
+    JSONObject response =
+        executeQuery(
+            "SELECT b, COUNT(*) FROM (SELECT histogram('field'=value, 'interval'=20, 'missing'=0)"
+                + " AS b FROM "
+                + IDX
+                + ") sub GROUP BY b ORDER BY b");
+
+    verifyDataRowsInOrder(response, rows(0, 19), rows(20, 20), rows(40, 20), rows(60, 13));
+  }
+
   @Test
   public void numericHistogramBucketsByInterval() throws IOException {
     JSONObject response =

@@ -904,7 +904,7 @@ class AstExpressionBuilderTest {
   public void canBuildDateHistogramWithMissing() {
     assertEquals(
         new Span(
-            function("coalesce", qualifiedName("ts"), stringLiteral("1970-01-01")),
+            function("ifnull", qualifiedName("ts"), stringLiteral("1970-01-01")),
             intLiteral(1),
             SpanUnit.H),
         buildExprAst("date_histogram('field'=ts, 'interval'='1h', 'missing'='1970-01-01')"));

@@ -204,7 +204,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
           functionName + " does not accept parameter: " + String.join(", ", args.keySet()));
     }
 
-    UnresolvedExpression bucketed = coalesceMissing(normalizeField(field), missing);
+    UnresolvedExpression bucketed = substituteMissing(normalizeField(field), missing);
     if (timeZone != null) {
       bucketed = shiftByTimeZone(bucketed, timeZone);
     }
@@ -273,9 +273,14 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
     return field;
   }
 
-  private static UnresolvedExpression coalesceMissing(
+  /**
+   * Substitutes {@code missing} for a null field before bucketing. V2 registers `coalesce` as a
+   * name but has no implementation for it, so the query fails at execution with "unsupported
+   * function name"; `ifnull` is the two-argument form V2 actually evaluates.
+   */
+  private static UnresolvedExpression substituteMissing(
       UnresolvedExpression field, UnresolvedExpression missing) {
-    return missing == null ? field : new Function("coalesce", List.of(field, missing));
+    return missing == null ? field : new Function("ifnull", List.of(field, missing));
   }
 
   /**
