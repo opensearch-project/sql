@@ -10,6 +10,7 @@ import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.prometheus.storage.scan.CalciteLogicalPrometheusScan;
 
 /**
@@ -46,6 +47,7 @@ public class PrometheusFilterPushDownRule extends RelOptRule {
     RelNode newNode = scan.pushDownFilter(filter.getCondition());
     if (newNode != null) {
       call.transformTo(newNode);
+      PlanUtils.tryPruneRelNodes(call);
     }
   }
 }
