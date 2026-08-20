@@ -1,10 +1,6 @@
 root:
-  name: ProjectOperator
-  description:
-    fields: "[account_number, firstname, address, birthdate, gender, city, lastname,\
-      \ balance, employer, state, age, email, male]"
   children:
-    - name: OpenSearchIndexScan
+    - children: []
       description:
         request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_bank,\
           \ sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"query\"\
@@ -16,4 +12,8 @@ root:
           ,\"address\",\"birthdate\",\"gender\",\"city\",\"lastname\",\"balance\"\
           ,\"employer\",\"state\",\"age\",\"email\",\"male\"]}}, pitId=*,\
           \ cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
-      children: []
+      name: OpenSearchIndexScan
+  description:
+    fields: "[account_number, firstname, address, birthdate, gender, city, lastname,\
+      \ balance, employer, state, age, email, male]"
+  name: ProjectOperator

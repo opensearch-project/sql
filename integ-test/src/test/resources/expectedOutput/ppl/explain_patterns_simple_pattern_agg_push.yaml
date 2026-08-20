@@ -1,9 +1,6 @@
 root:
-  name: ProjectOperator
-  description:
-    fields: "[pattern_count, sample_logs, patterns_field]"
   children:
-    - name: OpenSearchIndexScan
+    - children: []
       description:
         request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account,\
           \ sourceBuilder={\"from\":0,\"size\":0,\"timeout\":\"1m\",\"aggregations\"\
@@ -16,4 +13,7 @@ root:
           :{\"from\":0,\"size\":10,\"version\":false,\"seq_no_primary_term\":false,\"\
           explain\":false,\"_source\":{\"includes\":[\"email\"]}}}}}}}, pitId=*,\
           \ cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
-      children: []
+      name: OpenSearchIndexScan
+  description:
+    fields: "[pattern_count, sample_logs, patterns_field]"
+  name: ProjectOperator
