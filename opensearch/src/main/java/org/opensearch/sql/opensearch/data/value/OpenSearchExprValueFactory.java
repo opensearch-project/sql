@@ -125,10 +125,10 @@ public class OpenSearchExprValueFactory {
           .put(
               OpenSearchDataType.of(OpenSearchDataType.MappingType.Double),
               (c, dt) -> new ExprDoubleValue(c.doubleValue()))
-          .put(OpenSearchTextType.of(), (c, dt) -> new OpenSearchExprTextValue(c.stringValue()))
+          .put(OpenSearchTextType.of(), (c, dt) -> new OpenSearchExprTextValue(stringOf(c)))
           .put(
               OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword),
-              (c, dt) -> new ExprStringValue(c.stringValue()))
+              (c, dt) -> new ExprStringValue(stringOf(c)))
           .put(
               OpenSearchDataType.of(OpenSearchDataType.MappingType.Boolean),
               (c, dt) -> ExprBooleanValue.of(c.booleanValue()))
@@ -236,6 +236,22 @@ public class OpenSearchExprValueFactory {
       throw new IllegalStateException(
           String.format(
               "Unsupported type: %s for value: %s.", type.typeName(), content.objectValue()));
+    }
+  }
+
+  /**
+   * String form of scalar content destined for a text/keyword column. A numeric or boolean bucket
+   * key can land in a string column -- e.g. a partial-result aggregation over an index where the
+   * field is numeric while the conflict's merged type is text. Render it as its string form rather
+   * than letting the {@code (String) value} cast fail and null the value out.
+   */
+  private static String stringOf(Content content) {
+    try {
+      return content.stringValue();
+    } catch (RuntimeException e) {
+      // Not a string value (e.g. a numeric aggregation bucket key landing in a text column via a
+      // partial-result narrowing) -- render its string form instead of failing the cast to null.
+      return String.valueOf(content.objectValue());
     }
   }
 
