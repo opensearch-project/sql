@@ -940,6 +940,13 @@ class AstExpressionBuilderTest {
     assertThrows(
         SyntaxCheckException.class,
         () -> buildExprAst("date_histogram('field'=ts, 'interval'='1h', 'time_zone'='+05:30')"));
+    for (String name : List.of("children", "extended_bounds", "nested", "reverse_nested")) {
+      assertThrows(
+          SyntaxCheckException.class,
+          () ->
+              buildExprAst(
+                  String.format("date_histogram('field'=ts, 'interval'='1d', '%s'='x')", name)));
+    }
   }
 
   /** A bad argument inside a shape we own must not fall back, so the caller sees this message. */

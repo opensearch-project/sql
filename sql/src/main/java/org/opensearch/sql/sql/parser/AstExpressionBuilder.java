@@ -115,9 +115,18 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   private static final List<String> INTERVAL_ARGS =
       List.of("interval", "fixed_interval", "calendar_interval");
 
-  /** Bucket parameters a span cannot express, which the legacy engine answers instead. */
+  /** Bucket parameters a span cannot express; AggMaker implements these on the legacy engine. */
   private static final Set<String> LEGACY_ONLY_ARGS =
-      Set.of("alias", "format", "time_zone", "min_doc_count", "order");
+      Set.of(
+          "alias",
+          "children",
+          "extended_bounds",
+          "format",
+          "min_doc_count",
+          "nested",
+          "order",
+          "reverse_nested",
+          "time_zone");
 
   private final AstBuildGuard guard;
 
