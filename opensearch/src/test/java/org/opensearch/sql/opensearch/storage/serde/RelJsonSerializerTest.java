@@ -351,6 +351,67 @@ public class RelJsonSerializerTest {
   }
 
   @Test
+  void testArithmeticInItemIndexPreservesIntegerType() {
+    // Simulates the mvindex(entity, 1) scenario where PLUS(1, 1) is used as an array index.
+    // The PLUS operands get widened to BIGINT during standardization (for doc-value compat),
+    // but the result must remain INTEGER since ITEM/arrayItemOptional expects int.
+    RelDataType intType = TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER);
+    RexNode plusCall =
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.PLUS,
+            rexBuilder.makeLiteral(1, TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER)),
+            rexBuilder.makeLiteral(1, TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER)));
+
+    final ScriptParameterHelper helper =
+        new ScriptParameterHelper(rowType.getFieldList(), fieldTypes, rexBuilder);
+    String code = serializer.serialize(plusCall, helper);
+    RexNode deserialized = serializer.deserialize(code);
+
+    // After round-trip, the result should be wrapped in CAST(INTEGER) to preserve the type
+    assertEquals(SqlTypeName.INTEGER, deserialized.getType().getSqlTypeName());
+  }
+
+  @Test
+  void testArithmeticBigintNotWrappedInCast() {
+    // When the original arithmetic type is already BIGINT, no cast should be added.
+    RexNode plusCall =
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.PLUS,
+            rexBuilder.makeLiteral(1L, TYPE_FACTORY.createSqlType(SqlTypeName.BIGINT)),
+            rexBuilder.makeLiteral(1L, TYPE_FACTORY.createSqlType(SqlTypeName.BIGINT)));
+
+    final ScriptParameterHelper helper =
+        new ScriptParameterHelper(rowType.getFieldList(), fieldTypes, rexBuilder);
+    String code = serializer.serialize(plusCall, helper);
+    RexNode deserialized = serializer.deserialize(code);
+
+    // BIGINT arithmetic should stay BIGINT without extra CAST
+    assertEquals(SqlTypeName.BIGINT, deserialized.getType().getSqlTypeName());
+  }
+
+  @Test
+  void testArithmeticWithFieldPreservesIntegerType() {
+    // Simulates arithmetic with a field reference: Number + 1
+    // The field gets widened to BIGINT, but the original PLUS type is INTEGER,
+    // so the result should be cast back to INTEGER.
+    RexNode plusCall =
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.PLUS,
+            rexBuilder.makeInputRef(rowType.getFieldList().get(1).getType(), 1),
+            rexBuilder.makeLiteral(1, TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER)));
+
+    Map<String, ExprType> fieldTypesWithNumber =
+        Map.of("Referer", ExprCoreType.STRING, "Number", ExprCoreType.INTEGER);
+    final ScriptParameterHelper helper =
+        new ScriptParameterHelper(rowType.getFieldList(), fieldTypesWithNumber, rexBuilder);
+    String code = serializer.serialize(plusCall, helper);
+    RexNode deserialized = serializer.deserialize(code);
+
+    // Result should be INTEGER after deserialization
+    assertEquals(SqlTypeName.INTEGER, deserialized.getType().getSqlTypeName());
+  }
+
+  @Test
   void deserialize_rejects_disallowed_class() throws Exception {
     java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
     java.io.ObjectOutputStream objectOutput = new java.io.ObjectOutputStream(output);

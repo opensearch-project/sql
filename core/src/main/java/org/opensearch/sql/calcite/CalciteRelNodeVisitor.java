@@ -234,45 +234,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   public RelNode analyze(UnresolvedPlan unresolved, CalcitePlanContext context) {
-    if (context.isTrackingEnabled()) {
-      int idBefore = context.relBuilder.size() > 0 ? context.relBuilder.peek().getId() : -1;
-      RelNode result = unresolved.accept(this, context);
-      int idAfter = context.relBuilder.peek().getId();
-      List<Integer> producedIds = new ArrayList<>();
-      for (int id = idBefore + 1; id <= idAfter; id++) {
-        producedIds.add(id);
-      }
-      context.recordMapping(unresolved.getClass().getSimpleName(), producedIds);
-      return result;
-    }
     return unresolved.accept(this, context);
   }
 
   @Override
   public RelNode visitChildren(Node node, CalcitePlanContext context) {
-    if (context.isTrackingEnabled() && node instanceof UnresolvedPlan) {
-      // Track each child's total contribution (the subtree it produces)
-      RelNode result = null;
-      for (Node child : node.getChild()) {
-        int idBefore = context.relBuilder.size() > 0 ? context.relBuilder.peek().getId() : -1;
-        RelNode childResult = child.accept(this, context);
-        result = childResult;
-        // After child.accept returns, the child's visit* method has fully completed,
-        // so all RelNodes produced by that child (including ITS children) are on the stack.
-        int idAfter = context.relBuilder.peek().getId();
-        if (child instanceof UnresolvedPlan) {
-          List<Integer> producedIds = new ArrayList<>();
-          for (int id = idBefore + 1; id <= idAfter; id++) {
-            producedIds.add(id);
-          }
-          context.recordMapping(child.getClass().getSimpleName(), producedIds);
-        }
-      }
-      if (node instanceof UnresolvedPlan plan) {
-        mapPathMaterializer.materializePaths(plan, context);
-      }
-      return result;
-    }
     RelNode result = super.visitChildren(node, context);
     if (node instanceof UnresolvedPlan plan) {
       mapPathMaterializer.materializePaths(plan, context);
@@ -740,10 +706,18 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
    *
    * <p>2. There is no other project ever visited in the main query
    *
+   * <p>Unless the request asked for metadata via {@code include_metadata}, in which case only the
+   * forced exclusion of case 1 still applies.
+   *
    * @param context CalcitePlanContext
    * @param excludeByForce whether exclude metadata fields by force
    */
   private static void tryToRemoveMetaFields(CalcitePlanContext context, boolean excludeByForce) {
+    // Join and subquery still strip metadata by force to keep their output schemas unambiguous.
+    if (context.isIncludeMetadata() && !excludeByForce) {
+      return;
+    }
+
     if (excludeByForce || !context.isProjectVisited()) {
       List<String> originalFields = context.relBuilder.peek().getRowType().getFieldNames();
       List<RexNode> metaFieldsRef =

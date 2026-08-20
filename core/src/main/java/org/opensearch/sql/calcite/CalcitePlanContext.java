@@ -80,6 +80,13 @@ public class CalcitePlanContext {
    */
   @Getter @Setter private boolean isProjectVisited = false;
 
+  /**
+   * Whether to include metadata fields like _id, _index, _score in the result. When true, metadata
+   * fields are included in wildcard field selections. When false (default), metadata fields are
+   * excluded.
+   */
+  @Getter @Setter private boolean includeMetadata = false;
+
   private final Stack<RexCorrelVariable> correlVar = new Stack<>();
   private final Stack<List<RexNode>> windowPartitions = new Stack<>();
 
@@ -124,22 +131,6 @@ public class CalcitePlanContext {
   /** Whether we're currently inside a lambda context. */
   @Getter @Setter private boolean inLambdaContext = false;
 
-  /**
-   * When enabled, tracks which RelNode ids were produced by each AST command. Each entry maps an
-   * AST node class name to the list of RelNode ids it produced (excluding children).
-   */
-  @Getter @Setter private boolean trackingEnabled = false;
-
-  @Getter private final List<NodeIdMapping> nodeIdMappings = new ArrayList<>();
-
-  /** Records a mapping from an AST command to the RelNode ids it produced. */
-  public void recordMapping(String astNodeType, List<Integer> relNodeIds) {
-    nodeIdMappings.add(new NodeIdMapping(astNodeType, relNodeIds));
-  }
-
-  /** A mapping from one AST command to the RelNode ids it produced. */
-  public record NodeIdMapping(String astNodeType, List<Integer> relNodeIds) {}
-
   private CalcitePlanContext(FrameworkConfig config, SysLimit sysLimit, QueryType queryType) {
     this.config = config;
     this.sysLimit = sysLimit;
@@ -165,6 +156,7 @@ public class CalcitePlanContext {
     this.rexBuilder = parent.rexBuilder; // Share the same rexBuilder
     this.functionProperties = parent.functionProperties;
     this.highlightConfig = parent.highlightConfig;
+    this.includeMetadata = parent.includeMetadata; // Preserve parent's metadata setting
     this.rexLambdaRefMap = new HashMap<>(); // New map for lambda variables
     this.capturedVariables = new ArrayList<>(); // New list for captured variables
     this.inLambdaContext = true; // Mark that we're inside a lambda
@@ -217,6 +209,13 @@ public class CalcitePlanContext {
   public static CalcitePlanContext create(
       FrameworkConfig config, SysLimit sysLimit, QueryType queryType) {
     return new CalcitePlanContext(config, sysLimit, queryType);
+  }
+
+  public static CalcitePlanContext create(
+      FrameworkConfig config, SysLimit sysLimit, QueryType queryType, boolean includeMetadata) {
+    CalcitePlanContext context = new CalcitePlanContext(config, sysLimit, queryType);
+    context.setIncludeMetadata(includeMetadata);
+    return context;
   }
 
   /**

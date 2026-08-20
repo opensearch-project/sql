@@ -83,7 +83,19 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
       // Do normalization before standardization
       Pair<SqlOperator, List<RexNode>> normalized = RexNormalize.normalize(call.op, call.operands);
       List<RexNode> standardizedOperands = visitList(normalized.right, helper, update);
-      return helper.rexBuilder.makeCall(call.getType(), normalized.left, standardizedOperands);
+      RexNode result =
+          helper.rexBuilder.makeCall(call.getType(), normalized.left, standardizedOperands);
+
+      if (allowNumericTypeWiden
+          && SqlTypeUtil.isExactNumeric(call.getType())
+          && !call.getType().getSqlTypeName().equals(SqlTypeName.BIGINT)) {
+        RelDataType targetType =
+            OpenSearchTypeFactory.TYPE_FACTORY.createTypeWithNullability(
+                call.getType(), call.getType().isNullable());
+        result = helper.rexBuilder.makeCast(targetType, result);
+      }
+
+      return result;
     } finally {
       helper.stack.pop();
     }

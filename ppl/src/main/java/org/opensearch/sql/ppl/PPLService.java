@@ -8,10 +8,7 @@ package org.opensearch.sql.ppl;
 import static org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import static org.opensearch.sql.executor.execution.QueryPlanFactory.NO_CONSUMER_RESPONSE_LISTENER;
 
-import java.util.ArrayList;
-import java.util.List;
 import lombok.extern.log4j.Log4j2;
-import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
@@ -20,14 +17,12 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.executor.AnalyzeResponse;
-import org.opensearch.sql.executor.AnalyzeResponse.QuerySegment;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.execution.AbstractPlan;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
-import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.ppl.parser.AstBuilder;
 import org.opensearch.sql.ppl.parser.AstStatementBuilder;
@@ -124,60 +119,12 @@ public class PPLService {
           QueryContext.getRequestId(),
           anonymizer.anonymizeStatement(statement));
 
-      List<QuerySegment> querySegments = extractQuerySegments(cst, queryText);
       UnresolvedPlan unresolvedPlan = ((Query) statement).getPlan();
       queryManager.submit(
-          queryExecutionFactory.createAnalyzePlan(
-              queryText, querySegments, unresolvedPlan, PPL_QUERY, listener));
+          queryExecutionFactory.createAnalyzePlan(unresolvedPlan, PPL_QUERY, listener));
     } catch (Exception e) {
       listener.onFailure(e);
     }
-  }
-
-  private List<QuerySegment> extractQuerySegments(ParseTree cst, String queryText) {
-    List<QuerySegment> segments = new ArrayList<>();
-    OpenSearchPPLParser.QueryStatementContext queryStmt = findQueryStatement(cst);
-    if (queryStmt == null) {
-      return segments;
-    }
-
-    // First segment: the search/source command (pplCommands)
-    OpenSearchPPLParser.PplCommandsContext pplCommands = queryStmt.pplCommands();
-    if (pplCommands != null) {
-      segments.add(buildSegment(pplCommands, queryText));
-    }
-
-    // Remaining segments: each piped command
-    for (OpenSearchPPLParser.CommandsContext cmd : queryStmt.commands()) {
-      segments.add(buildSegment(cmd, queryText));
-    }
-    return segments;
-  }
-
-  private OpenSearchPPLParser.QueryStatementContext findQueryStatement(ParseTree tree) {
-    if (tree instanceof OpenSearchPPLParser.QueryStatementContext ctx) {
-      return ctx;
-    }
-    for (int i = 0; i < tree.getChildCount(); i++) {
-      OpenSearchPPLParser.QueryStatementContext result = findQueryStatement(tree.getChild(i));
-      if (result != null) {
-        return result;
-      }
-    }
-    return null;
-  }
-
-  private QuerySegment buildSegment(ParserRuleContext ctx, String queryText) {
-    int start = ctx.getStart().getStartIndex();
-    int stop = ctx.getStop().getStopIndex();
-    String source = queryText.substring(start, stop + 1);
-    // For wrapper rules like CommandsContext, drill into the specific child command
-    ParserRuleContext target = ctx;
-    if (ctx.getChildCount() == 1 && ctx.getChild(0) instanceof ParserRuleContext child) {
-      target = child;
-    }
-    String nodeType = target.getClass().getSimpleName().replace("Context", "");
-    return QuerySegment.builder().nodeType(nodeType).source(source).build();
   }
 
   private AbstractPlan plan(
@@ -186,6 +133,9 @@ public class PPLService {
       ResponseListener<ExplainResponse> explainListener) {
     // 1.Parse query and convert parse tree (CST) to abstract syntax tree (AST)
     ParseTree cst = parser.parse(request.getRequest());
+
+    boolean includeMetadata = request.getIncludeMetadata();
+
     Statement statement =
         cst.accept(
             new AstStatementBuilder(
@@ -201,6 +151,7 @@ public class PPLService {
                                 .orElse(null)
                             : null)
                     .explainMode(request.getExplainMode())
+                    .includeMetadata(includeMetadata)
                     .build()));
 
     log.info(

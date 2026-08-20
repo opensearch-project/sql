@@ -51,11 +51,8 @@ teardown:
         body:
           query: 'source=ppl_analyze | fields message'
           analyze: true
-  - match: {query: 'source=ppl_analyze | fields message'}
-  - is_true: querySegments
   - is_true: logicalPlan
   - is_true: physicalPlan
-  - is_true: operator_tree
   - is_true: recommendations
   - is_true: profile
   - gt: {profile.summary.total_time_ms: 0.0}
@@ -64,23 +61,6 @@ teardown:
   - is_true: datarows
   - match: {total: 2}
   - match: {size: 2}
-
----
-"Analyze returns operator tree with pushdown info":
-  - skip:
-      features:
-        - headers
-        - allowed_warnings
-  - do:
-      headers:
-        Content-Type: 'application/json'
-      ppl:
-        body:
-          query: 'source=ppl_analyze | where age > 30 | fields message'
-          analyze: true
-  - is_true: operator_tree
-  - match: {total: 1}
-  - match: {size: 1}
 
 ---
 "Analyze returns recommendations field":
@@ -110,8 +90,8 @@ teardown:
         body:
           query: 'source=ppl_analyze | fields message'
           analyze: true
-  - match: {query: null}
-  - match: {operator_tree: null}
+  - match: {recommendations: null}
+  - match: {profile: null}
 
 ---
 "Analyze with non-jdbc format still returns response":
@@ -126,4 +106,4 @@ teardown:
         body:
           query: 'source=ppl_analyze | fields message'
           analyze: true
-  - is_true: query
+  - is_true: datarows
