@@ -84,7 +84,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.RuleNode;
@@ -112,8 +111,12 @@ import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
 /** Expression builder to parse text to expression in AST. */
 public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedExpression> {
 
+  /** Synonyms for the bucket width; exactly one is required. */
+  private static final List<String> INTERVAL_ARGS =
+      List.of("interval", "fixed_interval", "calendar_interval");
+
   /** Bucket parameters a span cannot express, which the legacy engine answers instead. */
-  private static final Set<String> LEGACY_ONLY_BUCKET_ARGS =
+  private static final Set<String> LEGACY_ONLY_ARGS =
       Set.of("alias", "format", "time_zone", "min_doc_count", "order");
 
   private final AstBuildGuard guard;
@@ -191,65 +194,48 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
     for (BucketArgContext arg : ctx.bucketFunction().bucketArg()) {
       String name = StringUtils.unquoteText(arg.bucketArgName().getText()).toLowerCase(Locale.ROOT);
       if (args.put(name, visit(arg.bucketArgValue())) != null) {
-        throw new SemanticCheckException("Duplicate parameter: " + name);
+        throw new SemanticCheckException(
+            String.format("Parameter '%s' can only be specified once.", name));
       }
     }
 
-    UnresolvedExpression field = requireArg(args, "field", functionName);
+    UnresolvedExpression field = args.remove("field");
     UnresolvedExpression missing = args.remove("missing");
-    Literal interval = intervalOf(args, functionName);
+    List<UnresolvedExpression> intervals =
+        INTERVAL_ARGS.stream()
+            .map(args::remove)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
 
+    // Whatever is left is a parameter this lowering has no equivalent for. The ones the legacy
+    // engine implements are declined as a syntax check so RestSQLQueryAction hands the query to
+    // it; anything else is a misspelling and is reported.
     if (!args.isEmpty()) {
-      String names = String.join(", ", args.keySet());
-      if (LEGACY_ONLY_BUCKET_ARGS.containsAll(args.keySet())) {
-        throw new SyntaxCheckException(functionName + " does not accept parameter: " + names);
-      }
-      throw new SemanticCheckException(functionName + " does not accept parameter: " + names);
+      String message =
+          String.format(
+              "Parameter %s is invalid for %s function.",
+              String.join(", ", args.keySet()), functionName);
+      throw LEGACY_ONLY_ARGS.containsAll(args.keySet())
+          ? new SyntaxCheckException(message)
+          : new SemanticCheckException(message);
+    }
+    if (field == null) {
+      throw new SemanticCheckException(
+          String.format("Parameter field is required for %s function.", functionName));
+    }
+    if (intervals.size() != 1) {
+      throw new SemanticCheckException(
+          String.format(
+              "Exactly one of %s is required for %s function.",
+              String.join(", ", INTERVAL_ARGS), functionName));
+    }
+    if (!(intervals.get(0) instanceof Literal interval)) {
+      throw new SemanticCheckException(
+          String.format("Parameter interval must be a literal for %s function.", functionName));
     }
 
     return AstDSL.spanFromSpanLengthLiteral(
         substituteMissing(normalizeField(field), missing), interval);
-  }
-
-  private static UnresolvedExpression requireArg(
-      Map<String, UnresolvedExpression> args, String name, String functionName) {
-    UnresolvedExpression value = args.remove(name);
-    if (value == null) {
-      throw new SemanticCheckException(functionName + " requires " + name + " parameter");
-    }
-    return value;
-  }
-
-  /**
-   * {@code interval}, {@code fixed_interval} and {@code calendar_interval} are synonyms; exactly
-   * one must be present. The distinction between calendar and fixed intervals is not preserved.
-   */
-  private static Literal intervalOf(Map<String, UnresolvedExpression> args, String functionName) {
-    List<Literal> supplied =
-        Stream.of("interval", "fixed_interval", "calendar_interval")
-            .map(key -> stringOrNumericArg(args, key))
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList());
-    if (supplied.isEmpty()) {
-      throw new SemanticCheckException(
-          functionName + " requires one of: interval, fixed_interval, calendar_interval");
-    }
-    if (supplied.size() > 1) {
-      throw new SemanticCheckException(
-          functionName + " accepts only one of: interval, fixed_interval, calendar_interval");
-    }
-    return supplied.get(0);
-  }
-
-  private static Literal stringOrNumericArg(Map<String, UnresolvedExpression> args, String name) {
-    UnresolvedExpression value = args.remove(name);
-    if (value == null) {
-      return null;
-    }
-    if (!(value instanceof Literal literal)) {
-      throw new SemanticCheckException(name + " must be a literal; got " + value);
-    }
-    return literal;
   }
 
   /** A string literal naming a column is coerced so downstream sees a column reference. */
