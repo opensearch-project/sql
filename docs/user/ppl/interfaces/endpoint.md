@@ -247,6 +247,18 @@ Expected output (trimmed):
 | `size` | Integer | Number of result rows returned. |
 
 
+### Rules For Recommendations
+  | Rule | Severity | Trigger | Default threshold | Suggestion |
+  |------|----------|---------------|-------------------|------------|
+  | Ineffective Filter | WARNING | An in-memory filter operator passes through nearly all of its input rows (`rows_out / rows_in`). | ratio > 0.95 | Consider removing the filter or making it more selective. |
+  | Join Row Explosion | WARNING / CRITICAL | A join produces far more rows than its combined inputs (`rows_out / rows_in`). | ratio > 5 (WARNING); ≥ 20 (CRITICAL) | Add filters to the subqueries before the join to reduce rows. |
+  | Expensive Sort | WARNING | A sort (including a limit-fused top-N) runs in-memory over a large input and consumes a large share of execution time. | self-time > 20% of execute and input rows > 50,000 | Filter or limit rows before sorting (e.g. add `head` or a `where`). |
+  | Bottleneck Stage | INFO | A single operator's self-time dominates total execution time. | self-time > 75% of execute | — |
+  | Optimize Phase Dominates | INFO | Query planning takes longer than execution. | optimize > execute **and** optimize > 75 ms | — |
+
+  > **Note:** `rows_in` is the sum of an operator's child row counts; self-time is an operator's own duration (`time_ms − max(child time_ms)`), since profile `time_ms` is cumulative
+  wall-time.
+
 ### Notes
 - Analyze output is only returned when the query finishes successfully.
 - Analyze requires the Calcite engine to be enabled (`plugins.calcite.enabled=true`).
