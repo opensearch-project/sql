@@ -8,6 +8,9 @@ package org.opensearch.sql.opensearch.storage.scan;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.opensearch.sql.opensearch.storage.scan.PartialResultAggregatePushdown.MappingResolution.KEYWORD;
+import static org.opensearch.sql.opensearch.storage.scan.PartialResultAggregatePushdown.MappingResolution.NOT_AGGREGATABLE;
+import static org.opensearch.sql.opensearch.storage.scan.PartialResultAggregatePushdown.MappingResolution.TEXT_WITH_KEYWORD;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -20,64 +23,70 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
+import org.opensearch.sql.opensearch.storage.scan.PartialResultAggregatePushdown.MappingResolution;
 import org.opensearch.sql.opensearch.storage.scan.PartialResultAggregatePushdown.Plan;
 
 class PartialResultAggregatePushdownTest {
 
   private static final OpenSearchDataType KEYWORD_TYPE = OpenSearchDataType.of(MappingType.Keyword);
   private static final OpenSearchDataType BARE_TEXT_TYPE = OpenSearchTextType.of();
-  private static final OpenSearchDataType INT_TYPE = OpenSearchDataType.of(MappingType.Integer);
   private static final OpenSearchDataType TEXT_WITH_KEYWORD_TYPE =
       OpenSearchTextType.of(Map.of("keyword", OpenSearchDataType.of(MappingType.Keyword)));
 
-  // ---- resolveBucketSignature ----
+  // ---- resolveBucketMapping ----
 
   @Test
   void resolveKeywordField() {
-    assertEquals("kw", resolveOne(Map.of("f", KEYWORD_TYPE)), "bare keyword resolves to kw");
+    assertEquals(
+        KEYWORD, resolveOne(Map.of("f", KEYWORD_TYPE)), "bare keyword resolves to KEYWORD");
   }
 
   @Test
   void resolveTextWithKeywordField() {
     assertEquals(
-        "tk",
+        TEXT_WITH_KEYWORD,
         resolveOne(Map.of("f", TEXT_WITH_KEYWORD_TYPE)),
         "text with a .keyword sub-field is aggregatable via the sub-field");
   }
 
   @Test
   void resolveBareTextField() {
-    assertNull(
-        resolveOne(Map.of("f", BARE_TEXT_TYPE)), "bare text (no .keyword) is not aggregatable");
+    assertEquals(
+        NOT_AGGREGATABLE,
+        resolveOne(Map.of("f", BARE_TEXT_TYPE)),
+        "bare text (no .keyword) is not aggregatable");
   }
 
   @Test
   void resolveAbsentField() {
-    assertNull(
-        PartialResultAggregatePushdown.resolveBucketSignature(Map.of(), List.of("f")),
+    assertEquals(
+        NOT_AGGREGATABLE,
+        PartialResultAggregatePushdown.resolveBucketMapping(Map.of(), List.of("f")),
         "a field absent from the index cannot be aggregated cleanly");
   }
 
   @Test
-  void resolveNonTextTypeIsItsOwnAggregatableSignature() {
+  void resolveNonTextTypeIsConflictingType() {
     assertEquals(
-        "t:integer",
-        resolveOne(Map.of("f", INT_TYPE)),
-        "a numeric field is aggregatable, tagged by its concrete type");
+        MappingResolution.CONFLICTING_TYPE,
+        resolveOne(Map.of("f", OpenSearchDataType.of(MappingType.Integer))),
+        "a numeric field is a type conflict, not a text/keyword collapse");
   }
 
   @Test
-  void resolveMultiFieldSignatureIsPerFieldTokens() {
+  void resolveMultiFieldTakesWeakestResolution() {
+    // One keyword + one text-with-.keyword group key -> the weaker TEXT_WITH_KEYWORD wins.
     Map<String, OpenSearchDataType> mapping =
         Map.of("a", KEYWORD_TYPE, "b", TEXT_WITH_KEYWORD_TYPE);
     assertEquals(
-        "kw|tk", PartialResultAggregatePushdown.resolveBucketSignature(mapping, List.of("a", "b")));
-    // A bare-text field anywhere in the key makes the whole index non-aggregatable.
+        TEXT_WITH_KEYWORD,
+        PartialResultAggregatePushdown.resolveBucketMapping(mapping, List.of("a", "b")));
+    // Add a bare-text key -> the whole index becomes NOT_AGGREGATABLE.
     Map<String, OpenSearchDataType> withBareText =
         Map.of("a", KEYWORD_TYPE, "b", TEXT_WITH_KEYWORD_TYPE, "c", BARE_TEXT_TYPE);
-    assertNull(
-        PartialResultAggregatePushdown.resolveBucketSignature(
-            withBareText, List.of("a", "b", "c")));
+    assertEquals(
+        NOT_AGGREGATABLE,
+        PartialResultAggregatePushdown.resolveBucketMapping(withBareText, List.of("a", "b", "c")));
   }
 
   // ---- plan: not-applicable cases return null ----
@@ -110,6 +119,16 @@ class PartialResultAggregatePushdownTest {
             List.of("f"), Map.of("txt1", bareTextIndex(), "txt2", bareTextIndex())));
   }
 
+  @Test
+  void planNullOnNonTextTypeConflict() {
+    // keyword vs int is a type conflict, not a text/keyword collapse. The int index is
+    // aggregatable, so it must not be excluded -- partial mode bails and leaves it to the normal
+    // path.
+    assertNull(
+        PartialResultAggregatePushdown.plan(
+            List.of("f"), ordered("kw", keywordIndex(), "num", intIndex())));
+  }
+
   // ---- plan: partitioning ----
 
   @Test
@@ -120,45 +139,6 @@ class PartialResultAggregatePushdownTest {
     assertEquals(List.of("kw"), plan.keptIndices());
     assertEquals(List.of("txt"), plan.excludedIndices());
     assertEquals(Warning.TYPE_PARTIAL_RESULT, plan.warning().getType());
-  }
-
-  @Test
-  void planKeepsAggregatableTypeExcludesBareText() {
-    // int vs bare text: int is aggregatable, text is not. Without partial mode this silently drops
-    // (or fails on) the text docs; here we keep the int index and exclude the text one.
-    Plan plan =
-        PartialResultAggregatePushdown.plan(
-            List.of("f"), ordered("num", intIndex(), "txt", bareTextIndex()));
-    assertEquals(List.of("num"), plan.keptIndices());
-    assertEquals(List.of("txt"), plan.excludedIndices());
-  }
-
-  @Test
-  void planNullOnKeywordVsNumericConflict() {
-    // keyword vs int: both aggregatable but mutually incompatible. The merged type is arbitrary
-    // (last-write-wins), so keeping either group could misread the other's values -> bail and leave
-    // it to the normal path (#5610), rather than risk a materialization crash.
-    assertNull(
-        PartialResultAggregatePushdown.plan(
-            List.of("f"), ordered("kw", keywordIndex(), "num", intIndex())));
-  }
-
-  @Test
-  void planNullWhenMixedStringAndNumericEvenWithBareText() {
-    // keyword + int + bare text: the string/numeric mix is still ambiguous, so bail even though the
-    // bare-text index alone would be excludable.
-    assertNull(
-        PartialResultAggregatePushdown.plan(
-            List.of("f"),
-            ordered("kw", keywordIndex(), "num", intIndex(), "txt", bareTextIndex())));
-  }
-
-  @Test
-  void planNullOnTwoNumericTypes() {
-    // int vs long: two mutually-incompatible aggregatable types, arbitrary merged type -> bail.
-    assertNull(
-        PartialResultAggregatePushdown.plan(
-            List.of("f"), ordered("i", intIndex(), "l", longIndex())));
   }
 
   @Test
@@ -231,8 +211,8 @@ class PartialResultAggregatePushdownTest {
 
   // ---- helpers ----
 
-  private static String resolveOne(Map<String, OpenSearchDataType> mapping) {
-    return PartialResultAggregatePushdown.resolveBucketSignature(mapping, List.of("f"));
+  private static MappingResolution resolveOne(Map<String, OpenSearchDataType> mapping) {
+    return PartialResultAggregatePushdown.resolveBucketMapping(mapping, List.of("f"));
   }
 
   private static IndexMapping keywordIndex() {
@@ -248,11 +228,7 @@ class PartialResultAggregatePushdownTest {
   }
 
   private static IndexMapping intIndex() {
-    return new IndexMapping(Map.of("f", INT_TYPE));
-  }
-
-  private static IndexMapping longIndex() {
-    return new IndexMapping(Map.of("f", OpenSearchDataType.of(MappingType.Long)));
+    return new IndexMapping(Map.of("f", OpenSearchDataType.of(MappingType.Integer)));
   }
 
   /** Build an insertion-ordered map so kept/excluded assertions are deterministic. */

@@ -6,8 +6,6 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
@@ -18,17 +16,12 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 
 /**
- * Selects which indices to keep so an aggregation on a mapping conflict can still push down over a
- * clean subset. Handles two safe shapes of an inconsistently-mapped group field across a wildcard:
- * a text/keyword collapse ({@code keyword} in some indices, {@code text} in others -> merges to
- * non-aggregatable text), and a single aggregatable type mixed with non-aggregatable text (e.g.
- * {@code integer} vs {@code text}, which otherwise silently drops the text docs). It partitions the
- * matched indices by a compatibility signature, keeps one homogeneous group, and attaches a warning
- * naming what was excluded; the caller ({@link CalciteLogicalIndexScan}) re-runs pushdown over
- * {@link Plan#keptIndices()}, which no longer conflicts. A conflict between mutually-incompatible
- * aggregatable types ({@code keyword} vs {@code integer}, two numeric types) is left to the normal
- * path: its merged type is arbitrary, so no subset can be kept safely (a fundamental type conflict
- * tracked separately as #5610).
+ * Selects which indices to keep so an aggregation on a text/keyword mapping conflict can push down
+ * natively. When a field is {@code keyword} in some indices of a wildcard pattern and {@code text}
+ * in others, the type merge collapses it to {@code text}-without-{@code .keyword}, which is not
+ * natively aggregatable. This partitions the matched indices by how each maps the group field and
+ * picks one homogeneous group by keyword-first priority, plus a warning naming what was excluded;
+ * the caller ({@link CalciteLogicalIndexScan}) re-runs pushdown over {@link Plan#keptIndices()}.
  */
 final class PartialResultAggregatePushdown {
 
@@ -36,6 +29,18 @@ final class PartialResultAggregatePushdown {
   static final int MAX_EXCLUDED_INDICES_IN_WARNING = 5;
 
   private PartialResultAggregatePushdown() {}
+
+  /** How one index maps the grouped field(s), in decreasing preference for a clean pushdown. */
+  enum MappingResolution {
+    /** Every group field is a bare {@code keyword} -> merges to a clean {@code keyword}. */
+    KEYWORD,
+    /** Every group field is aggregatable, at least one via a {@code .keyword} sub-field. */
+    TEXT_WITH_KEYWORD,
+    /** At least one group field is bare {@code text} (no doc values), or absent. */
+    NOT_AGGREGATABLE,
+    /** A group field maps to a non-text type here (e.g. keyword vs int) -- not our conflict. */
+    CONFLICTING_TYPE
+  }
 
   /**
    * The outcome of partitioning: which indices to aggregate over and the warning to attach. Absent
@@ -60,56 +65,39 @@ final class PartialResultAggregatePushdown {
       return null;
     }
 
-    // Group indices by their aggregatable "compatibility signature": indices sharing a signature
-    // map every group field to the same aggregatable type, so they can be aggregated together
-    // without re-introducing a conflict. A null signature means the field is not aggregatable in
-    // that index (bare text or absent) -- always excludable.
-    Map<String, List<String>> aggregatableGroups = new LinkedHashMap<>();
-    List<String> nonAggregatable = new ArrayList<>();
+    List<String> keywordIndices = new ArrayList<>();
+    List<String> textKeywordIndices = new ArrayList<>();
+    List<String> excludedIndices = new ArrayList<>();
     for (Map.Entry<String, IndexMapping> entry : mappings.entrySet()) {
       // Flatten so a nested object field (mapping tree resource -> attributes -> applicationid) is
       // keyed by its dotted path, matching the bucket field name Calcite resolved.
       Map<String, OpenSearchDataType> flatMapping =
           OpenSearchDataType.traverseAndFlatten(entry.getValue().getFieldMappings());
-      String signature = resolveBucketSignature(flatMapping, bucketNames);
-      if (signature == null) {
-        nonAggregatable.add(entry.getKey());
-      } else {
-        aggregatableGroups.computeIfAbsent(signature, k -> new ArrayList<>()).add(entry.getKey());
+      switch (resolveBucketMapping(flatMapping, bucketNames)) {
+        case KEYWORD -> keywordIndices.add(entry.getKey());
+        case TEXT_WITH_KEYWORD -> textKeywordIndices.add(entry.getKey());
+        case CONFLICTING_TYPE -> {
+          // A non-text type conflict (e.g. keyword vs int) is not a text/keyword collapse, and the
+          // conflicting index is aggregatable -- excluding it would drop valid data. Leave it to
+          // the normal path.
+          return null;
+        }
+        default -> excludedIndices.add(entry.getKey());
       }
     }
-    if (aggregatableGroups.isEmpty()) {
+
+    // Keyword-first priority, not a count-based majority, so the result never depends on how many
+    // indices of each type match. Never keep both groups: their mix would re-collapse to a
+    // conflict.
+    List<String> keptIndices;
+    if (!keywordIndices.isEmpty()) {
+      keptIndices = keywordIndices;
+      excludedIndices.addAll(textKeywordIndices);
+    } else if (!textKeywordIndices.isEmpty()) {
+      keptIndices = textKeywordIndices;
+    } else {
       return null; // no aggregatable subset -> partial mode can't help
     }
-
-    // Pick the one homogeneous group to keep. The narrowed scan reuses the conflict's merged row
-    // type, so a kept group is only safe when its values remain representable under that type:
-    //   - all-string conflict (keyword / text-with-.keyword) merges deterministically to text, and
-    //     any string group reads back as text -> keep the keyword-first group;
-    //   - a single aggregatable type mixed with non-aggregatable text is representable whether the
-    //     conflict merged to that type or to text -> keep it;
-    //   - anything else (e.g. keyword vs int, or two numeric types) has an arbitrary last-write-
-    //     wins merged type, so keeping one group could misread the other's values -> bail and leave
-    //     it to the normal path (a fundamental type conflict, tracked separately as #5610).
-    // Priority is deterministic, never a count-based majority, so the result does not depend on how
-    // many indices of each type match.
-    String keptSignature;
-    if (aggregatableGroups.keySet().stream()
-        .allMatch(PartialResultAggregatePushdown::isStringOnly)) {
-      keptSignature = aggregatableGroups.keySet().stream().min(SIGNATURE_PRIORITY).orElseThrow();
-    } else if (aggregatableGroups.size() == 1) {
-      keptSignature = aggregatableGroups.keySet().iterator().next();
-    } else {
-      return null;
-    }
-    List<String> keptIndices = aggregatableGroups.get(keptSignature);
-    List<String> excludedIndices = new ArrayList<>(nonAggregatable);
-    aggregatableGroups.forEach(
-        (signature, indices) -> {
-          if (!signature.equals(keptSignature)) {
-            excludedIndices.addAll(indices);
-          }
-        });
     if (excludedIndices.isEmpty()) {
       return null; // homogeneous already -> pushdown would not have failed
     }
@@ -120,70 +108,31 @@ final class PartialResultAggregatePushdown {
   }
 
   /**
-   * A per-index compatibility signature for the grouped field(s): one token per field joined by
-   * {@code |}. Two indices with equal signatures map every group field to the same aggregatable
-   * type and can be aggregated together. Returns {@code null} if any field is not aggregatable here
-   * (bare {@code text} or absent), which forces that index into the excluded set. Tokens: {@code
-   * kw} for bare keyword, {@code tk} for text with a {@code .keyword} sub-field, {@code t:TYPE} for
-   * any other aggregatable type (e.g. {@code t:INTEGER}).
+   * Resolve how one index maps all grouped fields, as the weakest resolution across them: {@code
+   * KEYWORD} only if every field is bare keyword; {@code TEXT_WITH_KEYWORD} if every field is
+   * aggregatable but at least one relies on a {@code .keyword} sub-field; {@code NOT_AGGREGATABLE}
+   * for a bare {@code text} or absent field; {@code CONFLICTING_TYPE} if a field maps to some other
+   * type (e.g. int), which is a type conflict this fallback does not handle.
    */
-  @Nullable
-  static String resolveBucketSignature(
+  static MappingResolution resolveBucketMapping(
       Map<String, OpenSearchDataType> flatMapping, List<String> bucketNames) {
-    List<String> tokens = new ArrayList<>();
+    MappingResolution combined = MappingResolution.KEYWORD;
     for (String field : bucketNames) {
       OpenSearchDataType type = flatMapping.get(field);
       if (type == null) {
-        return null; // field absent here -> can't aggregate cleanly
+        return MappingResolution.NOT_AGGREGATABLE; // field absent here -> can't aggregate cleanly
       }
       if (type.getMappingType() == MappingType.Keyword) {
-        tokens.add("kw");
+        continue;
       } else if (hasKeywordSubField(type)) {
-        tokens.add("tk"); // aggregatable via the .keyword sub-field
+        combined = MappingResolution.TEXT_WITH_KEYWORD;
       } else if (type.getMappingType() == MappingType.Text) {
-        return null; // bare text: the text/keyword collapse -> not aggregatable
+        return MappingResolution.NOT_AGGREGATABLE; // bare text: the text/keyword collapse we handle
       } else {
-        tokens.add("t:" + type.getMappingType()); // other aggregatable type (int, date, ...)
+        return MappingResolution.CONFLICTING_TYPE; // e.g. keyword vs int -> not our conflict
       }
     }
-    return String.join("|", tokens);
-  }
-
-  /**
-   * Deterministic priority over signatures: keyword-only wins, then other aggregatable types, then
-   * text-with-{@code .keyword} last (preserving the original keyword-first behavior); ties broken
-   * by the signature string so the choice is stable.
-   */
-  private static final Comparator<String> SIGNATURE_PRIORITY =
-      Comparator.comparingInt(PartialResultAggregatePushdown::signatureRank)
-          .thenComparing(Comparator.naturalOrder());
-
-  private static int signatureRank(String signature) {
-    int rank = 0;
-    for (String token : signature.split("\\|")) {
-      rank = Math.max(rank, tokenRank(token));
-    }
-    return rank;
-  }
-
-  private static int tokenRank(String token) {
-    if (token.equals("kw")) {
-      return 0;
-    }
-    if (token.equals("tk")) {
-      return 2;
-    }
-    return 1; // t:TYPE -- a concrete aggregatable type
-  }
-
-  /** A signature is string-only when every field resolves to keyword or text-with-.keyword. */
-  private static boolean isStringOnly(String signature) {
-    for (String token : signature.split("\\|")) {
-      if (!token.equals("kw") && !token.equals("tk")) {
-        return false;
-      }
-    }
-    return true;
+    return combined;
   }
 
   private static boolean hasKeywordSubField(OpenSearchDataType type) {
@@ -196,13 +145,13 @@ final class PartialResultAggregatePushdown {
       List<String> bucketNames, List<String> excludedIndices, int totalIndices) {
     String message =
         String.format(
-            "Results exclude %d of %d indices due to a mapping conflict on %s.",
+            "Results exclude %d of %d indices due to a text/keyword mapping conflict on %s.",
             excludedIndices.size(), totalIndices, bucketNames);
     String detail =
         String.format(
-            "%s is not mapped consistently as one aggregatable type across every queried index, so"
-                + " these indices were excluded from the aggregation: %s. Map %s to the same"
-                + " aggregatable type across all indices to include them.",
+            "%s is not mapped as keyword in every queried index, so these indices were excluded"
+                + " from the aggregation: %s. Map %s as keyword across all indices to include"
+                + " them.",
             bucketNames,
             formatIndexList(excludedIndices, MAX_EXCLUDED_INDICES_IN_WARNING),
             bucketNames);

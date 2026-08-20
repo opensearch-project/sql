@@ -66,13 +66,6 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
   private static final String MULTI_TEXT_INDEX = "partial_multi_text";
   private static final String MULTI_PATTERN = "partial_multi_*";
 
-  // Non-text-type fixture: the field is an aggregatable integer in one index and bare text in
-  // another. The integer index is aggregatable, so it is kept and the text index excluded -- rather
-  // than the field silently coercing to one type and dropping the other index's docs.
-  private static final String NUMTEXT_INT_INDEX = "partial_numtext_int";
-  private static final String NUMTEXT_TEXT_INDEX = "partial_numtext_text";
-  private static final String NUMTEXT_PATTERN = "partial_numtext_*";
-
   @Override
   public void init() throws Exception {
     super.init();
@@ -200,30 +193,6 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
       bulk.setJsonEntity(
           "{\"index\":{}}\n{\"city\":\"la\",\"region\":\"us\"}\n"
               + "{\"index\":{}}\n{\"city\":\"sea\",\"region\":\"us\"}\n");
-      performRequest(client(), bulk);
-    }
-
-    // Non-text-type conflict: integer vs bare text on the same field.
-    if (!isIndexExist(client(), NUMTEXT_INT_INDEX)) {
-      String mapping =
-          "{\"settings\":{\"index\":{\"number_of_shards\":2,\"number_of_replicas\":0}},"
-              + "\"mappings\":{\"properties\":{\"val\":{\"type\":\"integer\"}}}}";
-      createIndexByRestClient(client(), NUMTEXT_INT_INDEX, mapping);
-      Request bulk = new Request("POST", "/" + NUMTEXT_INT_INDEX + "/_bulk?refresh=true");
-      bulk.setJsonEntity(
-          "{\"index\":{}}\n{\"val\":7}\n"
-              + "{\"index\":{}}\n{\"val\":7}\n"
-              + "{\"index\":{}}\n{\"val\":9}\n");
-      performRequest(client(), bulk);
-    }
-    if (!isIndexExist(client(), NUMTEXT_TEXT_INDEX)) {
-      String mapping =
-          "{\"settings\":{\"index\":{\"number_of_shards\":2,\"number_of_replicas\":0}},"
-              + "\"mappings\":{\"properties\":{\"val\":{\"type\":\"text\"}}}}";
-      createIndexByRestClient(client(), NUMTEXT_TEXT_INDEX, mapping);
-      Request bulk = new Request("POST", "/" + NUMTEXT_TEXT_INDEX + "/_bulk?refresh=true");
-      bulk.setJsonEntity(
-          "{\"index\":{}}\n{\"val\":\"aa\"}\n" + "{\"index\":{}}\n{\"val\":\"bb\"}\n");
       performRequest(client(), bulk);
     }
 
@@ -360,30 +329,6 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
     assertTrue(
         "warning should name the excluded text index",
         warning.getString("detail").contains(MULTI_TEXT_INDEX));
-  }
-
-  @Test
-  public void partialResultKeepsAggregatableNonTextTypeExcludesText() throws IOException {
-    setPartialResult(true);
-    setPitContextLimit("1");
-    // The field is integer in one index and bare text in another. The integer index is
-    // aggregatable, so it is kept and the text index excluded (with a warning) -- instead of
-    // silently dropping one index's docs to a coerced type.
-    JSONObject result =
-        executeQuery(
-            String.format("source=%s | stats count() as c by val | sort val", NUMTEXT_PATTERN));
-    // Only the integer index contributes its two buckets; the text values (aa, bb) are excluded.
-    assertEquals(2, result.getJSONArray("datarows").length());
-    String body = result.toString();
-    assertTrue("excluded text values must not appear: " + body, !body.contains("aa"));
-    assertTrue("excluded text values must not appear: " + body, !body.contains("bb"));
-
-    assertTrue("response should carry a warnings array", result.has("warnings"));
-    JSONObject warning = result.getJSONArray("warnings").getJSONObject(0);
-    assertEquals("PARTIAL_RESULT", warning.getString("type"));
-    assertTrue(
-        "warning should name the excluded text index",
-        warning.getString("detail").contains(NUMTEXT_TEXT_INDEX));
   }
 
   @Test
