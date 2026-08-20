@@ -1161,9 +1161,28 @@ class PrometheusMetricTableTest {
     PrometheusMetricTable prometheusMetricTable =
         new PrometheusMetricTable(client, "test_metric");
 
-    // Verify the table is a TranslatableTable (toRel will be called by Calcite planner)
+    // Verify the table is a TranslatableTable
     assertTrue(prometheusMetricTable instanceof TranslatableTable);
-    assertNotNull(prometheusMetricTable.getPrometheusClient());
-    assertEquals("test_metric", prometheusMetricTable.getMetricName());
+
+    // Create a minimal Calcite context to invoke toRel()
+    org.apache.calcite.plan.RelOptCluster cluster =
+        org.apache.calcite.plan.RelOptCluster.create(
+            new org.apache.calcite.plan.volcano.VolcanoPlanner(),
+            new org.apache.calcite.rex.RexBuilder(
+                org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY));
+
+    org.apache.calcite.plan.RelOptTable relOptTable =
+        org.mockito.Mockito.mock(org.apache.calcite.plan.RelOptTable.class);
+    org.apache.calcite.plan.RelOptTable.ToRelContext toRelContext =
+        org.mockito.Mockito.mock(org.apache.calcite.plan.RelOptTable.ToRelContext.class);
+    when(toRelContext.getCluster()).thenReturn(cluster);
+
+    org.apache.calcite.rel.RelNode result = prometheusMetricTable.toRel(toRelContext, relOptTable);
+
+    assertNotNull(result);
+    assertTrue(
+        result
+            instanceof
+            org.opensearch.sql.prometheus.storage.scan.CalciteLogicalPrometheusScan);
   }
 }

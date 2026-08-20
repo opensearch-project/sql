@@ -68,7 +68,9 @@ jacocoTestCoverageVerification {
             excludes = [
                     'org.opensearch.sql.prometheus.data.constants.*',
                     'org.opensearch.sql.prometheus.functions.implementation.*',
-                    'org.opensearch.sql.prometheus.planner.logical.rules.*',
+                    'org.opensearch.sql.prometheus.planner.logical.rules.EnumerablePrometheusScanRule',
+                    'org.opensearch.sql.prometheus.planner.logical.rules.PrometheusFilterPushDownRule',
+                    'org.opensearch.sql.prometheus.planner.logical.rules.PrometheusRules',
                     'org.opensearch.sql.prometheus.storage.scan.*'
             ]
             limit {

@@ -132,10 +132,18 @@ public class PrometheusPushDownContext {
     sb.append("{");
     List<String> matchers = new ArrayList<>();
     for (Map.Entry<String, String> entry : labelMatchers.entrySet()) {
-      matchers.add(entry.getKey() + "=\"" + entry.getValue() + "\"");
+      matchers.add(entry.getKey() + "=\"" + escapePromQLLabelValue(entry.getValue()) + "\"");
     }
     sb.append(String.join(",", matchers));
     sb.append("}");
     return sb.toString();
+  }
+
+  /**
+   * Escapes special characters in a PromQL label value for safe interpolation inside double quotes.
+   * Prevents PromQL injection by escaping backslashes, double quotes, and newlines.
+   */
+  static String escapePromQLLabelValue(String value) {
+    return value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
   }
 }
