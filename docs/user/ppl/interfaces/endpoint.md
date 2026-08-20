@@ -261,7 +261,7 @@ Expected output (trimmed):
 - Analyze output is only returned when the query finishes successfully.
 - Analyze requires the Calcite engine to be enabled (`plugins.calcite.enabled=true`).
 - The `profile` section uses the same format as the `profile` endpoint.
-- In rule calculation: rows_in` is the sum of an operator's child row counts; self-time is an operator's own duration (`time_ms − max(child time_ms)`), since profile `time_ms` is cumulative
+- In rule calculation: `rows_in` is the sum of an operator's child row counts; self-time is an operator's own duration (`time_ms − max(child time_ms)`), since profile `time_ms` is cumulative
   wall-time.
 
 
