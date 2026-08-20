@@ -868,7 +868,7 @@ class AstExpressionBuilderTest {
   public void canBuildDateHistogramAsSpan() {
     assertEquals(
         new Span(qualifiedName("ts"), intLiteral(1), SpanUnit.H),
-        buildExprAst("date_histogram('field'=ts, 'interval'='1h')"));
+        buildExprAst("date_histogram(field=ts, interval='1h')"));
   }
 
   /** Bare argument names are the spelling the legacy engine accepts; both forms lower alike. */
@@ -885,15 +885,15 @@ class AstExpressionBuilderTest {
   @Test
   public void canBuildDateHistogramWithIntervalSynonyms() {
     Span expected = new Span(qualifiedName("ts"), intLiteral(1), SpanUnit.D);
-    assertEquals(expected, buildExprAst("date_histogram('field'=ts, 'fixed_interval'='1d')"));
-    assertEquals(expected, buildExprAst("date_histogram('field'=ts, 'calendar_interval'='1d')"));
+    assertEquals(expected, buildExprAst("date_histogram(field=ts, fixed_interval='1d')"));
+    assertEquals(expected, buildExprAst("date_histogram(field=ts, calendar_interval='1d')"));
   }
 
   @Test
   public void canBuildDateHistogramWithStringFieldName() {
     assertEquals(
         new Span(qualifiedName("ts"), intLiteral(30), SpanUnit.m),
-        buildExprAst("date_histogram('field'='ts', 'interval'='30m')"));
+        buildExprAst("date_histogram(field='ts', interval='30m')"));
   }
 
   /** A numeric literal field is left alone rather than coerced to a column reference. */
@@ -901,24 +901,14 @@ class AstExpressionBuilderTest {
   public void bucketFieldGivenNonStringLiteralIsPassedThrough() {
     assertEquals(
         new Span(intLiteral(1), intLiteral(10), SpanUnit.NONE),
-        buildExprAst("histogram('field'=1, 'interval'=10)"));
+        buildExprAst("histogram(field=1, interval=10)"));
   }
 
   @Test
   public void canBuildNumericHistogramAsSpan() {
     assertEquals(
         new Span(qualifiedName("age"), intLiteral(10), SpanUnit.NONE),
-        buildExprAst("histogram('field'=age, 'interval'=10)"));
-  }
-
-  @Test
-  public void canBuildDateHistogramWithMissing() {
-    assertEquals(
-        new Span(
-            function("ifnull", qualifiedName("ts"), stringLiteral("1970-01-01")),
-            intLiteral(1),
-            SpanUnit.H),
-        buildExprAst("date_histogram('field'=ts, 'interval'='1h', 'missing'='1970-01-01')"));
+        buildExprAst("histogram(field=age, interval=10)"));
   }
 
   /**
@@ -930,54 +920,46 @@ class AstExpressionBuilderTest {
   public void unsupportedBucketParameterDefersToLegacyEngine() {
     assertThrows(
         SyntaxCheckException.class,
-        () -> buildExprAst("date_histogram('field'=ts, 'interval'='1d', 'alias'='days')"));
+        () -> buildExprAst("date_histogram(field=ts, interval='1d', 'alias'='days')"));
     assertThrows(
         SyntaxCheckException.class,
-        () -> buildExprAst("histogram('field'=age, 'interval'=10, 'min_doc_count'=1)"));
+        () -> buildExprAst("histogram(field=age, interval=10, 'min_doc_count'=1)"));
     assertThrows(
         SyntaxCheckException.class,
-        () -> buildExprAst("date_histogram('field'=ts, 'interval'='1d', 'format'='yyyy-MM-dd')"));
+        () -> buildExprAst("date_histogram(field=ts, interval='1d', 'format'='yyyy-MM-dd')"));
     assertThrows(
         SyntaxCheckException.class,
-        () -> buildExprAst("date_histogram('field'=ts, 'interval'='1h', 'time_zone'='+05:30')"));
+        () -> buildExprAst("date_histogram(field=ts, interval='1h', 'time_zone'='+05:30')"));
     for (String name : List.of("children", "extended_bounds", "nested", "reverse_nested")) {
       assertThrows(
           SyntaxCheckException.class,
           () ->
               buildExprAst(
-                  String.format("date_histogram('field'=ts, 'interval'='1d', '%s'='x')", name)));
+                  String.format("date_histogram(field=ts, interval='1d', '%s'='x')", name)));
     }
   }
 
   /** A bad argument inside a shape we own must not fall back, so the caller sees this message. */
   @Test
   public void badBucketArgumentIsReportedRatherThanDeferred() {
-    assertThrows(
-        SemanticCheckException.class, () -> buildExprAst("date_histogram('interval'='1d')"));
-    assertThrows(SemanticCheckException.class, () -> buildExprAst("date_histogram('field'=ts)"));
-    assertThrows(
-        SemanticCheckException.class,
-        () -> buildExprAst("date_histogram('field'=ts, 'interval'='1d', 'fixed_interval'='2d')"));
+    assertThrows(SemanticCheckException.class, () -> buildExprAst("date_histogram(interval='1d')"));
+    assertThrows(SemanticCheckException.class, () -> buildExprAst("date_histogram(field=ts)"));
     assertThrows(
         SemanticCheckException.class,
-        () -> buildExprAst("date_histogram('field'=ts, 'interval'=ts)"));
+        () -> buildExprAst("date_histogram(field=ts, interval='1d', fixed_interval='2d')"));
+    assertThrows(
+        SemanticCheckException.class, () -> buildExprAst("date_histogram(field=ts, interval=ts)"));
     assertThrows(
         SemanticCheckException.class,
-        () -> buildExprAst("date_histogram('field'=ts, 'interval'='1d', 'interval'='2d')"));
+        () -> buildExprAst("date_histogram(field=ts, interval='1d', interval='2d')"));
   }
 
-  /**
-   * Bare argument names let anything parse, so a name the legacy engine does not implement either
-   * is a typo. Reporting it keeps a misspelling from silently becoming a legacy-engine query.
-   */
+  /** A name the grammar does not list is a parse error, which routes to the legacy engine. */
   @Test
-  public void unknownBucketParameterIsReportedRatherThanDeferred() {
+  public void unknownBucketParameterIsASyntaxError() {
     assertThrows(
-        SemanticCheckException.class,
-        () -> buildExprAst("date_histogram('field'=ts, 'interval'='1d', 'feild'='ts')"));
-    assertThrows(
-        SemanticCheckException.class,
-        () -> buildExprAst("date_histogram('field'=ts, 'interval'='1d', 'alias'='d', 'nope'=1)"));
+        SyntaxCheckException.class,
+        () -> buildExprAst("date_histogram(field=ts, interval='1d', 'feild'='ts')"));
   }
 
   private Node buildExprAst(String expr) {

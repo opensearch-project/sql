@@ -804,11 +804,10 @@ highlightArgName
    ;
 
 bucketArgName
-   : stringLiteral
-   | ident
+   : FIELD
    | INTERVAL
-   | ORDER
-   | TIME_ZONE
+   | FIXED_INTERVAL
+   | CALENDAR_INTERVAL
    ;
 
 relevanceFieldAndWeight
@@ -890,6 +889,8 @@ ident
 keywordsCanBeId
    : FULL
    | FIELD
+   | FIXED_INTERVAL
+   | CALENDAR_INTERVAL
    | D
    | T
    | TS // OD SQL and ODBC special

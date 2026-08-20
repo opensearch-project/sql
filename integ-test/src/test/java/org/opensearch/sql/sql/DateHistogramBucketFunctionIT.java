@@ -54,7 +54,7 @@ public class DateHistogramBucketFunctionIT extends SQLIntegTestCase {
 
   @Test
   public void hourlyBucketsCarryKeysAndCounts() throws IOException {
-    JSONObject response = executeQuery(bucketed("date_histogram('field'=ts, 'interval'='1h')"));
+    JSONObject response = executeQuery(bucketed("date_histogram(field=ts, interval='1h')"));
 
     verifyDataRowsInOrder(
         response,
@@ -67,7 +67,7 @@ public class DateHistogramBucketFunctionIT extends SQLIntegTestCase {
   /** A sub-hour interval must split 00:00/00:30 and 01:00/01:45 rather than merge them. */
   @Test
   public void halfHourlyBucketsSplitWithinTheHour() throws IOException {
-    JSONObject response = executeQuery(bucketed("date_histogram('field'=ts, 'interval'='30m')"));
+    JSONObject response = executeQuery(bucketed("date_histogram(field=ts, interval='30m')"));
 
     verifyDataRowsInOrder(
         response,
@@ -81,7 +81,7 @@ public class DateHistogramBucketFunctionIT extends SQLIntegTestCase {
 
   @Test
   public void dailyIntervalCollapsesEverythingIntoOneBucket() throws IOException {
-    JSONObject response = executeQuery(bucketed("date_histogram('field'=ts, 'interval'='1d')"));
+    JSONObject response = executeQuery(bucketed("date_histogram(field=ts, interval='1d')"));
 
     verifyDataRows(response, rows("2026-01-01 00:00:00", 72));
   }
@@ -89,10 +89,9 @@ public class DateHistogramBucketFunctionIT extends SQLIntegTestCase {
   /** {@code fixed_interval} and {@code calendar_interval} are accepted as synonyms of interval. */
   @Test
   public void intervalSynonymsProduceTheSameBuckets() throws IOException {
-    JSONObject viaFixed =
-        executeQuery(bucketed("date_histogram('field'=ts, 'fixed_interval'='1h')"));
+    JSONObject viaFixed = executeQuery(bucketed("date_histogram(field=ts, fixed_interval='1h')"));
     JSONObject viaCalendar =
-        executeQuery(bucketed("date_histogram('field'=ts, 'calendar_interval'='1h')"));
+        executeQuery(bucketed("date_histogram(field=ts, calendar_interval='1h')"));
 
     for (JSONObject response : new JSONObject[] {viaFixed, viaCalendar}) {
       verifyDataRowsInOrder(
@@ -109,7 +108,7 @@ public class DateHistogramBucketFunctionIT extends SQLIntegTestCase {
   public void bucketsCombineWithAnAdditionalGroupingKey() throws IOException {
     JSONObject response =
         executeQuery(
-            "SELECT b, c, COUNT(*) FROM (SELECT date_histogram('field'=ts, 'interval'='1h') AS b,"
+            "SELECT b, c, COUNT(*) FROM (SELECT date_histogram(field=ts, interval='1h') AS b,"
                 + " category AS c FROM (SELECT * FROM "
                 + IDX
                 + ") inner_scan) sub GROUP BY b, c ORDER BY b, c");
@@ -128,7 +127,7 @@ public class DateHistogramBucketFunctionIT extends SQLIntegTestCase {
   public void bucketsRespectAWhereClause() throws IOException {
     JSONObject response =
         executeQuery(
-            "SELECT b, COUNT(*) FROM (SELECT date_histogram('field'=ts, 'interval'='1h') AS b FROM "
+            "SELECT b, COUNT(*) FROM (SELECT date_histogram(field=ts, interval='1h') AS b FROM "
                 + IDX
                 + " WHERE category = 'alpha') sub GROUP BY b ORDER BY b");
 
@@ -139,43 +138,12 @@ public class DateHistogramBucketFunctionIT extends SQLIntegTestCase {
         rows("2026-01-01 03:00:00", 19));
   }
 
-  /**
-   * `missing` substitutes a value for a null field before bucketing. Asserted end to end because
-   * the AST alone cannot show whether the substitution function is one the engine evaluates —
-   * `coalesce` is a registered name with no V2 implementation, `ifnull` is the one that runs.
-   *
-   * <p>Uses the numeric field: substituting into a date needs a timestamp-typed replacement, and
-   * the grammar admits only literals here, so a date `missing` reaches IFNULL as TIMESTAMP against
-   * STRING. V2 accepts that pair, the analytics engine rejects it, and a test asserting either
-   * result would disagree with the other route.
-   */
-  @Test
-  public void missingParameterSubstitutesBeforeBucketing() throws IOException {
-    JSONObject response =
-        executeQuery(bucketed("histogram('field'=value, 'interval'=20, 'missing'=0)"));
-
-    verifyDataRowsInOrder(response, rows(0, 19), rows(20, 20), rows(40, 20), rows(60, 13));
-  }
-
   @Test
   public void numericHistogramBucketsByInterval() throws IOException {
-    JSONObject response = executeQuery(bucketed("histogram('field'=value, 'interval'=20)"));
+    JSONObject response = executeQuery(bucketed("histogram(field=value, interval=20)"));
 
     // value runs 1..72, so the 20-wide buckets hold 19, 20, 20 and 13 documents.
     verifyDataRowsInOrder(response, rows(0, 19), rows(20, 20), rows(40, 20), rows(60, 13));
-  }
-
-  /** Argument names may be written bare, the spelling the legacy engine has always accepted. */
-  @Test
-  public void unquotedArgumentNamesReturnHourlyBuckets() throws IOException {
-    JSONObject response = executeQuery(bucketed("date_histogram(field=ts, interval='1h')"));
-
-    verifyDataRowsInOrder(
-        response,
-        rows("2026-01-01 00:00:00", 12),
-        rows("2026-01-01 01:00:00", 24),
-        rows("2026-01-01 02:00:00", 17),
-        rows("2026-01-01 03:00:00", 19));
   }
 
   /**
@@ -190,7 +158,7 @@ public class DateHistogramBucketFunctionIT extends SQLIntegTestCase {
         executeQuery(
             "SELECT COUNT(*) FROM "
                 + IDX
-                + " GROUP BY date_histogram('field'='ts','fixed_interval'='1h','alias'='hours')");
+                + " GROUP BY date_histogram(field='ts',fixed_interval='1h','alias'='hours')");
 
     verifyDataRows(response, rows(12), rows(24), rows(17), rows(19));
   }
@@ -213,19 +181,19 @@ public class DateHistogramBucketFunctionIT extends SQLIntegTestCase {
         ResponseException.class,
         () ->
             executeQuery(
-                "SELECT date_histogram('field'=ts, 'interval'='1h') AS b, COUNT(*) FROM "
+                "SELECT date_histogram(field=ts, interval='1h') AS b, COUNT(*) FROM "
                     + IDX
-                    + " GROUP BY date_histogram('field'=ts, 'interval'='1h')"));
+                    + " GROUP BY date_histogram(field=ts, interval='1h')"));
   }
 
   /** Calendar units: Dashboards emits 1M and 1y at the wider zoom levels. */
   @Test
   public void calendarIntervalsBucketByMonthAndYear() throws IOException {
     verifyDataRows(
-        executeQuery(bucketed("date_histogram('field'=ts, 'interval'='1M')")),
+        executeQuery(bucketed("date_histogram(field=ts, interval='1M')")),
         rows("2026-01-01 00:00:00", 72));
     verifyDataRows(
-        executeQuery(bucketed("date_histogram('field'=ts, 'interval'='1y')")),
+        executeQuery(bucketed("date_histogram(field=ts, interval='1y')")),
         rows("2026-01-01 00:00:00", 72));
   }
 }

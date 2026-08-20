@@ -8,7 +8,6 @@ package org.opensearch.sql.sql.parser;
 import static org.opensearch.sql.ast.dsl.AstDSL.between;
 import static org.opensearch.sql.ast.dsl.AstDSL.not;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.IFNULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LIKE;
@@ -82,7 +81,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -114,19 +112,6 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   /** Synonyms for the bucket width; exactly one is required. */
   private static final List<String> INTERVAL_ARGS =
       List.of("interval", "fixed_interval", "calendar_interval");
-
-  /** Bucket parameters a span cannot express; AggMaker implements these on the legacy engine. */
-  private static final Set<String> LEGACY_ONLY_ARGS =
-      Set.of(
-          "alias",
-          "children",
-          "extended_bounds",
-          "format",
-          "min_doc_count",
-          "nested",
-          "order",
-          "reverse_nested",
-          "time_zone");
 
   private final AstBuildGuard guard;
 
@@ -201,7 +186,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
         ctx.bucketFunction().bucketFunctionName().getText().toLowerCase(Locale.ROOT);
     Map<String, UnresolvedExpression> args = new LinkedHashMap<>();
     for (BucketArgContext arg : ctx.bucketFunction().bucketArg()) {
-      String name = StringUtils.unquoteText(arg.bucketArgName().getText()).toLowerCase(Locale.ROOT);
+      String name = arg.bucketArgName().getText().toLowerCase(Locale.ROOT);
       if (args.put(name, visit(arg.bucketArgValue())) != null) {
         throw new SemanticCheckException(
             String.format("Parameter '%s' can only be specified once.", name));
@@ -209,28 +194,12 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
     }
 
     UnresolvedExpression field = args.remove("field");
-    UnresolvedExpression missing = args.remove("missing");
     List<UnresolvedExpression> intervals =
         INTERVAL_ARGS.stream()
             .map(args::remove)
             .filter(Objects::nonNull)
             .collect(Collectors.toList());
 
-    // Whatever is left is a parameter this lowering has no equivalent for. The ones the legacy
-    // engine implements are declined as a syntax check so RestSQLQueryAction hands the query to
-    // it; anything else is a misspelling and is reported.
-    if (!args.isEmpty()) {
-      String names = String.join(", ", args.keySet());
-      if (LEGACY_ONLY_ARGS.containsAll(args.keySet())) {
-        throw new SyntaxCheckException(
-            String.format(
-                "Parameter %s of %s is not supported in the V2 SQL engine. Falling back to legacy"
-                    + " engine.",
-                names, functionName));
-      }
-      throw new SemanticCheckException(
-          String.format("Parameter %s is invalid for %s function.", names, functionName));
-    }
     if (field == null) {
       throw new SemanticCheckException(
           String.format("Parameter field is required for %s function.", functionName));
@@ -246,8 +215,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
           String.format("Parameter interval must be a literal for %s function.", functionName));
     }
 
-    return AstDSL.spanFromSpanLengthLiteral(
-        substituteMissing(normalizeField(field), missing), interval);
+    return AstDSL.spanFromSpanLengthLiteral(normalizeField(field), interval);
   }
 
   /** A string literal naming a column is coerced so downstream sees a column reference. */
@@ -256,18 +224,6 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
       return AstDSL.qualifiedName(literal.getValue().toString());
     }
     return field;
-  }
-
-  /**
-   * Substitutes {@code missing} for a null field before bucketing. V2 registers `coalesce` as a
-   * name but has no implementation for it, so the query fails at execution with "unsupported
-   * function name"; `ifnull` is the two-argument form V2 actually evaluates.
-   */
-  private static UnresolvedExpression substituteMissing(
-      UnresolvedExpression field, UnresolvedExpression missing) {
-    return missing == null
-        ? field
-        : new Function(IFNULL.getName().getFunctionName(), List.of(field, missing));
   }
 
   @Override
