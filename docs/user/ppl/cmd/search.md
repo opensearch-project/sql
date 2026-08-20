@@ -270,7 +270,7 @@ fetched rows / total rows = 11/11
 Combine conditions with `AND` to require all criteria to match:
 
 ```ppl
-search severityText="INFO" AND `resource.attributes.service.name`="cart*" source=otellogs
+search severityText="INFO" AND `resource.attributes.service.name`="cart" source=otellogs
 | fields body
 | head 1
 ```
