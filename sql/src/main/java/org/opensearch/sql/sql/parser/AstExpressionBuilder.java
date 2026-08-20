@@ -220,13 +220,16 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
     // engine implements are declined as a syntax check so RestSQLQueryAction hands the query to
     // it; anything else is a misspelling and is reported.
     if (!args.isEmpty()) {
-      String message =
-          String.format(
-              "Parameter %s is invalid for %s function.",
-              String.join(", ", args.keySet()), functionName);
-      throw LEGACY_ONLY_ARGS.containsAll(args.keySet())
-          ? new SyntaxCheckException(message)
-          : new SemanticCheckException(message);
+      String names = String.join(", ", args.keySet());
+      if (LEGACY_ONLY_ARGS.containsAll(args.keySet())) {
+        throw new SyntaxCheckException(
+            String.format(
+                "Parameter %s of %s is not supported in the V2 SQL engine. Falling back to legacy"
+                    + " engine.",
+                names, functionName));
+      }
+      throw new SemanticCheckException(
+          String.format("Parameter %s is invalid for %s function.", names, functionName));
     }
     if (field == null) {
       throw new SemanticCheckException(

@@ -152,22 +152,14 @@ public class DateHistogramBucketFunctionIT extends SQLIntegTestCase {
   @Test
   public void missingParameterSubstitutesBeforeBucketing() throws IOException {
     JSONObject response =
-        executeQuery(
-            "SELECT b, COUNT(*) FROM (SELECT histogram('field'=value, 'interval'=20, 'missing'=0)"
-                + " AS b FROM "
-                + IDX
-                + ") sub GROUP BY b ORDER BY b");
+        executeQuery(bucketed("histogram('field'=value, 'interval'=20, 'missing'=0)"));
 
     verifyDataRowsInOrder(response, rows(0, 19), rows(20, 20), rows(40, 20), rows(60, 13));
   }
 
   @Test
   public void numericHistogramBucketsByInterval() throws IOException {
-    JSONObject response =
-        executeQuery(
-            "SELECT b, COUNT(*) FROM (SELECT histogram('field'=value, 'interval'=20) AS b FROM "
-                + IDX
-                + ") sub GROUP BY b ORDER BY b");
+    JSONObject response = executeQuery(bucketed("histogram('field'=value, 'interval'=20)"));
 
     // value runs 1..72, so the 20-wide buckets hold 19, 20, 20 and 13 documents.
     verifyDataRowsInOrder(response, rows(0, 19), rows(20, 20), rows(40, 20), rows(60, 13));
@@ -176,11 +168,7 @@ public class DateHistogramBucketFunctionIT extends SQLIntegTestCase {
   /** Argument names may be written bare, the spelling the legacy engine has always accepted. */
   @Test
   public void unquotedArgumentNamesReturnHourlyBuckets() throws IOException {
-    JSONObject response =
-        executeQuery(
-            "SELECT b, COUNT(*) FROM (SELECT date_histogram(field=ts, interval='1h') AS b FROM "
-                + IDX
-                + ") sub GROUP BY b ORDER BY b");
+    JSONObject response = executeQuery(bucketed("date_histogram(field=ts, interval='1h')"));
 
     verifyDataRowsInOrder(
         response,
@@ -209,11 +197,7 @@ public class DateHistogramBucketFunctionIT extends SQLIntegTestCase {
 
   @Test
   public void unquotedArgumentNamesReturnNumericBuckets() throws IOException {
-    JSONObject response =
-        executeQuery(
-            "SELECT b, COUNT(*) FROM (SELECT histogram(field=value, interval=20) AS b FROM "
-                + IDX
-                + ") sub GROUP BY b ORDER BY b");
+    JSONObject response = executeQuery(bucketed("histogram(field=value, interval=20)"));
 
     verifyDataRowsInOrder(response, rows(0, 19), rows(20, 20), rows(40, 20), rows(60, 13));
   }

@@ -998,8 +998,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     DATE_HISTOGRAM_TEST(
         "date_histogram_test",
         "date_histogram_test",
-        "{\"mappings\":{\"properties\":{\"ts\":{\"type\":\"date\",\"format\":\"yyyy-MM-dd"
-            + " HH:mm:ss\"},\"category\":{\"type\":\"keyword\"},\"value\":{\"type\":\"integer\"}}}}",
+        getMappingFile("date_histogram_test_index_mapping.json"),
         "src/test/resources/date_histogram_test.json");
 
     private final String name;
