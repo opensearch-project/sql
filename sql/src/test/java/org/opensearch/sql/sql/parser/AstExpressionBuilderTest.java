@@ -56,7 +56,6 @@ import org.opensearch.sql.common.antlr.AstBuildGuard;
 import org.opensearch.sql.common.antlr.CaseInsensitiveCharStream;
 import org.opensearch.sql.common.antlr.SyntaxAnalysisErrorListener;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
-import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
 
@@ -939,19 +938,18 @@ class AstExpressionBuilderTest {
     }
   }
 
-  /** A bad argument inside a shape we own must not fall back, so the caller sees this message. */
+  /** A shape the grammar does not admit is a syntax error, which routes to the legacy engine. */
   @Test
-  public void badBucketArgumentIsReportedRatherThanDeferred() {
-    assertThrows(SemanticCheckException.class, () -> buildExprAst("date_histogram(interval='1d')"));
-    assertThrows(SemanticCheckException.class, () -> buildExprAst("date_histogram(field=ts)"));
-    assertThrows(
-        SemanticCheckException.class,
-        () -> buildExprAst("date_histogram(field=ts, interval='1d', fixed_interval='2d')"));
-    assertThrows(
-        SemanticCheckException.class, () -> buildExprAst("date_histogram(field=ts, interval=ts)"));
-    assertThrows(
-        SemanticCheckException.class,
-        () -> buildExprAst("date_histogram(field=ts, interval='1d', interval='2d')"));
+  public void badBucketArgumentIsASyntaxError() {
+    for (String call :
+        List.of(
+            "date_histogram(interval='1d')",
+            "date_histogram(field=ts)",
+            "date_histogram(field=ts, interval='1d', fixed_interval='2d')",
+            "date_histogram(field=ts, interval=ts)",
+            "date_histogram(field=ts, interval='1d', interval='2d')")) {
+      assertThrows(SyntaxCheckException.class, () -> buildExprAst(call));
+    }
   }
 
   /** A name the grammar does not list is a parse error, which routes to the legacy engine. */

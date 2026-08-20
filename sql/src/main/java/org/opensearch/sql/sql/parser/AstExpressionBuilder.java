@@ -20,7 +20,6 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.AlternateM
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BetweenPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BinaryComparisonPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BooleanContext;
-import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BucketArgContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BucketFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CaseFuncAlternativeContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CaseFunctionCallContext;
@@ -75,11 +74,9 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.antlr.v4.runtime.RuleContext;
@@ -93,7 +90,6 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.common.antlr.AstBuildGuard;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
-import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.AlternateMultiMatchQueryContext;
@@ -108,10 +104,6 @@ import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
 
 /** Expression builder to parse text to expression in AST. */
 public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedExpression> {
-
-  /** Synonyms for the bucket width; exactly one is required. */
-  private static final List<String> INTERVAL_ARGS =
-      List.of("interval", "fixed_interval", "calendar_interval");
 
   private final AstBuildGuard guard;
 
@@ -175,47 +167,15 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   }
 
   /**
-   * Lowers {@code histogram} and {@code date_histogram} to a {@link Span} over the bucketed field.
-   * Parameters the span cannot express are implemented by the legacy engine through the native
-   * date_histogram aggregation, so those calls are declined as a syntax check to let
-   * RestSQLQueryAction hand them back to it.
+   * Lowers {@code histogram} and {@code date_histogram} to a {@link Span}, the same node PPL's
+   * {@code span()} produces. Anything the grammar does not admit here is a syntax error, which
+   * RestSQLQueryAction hands to the legacy engine.
    */
   @Override
   public UnresolvedExpression visitBucketFunctionCall(BucketFunctionCallContext ctx) {
-    String functionName =
-        ctx.bucketFunction().bucketFunctionName().getText().toLowerCase(Locale.ROOT);
-    Map<String, UnresolvedExpression> args = new LinkedHashMap<>();
-    for (BucketArgContext arg : ctx.bucketFunction().bucketArg()) {
-      String name = arg.bucketArgName().getText().toLowerCase(Locale.ROOT);
-      if (args.put(name, visit(arg.bucketArgValue())) != null) {
-        throw new SemanticCheckException(
-            String.format("Parameter '%s' can only be specified once.", name));
-      }
-    }
-
-    UnresolvedExpression field = args.remove("field");
-    List<UnresolvedExpression> intervals =
-        INTERVAL_ARGS.stream()
-            .map(args::remove)
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList());
-
-    if (field == null) {
-      throw new SemanticCheckException(
-          String.format("Parameter field is required for %s function.", functionName));
-    }
-    if (intervals.size() != 1) {
-      throw new SemanticCheckException(
-          String.format(
-              "Exactly one of %s is required for %s function.",
-              String.join(", ", INTERVAL_ARGS), functionName));
-    }
-    if (!(intervals.get(0) instanceof Literal interval)) {
-      throw new SemanticCheckException(
-          String.format("Parameter interval must be a literal for %s function.", functionName));
-    }
-
-    return AstDSL.spanFromSpanLengthLiteral(normalizeField(field), interval);
+    OpenSearchSQLParser.BucketFunctionContext bucket = ctx.bucketFunction();
+    return AstDSL.spanFromSpanLengthLiteral(
+        normalizeField(visit(bucket.field)), (Literal) visit(bucket.interval));
   }
 
   /** A string literal naming a column is coerced so downstream sees a column reference. */

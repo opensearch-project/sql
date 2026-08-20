@@ -431,11 +431,14 @@ highlightFunction
    ;
 
 bucketFunction
-   : bucketFunctionName LR_BRACKET bucketArg (COMMA bucketArg)* RR_BRACKET
+   : bucketFunctionName LR_BRACKET FIELD EQUAL_SYMBOL field = bucketArgValue COMMA
+     intervalArgName EQUAL_SYMBOL interval = constant RR_BRACKET
    ;
 
-bucketArg
-   : bucketArgName EQUAL_SYMBOL bucketArgValue
+intervalArgName
+   : INTERVAL
+   | FIXED_INTERVAL
+   | CALENDAR_INTERVAL
    ;
 
 positionFunction
@@ -801,13 +804,6 @@ relevanceArgName
 highlightArgName
    : HIGHLIGHT_POST_TAGS
    | HIGHLIGHT_PRE_TAGS
-   ;
-
-bucketArgName
-   : FIELD
-   | INTERVAL
-   | FIXED_INTERVAL
-   | CALENDAR_INTERVAL
    ;
 
 relevanceFieldAndWeight
