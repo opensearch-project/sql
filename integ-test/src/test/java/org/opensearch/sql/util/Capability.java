@@ -538,6 +538,17 @@ public enum Capability {
       "Prepared statements are unsupported on the analytics-engine route (Calcite path)."),
 
   /**
+   * FRONTEND: the legacy V1 engine answers call shapes the V2 grammar declines, but only on the
+   * default route. Requests reach it when RestSQLQueryAction catches a SyntaxCheckException; the
+   * analytics-engine route enters through RestUnifiedQueryAction, which has no such fallback.
+   */
+  LEGACY_ENGINE_FALLBACK(
+      "A call shape only the legacy V1 engine understands (e.g. a date_histogram `alias`"
+          + " parameter) can't be answered on the analytics-engine route: reaching that engine"
+          + " depends on RestSQLQueryAction's SyntaxCheckException fallback, and the analytics"
+          + " route does not go through it."),
+
+  /**
    * FRONTEND: legacy method-query syntax (regexp_query/wildcard_query) is not in the Calcite
    * grammar.
    */

@@ -994,7 +994,12 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "timewrap_test",
         "timewrap_test",
         "{\"mappings\":{\"properties\":{\"@timestamp\":{\"type\":\"date\"},\"host\":{\"type\":\"keyword\"},\"requests\":{\"type\":\"integer\"},\"errors\":{\"type\":\"integer\"}}}}",
-        "src/test/resources/timewrap_test.json");
+        "src/test/resources/timewrap_test.json"),
+    DATE_HISTOGRAM_TEST(
+        "date_histogram_test",
+        "date_histogram_test",
+        getMappingFile("date_histogram_test_index_mapping.json"),
+        "src/test/resources/date_histogram_test.json");
 
     private final String name;
     private final String type;

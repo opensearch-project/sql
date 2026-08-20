@@ -368,6 +368,7 @@ functionCall
    | extractFunction                                            # extractFunctionCall
    | getFormatFunction                                          # getFormatFunctionCall
    | timestampFunction                                          # timestampFunctionCall
+   | bucketFunction                                             # bucketFunctionCall
    ;
 
 timestampFunction
@@ -429,6 +430,17 @@ highlightFunction
    : HIGHLIGHT LR_BRACKET relevanceField (COMMA highlightArg)* RR_BRACKET
    ;
 
+bucketFunction
+   : bucketFunctionName LR_BRACKET FIELD EQUAL_SYMBOL field = bucketArgValue COMMA
+     intervalArgName EQUAL_SYMBOL interval = constant RR_BRACKET
+   ;
+
+intervalArgName
+   : INTERVAL
+   | FIXED_INTERVAL
+   | CALENDAR_INTERVAL
+   ;
+
 positionFunction
    : POSITION LR_BRACKET functionArg IN functionArg RR_BRACKET
    ;
@@ -444,6 +456,11 @@ scalarFunctionName
    | flowControlFunctionName
    | systemFunctionName
    | nestedFunctionName
+   ;
+
+bucketFunctionName
+   : HISTOGRAM
+   | DATE_HISTOGRAM
    ;
 
 specificFunction
@@ -813,6 +830,11 @@ relevanceArgValue
    | constant
    ;
 
+bucketArgValue
+   : constant
+   | qualifiedName
+   ;
+
 highlightArgValue
    : stringLiteral
    ;
@@ -863,6 +885,8 @@ ident
 keywordsCanBeId
    : FULL
    | FIELD
+   | FIXED_INTERVAL
+   | CALENDAR_INTERVAL
    | D
    | T
    | TS // OD SQL and ODBC special
