@@ -29,7 +29,11 @@ class ExpensiveSortRule implements RecommendationRule {
       return recommendations;
     }
     for (PlanNode node : view.planNodes()) {
-      if (!node.getNode().toLowerCase(Locale.ROOT).contains("sort")) {
+      // Match standalone sorts and bounded sorts fused with a limit. A top-level PPL sort is
+      // typically merged with the query-size-limit into CalciteEnumerableTopK, whose name contains
+      // no "sort" -- but a TopK is always a sort (it extends EnumerableLimitSort), so it qualifies.
+      String name = node.getNode().toLowerCase(Locale.ROOT);
+      if (!name.contains("sort") && !name.contains("topk")) {
         continue;
       }
       long rowsIn = ProfileView.rowsIn(node);

@@ -100,6 +100,21 @@ class AnalyzeRecommendationBuilderTest {
   }
 
   @Test
+  void expensiveSortFiresForFusedTopKNode() {
+    // A top-level sort fuses with the query-size-limit into CalciteEnumerableTopK (no "sort" in
+    // the name). It is still a sort, so it must trip the rule: 30ms self-time of 100 (30% > 20%),
+    // 60k input rows (> 50k).
+    PlanNode scan = new PlanNode("EnumerableMergeJoin", 10.0, 60_000, null);
+    PlanNode topK = new PlanNode("CalciteEnumerableTopK", 40.0, 100, List.of(scan));
+    List<Recommendation> recs = new AnalyzeRecommendationBuilder(profile(1, 100, topK)).build();
+
+    Recommendation r = ruleOf(recs, "Expensive Sort").orElseThrow();
+    assertEquals(RecommendationSeverityLevel.WARNING, r.getSeverity());
+    assertEquals("CalciteEnumerableTopK", r.getAffected_node());
+    assertTrue(r.getMessage().contains("Sorting 60000 rows"));
+  }
+
+  @Test
   void expensiveSortSilentWhenSelfTimeIsSmall() {
     // sort cumulative 90ms but its child took 89ms -> self-time only 1ms, not expensive
     PlanNode scan = new PlanNode("scan", 89.0, 60_000, null);
