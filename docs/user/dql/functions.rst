@@ -15,8 +15,6 @@ There is support for a wide variety of functions shared by SQL/PPL. We are inten
 
 Most of the specifications can be self explained just as a regular function with data type as argument. The only notation that needs elaboration is generic type ``T`` which binds to an actual type and can be used as return type. For example, ``ABS(NUMBER T) -> T`` means function ``ABS`` accepts an numerical argument of type ``T`` which could be any sub-type of ``NUMBER`` type and returns the actual type of ``T`` as return type. The actual type binds to generic type at runtime dynamically.
 
-The bucket functions ``date_histogram`` and ``histogram`` are not listed here because they are only valid as a grouping key, please see also: `Aggregations <aggregations.rst>`_
-
 
 Type Conversion
 ===============
