@@ -165,10 +165,10 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
     // CalciteRexNodeVisitor#visitWindowFunction's
     // orElseThrow. The throw site emits CalciteUnsupportedException so this path normalizes to a
     // 4xx SemanticCheckException rather than escaping as a 500.
-    givenInvalidQuery("source = catalog.employees | eventstats rank()")
+    givenInvalidQuery("source = catalog.employees | eventstats percent_rank()")
         .assertErrorType(SemanticCheckException.class)
         .assertCauseType(CalciteUnsupportedException.class)
-        .assertErrorMessageContains("Unexpected window function: rank");
+        .assertErrorMessageContains("Unexpected window function: percent_rank");
   }
 
   @Test
