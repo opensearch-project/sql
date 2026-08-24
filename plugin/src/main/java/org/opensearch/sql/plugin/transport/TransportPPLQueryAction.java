@@ -14,6 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.apache.calcite.rel.RelNode;
 import org.apache.logging.log4j.LogManager;
@@ -38,8 +39,10 @@ import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
+import org.opensearch.sql.monitor.profile.ProfileScope;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
+import org.opensearch.sql.opensearch.executor.tracing.TracingPhaseListener;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.plugin.config.EngineExtensionsHolder;
 import org.opensearch.sql.plugin.config.OpenSearchPluginModule;
@@ -58,6 +61,12 @@ import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.VisualizationResponseFormatter;
 import org.opensearch.sql.protocol.response.format.YamlResponseFormatter;
 import org.opensearch.tasks.Task;
+import org.opensearch.telemetry.tracing.Span;
+import org.opensearch.telemetry.tracing.SpanCreationContext;
+import org.opensearch.telemetry.tracing.SpanScope;
+import org.opensearch.telemetry.tracing.Tracer;
+import org.opensearch.telemetry.tracing.attributes.Attributes;
+import org.opensearch.telemetry.tracing.listener.TraceableActionListener;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -68,6 +77,8 @@ public class TransportPPLQueryAction
   private static final Logger LOG = LogManager.getLogger(TransportPPLQueryAction.class);
 
   private final Injector injector;
+
+  private final Tracer tracer;
 
   private final Supplier<Boolean> pplEnabled;
 
@@ -86,13 +97,14 @@ public class TransportPPLQueryAction
       ClusterService clusterService,
       DataSourceServiceImpl dataSourceService,
       org.opensearch.common.settings.Settings clusterSettings,
-      EngineExtensionsHolder extensionsHolder) {
+      EngineExtensionsHolder extensionsHolder,
+      Tracer tracer) {
     super(PPLQueryAction.NAME, transportService, actionFilters, TransportPPLQueryRequest::new);
     this.clientRef = client;
     this.clusterServiceRef = clusterService;
 
     ModulesBuilder modules = new ModulesBuilder();
-    modules.add(new OpenSearchPluginModule(extensionsHolder.engines()));
+    modules.add(new OpenSearchPluginModule(extensionsHolder.engines(), tracer));
     org.opensearch.sql.common.setting.Settings pluginSettings =
         new OpenSearchSettings(clusterService.getClusterSettings());
     this.pluginSettingsRef = pluginSettings;
@@ -103,6 +115,8 @@ public class TransportPPLQueryAction
           b.bind(DataSourceService.class).toInstance(dataSourceService);
         });
     this.injector = Guice.createInjector(modules);
+    this.tracer = tracer;
+    ProfileScope.installListener(new TracingPhaseListener(tracer));
     this.pplEnabled =
         () ->
             MULTI_ALLOW_EXPLICIT_INDEX.get(clusterSettings)
@@ -180,52 +194,86 @@ public class TransportPPLQueryAction
     // in order to use PPL service, we need to convert TransportPPLQueryRequest to PPLQueryRequest
     PPLQueryRequest transformedRequest = transportRequest.toPPLQueryRequest();
     QueryContext.setProfile(transformedRequest.profile());
-    ActionListener<TransportPPLQueryResponse> clearingListener = wrapWithProfilingClear(listener);
 
-    // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices.
-    if (unifiedQueryHandler != null
-        && unifiedQueryHandler.isAnalyticsIndex(transformedRequest.getRequest(), QueryType.PPL)) {
-      LOG.info("[{}] Routing PPL query to analytics engine", QueryContext.getRequestId());
-      // Pass this PPL task so the analytics engine links its query task to it for cancellation.
-      if (transformedRequest.isExplainRequest()) {
-        unifiedQueryHandler.explain(
-            transformedRequest.getRequest(),
-            QueryType.PPL,
-            transformedRequest.mode(),
-            task,
-            createExplainResponseListener(transformedRequest, clearingListener));
-      } else {
-        // Analytics route only emits JSON; reject unsupported formats (e.g. csv) with a 4xx.
-        try {
-          AnalyticsEngineFormatSupport.validateFormat(format(transformedRequest));
-        } catch (Exception e) {
-          clearingListener.onFailure(e);
-          return;
+    // Start root span with OTel DB semantic convention attributes
+    Span rootSpan =
+        tracer.startSpan(
+            SpanCreationContext.client()
+                .name("opensearch.query")
+                .attributes(
+                    Attributes.create()
+                        .addAttribute("db.system.name", "opensearch")
+                        .addAttribute("db.query.type", "ppl")
+                        .addAttribute("db.query.id", QueryContext.getRequestId())
+                        .addAttribute(
+                            "db.operation.name",
+                            transformedRequest.isExplainRequest() ? "EXPLAIN" : "EXECUTE")));
+
+    // Put span in scope so ThreadContext propagation captures it
+    SpanScope spanScope = tracer.withSpanInScope(rootSpan);
+
+    // Trace wrapper: ends span in async callback, sets error on failure.
+    ActionListener<TransportPPLQueryResponse> tracedListener =
+        TraceableActionListener.create(listener, rootSpan, tracer);
+    ActionListener<TransportPPLQueryResponse> clearingListener =
+        wrapWithProfilingClear(tracedListener);
+
+    try {
+      // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices.
+      if (unifiedQueryHandler != null
+          && unifiedQueryHandler.isAnalyticsIndex(transformedRequest.getRequest(), QueryType.PPL)) {
+        LOG.info("[{}] Routing PPL query to analytics engine", QueryContext.getRequestId());
+        // Pass this PPL task so the analytics engine links its query task to it for cancellation.
+        if (transformedRequest.isExplainRequest()) {
+          unifiedQueryHandler.explain(
+              transformedRequest.getRequest(),
+              QueryType.PPL,
+              transformedRequest.mode(),
+              task,
+              createExplainResponseListener(transformedRequest, clearingListener));
+        } else {
+          // Analytics route only emits JSON; reject unsupported formats (e.g. csv) with a 4xx.
+          try {
+            AnalyticsEngineFormatSupport.validateFormat(format(transformedRequest));
+          } catch (Exception e) {
+            clearingListener.onFailure(e);
+            return;
+          }
+          unifiedQueryHandler.execute(
+              transformedRequest.getRequest(),
+              QueryType.PPL,
+              transformedRequest.profile(),
+              transformedRequest.getFetchSize(),
+              task,
+              clearingListener);
         }
-        unifiedQueryHandler.execute(
-            transformedRequest.getRequest(),
-            QueryType.PPL,
-            transformedRequest.profile(),
-            transformedRequest.getFetchSize(),
-            task,
-            clearingListener);
+        return;
       }
-      return;
-    }
 
-    PPLService pplService = injector.getInstance(PPLService.class);
-
-    if (transformedRequest.isExplainRequest()) {
-      pplService.explain(
-          transformedRequest, createExplainResponseListener(transformedRequest, clearingListener));
-    } else if (transformedRequest.analyze()) {
-      pplService.analyze(
-          transformedRequest, createAnalyzeResponseListener(transformedRequest, clearingListener));
-    } else {
-      pplService.execute(
-          transformedRequest,
-          createListener(transformedRequest, clearingListener),
-          createExplainResponseListener(transformedRequest, clearingListener));
+      Consumer<String> anonymizedQuerySink =
+          anonymized -> rootSpan.addAttribute("db.query.text", anonymized);
+      PPLService pplService = injector.getInstance(PPLService.class);
+      if (transformedRequest.isExplainRequest()) {
+        pplService.explain(
+            transformedRequest,
+            createExplainResponseListener(transformedRequest, clearingListener),
+            anonymizedQuerySink);
+      } else if (transformedRequest.analyze()) {
+        pplService.analyze(
+            transformedRequest,
+            createAnalyzeResponseListener(transformedRequest, clearingListener),
+            anonymizedQuerySink);
+      } else {
+        pplService.execute(
+            transformedRequest,
+            createListener(transformedRequest, clearingListener),
+            createExplainResponseListener(transformedRequest, clearingListener),
+            anonymizedQuerySink);
+      }
+    } catch (Exception e) {
+      clearingListener.onFailure(e);
+    } finally {
+      spanScope.close();
     }
   }
 

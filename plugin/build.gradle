@@ -305,6 +305,33 @@ def getJobSchedulerPlugin() {
     })
 }
 
+def getTelemetryOtelPlugin() {
+    // telemetry-otel is an OpenSearch core module — not published to ci.opensearch.org as a
+    // standalone plugin zip (unlike opensearch-job-scheduler). Build it locally from the OpenSearch
+    // source tree with `bundlePlugin` and point at it with -DtelemetryOtelSrc=<path>.
+    String opensearchSrc = System.getProperty("telemetryOtelSrc")
+    if (opensearchSrc == null) {
+        throw new GradleException(
+                "-DenableTelemetry requires -DtelemetryOtelSrc=<OpenSearch>/plugins/telemetry-otel.\n" +
+                "Build the zip first: (cd <OpenSearch>/plugins/telemetry-otel && ../../gradlew bundlePlugin)")
+    }
+    def telemetryOtelZip = file("${opensearchSrc}/build/distributions/telemetry-otel-${opensearch_version}.zip")
+    return provider(new Callable<RegularFile>() {
+        @Override
+        RegularFile call() throws Exception {
+            if (!telemetryOtelZip.exists()) {
+                throw new GradleException(
+                        "telemetry-otel plugin zip not found: ${telemetryOtelZip}.\n" +
+                        "Build it with: (cd ${opensearchSrc} && ../../gradlew bundlePlugin)")
+            }
+            return new RegularFile() {
+                @Override
+                File getAsFile() { return telemetryOtelZip }
+            }
+        }
+    })
+}
+
 testClusters.integTest {
     plugin(getJobSchedulerPlugin())
     plugin(project.tasks.bundlePlugin.archiveFile)
@@ -313,6 +340,21 @@ testClusters.integTest {
     // debug with command, ./gradlew opensearch-sql:run -DdebugJVM. --debug-jvm does not work with keystore.
     if (System.getProperty("debugJVM") != null) {
         jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005'
+    }
+
+    // Enable OTel tracing and export spans to the observability-stack collector.
+    // Toggle with: ./gradlew :opensearch-sql-plugin:run -DenableTelemetry
+    // The telemetry-otel plugin is downloaded from the OpenSearch distribution build (cached in build/telemetry-otel/).
+    // The observability-stack docker-compose must be running on the host (OTLP gRPC on 4317).
+    if (System.getProperty("enableTelemetry") != null) {
+        plugin(getTelemetryOtelPlugin())
+        systemProperty 'opensearch.experimental.feature.telemetry.enabled', 'true'
+        setting 'telemetry.feature.tracer.enabled', 'true'
+        setting 'telemetry.tracer.enabled', 'true'
+        setting 'telemetry.tracer.sampler.probability', '1.0'
+        setting 'telemetry.otel.tracer.span.exporter.class', 'io.opentelemetry.exporter.otlp.trace.OtlpGrpcSpanExporter'
+        // Default endpoint for OtlpGrpcSpanExporter.getDefault() is http://localhost:4317 — the observability-stack collector.
+        environment 'OTEL_EXPORTER_OTLP_ENDPOINT', 'http://localhost:4317'
     }
 
     // add customized keystore

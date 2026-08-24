@@ -75,6 +75,11 @@ ext {
     projectSubstitutions = [:]
     licenseFile = rootProject.file('LICENSE.TXT')
     noticeFile = rootProject.file('NOTICE')
+    telemetryOtelVersion = System.getProperty("telemetryOtelVersion")
+    if (!telemetryOtelVersion) {
+        def metadataUrl = new URL('https://ci.opensearch.org/maven2/org/opensearch/plugin/telemetry-otel/maven-metadata.xml')
+        telemetryOtelVersion = new XmlParser().parse(metadataUrl.openStream()).versioning.release.text()
+    }
 
     getSecurityPluginDownloadLink = { ->
         var repo = "https://ci.opensearch.org/ci/dbc/snapshots/maven/org/opensearch/plugin/" +
@@ -213,6 +218,7 @@ dependencies {
     testImplementation(testFixtures(project(':api'))) {
         exclude group: 'org.hamcrest', module: 'hamcrest-core'
     }
+    testImplementation 'io.opentelemetry.proto:opentelemetry-proto:1.3.2-alpha'
     testImplementation('org.junit.jupiter:junit-jupiter-api:5.9.3')
     testImplementation('org.junit.jupiter:junit-jupiter-params:5.9.3')
     testRuntimeOnly('org.junit.jupiter:junit-jupiter-engine:5.9.3')
@@ -229,6 +235,7 @@ dependencies {
 
     // For GeoIP PPL functions
     zipArchive group: 'org.opensearch.plugin', name:'geospatial', version: "${opensearch_build}"
+
 }
 
 java {
@@ -380,6 +387,49 @@ def getAnalyticsBackendDatafusionPlugin() {
     provider { (RegularFile) (() -> file(project.findProperty('analyticsBackendDatafusionZip') ?: analyticsBackendDatafusionZipDest)) }
 }
 
+ext.telemetryOtelZip = file("${buildDir}/tmp/telemetry-otel-patched.zip")
+
+def downloadTelemetryOtel = tasks.register('downloadTelemetryOtel') {
+    outputs.file(project.telemetryOtelZip)
+    doLast {
+        def v = project.telemetryOtelVersion
+        def clusterVersion = opensearch_version.toString().tokenize('-')[0]
+        def rawZip = file("${buildDir}/tmp/telemetry-otel-${v}-raw.zip")
+        def extractDir = file("${buildDir}/tmp/telemetry-otel-${v}-extracted")
+
+        if (!rawZip.exists()) {
+            def url = "https://artifacts.opensearch.org/releases/plugins/telemetry-otel/${v}/telemetry-otel-${v}.zip"
+            logger.lifecycle "Downloading telemetry-otel plugin ${v} from ${url}"
+            rawZip.parentFile.mkdirs()
+            ant.get(src: url, dest: rawZip, httpusecaches: false)
+        }
+
+        delete extractDir
+        extractDir.mkdirs()
+        ant.unzip(src: rawZip, dest: extractDir)
+        def descriptor = file("${extractDir}/plugin-descriptor.properties")
+        descriptor.text = descriptor.text.replaceAll(
+                /(?m)^opensearch\.version=.*$/,
+                "opensearch.version=${clusterVersion}")
+
+        delete project.telemetryOtelZip
+        ant.zip(destfile: project.telemetryOtelZip, basedir: extractDir)
+    }
+}
+
+def getTelemetryOtelPlugin() {
+    return provider(new Callable<RegularFile>() {
+        @Override
+        RegularFile call() throws Exception {
+            return new RegularFile() {
+                @Override
+                File getAsFile() { return project.telemetryOtelZip }
+            }
+        }
+    })
+}
+
+
 testClusters {
     integTest {
         testDistribution = 'archive'
@@ -389,6 +439,22 @@ testClusters {
         setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
         // Only /_cluster/health is registered; pin the allow-list to it for the rest ITs.
         setting 'plugins.ppl.rest.allowed_endpoints', '/_cluster/health'
+    }
+    tracingIntegTest {
+        testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
+        plugin(getGeoSpatialPlugin())
+        plugin ":opensearch-sql-plugin"
+        plugin(getTelemetryOtelPlugin())
+        setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
+        setting 'plugins.ppl.rest.allowed_endpoints', '/_cluster/health'
+        systemProperty 'opensearch.experimental.feature.telemetry.enabled', 'true'
+        setting 'telemetry.feature.tracer.enabled', 'true'
+        setting 'telemetry.tracer.enabled', 'true'
+        setting 'telemetry.tracer.sampler.probability', '1.0'
+        setting 'telemetry.otel.tracer.span.exporter.class',
+                'io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter'
+        setting 'telemetry.otel.tracer.exporter.delay', '50ms'
     }
     yamlRestTest {
         testDistribution = 'archive'
@@ -760,6 +826,8 @@ integTest {
     // Exclude tests that require the analytics engine plugin stack (run separately via dedicated tasks)
     exclude 'org/opensearch/sql/analytics/AnalyticsEngineProfileIT.class'
 
+    exclude 'org/opensearch/sql/calcite/tracing/**'
+
     // Explain IT is dependent on internal implementation of old engine so it's not necessary
     // to run these with new engine and not necessary to make this consistent with old engine.
     exclude 'org/opensearch/sql/legacy/ExplainIT.class'
@@ -826,6 +894,41 @@ task printIntegTestPaths {
         println "Test report available at: file://${project.buildDir}/reports/tests/integTest/index.html"
         println "integTest cluster logs available at: file://${project.buildDir}/testclusters/integTest-0/logs/integTest.log"
         println "remoteCluster cluster logs available at: file://${project.buildDir}/testclusters/remoteCluster-0/logs/remoteCluster.log"
+    }
+}
+
+task tracingIntegTest(type: RestIntegTestTask) {
+    useCluster testClusters.tracingIntegTest
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+    dependsOn downloadTelemetryOtel
+
+    systemProperty 'tests.security.manager', 'false'
+    systemProperty 'project.root', project.projectDir.absolutePath
+    systemProperty 'tests.tracing.otlp.port', '4318'
+
+    doFirst {
+        getClusters().forEach { cluster ->
+            String allHttpSocketURI = cluster.nodes.stream().flatMap { node ->
+                node.getAllHttpSocketURI().stream()
+            }.collect(Collectors.joining(","))
+            String allTransportSocketURI = cluster.nodes.stream().flatMap { node ->
+                node.getAllTransportPortURI().stream()
+            }.collect(Collectors.joining(","))
+            systemProperty "tests.rest.${cluster.name}.http_hosts", "${-> allHttpSocketURI}"
+            systemProperty "tests.rest.${cluster.name}.transport_hosts", "${-> allTransportSocketURI}"
+        }
+        systemProperty "https", "false"
+        systemProperty "user", "admin"
+        systemProperty "password", "admin"
+        systemProperty 'cluster.debug', getDebug()
+    }
+
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+
+    filter {
+        includeTestsMatching 'org.opensearch.sql.calcite.tracing.*'
     }
 }
 

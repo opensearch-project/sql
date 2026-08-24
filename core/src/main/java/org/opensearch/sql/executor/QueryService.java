@@ -61,8 +61,8 @@ import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.NonFallbackCalciteException;
 import org.opensearch.sql.executor.analyze.AnalyzeRecommendationBuilder;
 import org.opensearch.sql.monitor.profile.MetricName;
-import org.opensearch.sql.monitor.profile.ProfileContext;
 import org.opensearch.sql.monitor.profile.ProfileMetric;
+import org.opensearch.sql.monitor.profile.ProfileScope;
 import org.opensearch.sql.monitor.profile.QueryProfile;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.sql.planner.PlanContext;
@@ -219,38 +219,40 @@ public class QueryService {
     CalcitePlanContext.run(
         () -> {
           try {
-            ProfileContext profileContext =
-                QueryProfiling.activate(QueryContext.isProfileEnabled());
-            ProfileMetric analyzeMetric = profileContext.getOrCreateMetric(MetricName.ANALYZE);
-            long analyzeStart = System.nanoTime();
+            QueryProfiling.activate(QueryContext.isProfileEnabled());
             CalciteClassLoaderHelper.withCalciteClassLoader(
                 () -> {
-                  CalcitePlanContext context =
-                      CalcitePlanContext.create(
-                          buildFrameworkConfig(),
-                          SysLimit.fromSettings(settings),
-                          queryType,
-                          includeMetadata);
+                  CalcitePlanContext context;
+                  RelNode optimizedPlan;
+                  try (ProfileScope analyzePhase = ProfileScope.open(MetricName.ANALYZE)) {
+                    context =
+                        CalcitePlanContext.create(
+                            buildFrameworkConfig(),
+                            SysLimit.fromSettings(settings),
+                            queryType,
+                            includeMetadata);
 
-                  context.setHighlightConfig(highlightConfig);
+                    context.setHighlightConfig(highlightConfig);
 
-                  // Wrap analyze with ANALYZING stage tracking
-                  RelNode relNode =
-                      StageErrorHandler.executeStage(
-                          QueryProcessingStage.ANALYZING,
-                          () -> analyze(plan, context),
-                          "while preparing and validating the query plan");
+                    // Wrap analyze with ANALYZING stage tracking
+                    RelNode relNode =
+                        StageErrorHandler.executeStage(
+                            QueryProcessingStage.ANALYZING,
+                            () -> analyze(plan, context),
+                            "while preparing and validating the query plan");
 
-                  // Wrap plan conversion with PLAN_CONVERSION stage tracking
-                  RelNode calcitePlan =
-                      StageErrorHandler.executeStage(
-                          QueryProcessingStage.PLAN_CONVERSION,
-                          () ->
-                              withCheckedArithmetic(
-                                  convertToCalcitePlan(relNode, context), context),
-                          "while converting the query to an executable plan");
+                    // Wrap plan conversion with PLAN_CONVERSION stage tracking
+                    RelNode calcitePlan =
+                        StageErrorHandler.executeStage(
+                            QueryProcessingStage.PLAN_CONVERSION,
+                            () ->
+                                withCheckedArithmetic(
+                                    convertToCalcitePlan(relNode, context), context),
+                            "while converting the query to an executable plan");
 
-                  executeCalcitePlan(calcitePlan, context, listener, analyzeMetric, analyzeStart);
+                    optimizedPlan = CalciteToolsHelper.optimize(calcitePlan, context);
+                  }
+                  executeCalcitePlan(optimizedPlan, context, listener);
                 },
                 QueryService.class);
           } catch (Throwable t) {
@@ -266,17 +268,10 @@ public class QueryService {
   }
 
   private void executeCalcitePlan(
-      RelNode calcitePlan,
+      RelNode optimizedPlan,
       CalcitePlanContext context,
-      ResponseListener<ExecutionEngine.QueryResponse> listener,
-      ProfileMetric analyzeMetric,
-      long analyzeStart) {
+      ResponseListener<ExecutionEngine.QueryResponse> listener) {
     try {
-      // Optimize before dispatch so the dispatcher's ScriptDetector
-      // sees the post-optimization plan for accurate routing.
-      RelNode optimizedPlan = CalciteToolsHelper.optimize(calcitePlan, context);
-      analyzeMetric.set(System.nanoTime() - analyzeStart);
-
       // Wrap execution with EXECUTING stage tracking — dispatch via
       // ExecutionDispatcher which may route to a complex worker pool
       StageErrorHandler.executeStageVoid(
@@ -325,9 +320,13 @@ public class QueryService {
                   context.setHighlightConfig(highlightConfig);
                   context.run(
                       () -> {
-                        RelNode relNode = analyze(plan, context);
-                        RelNode calcitePlan =
-                            withCheckedArithmetic(convertToCalcitePlan(relNode, context), context);
+                        RelNode calcitePlan;
+                        try (ProfileScope analyzePhase = ProfileScope.open(MetricName.ANALYZE)) {
+                          RelNode relNode = analyze(plan, context);
+                          calcitePlan =
+                              withCheckedArithmetic(
+                                  convertToCalcitePlan(relNode, context), context);
+                        }
                         if (format != null) {
                           executionEngine.explain(calcitePlan, mode, format, context, listener);
                         } else {
