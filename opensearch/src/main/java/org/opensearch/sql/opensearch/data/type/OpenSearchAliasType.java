@@ -20,7 +20,7 @@ public class OpenSearchAliasType extends OpenSearchDataType {
   public static final String typeName = "alias";
   public static final String pathPropertyName = "path";
   public static final Set<MappingType> objectFieldTypes =
-      Set.of(MappingType.Object, MappingType.Nested);
+      Set.of(MappingType.Object, MappingType.Nested, MappingType.FlatObject);
   private final String path;
   @Getter private final OpenSearchDataType originalType;
 

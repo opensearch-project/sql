@@ -1,0 +1,160 @@
+# Issue: https://github.com/opensearch-project/sql/issues/1604
+#        https://github.com/opensearch-project/sql/issues/3067
+# flat_object fields used to be dropped by OpenSearchDataType.parseMapping ("unknown type, skip
+# it"), so they vanished from query results entirely and could not be referenced at all. This
+# covers the projection contract: the field is visible, selectable, and round-trips its _source
+# JSON, on both the Calcite and the v2 engine.
+setup:
+  - do:
+      indices.create:
+        index: issue1604
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              eventName:
+                type: keyword
+              requestParameters:
+                type: flat_object
+
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "issue1604", "_id": "1"}}'
+          - '{"eventName": "CreateInstanceExportTask", "requestParameters": {"instanceId": "i-123", "nextToken": "abc"}}'
+          - '{"index": {"_index": "issue1604", "_id": "2"}}'
+          - '{"eventName": "DescribeInstances", "requestParameters": {"instanceId": "i-456"}}'
+          - '{"index": {"_index": "issue1604", "_id": "3"}}'
+          - '{"eventName": "RunInstances", "requestParameters": {"instanceId": "i-789", "filter": {"state": "running"}}}'
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: issue1604
+        ignore_unavailable: true
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+
+---
+"Issue 1604: flat_object field is projected with Calcite enabled":
+  - skip:
+      features:
+        - headers
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+            plugins.calcite.fallback.allowed: false
+
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=issue1604 | where eventName = ''DescribeInstances'' | fields requestParameters'
+  - match: {"total": 1}
+  - match: {"schema": [{"name": "requestParameters", "type": "struct"}]}
+  - match: {"datarows": [[{"instanceId": "i-456"}]]}
+
+---
+"Issue 1604: flat_object field is projected with Calcite disabled":
+  - skip:
+      features:
+        - headers
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=issue1604 | where eventName = ''DescribeInstances'' | fields requestParameters'
+  - match: {"total": 1}
+  - match: {"schema": [{"name": "requestParameters", "type": "struct"}]}
+  - match: {"datarows": [[{"instanceId": "i-456"}]]}
+
+---
+"Issue 1604: flat_object subfield is addressable":
+  - skip:
+      features:
+        - headers
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+            plugins.calcite.fallback.allowed: false
+
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=issue1604 | sort eventName | fields requestParameters.instanceId'
+  - match: {"total": 3}
+  - match: {"datarows": [["i-123"], ["i-456"], ["i-789"]]}
+
+---
+"Issue 1604: flat_object field appears in describe":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'describe issue1604 | where COLUMN_NAME = ''requestParameters'' | fields COLUMN_NAME, TYPE_NAME'
+  - match: {"total": 1}
+  # PPL reports the PPL type name (struct), matching how object fields are described.
+  # The SQL surface reports legacyTypeName() = flat_object; that divergence predates this change.
+  - match: {"datarows": [["requestParameters", "struct"]]}
+
+---
+# Known limitations of this first increment, pinned so any future change is deliberate rather
+# than accidental. Tracked by https://github.com/opensearch-project/sql/issues/1604 item 2.
+#
+#  * A nested value is stringified by OpenSearchExprValueFactory#parseContent, which has no
+#    object branch (the Content interface has no isObject() predicate). See issue 3751.
+#  * A subfield path deeper than one level resolves to NULL: QualifiedNameResolver#resolveFieldAccess
+#    joins the remaining parts into a single ITEM key ('filter.state'), which cannot match.
+"Issue 1604: nested values are stringified and depth-2 paths resolve to null":
+  - skip:
+      features:
+        - headers
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+            plugins.calcite.fallback.allowed: false
+
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=issue1604 | where eventName = ''RunInstances'' | fields requestParameters.filter'
+  - match: {"total": 1}
+  - match: {"datarows": [["{\"state\":\"running\"}"]]}
+
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=issue1604 | where eventName = ''RunInstances'' | fields requestParameters.filter.state'
+  - match: {"total": 1}
+  - match: {"datarows": [[null]]}

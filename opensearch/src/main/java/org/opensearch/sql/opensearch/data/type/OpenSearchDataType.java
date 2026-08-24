@@ -38,6 +38,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
     Date("date", ExprCoreType.TIMESTAMP),
     DateNanos("date_nanos", ExprCoreType.TIMESTAMP),
     Object("object", ExprCoreType.STRUCT),
+    FlatObject("flat_object", ExprCoreType.STRUCT),
     Nested("nested", ExprCoreType.ARRAY),
     Byte("byte", ExprCoreType.BYTE),
     Short("short", ExprCoreType.SHORT),
@@ -149,6 +150,10 @@ public class OpenSearchDataType implements ExprType, Serializable {
     OpenSearchDataType res =
         instances.getOrDefault(mappingType.toString(), new OpenSearchDataType(mappingType));
     switch (mappingType) {
+      // flat_object has no declared `properties`; it shares the Object arm so that it gets a
+      // fresh instance with a mutable (empty) property map rather than the cached singleton,
+      // whose immutable map would break cross-index merging in DESCRIBE.
+      case FlatObject:
       case Object:
       // TODO: use Object type once it has been added
       case Nested:

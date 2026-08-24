@@ -49,6 +49,7 @@ The table below list the mapping between OpenSearch Data Type, PPL Data Type and
 | ip | ip | VARCHAR |
 | binary | binary | VARBINARY |
 | object | struct | STRUCT |
+| flat_object | struct | STRUCT |
 | nested | array | STRUCT |
   
 Notes: Not all the PPL Type has correspond OpenSearch Type. e.g. data and time. To use function which required such data type, user should explicit convert the data type.

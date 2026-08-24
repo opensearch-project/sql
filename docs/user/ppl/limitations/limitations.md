@@ -13,7 +13,7 @@ PPL does not support all [OpenSearch data types](https://docs.opensearch.org/lat
 | --- | --- |
 | knn_vector | Ignored |
 | Range field types | Ignored |
-| Object - flat_object | Ignored |
+| Object - flat_object | Partial — see [Flat Object Field Behavior](#flat-object-field-behavior) |
 | Object - join | Ignored |
 | String - Match-only text | Ignored |
 | String - Wildcard | Ignored |
@@ -37,6 +37,37 @@ For a field to be queryable in PPL, the following index settings must be enabled
 | index: true | Enables field indexing | Required for filtering, search, and aggregations |
 | doc_values: true | Enables columnar access for aggregations/sorting | Required for `stats`, `sort` |
   
+## Flat Object Field Behavior
+
+`flat_object` fields are returned in query results and their top-level keys are addressable, but the
+type carries limitations that come from how OpenSearch indexes it and from how PPL resolves dotted
+paths.
+
+Supported:
+
+* The field is listed by `describe` (as type `struct`) and returned by `source` and `fields`.
+* A top-level key is addressable and keeps its `_source` type — given
+  `{"flat": {"s": "x", "n": 7}}`, `fields flat.s` returns the string `x` and `fields flat.n` returns
+  the integer `7`.
+* Filtering on a top-level key works, for example `where flat.s = 'x'`.
+
+Not supported:
+
+* **Subfield paths deeper than one level resolve to `NULL`.** For `{"flat": {"a": {"b": 1}}}`,
+  `fields flat.a.b` returns `NULL` rather than `1`, and no error is raised.
+* **A nested value is returned as JSON text**, not as a structure — `fields flat.a` returns the
+  string `{"b":1}`.
+* **Aggregating on a subfield cannot be pushed down.** OpenSearch reports `flat_object` as
+  non-aggregatable, so `stats ... by flat.a` cannot use a native aggregation.
+* **Sorting on a subfield is not meaningful.** OpenSearch sorts on an internal representation that
+  spans every subfield of the object.
+* `flatten` and `expand` cannot enumerate a `flat_object`, because subfield names are not present in
+  the index mapping.
+
+Subfield names are resolved lazily by OpenSearch per query and are absent from the mapping, so PPL
+cannot discover them at planning time; a `flat_object` therefore contributes exactly one column to
+the schema. Use `spath` to reach deeper paths within the returned JSON.
+
 ## Nested Field Behavior  
 
 * There are [limitations](https://github.com/opensearch-project/sql/issues/4625) regarding the nested levels and query types that need improvement.  

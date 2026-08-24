@@ -101,6 +101,8 @@ The table below list the mapping between OpenSearch Data Type, OpenSearch SQL Da
 +-----------------+---------------------+-----------+
 | object          | struct              | STRUCT    |
 +-----------------+---------------------+-----------+
+| flat_object     | struct              | STRUCT    |
++-----------------+---------------------+-----------+
 | nested          | array               | STRUCT    |
 +-----------------+---------------------+-----------+
 
