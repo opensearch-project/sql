@@ -1354,6 +1354,20 @@ task integTestRemote(type: RestIntegTestTask) {
             //  - STREAMSTATS_SORT_NOT_HONORED: streamstats computes its window over the backend scan
             //    order, ignoring a preceding `| sort` (the OVER clause has no explicit ORDER BY).
             excludeTestsMatching '*CalciteStreamstatsCommandIT.testStreamstatsAndSort'
+        } else {
+            // Suites that require the analytics-engine plugin stack. They create composite
+            // (parquet-backed) indices and depend on the node-level settings
+            // opensearch.experimental.feature.pluggable.dataformat.enabled and
+            // opensearch.experimental.feature.transport.stream.enabled. Each already has a
+            // dedicated task whose testClusters block provisions that stack --
+            // :analyticsEngineCompatIT, :analyticsEngineSecurityIT and :analyticsEngineProfileIT --
+            // whereas integTestRemote runs against an externally provided cluster and can neither
+            // install plugins nor set node settings, so they fail during setup instead of being
+            // skipped. Gated here rather than listed with the exclusions below so that all
+            // analytics-engine filtering for this task stays in one place.
+            excludeTestsMatching 'org.opensearch.sql.plugin.AnalyticsEngineCompatIT'
+            excludeTestsMatching 'org.opensearch.sql.security.AnalyticsEngineSecurityIT'
+            excludeTestsMatching 'org.opensearch.sql.analytics.AnalyticsEngineProfileIT'
         }
     }
 
@@ -1366,4 +1380,23 @@ task integTestRemote(type: RestIntegTestTask) {
     exclude 'org/opensearch/sql/legacy/QueryAnalysisIT.class'
     exclude 'org/opensearch/sql/legacy/OrderIT.class'
     exclude 'org/opensearch/sql/jdbc/**'
+
+    // Suites that query a Prometheus datasource and therefore need a running Prometheus
+    // instance. `integTest` starts one itself (dependsOn startPrometheus) so it only skips
+    // these when the caller passes -DignorePrometheus; integTestRemote has no such dependency
+    // and runs against an externally provided cluster, so it can never supply Prometheus and
+    // these suites always fail in setup here. Same reasoning as the analytics-engine
+    // exclusions, which integTest also applies unconditionally.
+    exclude 'org/opensearch/sql/ppl/PrometheusDataSourceCommandsIT.class'
+    exclude 'org/opensearch/sql/ppl/ShowDataSourcesCommandIT.class'
+    exclude 'org/opensearch/sql/ppl/InformationSchemaCommandIT.class'
+
+    // Suites that create or update a datasource. That requires
+    // plugins.query.datasources.encryption.masterkey, which EncryptorImpl validates as "a required
+    // config for using create and update datasource APIs" and which must be present in
+    // opensearch.yml on every node. testClusters supplies it for integTest and yamlRestTest;
+    // integTestRemote sets no cluster settings at all and cannot add a node config to an
+    // externally provided cluster, so these suites cannot pass here. integTest still covers them.
+    exclude 'org/opensearch/sql/datasource/DataSourceAPIsIT.class'
+    exclude 'org/opensearch/sql/datasource/DataSourceEnabledIT.class'
 }
