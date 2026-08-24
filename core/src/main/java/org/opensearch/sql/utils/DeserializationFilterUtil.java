@@ -46,6 +46,9 @@ public class DeserializationFilterUtil {
           + "java.time.**;"
           + "com.google.common.collect.**;";
 
+  /** Structural limits on the deserialized object graph. */
+  private static final String STRUCTURAL_LIMITS = "maxdepth=20;maxrefs=300;maxbytes=15000;";
+
   /**
    * Creates a logging filter that wraps the provided filter and logs rejected classes.
    *
@@ -55,21 +58,29 @@ public class DeserializationFilterUtil {
   public static ObjectInputFilter createLoggingFilter(ObjectInputFilter filter) {
     return info -> {
       ObjectInputFilter.Status status = filter.checkInput(info);
-      if (status == ObjectInputFilter.Status.REJECTED && info.serialClass() != null) {
-        LOG.warn("Deserialization filter rejected class: {}", info.serialClass().getName());
+      if (status == ObjectInputFilter.Status.REJECTED) {
+        if (info.serialClass() != null) {
+          LOG.warn("Deserialization filter rejected class: {}", info.serialClass().getName());
+        } else {
+          LOG.warn(
+              "Deserialization filter rejected: depth={}, refs={}, bytes={}",
+              info.depth(),
+              info.references(),
+              info.streamBytes());
+        }
       }
       return status;
     };
   }
 
   /**
-   * Creates a filter with the base allowlist plus additional patterns.
+   * Creates a filter with the base allowlist, structural limits, and additional patterns.
    *
    * @param additionalPatterns Additional patterns to append to the base allowlist.
-   * @return A logging filter with the combined allowlist.
+   * @return A logging filter with the combined allowlist and structural limits.
    */
   public static ObjectInputFilter createFilter(String additionalPatterns) {
-    String fullPattern = BASE_ALLOWLIST + additionalPatterns + "!*";
+    String fullPattern = BASE_ALLOWLIST + additionalPatterns + STRUCTURAL_LIMITS + "!*";
     return createLoggingFilter(ObjectInputFilter.Config.createFilter(fullPattern));
   }
 }
