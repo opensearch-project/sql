@@ -173,6 +173,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.ast.tree.Xyseries;
+import org.opensearch.sql.calcite.plan.AbstractOpenSearchTable;
 import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
 import org.opensearch.sql.calcite.plan.HighlightPushDown;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
@@ -192,6 +193,7 @@ import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.common.patterns.PatternUtils;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -297,11 +299,33 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitSearch(Search node, CalcitePlanContext context) {
     // Visit the Relation child to get the scan
     node.getChild().get(0).accept(this, context);
+    // Resolve query_string from the structured expression when available so we can consult the
+    // OpenSearch table's field-type map for per-field text/keyword awareness (e.g. escape
+    // space + wildcard on keyword vs. quoted phrase on text). Falls back to the pre-computed
+    // string for callers that never populated the structured expression.
+    String queryString;
+    if (node.getOriginalExpression() != null) {
+      // TODO: index-mapping type (text/keyword) is storage metadata, not a data type — the right
+      // home is a field/scan annotation on RelDataType, but that needs a Calcite rule-pipeline
+      // audit (rules rebuild row types and can drop custom fields). For now, unwrap the table
+      // and read the ExprType map directly.
+      java.util.Map<String, ExprType> typesByName = new java.util.HashMap<>();
+      RelNode scan = context.relBuilder.peek();
+      RelOptTable relOptTable = scan.getTable();
+      if (relOptTable != null) {
+        AbstractOpenSearchTable osTable = relOptTable.unwrap(AbstractOpenSearchTable.class);
+        if (osTable != null) {
+          typesByName.putAll(osTable.getFieldTypes());
+        }
+      }
+      queryString = node.getOriginalExpression().toQueryString(typesByName::get);
+    } else {
+      queryString = node.getQueryString();
+    }
     // Create query_string function
     Function queryStringFunc =
         AstDSL.function(
-            "query_string",
-            AstDSL.unresolvedArg("query", AstDSL.stringLiteral(node.getQueryString())));
+            "query_string", AstDSL.unresolvedArg("query", AstDSL.stringLiteral(queryString)));
     RexNode queryStringRex = rexVisitor.analyze(queryStringFunc, context);
 
     context.relBuilder.filter(queryStringRex);
