@@ -21,7 +21,6 @@ import static org.opensearch.sql.expression.aggregation.StdDevAggregator.stddevS
 import static org.opensearch.sql.expression.aggregation.VarianceAggregator.variancePopulation;
 import static org.opensearch.sql.expression.aggregation.VarianceAggregator.varianceSample;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -45,6 +44,7 @@ import org.opensearch.sql.expression.aggregation.SumAggregator;
 import org.opensearch.sql.expression.aggregation.TakeAggregator;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.opensearch.storage.serde.ExpressionSerializer;
+import tools.jackson.databind.ObjectMapper;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)

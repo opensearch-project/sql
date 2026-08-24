@@ -5,9 +5,6 @@
 
 package org.opensearch.sql.opensearch.storage.serde;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
@@ -30,6 +27,10 @@ import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.opensearch.executor.OpenSearchExecutionEngine.OperatorTable;
 import org.opensearch.sql.utils.DeserializationFilterUtil;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * A serializer that (de-)serializes Calcite RexNode, RelDataType and OpenSearch field mapping.
@@ -43,14 +44,13 @@ import org.opensearch.sql.utils.DeserializationFilterUtil;
 public class RelJsonSerializer {
 
   private final RelOptCluster cluster;
-  private static final ObjectMapper mapper = new ObjectMapper();
+  private static final ObjectMapper mapper =
+      JsonMapper.builder()
+          .configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true)
+          .build();
   private static final TypeReference<LinkedHashMap<String, Object>> TYPE_REF =
       new TypeReference<>() {};
   private static volatile SqlOperatorTable pplSqlOperatorTable;
-
-  static {
-    mapper.configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true);
-  }
 
   public RelJsonSerializer(RelOptCluster cluster) {
     this.cluster = cluster;

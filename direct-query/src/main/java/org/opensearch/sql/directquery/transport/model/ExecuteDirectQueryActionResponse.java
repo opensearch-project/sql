@@ -5,8 +5,11 @@
 
 package org.opensearch.sql.directquery.transport.model;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,8 +27,9 @@ import org.opensearch.sql.directquery.transport.model.datasource.PrometheusResul
 @RequiredArgsConstructor
 public class ExecuteDirectQueryActionResponse extends ActionResponse {
 
-  private static final ObjectMapper OBJECT_MAPPER =
-      new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+  private static final ObjectMapper OBJECT_MAPPER = JsonMapper.builder()
+      .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+      .build();
 
   @Getter private final String queryId;
   @Getter private final Map<String, DataSourceResult> results;
@@ -68,7 +72,7 @@ public class ExecuteDirectQueryActionResponse extends ActionResponse {
         case "prometheus":
           try {
             result = OBJECT_MAPPER.readValue(resultJson, PrometheusResult.class);
-          } catch (IOException e) {
+          } catch (JacksonException e) {
             throw new RuntimeException("Failed to deserialize Prometheus result", e);
           }
           break;
@@ -107,7 +111,7 @@ public class ExecuteDirectQueryActionResponse extends ActionResponse {
       final String serializedResult;
       try {
         serializedResult = OBJECT_MAPPER.writeValueAsString(result);
-      } catch (IOException e) {
+      } catch (JacksonException e) {
         throw new RuntimeException("Failed to serialize result", e);
       }
       streamOutput.writeString(serializedResult);

@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.opensearch.data.utils;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import java.util.AbstractMap;
 import java.util.Iterator;
 import java.util.List;
@@ -13,6 +12,7 @@ import java.util.Map;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
+import tools.jackson.databind.node.ArrayNode;
 
 /** The Implementation of Content to represent {@link Object}. */
 @RequiredArgsConstructor

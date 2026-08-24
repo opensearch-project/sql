@@ -7,7 +7,6 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
@@ -15,6 +14,7 @@ import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 import org.opensearch.sql.ppl.PPLIntegTestCase.GlobalPushdownConfig;
 import org.opensearch.sql.protocol.response.format.Format;
+import tools.jackson.databind.ObjectMapper;
 
 public class CalcitePPLExplainIT extends PPLIntegTestCase {
 
