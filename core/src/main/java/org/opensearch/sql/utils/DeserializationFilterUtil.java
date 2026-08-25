@@ -47,7 +47,7 @@ public class DeserializationFilterUtil {
           + "com.google.common.collect.**;";
 
   /** Structural limits on the deserialized object graph. */
-  private static final String STRUCTURAL_LIMITS = "maxdepth=20;maxrefs=300;maxbytes=15000;";
+  private static final String STRUCTURAL_LIMITS = "maxdepth=20;maxrefs=1000;maxbytes=15000;";
 
   /**
    * Creates a logging filter that wraps the provided filter and logs rejected classes.

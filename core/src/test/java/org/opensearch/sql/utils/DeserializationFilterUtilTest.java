@@ -42,11 +42,11 @@ public class DeserializationFilterUtilTest {
 
   @Test
   void refs_exceeding_limit_is_rejected() {
-    // Structural limit: maxrefs=300 → refs 301 must be rejected regardless of class.
+    // Structural limit: maxrefs=1000 → refs 1001 must be rejected regardless of class.
     ObjectInputFilter filter = DeserializationFilterUtil.createFilter("");
     assertEquals(
         ObjectInputFilter.Status.REJECTED,
-        filter.checkInput(info(/*class*/ null, /*depth*/ 1, /*refs*/ 301, /*bytes*/ 100)));
+        filter.checkInput(info(/*class*/ null, /*depth*/ 1, /*refs*/ 1001, /*bytes*/ 100)));
   }
 
   @Test
