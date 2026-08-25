@@ -1817,15 +1817,18 @@ public class CalciteExplainIT extends ExplainIT {
     enabledOnlyWhenPushdownIsEnabled();
     // PPL_JOIN_SUBSEARCH_MAXOUT!=0 will add limit before sort and then prevent sort push down.
     setJoinSubsearchMaxOut(0);
-    String expected = loadExpectedPlan("explain_join_with_agg.yaml");
-    assertYamlEqualsIgnoreId(
-        expected,
-        explainQueryYaml(
-            String.format(
-                "source=%s | stats COUNT() by age, gender | join left=L right=R ON L.gender ="
-                    + " R.gender [source=%s | stats COUNT() as overall_cnt by gender]",
-                TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT)));
-    resetJoinSubsearchMaxOut();
+    try {
+      String expected = loadExpectedPlan("explain_join_with_agg.yaml");
+      assertYamlEqualsIgnoreId(
+          expected,
+          explainQueryYaml(
+              String.format(
+                  "source=%s | stats COUNT() by age, gender | join left=L right=R ON L.gender ="
+                      + " R.gender [source=%s | stats COUNT() as overall_cnt by gender]",
+                  TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT)));
+    } finally {
+      resetJoinSubsearchMaxOut();
+    }
   }
 
   @Test
