@@ -109,10 +109,14 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testBinValueFieldOnly() throws IOException {
+    // `head` without a preceding sort selects an undefined set of rows, so the exact values
+    // asserted below only hold by accident of scan order. Sort on a unique key to fix which
+    // rows are selected; the expected values are unchanged.
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | bin value span=2000 | fields value | head 3", TEST_INDEX_TIME_DATA));
+                "source=%s | sort `@timestamp` | bin value span=2000 | fields value | head 3",
+                TEST_INDEX_TIME_DATA));
     verifySchema(result, schema("value", null, "string"));
 
     verifyDataRows(result, rows("8000-10000"), rows("6000-8000"), rows("8000-10000"));
@@ -517,10 +521,14 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testBinSpanWithStartEndNeverShrinkRange() throws IOException {
+    // `head` without a preceding sort selects an undefined set of rows, so the exact values
+    // asserted below only hold by accident of scan order. Sort on a unique key to fix which
+    // rows are selected; the expected values are unchanged.
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | bin age span=1 start=25 end=35 as cate | fields cate, age | head 6",
+                "source=%s | sort account_number | bin age span=1 start=25 end=35 as cate | fields"
+                    + " cate, age | head 6",
                 TEST_INDEX_BANK));
 
     verifySchema(result, schema("cate", null, "string"), schema("age", null, "int"));
