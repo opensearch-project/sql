@@ -193,6 +193,18 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testTan() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval tan = tan(pi() / 4) | head 1 | fields tan",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(actual, schema("tan", "double"));
+    verifyDataRows(actual, closeTo(1.0));
+  }
+
+  @Test
   public void testCrc32AndAbs() throws IOException {
     JSONObject actual =
         executeQuery(

@@ -238,6 +238,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBTRAC
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SYSDATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TAKE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TAN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMEDIFF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMP;
@@ -1080,6 +1081,7 @@ public class PPLFuncImpTable {
       registerOperator(SIGN, SqlStdOperatorTable.SIGN);
       registerOperator(SIGNUM, SqlStdOperatorTable.SIGN);
       registerOperator(SIN, SqlStdOperatorTable.SIN);
+      registerOperator(TAN, SqlStdOperatorTable.TAN);
       registerOperator(CBRT, SqlStdOperatorTable.CBRT);
 
       registerOperator(IFNULL, SqlStdOperatorTable.COALESCE);
