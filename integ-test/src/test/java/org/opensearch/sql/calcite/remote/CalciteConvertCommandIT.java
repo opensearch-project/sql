@@ -29,10 +29,14 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testConvertAutoFunction() throws IOException {
+    // `head` without a preceding sort selects an undefined set of rows, so the exact values
+    // asserted below only hold by accident of scan order. Sort on a unique key to fix which
+    // rows are selected; the expected values are unchanged.
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | convert auto(balance) | fields balance | head 3",
+                "search source=%s | sort account_number | convert auto(balance) | fields balance |"
+                    + " head 3",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("balance", null, "double"));
     verifyDataRows(result, rows(39225.0), rows(5686.0), rows(32838.0));
@@ -52,10 +56,14 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testConvertNumFunction() throws IOException {
+    // `head` without a preceding sort selects an undefined set of rows, so the exact values
+    // asserted below only hold by accident of scan order. Sort on a unique key to fix which
+    // rows are selected; the expected values are unchanged.
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | convert num(balance) | fields balance | head 3",
+                "search source=%s | sort account_number | convert num(balance) | fields balance |"
+                    + " head 3",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("balance", null, "double"));
     verifyDataRows(result, rows(39225.0), rows(5686.0), rows(32838.0));
@@ -63,11 +71,14 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testConvertWithAlias() throws IOException {
+    // `head` without a preceding sort selects an undefined set of rows, so the exact values
+    // asserted below only hold by accident of scan order. Sort on a unique key to fix which
+    // rows are selected; the expected values are unchanged.
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | convert auto(balance) AS balance_num | fields balance,"
-                    + " balance_num | head 3",
+                "search source=%s | sort account_number | convert auto(balance) AS balance_num |"
+                    + " fields balance, balance_num | head 3",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("balance", null, "bigint"), schema("balance_num", null, "double"));
     verifyDataRows(result, rows(39225, 39225.0), rows(5686, 5686.0), rows(32838, 32838.0));
@@ -75,10 +86,14 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testConvertMultipleFunctions() throws IOException {
+    // `head` without a preceding sort selects an undefined set of rows, so the exact values
+    // asserted below only hold by accident of scan order. Sort on a unique key to fix which
+    // rows are selected; the expected values are unchanged.
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | convert auto(balance), num(age) | fields balance, age | head 3",
+                "search source=%s | sort account_number | convert auto(balance), num(age) | fields"
+                    + " balance, age | head 3",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("balance", null, "double"), schema("age", null, "double"));
     verifyDataRows(result, rows(39225.0, 32.0), rows(5686.0, 36.0), rows(32838.0, 28.0));
@@ -194,10 +209,14 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testConvertNoneFunction() throws IOException {
+    // `head` without a preceding sort selects an undefined set of rows, so the exact values
+    // asserted below only hold by accident of scan order. Sort on a unique key to fix which
+    // rows are selected; the expected values are unchanged.
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | convert none(account_number) | fields account_number | head 3",
+                "search source=%s | sort account_number | convert none(account_number) | fields"
+                    + " account_number | head 3",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("account_number", null, "bigint"));
     verifyDataRows(result, rows(1), rows(6), rows(13));

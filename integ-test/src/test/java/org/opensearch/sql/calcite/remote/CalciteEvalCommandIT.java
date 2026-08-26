@@ -218,11 +218,14 @@ public class CalciteEvalCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testEvalStringConcatenationWithExistingData() throws IOException {
+    // `head` without a preceding sort selects an undefined set of rows, so the exact values
+    // asserted below only hold by accident of scan order. Sort on a unique key to fix which
+    // rows are selected; the expected values are unchanged.
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | eval full_name = firstname + ' ' + lastname | head 3 | fields"
-                    + " firstname, lastname, full_name",
+                "source=%s | sort account_number | eval full_name = firstname + ' ' + lastname |"
+                    + " head 3 | fields firstname, lastname, full_name",
                 TEST_INDEX_BANK));
     verifySchema(
         result,

@@ -104,7 +104,9 @@ public class StandaloneIT extends PPLIntegTestCase {
     request2.setJsonEntity("{\"name\": \"world\", \"age\": 30}");
     client().performRequest(request2);
 
-    String actual = executeByStandaloneQueryEngine("source=test | fields name");
+    // Two documents with no ordering specified: assert against a defined order rather than
+    // relying on scan order, which differs once the index has more than one shard.
+    String actual = executeByStandaloneQueryEngine("source=test | sort name | fields name");
     assertEquals(
         "{\n"
             + "  \"schema\": [\n"

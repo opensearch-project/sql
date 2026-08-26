@@ -123,11 +123,15 @@ public class CalciteMVAppendFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testMvappendWithFieldsAndLiterals() throws IOException {
+    // `head` without a preceding sort selects an undefined row, so the asserted age only holds by
+    // accident of scan order. Sort by account_number as the neighbouring real-field tests do; the
+    // expected values are unchanged.
     JSONObject actual =
         executeQuery(
             source(
                 TEST_INDEX_BANK,
-                "eval result = mvappend(age, 'years', 'old') | head 1 | fields age, result"));
+                "eval result = mvappend(age, 'years', 'old') | sort account_number | head 1 |"
+                    + " fields age, result"));
 
     verifySchema(actual, schema("age", "int"), schema("result", "array"));
     verifyDataRows(actual, rows(32, List.of(32, "years", "old")));
