@@ -20,13 +20,19 @@ import org.opensearch.client.Request;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 /**
- * Integration tests for querying wildcard indices where a field has conflicting types (e.g., text
- * vs keyword) across different indices. See GitHub issue #4659.
+ * Integration tests for field resolution in pushed-down scripts.
+ *
+ * <p>Covers querying wildcard indices where a field has conflicting types (e.g., text vs keyword)
+ * across different indices (GitHub issue #4659), and the same resolution applied to object
+ * subfields addressed by a dotted path (GitHub issue #5702).
  */
 public class CalciteMixedFieldTypeIT extends PPLIntegTestCase {
 
   private static final String LOG_TEXT_INDEX = "test_log_text_4659";
   private static final String LOG_KEYWORD_INDEX = "test_log_keyword_4659";
+  private static final String OBJ_TEXT_INDEX = "test_obj_text_5702";
+  private static final String OBJ_KEYWORD_INDEX = "test_obj_keyword_5702";
+  private static final String OBJ_SINGLE_INDEX = "test_single_obj_5702";
 
   @Override
   public void init() throws Exception {
@@ -57,6 +63,51 @@ public class CalciteMixedFieldTypeIT extends PPLIntegTestCase {
       Request bulkReq = new Request("POST", "/" + LOG_KEYWORD_INDEX + "/_bulk?refresh=true");
       bulkReq.setJsonEntity(
           "{\"index\":{\"_id\":\"1\"}}\n" + "{\"msg\":\"status=200\",\"idx\":2}\n");
+      performRequest(client(), bulkReq);
+    }
+
+    // Object subfield that is text-with-keyword-subfield in one index and keyword in another.
+    // Merging downgrades it to text without a keyword subfield, which routes the pushed-down
+    // script through _source instead of doc_values. See issue #5702.
+    if (!isIndexExist(client(), OBJ_TEXT_INDEX)) {
+      String mapping =
+          "{\"mappings\":{\"properties\":{\"log\":{\"properties\":{"
+              + "\"user_agent\":{\"type\":\"text\",\"fields\":{\"keyword\":"
+              + "{\"type\":\"keyword\",\"ignore_above\":256}}},"
+              + "\"idx\":{\"type\":\"integer\"}}}}}}";
+      createIndexByRestClient(client(), OBJ_TEXT_INDEX, mapping);
+      Request bulkReq = new Request("POST", "/" + OBJ_TEXT_INDEX + "/_bulk?refresh=true");
+      bulkReq.setJsonEntity(
+          "{\"index\":{\"_id\":\"1\"}}\n"
+              + "{\"log\":{\"user_agent\":\"requests/2.32.3\",\"idx\":1}}\n");
+      performRequest(client(), bulkReq);
+    }
+
+    if (!isIndexExist(client(), OBJ_KEYWORD_INDEX)) {
+      String mapping =
+          "{\"mappings\":{\"properties\":{\"log\":{\"properties\":{"
+              + "\"user_agent\":{\"type\":\"keyword\"},"
+              + "\"idx\":{\"type\":\"integer\"}}}}}}";
+      createIndexByRestClient(client(), OBJ_KEYWORD_INDEX, mapping);
+      Request bulkReq = new Request("POST", "/" + OBJ_KEYWORD_INDEX + "/_bulk?refresh=true");
+      bulkReq.setJsonEntity(
+          "{\"index\":{\"_id\":\"1\"}}\n"
+              + "{\"log\":{\"user_agent\":\"requests/2.32.3\",\"idx\":2}}\n");
+      performRequest(client(), bulkReq);
+    }
+
+    // Single index, no type conflict at all: an object subfield mapped as plain text already
+    // resolves through _source, so it exercises the same dotted-path lookup.
+    if (!isIndexExist(client(), OBJ_SINGLE_INDEX)) {
+      String mapping =
+          "{\"mappings\":{\"properties\":{\"log\":{\"properties\":{"
+              + "\"user_agent\":{\"type\":\"text\"},"
+              + "\"idx\":{\"type\":\"integer\"}}}}}}";
+      createIndexByRestClient(client(), OBJ_SINGLE_INDEX, mapping);
+      Request bulkReq = new Request("POST", "/" + OBJ_SINGLE_INDEX + "/_bulk?refresh=true");
+      bulkReq.setJsonEntity(
+          "{\"index\":{\"_id\":\"1\"}}\n"
+              + "{\"log\":{\"user_agent\":\"requests/2.32.3\",\"idx\":1}}\n");
       performRequest(client(), bulkReq);
     }
   }
@@ -106,5 +157,41 @@ public class CalciteMixedFieldTypeIT extends PPLIntegTestCase {
     verifySchema(
         result, schema("msg", "string"), schema("idx", "int"), schema("statusCode", "string"));
     verifyDataRows(result, rows("status=200", 1, "200"), rows("status=200", 2, "200"));
+  }
+
+  @Test
+  public void testWildcardQueryWithMixedTypeOnObjectSubField() throws IOException {
+    // The filter on the object subfield is pushed down as a script reading _source. The subfield
+    // is addressed as "log.user_agent" while _source nests it under "log", so a flat lookup
+    // silently matched nothing. See issue #5702.
+    JSONObject result =
+        executeQuery(
+            "source=test_obj_*_5702 | where log.user_agent = 'requests/2.32.3'"
+                + " | fields log.user_agent, log.idx | sort log.idx");
+    verifySchema(result, schema("log.user_agent", "string"), schema("log.idx", "int"));
+    verifyDataRows(result, rows("requests/2.32.3", 1), rows("requests/2.32.3", 2));
+  }
+
+  @Test
+  public void testWildcardQueryWithScriptFilterOnMixedTypeObjectSubField() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=test_obj_*_5702 | where upper(log.user_agent) = 'REQUESTS/2.32.3'"
+                + " | fields log.user_agent, log.idx | sort log.idx");
+    verifySchema(result, schema("log.user_agent", "string"), schema("log.idx", "int"));
+    verifyDataRows(result, rows("requests/2.32.3", 1), rows("requests/2.32.3", 2));
+  }
+
+  @Test
+  public void testFilterOnTextObjectSubFieldWithoutTypeConflict() throws IOException {
+    // No cross-index conflict here: a plain text object subfield resolves through _source too.
+    JSONObject result =
+        executeQuery(
+            "source="
+                + OBJ_SINGLE_INDEX
+                + " | where log.user_agent = 'requests/2.32.3'"
+                + " | fields log.user_agent, log.idx");
+    verifySchema(result, schema("log.user_agent", "string"), schema("log.idx", "int"));
+    verifyDataRows(result, rows("requests/2.32.3", 1));
   }
 }
