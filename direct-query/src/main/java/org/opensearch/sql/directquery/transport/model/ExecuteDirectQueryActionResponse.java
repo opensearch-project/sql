@@ -131,19 +131,11 @@ public class ExecuteDirectQueryActionResponse extends ActionResponse {
     Map<String, DataSourceResult> parsedResults = new HashMap<>();
 
     try {
-      // Add type to JSON if it doesn't already have it
-      final String resultWithType;
-      if (!rawResult.contains("\"type\":")) {
-        resultWithType = addTypeFieldToJson(rawResult, dataSourceType);
-      } else {
-        resultWithType = rawResult;
-      }
-
       DataSourceResult result;
       // Parse based on the determined data source type
       switch (dataSourceType.toLowerCase()) {
         case "prometheus":
-          result = OBJECT_MAPPER.readValue(resultWithType, PrometheusResult.class);
+          result = OBJECT_MAPPER.readValue(rawResult, PrometheusResult.class);
           break;
           // Add cases for other data source types as they're implemented
         default:
@@ -162,16 +154,5 @@ public class ExecuteDirectQueryActionResponse extends ActionResponse {
     }
 
     return parsedResults;
-  }
-
-  /**
-   * Adds a type field to the JSON string for proper polymorphic deserialization.
-   *
-   * @param rawJson The raw JSON string without a type field
-   * @param type The type to add
-   * @return Modified JSON string with type field
-   */
-  private String addTypeFieldToJson(String rawJson, String type) {
-    return rawJson.replaceFirst("\\{", "{\"type\":\"" + type + "\",");
   }
 }

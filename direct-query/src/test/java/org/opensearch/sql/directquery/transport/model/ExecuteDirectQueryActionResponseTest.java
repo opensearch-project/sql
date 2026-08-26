@@ -15,6 +15,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.opensearch.core.common.io.stream.InputStreamStreamInput;
@@ -145,6 +146,43 @@ public class ExecuteDirectQueryActionResponseTest {
     assertEquals(1, deserializedResponse.getResults().size());
     assertTrue(deserializedResponse.getResults().containsKey("prom-ds-1"));
     assertInstanceOf(PrometheusResult.class, deserializedResponse.getResults().get("prom-ds-1"));
+  }
+
+  @Test
+  public void testStreamSerializationPreservesTypeMetricLabel() throws IOException {
+    // Regression for #5684: a metric label literally named "type" must survive the
+    // writeTo() -> StreamInput round-trip (the transport path), not only parseResult().
+    Map<String, DataSourceResult> results = new HashMap<>();
+    PrometheusResult prometheusResult = new PrometheusResult();
+    prometheusResult.setResultType("vector");
+    PrometheusResult.PrometheusResultItem item = new PrometheusResult.PrometheusResultItem();
+    Map<String, String> metric = new HashMap<>();
+    metric.put("type", "counter");
+    metric.put("__name__", "http_requests_total");
+    item.setMetric(metric);
+    prometheusResult.setResult(List.of(item));
+    results.put("prom-ds-1", prometheusResult);
+
+    ExecuteDirectQueryActionResponse response =
+        new ExecuteDirectQueryActionResponse("query-type-label", results, "session-type-label");
+
+    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    StreamOutput streamOutput = new OutputStreamStreamOutput(outputStream);
+    response.writeTo(streamOutput);
+    streamOutput.close();
+
+    StreamInput streamInput =
+        new InputStreamStreamInput(new ByteArrayInputStream(outputStream.toByteArray()));
+    ExecuteDirectQueryActionResponse deserialized =
+        new ExecuteDirectQueryActionResponse(streamInput);
+    streamInput.close();
+
+    PrometheusResult out = (PrometheusResult) deserialized.getResults().get("prom-ds-1");
+    assertInstanceOf(PrometheusResult.class, out);
+    assertEquals("vector", out.getResultType());
+    assertEquals(1, out.getResult().size());
+    assertEquals("counter", out.getResult().get(0).getMetric().get("type"));
+    assertEquals("http_requests_total", out.getResult().get(0).getMetric().get("__name__"));
   }
 
   @Test
