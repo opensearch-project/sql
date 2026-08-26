@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.TestUtils.createIndexByRestClient;
 import static org.opensearch.sql.util.TestUtils.isIndexExist;
@@ -33,6 +34,7 @@ public class CalciteMixedFieldTypeIT extends PPLIntegTestCase {
   private static final String OBJ_TEXT_INDEX = "test_obj_text_5702";
   private static final String OBJ_KEYWORD_INDEX = "test_obj_keyword_5702";
   private static final String OBJ_SINGLE_INDEX = "test_single_obj_5702";
+  private static final String OBJ_GROUP_INDEX = "test_group_obj_5702";
 
   @Override
   public void init() throws Exception {
@@ -108,6 +110,21 @@ public class CalciteMixedFieldTypeIT extends PPLIntegTestCase {
       bulkReq.setJsonEntity(
           "{\"index\":{\"_id\":\"1\"}}\n"
               + "{\"log\":{\"user_agent\":\"requests/2.32.3\",\"idx\":1}}\n");
+      performRequest(client(), bulkReq);
+    }
+
+    // Several documents with repeating values, to catch grouping and ordering that silently
+    // collapse when the subfield resolves to null.
+    if (!isIndexExist(client(), OBJ_GROUP_INDEX)) {
+      String mapping =
+          "{\"mappings\":{\"properties\":{\"log\":{\"properties\":{"
+              + "\"ua\":{\"type\":\"text\"}}},\"id\":{\"type\":\"integer\"}}}}";
+      createIndexByRestClient(client(), OBJ_GROUP_INDEX, mapping);
+      Request bulkReq = new Request("POST", "/" + OBJ_GROUP_INDEX + "/_bulk?refresh=true");
+      bulkReq.setJsonEntity(
+          "{\"index\":{\"_id\":\"1\"}}\n{\"log\":{\"ua\":\"bbb\"},\"id\":1}\n"
+              + "{\"index\":{\"_id\":\"2\"}}\n{\"log\":{\"ua\":\"aaa\"},\"id\":2}\n"
+              + "{\"index\":{\"_id\":\"3\"}}\n{\"log\":{\"ua\":\"aaa\"},\"id\":3}\n");
       performRequest(client(), bulkReq);
     }
   }
@@ -193,5 +210,27 @@ public class CalciteMixedFieldTypeIT extends PPLIntegTestCase {
                 + " | fields log.user_agent, log.idx");
     verifySchema(result, schema("log.user_agent", "string"), schema("log.idx", "int"));
     verifyDataRows(result, rows("requests/2.32.3", 1));
+  }
+
+  @Test
+  public void testStatsGroupByTextObjectSubField() throws IOException {
+    // The grouping key is read by an aggregation script through _source. Resolving it to null
+    // collapsed every document into a single null bucket, which looks like a valid result.
+    JSONObject result =
+        executeQuery("source=" + OBJ_GROUP_INDEX + " | stats count() as c by log.ua | sort log.ua");
+    verifySchema(result, schema("c", "bigint"), schema("log.ua", "string"));
+    verifyDataRows(result, rows(2, "aaa"), rows(1, "bbb"));
+  }
+
+  @Test
+  public void testSortOnEvaluatedTextObjectSubField() throws IOException {
+    // The sort script reads the subfield through _source as well; a null value left the rows
+    // in their original order instead of the requested one.
+    JSONObject result =
+        executeQuery(
+            "source=" + OBJ_GROUP_INDEX + " | eval u = upper(log.ua) | sort u, id | fields id, u");
+    verifySchema(result, schema("id", "int"), schema("u", "string"));
+    // Ordering is the point here, so assert it in order.
+    verifyDataRowsInOrder(result, rows(2, "AAA"), rows(3, "AAA"), rows(1, "BBB"));
   }
 }
