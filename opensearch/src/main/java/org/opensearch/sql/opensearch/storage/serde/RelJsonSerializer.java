@@ -136,7 +136,10 @@ public class RelJsonSerializer {
       ByteArrayInputStream input = new ByteArrayInputStream(Base64.getDecoder().decode(struct));
       ObjectInputStream objectInput = new ObjectInputStream(input);
       Settings settings = settingsSupplier == null ? null : settingsSupplier.get();
-      objectInput.setObjectInputFilter(DeserializationFilterUtil.createFilter(settings, ""));
+      objectInput.setObjectInputFilter(
+          settings == null
+              ? DeserializationFilterUtil.createFilter("")
+              : DeserializationFilterUtil.createFilter(settings, ""));
       exprStr = (String) objectInput.readObject();
 
       // Deserialize RelDataType and RexNode by JSON

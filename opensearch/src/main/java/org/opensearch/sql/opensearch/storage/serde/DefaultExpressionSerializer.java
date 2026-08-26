@@ -52,7 +52,10 @@ public class DefaultExpressionSerializer implements ExpressionSerializer {
       ByteArrayInputStream input = new ByteArrayInputStream(Base64.getDecoder().decode(code));
       ObjectInputStream objectInput = new ObjectInputStream(input);
       Settings settings = settingsSupplier == null ? null : settingsSupplier.get();
-      objectInput.setObjectInputFilter(DeserializationFilterUtil.createFilter(settings, ""));
+      objectInput.setObjectInputFilter(
+          settings == null
+              ? DeserializationFilterUtil.createFilter("")
+              : DeserializationFilterUtil.createFilter(settings, ""));
       return (Expression) objectInput.readObject();
     } catch (Exception e) {
       throw new IllegalStateException("Failed to deserialize expression code: " + code, e);

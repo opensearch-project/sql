@@ -81,30 +81,37 @@ public class DeserializationFilterUtil {
   }
 
   /**
-   * Creates a filter with the base allowlist, structural limits, and additional patterns. The
-   * structural limits are read from the {@code plugins.query.deserialization.*} cluster settings,
-   * falling back to the defaults when {@code settings} is null (serialize-only call sites or
-   * tests).
+   * Creates a filter with the base allowlist, the built-in default structural limits, and
+   * additional patterns. Used by serialize-only call sites and tests that have no {@link Settings}.
    *
-   * @param settings cluster settings supplying the structural limits, or null for defaults
    * @param additionalPatterns Additional patterns to append to the base allowlist.
-   * @return A logging filter with the combined allowlist and structural limits.
+   * @return A logging filter with the combined allowlist and default structural limits.
+   */
+  public static ObjectInputFilter createFilter(String additionalPatterns) {
+    return createFilter(DEFAULT_MAX_DEPTH, DEFAULT_MAX_REFS, DEFAULT_MAX_BYTES, additionalPatterns);
+  }
+
+  /**
+   * Creates a filter with the base allowlist, the structural limits from the {@code
+   * plugins.query.deserialization.*} cluster settings, and additional patterns.
+   *
+   * @param settings cluster settings supplying the structural limits (must be non-null)
+   * @param additionalPatterns Additional patterns to append to the base allowlist.
+   * @return A logging filter with the combined allowlist and configured structural limits.
    */
   public static ObjectInputFilter createFilter(Settings settings, String additionalPatterns) {
-    int maxDepth = limit(settings, Settings.Key.DESERIALIZATION_MAX_DEPTH, DEFAULT_MAX_DEPTH);
-    int maxRefs = limit(settings, Settings.Key.DESERIALIZATION_MAX_REFS, DEFAULT_MAX_REFS);
-    int maxBytes = limit(settings, Settings.Key.DESERIALIZATION_MAX_BYTES, DEFAULT_MAX_BYTES);
+    return createFilter(
+        settings.getSettingValue(Settings.Key.DESERIALIZATION_MAX_DEPTH),
+        settings.getSettingValue(Settings.Key.DESERIALIZATION_MAX_REFS),
+        settings.getSettingValue(Settings.Key.DESERIALIZATION_MAX_BYTES),
+        additionalPatterns);
+  }
+
+  private static ObjectInputFilter createFilter(
+      int maxDepth, int maxRefs, int maxBytes, String additionalPatterns) {
     String structuralLimits =
         String.format("maxdepth=%d;maxrefs=%d;maxbytes=%d;", maxDepth, maxRefs, maxBytes);
     String fullPattern = BASE_ALLOWLIST + additionalPatterns + structuralLimits + "!*";
     return createLoggingFilter(ObjectInputFilter.Config.createFilter(fullPattern));
-  }
-
-  private static int limit(Settings settings, Settings.Key key, int defaultValue) {
-    if (settings == null) {
-      return defaultValue;
-    }
-    Integer value = settings.getSettingValue(key);
-    return value == null ? defaultValue : value;
   }
 }

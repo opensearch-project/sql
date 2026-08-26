@@ -20,7 +20,7 @@ public class DeserializationFilterUtilTest {
 
   @Test
   void allowlisted_class_is_allowed() {
-    ObjectInputFilter filter = DeserializationFilterUtil.createFilter(null, "");
+    ObjectInputFilter filter = DeserializationFilterUtil.createFilter("");
     assertEquals(
         ObjectInputFilter.Status.ALLOWED,
         filter.checkInput(info(String.class, /*depth*/ 1, /*refs*/ 1, /*bytes*/ 100)));
@@ -28,7 +28,7 @@ public class DeserializationFilterUtilTest {
 
   @Test
   void disallowed_class_is_rejected() {
-    ObjectInputFilter filter = DeserializationFilterUtil.createFilter(null, "");
+    ObjectInputFilter filter = DeserializationFilterUtil.createFilter("");
     assertEquals(
         ObjectInputFilter.Status.REJECTED,
         filter.checkInput(info(java.net.URL.class, /*depth*/ 1, /*refs*/ 1, /*bytes*/ 100)));
@@ -38,7 +38,7 @@ public class DeserializationFilterUtilTest {
   void null_settings_fall_back_to_default_limits() {
     // depth 21 > DEFAULT_MAX_DEPTH (20); refs 1001 > DEFAULT_MAX_REFS (1000);
     // bytes 15001 > DEFAULT_MAX_BYTES (15000).
-    ObjectInputFilter filter = DeserializationFilterUtil.createFilter(null, "");
+    ObjectInputFilter filter = DeserializationFilterUtil.createFilter("");
     assertEquals(
         ObjectInputFilter.Status.REJECTED,
         filter.checkInput(info(/*class*/ null, /*depth*/ 21, /*refs*/ 1, /*bytes*/ 100)));
@@ -72,7 +72,7 @@ public class DeserializationFilterUtilTest {
   @Test
   void additional_pattern_is_honored() {
     // Patterns passed in should extend the base allowlist.
-    ObjectInputFilter filter = DeserializationFilterUtil.createFilter(null, "java.net.URI;");
+    ObjectInputFilter filter = DeserializationFilterUtil.createFilter("java.net.URI;");
     assertEquals(
         ObjectInputFilter.Status.ALLOWED,
         filter.checkInput(info(java.net.URI.class, /*depth*/ 1, /*refs*/ 1, /*bytes*/ 100)));
