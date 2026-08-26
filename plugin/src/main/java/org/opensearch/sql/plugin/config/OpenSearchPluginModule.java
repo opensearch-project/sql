@@ -94,8 +94,8 @@ public class OpenSearchPluginModule extends AbstractModule {
   }
 
   @Provides
-  public PlanSerializer planSerializer(StorageEngine storageEngine) {
-    return new PlanSerializer(storageEngine);
+  public PlanSerializer planSerializer(StorageEngine storageEngine, Settings settings) {
+    return new PlanSerializer(storageEngine, settings);
   }
 
   @Provides
@@ -132,7 +132,7 @@ public class OpenSearchPluginModule extends AbstractModule {
     Analyzer analyzer =
         new Analyzer(
             new ExpressionAnalyzer(functionRepository), dataSourceService, functionRepository);
-    Planner planner = new Planner(LogicalPlanOptimizer.create());
+    Planner planner = new Planner(LogicalPlanOptimizer.create(), settings);
     ExecutionDispatcher executionDispatcher =
         new ThreadPoolExecutionDispatcher(nodeClient.threadPool(), settings);
     QueryService queryService =

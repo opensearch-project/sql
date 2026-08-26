@@ -12,9 +12,12 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.ref;
 
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
@@ -82,6 +85,44 @@ class DefaultExpressionSerializerTest {
   @Test
   public void cannot_deserialize_illegal_expression_code() {
     assertThrows(IllegalStateException.class, () -> serializer.deserialize("hello world"));
+  }
+
+  @Test
+  public void deserialize_honors_configured_structural_limits() {
+    // A serializer wired with a very tight refs limit must reject an otherwise-valid expression,
+    // proving the injected Settings supplier actually drives the deserialization filter.
+    Settings tightLimits = settingsWith(/*depth*/ 20, /*refs*/ 1, /*bytes*/ 15000);
+    ExpressionSerializer limited = new DefaultExpressionSerializer(() -> tightLimits);
+
+    Expression original = DSL.or(literal(true), DSL.less(literal(1), literal(2)));
+    String code = serializer.serialize(original);
+
+    // Default limits (no override) round-trip the same payload fine.
+    assertEquals(original, serializer.deserialize(code));
+
+    // maxrefs=1 rejects the multi-object graph.
+    var exception = assertThrows(IllegalStateException.class, () -> limited.deserialize(code));
+    assertTrue(exception.getMessage().contains("Failed to deserialize"));
+  }
+
+  private static Settings settingsWith(int depth, int refs, int bytes) {
+    Map<Settings.Key, Object> values =
+        Map.of(
+            Settings.Key.DESERIALIZATION_MAX_DEPTH, depth,
+            Settings.Key.DESERIALIZATION_MAX_REFS, refs,
+            Settings.Key.DESERIALIZATION_MAX_BYTES, bytes);
+    return new Settings() {
+      @Override
+      @SuppressWarnings("unchecked")
+      public <T> T getSettingValue(Settings.Key key) {
+        return (T) values.get(key);
+      }
+
+      @Override
+      public List<?> getSettings() {
+        return List.of();
+      }
+    };
   }
 
   @Test

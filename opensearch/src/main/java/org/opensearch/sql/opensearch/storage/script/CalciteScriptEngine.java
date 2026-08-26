@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.DataContext;
@@ -78,6 +79,7 @@ import org.opensearch.script.ScriptEngine;
 import org.opensearch.script.StringSortScript;
 import org.opensearch.search.lookup.SourceLookup;
 import org.opensearch.sql.calcite.utils.CalciteClassLoaderHelper;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.opensearch.storage.script.aggregation.CalciteAggregationScriptFactory;
 import org.opensearch.sql.opensearch.storage.script.field.CalciteFieldScriptFactory;
@@ -96,7 +98,11 @@ public class CalciteScriptEngine implements ScriptEngine {
   private final RelJsonSerializer relJsonSerializer;
 
   public CalciteScriptEngine(RelOptCluster relOptCluster) {
-    this.relJsonSerializer = new RelJsonSerializer(relOptCluster);
+    this(relOptCluster, (Supplier<Settings>) null);
+  }
+
+  public CalciteScriptEngine(RelOptCluster relOptCluster, Supplier<Settings> settingsSupplier) {
+    this.relJsonSerializer = new RelJsonSerializer(relOptCluster, settingsSupplier);
   }
 
   /** Expression script language name. */

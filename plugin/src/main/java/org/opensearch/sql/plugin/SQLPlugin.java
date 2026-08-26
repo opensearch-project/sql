@@ -510,7 +510,8 @@ public class SQLPlugin extends Plugin
 
   @Override
   public ScriptEngine getScriptEngine(Settings settings, Collection<ScriptContext<?>> contexts) {
-    return new CompoundedScriptEngine();
+    // Resolve plugin settings lazily: getScriptEngine runs before createComponents sets them.
+    return new CompoundedScriptEngine(() -> pluginSettings);
   }
 
   private DataSourceServiceImpl createDataSourceService() {

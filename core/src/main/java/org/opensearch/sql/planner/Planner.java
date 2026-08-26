@@ -6,8 +6,8 @@
 package org.opensearch.sql.planner;
 
 import java.util.List;
-import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelNode;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
 import org.opensearch.sql.planner.logical.LogicalRelation;
@@ -17,10 +17,21 @@ import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /** Planner that plans and chooses the optimal physical plan. */
-@RequiredArgsConstructor
 public class Planner {
 
   private final LogicalPlanOptimizer logicalOptimizer;
+
+  /** Cluster settings supplying deserialization structural limits; null falls back to defaults. */
+  private final Settings settings;
+
+  public Planner(LogicalPlanOptimizer logicalOptimizer) {
+    this(logicalOptimizer, null);
+  }
+
+  public Planner(LogicalPlanOptimizer logicalOptimizer, Settings settings) {
+    this.logicalOptimizer = logicalOptimizer;
+    this.settings = settings;
+  }
 
   /**
    * Generate optimal physical plan for logical plan. If no table involved, translate logical plan
@@ -33,7 +44,7 @@ public class Planner {
   public PhysicalPlan plan(LogicalPlan plan) {
     Table table = findTable(plan);
     if (table == null) {
-      return plan.accept(new DefaultImplementor<>(), null);
+      return plan.accept(new DefaultImplementor<>(settings), null);
     }
     LogicalPlan optimized = table.optimize(optimize(plan));
     // Give scan builders a chance to reject shapes that push-down alone cannot express safely
