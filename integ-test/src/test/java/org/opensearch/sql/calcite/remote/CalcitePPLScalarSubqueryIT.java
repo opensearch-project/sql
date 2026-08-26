@@ -325,19 +325,16 @@ public class CalcitePPLScalarSubqueryIT extends PPLIntegTestCase {
   @Test
   public void testSubsearchMaxOutZeroMeansUnlimited() throws IOException {
     setSubsearchMaxOut(0);
-    try {
-      JSONObject result =
-          executeQuery(
-              String.format(
-                  "source = %s"
-                      + "| where id = ["
-                      + "    source = %s | where id = uid | stats max(uid)"
-                      + "  ]"
-                      + "| fields id, name",
-                  TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
-      verifyNumOfRows(result, 5);
-    } finally {
-      resetSubsearchMaxOut();
-    }
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s"
+                    + "| where id = ["
+                    + "    source = %s | where id = uid | stats max(uid)"
+                    + "  ]"
+                    + "| fields id, name",
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+    verifyNumOfRows(result, 5);
+    resetSubsearchMaxOut();
   }
 }

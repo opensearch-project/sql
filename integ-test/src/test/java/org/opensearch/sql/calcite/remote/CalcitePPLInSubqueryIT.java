@@ -390,59 +390,50 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
   @RequiresCapability(SUBSEARCH_MAXOUT_IN_SUBQUERY)
   public void testSubsearchMaxOut() throws IOException {
     setSubsearchMaxOut(1);
-    try {
-      JSONObject result =
-          executeQuery(
-              String.format(
-                  "source = %s"
-                      + "| where id in ["
-                      + "    source = %s | fields uid"
-                      + "  ]"
-                      + "| sort  - salary"
-                      + "| fields id, name, salary",
-                  TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
-      verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
-      verifyDataRowsInOrder(result, rows(1000, "Jake", 100000));
-    } finally {
-      resetSubsearchMaxOut();
-    }
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s"
+                    + "| where id in ["
+                    + "    source = %s | fields uid"
+                    + "  ]"
+                    + "| sort  - salary"
+                    + "| fields id, name, salary",
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+    verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
+    verifyDataRowsInOrder(result, rows(1000, "Jake", 100000));
+    resetSubsearchMaxOut();
   }
 
   @Test
   public void testInCorrelatedSubqueryMaxOut() throws IOException {
     setSubsearchMaxOut(1);
-    try {
-      JSONObject result =
-          executeQuery(
-              String.format(
-                  "source = %s| where name in [    source = %s     | where id = uid and"
-                      + " (like(occupation, '%%ist') or occupation = 'Engineer')    | fields name"
-                      + "  ]| sort - salary | fields id, name, salary",
-                  TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
-      verifyNumOfRows(result, 1);
-    } finally {
-      resetSubsearchMaxOut();
-    }
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s| where name in [    source = %s     | where id = uid and"
+                    + " (like(occupation, '%%ist') or occupation = 'Engineer')    | fields name  ]|"
+                    + " sort - salary | fields id, name, salary",
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+    verifyNumOfRows(result, 1);
+    resetSubsearchMaxOut();
   }
 
   @Test
   public void testSubsearchMaxOutZeroMeansUnlimited() throws IOException {
     setSubsearchMaxOut(0);
-    try {
-      JSONObject result =
-          executeQuery(
-              String.format(
-                  "source = %s"
-                      + "| where id in ["
-                      + "    source = %s | fields uid"
-                      + "  ]"
-                      + "| sort  - salary"
-                      + "| fields id, name, salary",
-                  TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
-      verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
-      verifyNumOfRows(result, 5);
-    } finally {
-      resetSubsearchMaxOut();
-    }
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s"
+                    + "| where id in ["
+                    + "    source = %s | fields uid"
+                    + "  ]"
+                    + "| sort  - salary"
+                    + "| fields id, name, salary",
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+    verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
+    verifyNumOfRows(result, 5);
+    resetSubsearchMaxOut();
   }
 }

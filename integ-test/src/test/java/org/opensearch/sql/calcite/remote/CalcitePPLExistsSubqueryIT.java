@@ -286,180 +286,156 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
   @Test
   public void testSubsearchMaxOut1() throws IOException {
     setSubsearchMaxOut(1);
-    try {
-      JSONObject result =
-          executeQuery(
-              String.format(
-                  "source = %s"
-                      + "| where exists ["
-                      + "    source = %s | where id = uid"
-                      + "  ]"
-                      + "| sort  - salary"
-                      + "| fields id, name, salary",
-                  TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
-      verifyNumOfRows(result, 1);
-    } finally {
-      resetSubsearchMaxOut();
-    }
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s"
+                    + "| where exists ["
+                    + "    source = %s | where id = uid"
+                    + "  ]"
+                    + "| sort  - salary"
+                    + "| fields id, name, salary",
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+    verifyNumOfRows(result, 1);
+    resetSubsearchMaxOut();
   }
 
   @Test
   public void testSubsearchMaxOut2() throws IOException {
     setSubsearchMaxOut(2);
-    try {
-      JSONObject result =
-          executeQuery(
-              String.format(
-                  "source = %s"
-                      + "| where exists ["
-                      + "    source = %s | where id = uid and department = 'DATA'"
-                      + "  ]"
-                      + "| sort  - salary"
-                      + "| fields id, name, salary",
-                  TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
-      verifyNumOfRows(result, 2);
-    } finally {
-      resetSubsearchMaxOut();
-    }
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s"
+                    + "| where exists ["
+                    + "    source = %s | where id = uid and department = 'DATA'"
+                    + "  ]"
+                    + "| sort  - salary"
+                    + "| fields id, name, salary",
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+    verifyNumOfRows(result, 2);
+    resetSubsearchMaxOut();
   }
 
   @Test
   public void testSubsearchMaxOut3() throws IOException {
     setSubsearchMaxOut(2);
-    try {
-      JSONObject result =
-          executeQuery(
-              String.format(
-                  "source = %s"
-                      + "| where exists ["
-                      + "    source = %s "
-                      + "    | where id = uid "
-                      + "    | eval dept = department "
-                      + "    | where dept = 'DATA' "
-                      + "    | sort - dept"
-                      + "  ]"
-                      + "| sort  - salary"
-                      + "| fields id, name, salary",
-                  TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
-      verifyNumOfRows(result, 1);
-    } finally {
-      resetSubsearchMaxOut();
-    }
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s"
+                    + "| where exists ["
+                    + "    source = %s "
+                    + "    | where id = uid "
+                    + "    | eval dept = department "
+                    + "    | where dept = 'DATA' "
+                    + "    | sort - dept"
+                    + "  ]"
+                    + "| sort  - salary"
+                    + "| fields id, name, salary",
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+    verifyNumOfRows(result, 1);
+    resetSubsearchMaxOut();
   }
 
   @Test
   public void testSubsearchMaxOut4() throws IOException {
     setSubsearchMaxOut(2);
-    try {
-      JSONObject result =
-          executeQuery(
-              String.format(
-                  "source = %s"
-                      + "| where exists ["
-                      + "    source = %s "
-                      + "    | eval dept = department "
-                      + "    | where dept = 'DATA' "
-                      + "    | where id = uid"
-                      + "  ]"
-                      + "| sort  - salary"
-                      + "| fields id, name, salary",
-                  TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
-      verifyNumOfRows(result, 2);
-    } finally {
-      resetSubsearchMaxOut();
-    }
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s"
+                    + "| where exists ["
+                    + "    source = %s "
+                    + "    | eval dept = department "
+                    + "    | where dept = 'DATA' "
+                    + "    | where id = uid"
+                    + "  ]"
+                    + "| sort  - salary"
+                    + "| fields id, name, salary",
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+    verifyNumOfRows(result, 2);
+    resetSubsearchMaxOut();
   }
 
   @Test
   public void testSubsearchMaxOutUncorrelated() throws IOException {
     setSubsearchMaxOut(1);
-    try {
-      JSONObject result =
-          executeQuery(
-              String.format(
-                  "source = %s"
-                      + "| where exists ["
-                      + "    source = %s | join type=left uid %s"
-                      + "    | eval dept = department "
-                      + "    | where dept = 'DATA' "
-                      + "  ]"
-                      + "| sort  - salary"
-                      + "| fields id, name, salary",
-                  TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_WORK_INFORMATION));
-      verifyNumOfRows(result, 7);
-    } finally {
-      resetSubsearchMaxOut();
-    }
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s"
+                    + "| where exists ["
+                    + "    source = %s | join type=left uid %s"
+                    + "    | eval dept = department "
+                    + "    | where dept = 'DATA' "
+                    + "  ]"
+                    + "| sort  - salary"
+                    + "| fields id, name, salary",
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_WORK_INFORMATION));
+    verifyNumOfRows(result, 7);
+    resetSubsearchMaxOut();
   }
 
   @Test
   public void testUncorrelatedSubsearchMaxOutZeroMeansUnlimited() throws IOException {
     setSubsearchMaxOut(0);
-    try {
-      JSONObject result =
-          executeQuery(
-              String.format(
-                  "source = %s"
-                      + "| where exists ["
-                      + "    source = %s | where name = 'Tom'"
-                      + "  ]"
-                      + "| sort  - salary"
-                      + "| fields id, name, salary",
-                  TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
-      verifyNumOfRows(result, 7);
-    } finally {
-      resetSubsearchMaxOut();
-    }
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s"
+                    + "| where exists ["
+                    + "    source = %s | where name = 'Tom'"
+                    + "  ]"
+                    + "| sort  - salary"
+                    + "| fields id, name, salary",
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+    verifyNumOfRows(result, 7);
+    resetSubsearchMaxOut();
   }
 
   @Test
   public void testCorrelatedSubsearchMaxOutZeroMeansUnlimited() throws IOException {
     setSubsearchMaxOut(0);
-    try {
-      JSONObject result =
-          executeQuery(
-              String.format(
-                  "source = %s"
-                      + "| where exists ["
-                      + "    source = %s | where id = uid"
-                      + "  ]"
-                      + "| sort  - salary"
-                      + "| fields id, name, salary",
-                  TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
-      verifyNumOfRows(result, 5);
-      result =
-          executeQuery(
-              String.format(
-                  "source = %s"
-                      + "| where not exists ["
-                      + "    source = %s | where id = uid"
-                      + "  ]"
-                      + "| sort  - salary"
-                      + "| fields id, name, salary",
-                  TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
-      verifyNumOfRows(result, 2);
-    } finally {
-      resetSubsearchMaxOut();
-    }
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s"
+                    + "| where exists ["
+                    + "    source = %s | where id = uid"
+                    + "  ]"
+                    + "| sort  - salary"
+                    + "| fields id, name, salary",
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+    verifyNumOfRows(result, 5);
+    result =
+        executeQuery(
+            String.format(
+                "source = %s"
+                    + "| where not exists ["
+                    + "    source = %s | where id = uid"
+                    + "  ]"
+                    + "| sort  - salary"
+                    + "| fields id, name, salary",
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+    verifyNumOfRows(result, 2);
+    resetSubsearchMaxOut();
   }
 
   @Test
   public void testSubsearchMaxOutNegativeMeansUnlimited() throws IOException {
     setSubsearchMaxOut(-1);
-    try {
-      JSONObject result =
-          executeQuery(
-              String.format(
-                  "source = %s"
-                      + "| where exists ["
-                      + "    source = %s | where id = uid"
-                      + "  ]"
-                      + "| sort  - salary"
-                      + "| fields id, name, salary",
-                  TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
-      verifyNumOfRows(result, 5);
-    } finally {
-      resetSubsearchMaxOut();
-    }
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source = %s"
+                    + "| where exists ["
+                    + "    source = %s | where id = uid"
+                    + "  ]"
+                    + "| sort  - salary"
+                    + "| fields id, name, salary",
+                TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
+    verifyNumOfRows(result, 5);
+    resetSubsearchMaxOut();
   }
 }
