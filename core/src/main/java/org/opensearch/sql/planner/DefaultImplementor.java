@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.planner;
 
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalCloseCursor;
@@ -56,6 +57,17 @@ import org.opensearch.sql.storage.write.TableWriteBuilder;
  * @param <C> context type
  */
 public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, C> {
+
+  /** Cluster settings supplying deserialization structural limits; null falls back to defaults. */
+  private final Settings settings;
+
+  public DefaultImplementor() {
+    this(null);
+  }
+
+  public DefaultImplementor(Settings settings) {
+    this.settings = settings;
+  }
 
   @Override
   public PhysicalPlan visitRareTopN(LogicalRareTopN node, C context) {
@@ -164,7 +176,7 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
 
   @Override
   public PhysicalPlan visitFetchCursor(LogicalFetchCursor plan, C context) {
-    return new PlanSerializer(plan.getEngine()).convertToPlan(plan.getCursor());
+    return new PlanSerializer(plan.getEngine(), settings).convertToPlan(plan.getCursor());
   }
 
   @Override

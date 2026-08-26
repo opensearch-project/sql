@@ -8,6 +8,7 @@ package org.opensearch.sql.utils;
 import java.io.ObjectInputFilter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.sql.common.setting.Settings;
 
 /** Utility class for creating deserialization filters with logging. */
 public class DeserializationFilterUtil {
@@ -46,8 +47,14 @@ public class DeserializationFilterUtil {
           + "java.time.**;"
           + "com.google.common.collect.**;";
 
-  /** Structural limits on the deserialized object graph. */
-  private static final String STRUCTURAL_LIMITS = "maxdepth=20;maxrefs=1000;maxbytes=15000;";
+  /**
+   * Default structural limits on the deserialized object graph, used when a setting is unset or no
+   * {@link Settings} is available (serialize-only call sites and tests).
+   */
+  public static final int DEFAULT_MAX_DEPTH = 20;
+
+  public static final int DEFAULT_MAX_REFS = 1000;
+  public static final int DEFAULT_MAX_BYTES = 15000;
 
   /**
    * Creates a logging filter that wraps the provided filter and logs rejected classes.
@@ -74,13 +81,30 @@ public class DeserializationFilterUtil {
   }
 
   /**
-   * Creates a filter with the base allowlist, structural limits, and additional patterns.
+   * Creates a filter with the base allowlist, structural limits, and additional patterns. The
+   * structural limits are read from the {@code plugins.query.deserialization.*} cluster settings,
+   * falling back to the defaults when {@code settings} is null (serialize-only call sites or
+   * tests).
    *
+   * @param settings cluster settings supplying the structural limits, or null for defaults
    * @param additionalPatterns Additional patterns to append to the base allowlist.
    * @return A logging filter with the combined allowlist and structural limits.
    */
-  public static ObjectInputFilter createFilter(String additionalPatterns) {
-    String fullPattern = BASE_ALLOWLIST + additionalPatterns + STRUCTURAL_LIMITS + "!*";
+  public static ObjectInputFilter createFilter(Settings settings, String additionalPatterns) {
+    int maxDepth = limit(settings, Settings.Key.DESERIALIZATION_MAX_DEPTH, DEFAULT_MAX_DEPTH);
+    int maxRefs = limit(settings, Settings.Key.DESERIALIZATION_MAX_REFS, DEFAULT_MAX_REFS);
+    int maxBytes = limit(settings, Settings.Key.DESERIALIZATION_MAX_BYTES, DEFAULT_MAX_BYTES);
+    String structuralLimits =
+        String.format("maxdepth=%d;maxrefs=%d;maxbytes=%d;", maxDepth, maxRefs, maxBytes);
+    String fullPattern = BASE_ALLOWLIST + additionalPatterns + structuralLimits + "!*";
     return createLoggingFilter(ObjectInputFilter.Config.createFilter(fullPattern));
+  }
+
+  private static int limit(Settings settings, Settings.Key key, int defaultValue) {
+    if (settings == null) {
+      return defaultValue;
+    }
+    Integer value = settings.getSettingValue(key);
+    return value == null ? defaultValue : value;
   }
 }
