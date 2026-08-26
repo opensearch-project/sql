@@ -1,4 +1,7 @@
 #!/bin/bash
+
+# Copyright OpenSearch Contributors
+# SPDX-License-Identifier: Apache-2.0
 # Script to retrieve Sonatype credentials from AWS Secrets Manager
 
 SONATYPE_USERNAME=op://opensearch-infra-secrets/maven-central-portal-credentials/username
