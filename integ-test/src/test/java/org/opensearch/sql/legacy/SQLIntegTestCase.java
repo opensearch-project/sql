@@ -748,7 +748,10 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         getDateTimeSimpleIndexMapping(),
         "src/test/resources/datetime_simple.json"),
     BEER(
-        TestsConstants.TEST_INDEX_BEER, "beer", null, "src/test/resources/beer.stackexchange.json"),
+        TestsConstants.TEST_INDEX_BEER,
+        "beer",
+        getMappingFile("beer_index_mapping.json"),
+        "src/test/resources/beer.stackexchange.json"),
     NULL_MISSING(
         TestsConstants.TEST_INDEX_NULL_MISSING,
         "null_missing",
