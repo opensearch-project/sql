@@ -5,11 +5,14 @@
 
 package org.opensearch.sql.api;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.impl.AbstractSchema;
@@ -197,5 +200,39 @@ public class UnifiedQueryPlannerTest extends UnifiedQueryTestBase {
     givenQuery("source = catalog.employees | patterns name")
         .assertPlanContains("REGEXP_REPLACE")
         .assertFields("id", "name", "age", "department", "patterns_field");
+  }
+
+  @Test
+  public void preserveCollationReturnsExistingSortUnchanged() {
+    var assertion = givenQuery("source = catalog.employees | sort age");
+    assertTrue("top node should be the user's Sort", assertion.plan() instanceof Sort);
+    assertion.assertPlan(
+        "LogicalSort(sort0=[$2], dir0=[ASC-nulls-first])\n"
+            + "  LogicalTableScan(table=[[catalog, employees]])\n");
+  }
+
+  @Test
+  public void preserveCollationLeavesCompositeCollationUnwrapped() {
+    var assertion = givenQuery("source = catalog.employees | sort age | eval x = age");
+    assertFalse(
+        "composite-collation plan must not be re-wrapped in a Sort",
+        assertion.plan() instanceof Sort);
+    assertion.assertFields("id", "name", "age", "department", "x");
+  }
+
+  @Test
+  public void preserveCollationMaterializesSingleDerivedCollation() {
+    givenQuery("makeresults format=csv data='name\nJohn\nSarah'")
+        .assertPlan(
+            "LogicalSort(sort0=[$0], dir0=[ASC])\n"
+                + "  LogicalProject(name=[CAST($0):VARCHAR NOT NULL])\n"
+                + "    LogicalValues(tuples=[[{ 'John' }, { 'Sarah' }]])\n");
+  }
+
+  @Test
+  public void preserveCollationLeavesUnsortedPlanUnwrapped() {
+    var assertion = givenQuery("source = catalog.employees");
+    assertFalse("unsorted plan must not be wrapped in a Sort", assertion.plan() instanceof Sort);
+    assertion.assertPlan("LogicalTableScan(table=[[catalog, employees]])\n");
   }
 }

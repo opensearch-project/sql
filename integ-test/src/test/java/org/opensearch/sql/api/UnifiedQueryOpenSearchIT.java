@@ -104,6 +104,30 @@ public class UnifiedQueryOpenSearchIT extends PPLIntegTestCase implements Result
     }
   }
 
+  @Test
+  public void testSortThenEvalCopyExecutesEndToEnd() throws Exception {
+    String pplQuery =
+        String.format(
+            "source = opensearch.%s | sort age | eval age_copy = age"
+                + " | fields firstname, age, age_copy",
+            TEST_INDEX_ACCOUNT);
+
+    RelNode plan = planner.plan(pplQuery);
+    try (PreparedStatement statement = compiler.compile(plan)) {
+      ResultSet resultSet = statement.executeQuery();
+
+      verify(resultSet)
+          .expectSchema(col("firstname", VARCHAR), col("age", BIGINT), col("age_copy", BIGINT));
+
+      int rows = 0;
+      while (resultSet.next()) {
+        rows++;
+        assertEquals("age_copy must mirror age", resultSet.getObject(2), resultSet.getObject(3));
+      }
+      assertTrue("expected at least one row", rows > 0);
+    }
+  }
+
   /**
    * Creates a dynamic schema that creates OpenSearchIndex on-demand for any table name. This allows
    * querying any index without pre-registering it.
