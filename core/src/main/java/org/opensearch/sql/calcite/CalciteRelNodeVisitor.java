@@ -1423,10 +1423,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   void projectPlusOverriding(
       List<RexNode> newFields, List<String> newNames, CalcitePlanContext context) {
-    Set<String> originalFieldNameSet =
-        new HashSet<>(context.relBuilder.peek().getRowType().getFieldNames());
+    RelDataType originalRowType = context.relBuilder.peek().getRowType();
+    Set<String> originalFieldNameSet = new HashSet<>(originalRowType.getFieldNames());
     List<String> overriddenNames =
         newNames.stream().filter(originalFieldNameSet::contains).toList();
+    // Which overridden columns were container-typed (object/nested parent) — captured before
+    // the replacement, this gates the stale-leaf pruning in step 6 (issue #5718).
+    Set<String> overriddenContainerParents =
+        overriddenNames.stream()
+            .filter(name -> isContainerType(originalRowType.getField(name, true, false).getType()))
+            .collect(Collectors.toSet());
     List<RexNode> toOverrideList =
         overriddenNames.stream().map(a -> (RexNode) context.relBuilder.field(a)).toList();
     // 1. add the new fields, For example "age0, country0"
@@ -1455,8 +1461,43 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // column, so overriddenNames is empty and the struct-parent `agent` survives untouched.
     // It also keeps issue #5185 safe — spath introduces a MAP root and subsequent eval assigns
     // to brand-new dotted paths that were not already in the row schema.
+    //
+    // The mirror direction (issue #5718): when the replaced column was itself an object/nested
+    // parent, its stale flattened leaves are pruned in dropStructChildrenFor so the new value
+    // shadows the whole subtree.
     for (String overridden : overriddenNames) {
       dropStructParentsFor(overridden, context);
+      if (overriddenContainerParents.contains(overridden)) {
+        dropStructChildrenFor(overridden, context);
+      }
+    }
+  }
+
+  /** An OpenSearch object parent surfaces as MAP in the row schema, a nested parent as ARRAY. */
+  private static boolean isContainerType(RelDataType type) {
+    return type.isStruct()
+        || type.getSqlTypeName() == SqlTypeName.MAP
+        || type.getSqlTypeName() == SqlTypeName.ARRAY;
+  }
+
+  /**
+   * Mirror of {@link #dropStructParentsFor(String, CalcitePlanContext)} for issue #5718: when an
+   * override replaced an object/nested parent column (e.g. {@code spath input=body output=log} with
+   * mapped {@code log.*} subfields), drop the stale flattened leaf columns so the replacement
+   * shadows the entire subtree. Only invoked when the replaced column was container-typed, which
+   * keeps user-created literal dotted columns under a scalar prefix untouched. No-op when no such
+   * child columns exist.
+   */
+  private void dropStructChildrenFor(String parentName, CalcitePlanContext context) {
+    String prefix = parentName + ".";
+    List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+    List<RexNode> childrenToDrop =
+        fieldNames.stream()
+            .filter(f -> f.startsWith(prefix))
+            .map(f -> (RexNode) context.relBuilder.field(f))
+            .toList();
+    if (!childrenToDrop.isEmpty()) {
+      context.relBuilder.projectExcept(childrenToDrop);
     }
   }
 
