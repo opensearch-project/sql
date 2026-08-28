@@ -246,7 +246,11 @@ public class CalciteScriptEngine implements ScriptEngine {
     }
 
     public Object getFromSource(String name) {
-      return this.sourceLookup.get(name);
+      // Resolve the field through the source path, not a flat map lookup: object subfields are
+      // addressed as dotted paths (e.g. "log.user_agent") while _source stores them nested.
+      // SourceLookup#extractValue delegates to XContentMapValues, which walks the nested maps and
+      // still falls back to a literal dotted key when the document has one.
+      return this.sourceLookup.extractValue(name, null);
     }
   }
 
