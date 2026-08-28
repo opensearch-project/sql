@@ -6,6 +6,7 @@
 package org.opensearch.sql.expression.function.udf.datetime;
 
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.prependFunctionProperties;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.toIntArg;
 
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
@@ -66,8 +67,9 @@ public class SysdateFunction extends ImplementorUDF {
       return (String) new ExprTimestampValue(localDateTime).valueForCalcite();
     }
 
-    public static String sysdate(FunctionProperties properties, int precision) {
-      var localDateTime = DateTimeFunctions.formatNow(properties.getSystemClock(), precision);
+    public static String sysdate(FunctionProperties properties, long precision) {
+      var localDateTime =
+          DateTimeFunctions.formatNow(properties.getSystemClock(), toIntArg(precision));
       return (String) new ExprTimestampValue(localDateTime).valueForCalcite();
     }
   }
