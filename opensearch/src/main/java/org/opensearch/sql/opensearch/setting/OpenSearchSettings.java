@@ -210,6 +210,13 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<?> QUERY_PRUNING_ENABLED_SETTING =
+      Setting.boolSetting(
+          Key.QUERY_PRUNING_ENABLED.getKeyValue(),
+          false,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   public static final Setting<Integer> MAX_EXPRESSION_DEPTH_SETTING =
       Setting.intSetting(
           Key.MAX_EXPRESSION_DEPTH.getKeyValue(),
@@ -535,6 +542,12 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.QUERY_PRUNING_ENABLED,
+        QUERY_PRUNING_ENABLED_SETTING,
+        new Updater(Key.QUERY_PRUNING_ENABLED));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.MAX_EXPRESSION_DEPTH,
         MAX_EXPRESSION_DEPTH_SETTING,
         new Updater(Key.MAX_EXPRESSION_DEPTH));
@@ -758,6 +771,7 @@ public class OpenSearchSettings extends Settings {
         .add(PPL_JOIN_SUBSEARCH_MAXOUT_SETTING)
         .add(QUERY_MEMORY_LIMIT_SETTING)
         .add(QUERY_SIZE_LIMIT_SETTING)
+        .add(QUERY_PRUNING_ENABLED_SETTING)
         .add(QUERY_BUCKET_SIZE_SETTING)
         .add(METRICS_ROLLING_WINDOW_SETTING)
         .add(METRICS_ROLLING_INTERVAL_SETTING)

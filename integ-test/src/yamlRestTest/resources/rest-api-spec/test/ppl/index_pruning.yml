@@ -1,0 +1,369 @@
+# Index pruning: https://github.com/opensearch-project/sql/issues/5698
+#
+# Asserted on point_in_time_total because no skipped shards or metrics are observable from the query
+# response or the explain/profile API for now, and point_in_time_current is already gone by the time
+# a non-paginated query responds.
+#
+# Each index has one shard, so a query on the PIT path takes point_in_time_total from 0 to 1 on
+# every index it reads: a 0 proves pruning excluded that index, a 1 only says it was still read.
+# Setup recreates the indices per test, so the counts never accumulate.
+#
+# max_result_window is 2 so `head 5` exceeds it and forces the PIT path that pruning runs on.
+
+setup:
+  - skip:
+      features:
+        - headers
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+            # Without this a Calcite failure is silently answered by the v2 engine, which never prunes.
+            plugins.calcite.fallback.allowed: false
+            plugins.query.pruning.enabled: true
+  - do:
+      indices.put_index_template:
+        name: pruning-it
+        body:
+          index_patterns: ['pruning-it-*']
+          template:
+            settings:
+              number_of_shards: 1
+              number_of_replicas: 0
+              max_result_window: 2
+            mappings:
+              properties:
+                "@timestamp": {type: date}
+                status: {type: integer}
+                body: {type: text}
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "pruning-it-2026-01"}}'
+          - '{"@timestamp": "2026-01-15T12:00:00Z", "status": 1, "body": "january"}'
+          - '{"index": {"_index": "pruning-it-2026-02"}}'
+          - '{"@timestamp": "2026-02-15T12:00:00Z", "status": 2, "body": "february"}'
+          - '{"index": {"_index": "pruning-it-2026-03"}}'
+          - '{"@timestamp": "2026-03-15T12:00:00Z", "status": 3, "body": "march"}'
+
+---
+teardown:
+  # Data stream first: deleting a wildcard index expression does not remove backing indices.
+  - do:
+      indices.delete_data_stream:
+        name: 'pruning-ds-*'
+        ignore: 404
+  - do:
+      indices.delete:
+        index: 'pruning-it-*,pruning-mixed-*,pruning-nomap-*'
+        ignore_unavailable: true
+  - do:
+      indices.delete_index_template:
+        name: pruning-it
+        ignore: 404
+  - do:
+      indices.delete_index_template:
+        name: pruning-ds
+        ignore: 404
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: null
+            plugins.calcite.fallback.allowed: null
+            plugins.query.pruning.enabled: null
+
+---
+"Prunes to the single index in range":
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: "source=pruning-it-* | where @timestamp >= '2026-02-01 00:00:00' and @timestamp <= '2026-02-28 23:59:59' | head 5"
+  - do:
+      indices.stats: {index: 'pruning-it-*', metric: search, filter_path: 'indices.*.total.search.point_in_time_total'}
+  - match:
+      indices:
+        pruning-it-2026-01: {total: {search: {point_in_time_total: 0}}}
+        pruning-it-2026-02: {total: {search: {point_in_time_total: 1}}}
+        pruning-it-2026-03: {total: {search: {point_in_time_total: 0}}}
+
+---
+"Prunes to both indices in range":
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: "source=pruning-it-* | where @timestamp >= '2026-01-01 00:00:00' and @timestamp <= '2026-02-28 23:59:59' | head 5"
+  - do:
+      indices.stats: {index: 'pruning-it-*', metric: search, filter_path: 'indices.*.total.search.point_in_time_total'}
+  - match:
+      indices:
+        pruning-it-2026-01: {total: {search: {point_in_time_total: 1}}}
+        pruning-it-2026-02: {total: {search: {point_in_time_total: 1}}}
+        pruning-it-2026-03: {total: {search: {point_in_time_total: 0}}}
+
+---
+"Prunes only the head of the pattern for an open ended range":
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: "source=pruning-it-* | where @timestamp >= '2026-02-01 00:00:00' | head 5"
+  - do:
+      indices.stats: {index: 'pruning-it-*', metric: search, filter_path: 'indices.*.total.search.point_in_time_total'}
+  - match:
+      indices:
+        pruning-it-2026-01: {total: {search: {point_in_time_total: 0}}}
+        pruning-it-2026-02: {total: {search: {point_in_time_total: 1}}}
+        pruning-it-2026-03: {total: {search: {point_in_time_total: 1}}}
+
+---
+"Declines to prune when the filter has no range":
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: "source=pruning-it-* | where status = 2 | head 5"
+  - do:
+      indices.stats: {index: 'pruning-it-*', metric: search, filter_path: 'indices.*.total.search.point_in_time_total'}
+  - match:
+      indices:
+        pruning-it-2026-01: {total: {search: {point_in_time_total: 1}}}
+        pruning-it-2026-02: {total: {search: {point_in_time_total: 1}}}
+        pruning-it-2026-03: {total: {search: {point_in_time_total: 1}}}
+
+---
+"Declines to prune when the range is not on the timestamp":
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: "source=pruning-it-* | where status >= 1 and status <= 100 | head 5"
+  - do:
+      indices.stats: {index: 'pruning-it-*', metric: search, filter_path: 'indices.*.total.search.point_in_time_total'}
+  - match:
+      indices:
+        pruning-it-2026-01: {total: {search: {point_in_time_total: 1}}}
+        pruning-it-2026-02: {total: {search: {point_in_time_total: 1}}}
+        pruning-it-2026-03: {total: {search: {point_in_time_total: 1}}}
+
+---
+"Declines to prune when the setting is off":
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.query.pruning.enabled: false
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: "source=pruning-it-* | where @timestamp >= '2026-02-01 00:00:00' and @timestamp <= '2026-02-28 23:59:59' | head 5"
+  - do:
+      indices.stats: {index: 'pruning-it-*', metric: search, filter_path: 'indices.*.total.search.point_in_time_total'}
+  - match:
+      indices:
+        pruning-it-2026-01: {total: {search: {point_in_time_total: 1}}}
+        pruning-it-2026-02: {total: {search: {point_in_time_total: 1}}}
+        pruning-it-2026-03: {total: {search: {point_in_time_total: 1}}}
+
+---
+"Declines to prune an alias, so its filter still applies":
+  - do:
+      indices.put_alias:
+        index: 'pruning-it-*'
+        name: pruning-alias-all
+        body:
+          filter:
+            term: {status: 2}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: "source=pruning-alias-* | where @timestamp >= '2026-01-01 00:00:00' and @timestamp <= '2026-03-31 23:59:59' | fields body | head 5"
+  - match: {datarows: [["february"]]}
+
+---
+"Declines to prune a data stream":
+  - do:
+      indices.put_index_template:
+        name: pruning-ds
+        body:
+          index_patterns: ['pruning-ds-*']
+          data_stream: {}
+          template:
+            settings:
+              number_of_shards: 1
+              number_of_replicas: 0
+              max_result_window: 2
+            mappings:
+              properties:
+                "@timestamp": {type: date}
+                body: {type: text}
+  - do:
+      indices.create_data_stream: {name: pruning-ds-logs}
+  - do:
+      bulk:
+        index: pruning-ds-logs
+        refresh: true
+        body:
+          - '{"create": {}}'
+          - '{"@timestamp": "2026-01-15T12:00:00Z", "body": "january"}'
+  - do:
+      indices.rollover: {alias: pruning-ds-logs}
+  - do:
+      bulk:
+        index: pruning-ds-logs
+        refresh: true
+        body:
+          - '{"create": {}}'
+          - '{"@timestamp": "2026-03-15T12:00:00Z", "body": "march"}'
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: "source=pruning-ds-* | where @timestamp >= '2026-01-01 00:00:00' and @timestamp <= '2026-01-31 23:59:59' | head 5"
+  - do:
+      indices.stats: {index: 'pruning-ds-*', metric: search, filter_path: '_all.total.search.point_in_time_total'}
+  - match: {_all.total.search.point_in_time_total: 2}
+
+---
+"A backfilled document stored outside its month is still returned":
+  - do:
+      bulk:
+        index: pruning-it-2026-03
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"@timestamp": "2026-02-20T12:00:00Z", "status": 99, "body": "backfill"}'
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: "source=pruning-it-* | where @timestamp >= '2026-02-01 00:00:00' and @timestamp <= '2026-02-28 23:59:59' | sort @timestamp | fields body | head 5"
+  - match: {datarows: [["february"], ["backfill"]]}
+
+---
+"Pruning does not change the rows returned":
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.query.pruning.enabled: false
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: "source=pruning-it-* | where @timestamp >= '2026-01-01 00:00:00' and @timestamp <= '2026-03-31 23:59:59' | sort @timestamp | fields body | head 5"
+  # Pin the baseline so the comparison below cannot pass by matching two empty result sets.
+  - match: {datarows: [["january"], ["february"], ["march"]]}
+  - set: {datarows: unpruned}
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.query.pruning.enabled: true
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: "source=pruning-it-* | where @timestamp >= '2026-01-01 00:00:00' and @timestamp <= '2026-03-31 23:59:59' | sort @timestamp | fields body | head 5"
+  - match: {datarows: $unpruned}
+
+---
+"Prunes across indices whose timestamp types conflict":
+  - do:
+      indices.create:
+        index: pruning-mixed-a
+        body:
+          settings: {number_of_shards: 1, number_of_replicas: 0, max_result_window: 2}
+          mappings: {properties: {"@timestamp": {type: date}, body: {type: keyword}}}
+  - do:
+      indices.create:
+        index: pruning-mixed-b
+        body:
+          settings: {number_of_shards: 1, number_of_replicas: 0, max_result_window: 2}
+          mappings: {properties: {"@timestamp": {type: date_nanos}, body: {type: keyword}}}
+  - do:
+      indices.create:
+        index: pruning-mixed-c
+        body:
+          settings: {number_of_shards: 1, number_of_replicas: 0, max_result_window: 2}
+          mappings: {properties: {"@timestamp": {type: date_nanos}, body: {type: keyword}}}
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "pruning-mixed-a"}}'
+          - '{"@timestamp": "2026-01-15T12:00:00Z", "body": "january"}'
+          - '{"index": {"_index": "pruning-mixed-b"}}'
+          - '{"@timestamp": "2026-02-15T12:00:00.000000000Z", "body": "february"}'
+          - '{"index": {"_index": "pruning-mixed-c"}}'
+          - '{"@timestamp": "2026-03-15T12:00:00.000000000Z", "body": "march"}'
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: "source=pruning-mixed-* | where @timestamp >= '2026-01-01 00:00:00' and @timestamp <= '2026-02-28 23:59:59' | sort @timestamp | fields body | head 5"
+  # One row from each type proves the pruned expression spanned the conflict, not one side of it.
+  - match: {datarows: [["january"], ["february"]]}
+  - do:
+      indices.stats: {index: 'pruning-mixed-*', metric: search, filter_path: 'indices.*.total.search.point_in_time_total'}
+  - match:
+      indices:
+        pruning-mixed-a: {total: {search: {point_in_time_total: 1}}}
+        pruning-mixed-b: {total: {search: {point_in_time_total: 1}}}
+        pruning-mixed-c: {total: {search: {point_in_time_total: 0}}}
+
+---
+"Prunes a comma separated index expression":
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: "source=pruning-it-2026-01,pruning-it-2026-0* | where @timestamp >= '2026-02-01 00:00:00' and @timestamp <= '2026-02-28 23:59:59' | head 5"
+  - do:
+      indices.stats: {index: 'pruning-it-*', metric: search, filter_path: 'indices.*.total.search.point_in_time_total'}
+  - match:
+      indices:
+        pruning-it-2026-01: {total: {search: {point_in_time_total: 0}}}
+        pruning-it-2026-02: {total: {search: {point_in_time_total: 1}}}
+        pruning-it-2026-03: {total: {search: {point_in_time_total: 0}}}
+
+---
+"Prunes an index that does not map the timestamp":
+  - do:
+      indices.create:
+        index: pruning-nomap-a
+        body:
+          settings: {number_of_shards: 1, number_of_replicas: 0, max_result_window: 2}
+          mappings: {properties: {"@timestamp": {type: date}, body: {type: keyword}}}
+  - do:
+      indices.create:
+        index: pruning-nomap-b
+        body:
+          settings: {number_of_shards: 1, number_of_replicas: 0, max_result_window: 2}
+          mappings: {properties: {body: {type: keyword}}}
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "pruning-nomap-a"}}'
+          - '{"@timestamp": "2026-02-15T12:00:00Z", "body": "february"}'
+          - '{"index": {"_index": "pruning-nomap-b"}}'
+          - '{"body": "untimed"}'
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: "source=pruning-nomap-* | where @timestamp >= '2026-02-01 00:00:00' | fields body | head 5"
+  - match: {datarows: [["february"]]}
+  - do:
+      indices.stats: {index: 'pruning-nomap-*', metric: search, filter_path: 'indices.*.total.search.point_in_time_total'}
+  - match:
+      indices:
+        pruning-nomap-a: {total: {search: {point_in_time_total: 1}}}
+        pruning-nomap-b: {total: {search: {point_in_time_total: 0}}}

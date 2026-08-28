@@ -22,6 +22,7 @@ import java.util.stream.Stream;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
+import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.lucene.search.join.ScoreMode;
 import org.jetbrains.annotations.TestOnly;
@@ -50,6 +51,7 @@ import org.opensearch.sql.opensearch.response.agg.CountAsTotalHitsParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 
 /** OpenSearch search request builder. */
+@Log4j2
 @EqualsAndHashCode
 @Getter
 @ToString
@@ -73,6 +75,9 @@ public class OpenSearchRequestBuilder {
   private int startFrom = 0;
 
   @EqualsAndHashCode.Exclude @ToString.Exclude private final Settings settings;
+
+  /** Memoized because build() runs once per scan on the calling thread. */
+  @EqualsAndHashCode.Exclude @ToString.Exclude private OpenSearchRequest.IndexName prunedIndexName;
 
   public static class PushDownUnSupportedException extends RuntimeException {
     public PushDownUnSupportedException(String message) {
@@ -135,9 +140,10 @@ public class OpenSearchRequestBuilder {
       if (startFrom + size > maxResultWindow) {
         sourceBuilder.size(maxResultWindow - startFrom);
         // Search with PIT request
-        String pitId = createPit(indexName, cursorKeepAlive, client);
+        OpenSearchRequest.IndexName prunedName = pruneIndexName(indexName, client);
+        String pitId = createPit(prunedName, cursorKeepAlive, client);
         return OpenSearchQueryRequest.pitOf(
-            indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, pitId);
+            prunedName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, pitId);
       } else {
         sourceBuilder.from(startFrom);
         sourceBuilder.size(size);
@@ -150,10 +156,32 @@ public class OpenSearchRequestBuilder {
       }
       sourceBuilder.size(pageSize);
       // Search with PIT request
-      String pitId = createPit(indexName, cursorKeepAlive, client);
+      OpenSearchRequest.IndexName prunedName = pruneIndexName(indexName, client);
+      String pitId = createPit(prunedName, cursorKeepAlive, client);
       return OpenSearchQueryRequest.pitOf(
-          indexName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, pitId);
+          prunedName, sourceBuilder, exprValueFactory, includes, cursorKeepAlive, pitId);
     }
+  }
+
+  private OpenSearchRequest.IndexName pruneIndexName(
+      OpenSearchRequest.IndexName indexName, OpenSearchClient client) {
+    if (!Boolean.TRUE.equals(settings.getSettingValue(Settings.Key.QUERY_PRUNING_ENABLED))) {
+      return indexName;
+    }
+
+    if (prunedIndexName == null) {
+      // Only the node client can issue the pruning probes, so the REST client never prunes.
+      prunedIndexName =
+          client
+              .getNodeClient()
+              .map(
+                  nodeClient -> new IndexPruner(nodeClient).prune(indexName, sourceBuilder.query()))
+              .orElse(indexName);
+      log.info(
+          "Index expression has {} names after pruning", prunedIndexName.getIndexNames().length);
+      log.debug("Pruned index expression from {} to {}", indexName, prunedIndexName);
+    }
+    return prunedIndexName;
   }
 
   private String createPit(
