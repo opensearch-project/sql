@@ -508,6 +508,46 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
   }
 
   @Test
+  public void testWindowRank() {
+    givenQuery(
+            """
+            SELECT name, RANK() OVER (ORDER BY age) AS r FROM catalog.employees
+            """)
+        .assertPlan(
+            """
+            LogicalProject(name=[$1], r=[RANK() OVER (ORDER BY $2 NULLS FIRST)])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testWindowDenseRank() {
+    givenQuery(
+            """
+            SELECT name, DENSE_RANK() OVER (ORDER BY age) AS r FROM catalog.employees
+            """)
+        .assertPlan(
+            """
+            LogicalProject(name=[$1], r=[DENSE_RANK() OVER (ORDER BY $2 NULLS FIRST)])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testWindowRankPartitionBy() {
+    givenQuery(
+            """
+            SELECT name, RANK() OVER (PARTITION BY department ORDER BY age DESC) AS r
+              FROM catalog.employees
+            """)
+        .assertPlan(
+            """
+            LogicalProject(name=[$1], r=[RANK() OVER (PARTITION BY $3 ORDER BY $2 DESC NULLS FIRST)])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
   public void testGroupByExpression() {
     givenQuery("SELECT LENGTH(name), COUNT(*) FROM catalog.employees GROUP BY LENGTH(name)")
         .assertPlan(

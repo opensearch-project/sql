@@ -770,9 +770,11 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
                   (arguments.isEmpty() || arguments.size() == 1)
                       ? Collections.emptyList()
                       : arguments.subList(1, arguments.size());
-              // ROW_NUMBER takes no field/args and isn't in aggFunctionRegistry,
+              // These take no field/args and aren't in aggFunctionRegistry,
               // so skip aggregate signature validation.
-              if (functionName == BuiltinFunctionName.ROW_NUMBER) {
+              if (functionName == BuiltinFunctionName.ROW_NUMBER
+                  || functionName == BuiltinFunctionName.RANK
+                  || functionName == BuiltinFunctionName.DENSE_RANK) {
                 return PlanUtils.makeOver(
                     context,
                     functionName,
