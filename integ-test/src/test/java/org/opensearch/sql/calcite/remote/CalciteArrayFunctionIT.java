@@ -581,6 +581,78 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testMvindexWithLiteralArithmeticIndex() throws IOException {
+    // mvindex with user arithmetic as index (1 + 1). PPL widens arithmetic to BIGINT,
+    // so the ITEM index must be narrowed back to INTEGER at the serialization boundary.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('a', 'b', 'c'), result = mvindex(arr, 1 + 1)"
+                    + " | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "string"));
+    verifyDataRows(actual, rows("c"));
+  }
+
+  @Test
+  public void testMvindexWithEvalDerivedArithmeticIndex() throws IOException {
+    // mvindex where the index comes from an eval-derived arithmetic value (BIGINT).
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval a = 1 + 1, arr = array('a', 'b', 'c'), result = mvindex(arr, a)"
+                    + " | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "string"));
+    verifyDataRows(actual, rows("c"));
+  }
+
+  @Test
+  public void testMvindexWithFieldDerivedArithmeticIndex() throws IOException {
+    // mvindex where the index is derived from an integer field via arithmetic (age - N).
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where age = 32 | eval arr = array('a', 'b', 'c', 'd', 'e'),"
+                    + " result = mvindex(arr, age - 30) | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "string"));
+    verifyDataRows(actual, rows("c"));
+  }
+
+  @Test
+  public void testMvindexRangeWithArithmeticIndices() throws IOException {
+    // mvindex range access with arithmetic start and end indices (BIGINT).
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array(1, 2, 3, 4, 5), result = mvindex(arr, 1 + 0, 2 + 1)"
+                    + " | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"));
+    verifyDataRows(actual, rows(List.of(2, 3, 4)));
+  }
+
+  @Test
+  public void testMvindexWithCastLongIndex() throws IOException {
+    // mvindex with an explicit cast(x as long) index. Pre-existing bug: a genuinely-BIGINT value
+    // handed to ITEM's int parameter must be narrowed to INTEGER.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('a', 'b', 'c'), result = mvindex(arr, cast(1 as"
+                    + " long)) | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "string"));
+    verifyDataRows(actual, rows("b"));
+  }
+
+  @Test
   public void testMvfindWithMatch() throws IOException {
     JSONObject actual =
         executeQuery(
