@@ -6,6 +6,7 @@
 package org.opensearch.sql.expression.function.udf.datetime;
 
 import static org.opensearch.sql.calcite.utils.PPLReturnTypes.INTEGER_FORCE_NULLABLE;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.toIntArg;
 
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
@@ -65,9 +66,9 @@ public class WeekFunction extends ImplementorUDF {
       return (int) DateTimeFunctions.exprWeekWithoutMode(dateValue).valueForCalcite();
     }
 
-    public static int week(String date, int mode) {
+    public static int week(String date, long mode) {
       ExprValue dateValue = new ExprDateValue(date);
-      ExprValue modeValue = new ExprIntegerValue(mode);
+      ExprValue modeValue = new ExprIntegerValue(toIntArg(mode));
       ExprValue woyExpr = DateTimeFunctions.exprWeek(dateValue, modeValue);
       return (int) woyExpr.valueForCalcite();
     }
