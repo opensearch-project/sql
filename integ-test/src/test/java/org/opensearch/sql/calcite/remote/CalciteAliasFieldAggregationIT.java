@@ -13,7 +13,9 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
@@ -109,22 +111,18 @@ public class CalciteAliasFieldAggregationIT extends PPLIntegTestCase {
   public void testFirstWithAliasField() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | where value = 100 | sort @timestamp | stats FIRST(@timestamp)",
-                TEST_ALIAS_BUG));
+            String.format("source=%s | sort @timestamp | stats FIRST(@timestamp)", TEST_ALIAS_BUG));
     verifySchema(actual, schema("FIRST(@timestamp)", "timestamp"));
-    verifyDataRows(actual, rows("2024-01-01 10:00:00"));
+    assertTimestampMember(actual.getJSONArray("datarows").getJSONArray(0).get(0));
   }
 
   @Test
   public void testLastWithAliasField() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | where value = 300 | sort @timestamp | stats LAST(@timestamp)",
-                TEST_ALIAS_BUG));
+            String.format("source=%s | sort @timestamp | stats LAST(@timestamp)", TEST_ALIAS_BUG));
     verifySchema(actual, schema("LAST(@timestamp)", "timestamp"));
-    verifyDataRows(actual, rows("2024-01-03 10:00:00"));
+    assertTimestampMember(actual.getJSONArray("datarows").getJSONArray(0).get(0));
   }
 
   @Test
@@ -132,10 +130,9 @@ public class CalciteAliasFieldAggregationIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where value = 100 | sort @timestamp | stats TAKE(@timestamp, 2)",
-                TEST_ALIAS_BUG));
+                "source=%s | sort @timestamp | stats TAKE(@timestamp, 2)", TEST_ALIAS_BUG));
     verifySchema(actual, schema("TAKE(@timestamp, 2)", "array"));
-    verifyDataRows(actual, rows(List.of("2024-01-01 10:00:00")));
+    assertTimestampTakeMembers(actual.getJSONArray("datarows").getJSONArray(0).getJSONArray(0));
   }
 
   @Test
@@ -165,42 +162,79 @@ public class CalciteAliasFieldAggregationIT extends PPLIntegTestCase {
 
   @Test
   public void testAliasTypeWithLastFirstTakeLatestEarliestAggregation() throws IOException {
-    // take/first/last select by document order, which is not defined across shards, so they are
-    // asserted against a single narrowed document. latest/earliest are ordered by the time field
-    // and
-    // stay deterministic, so they keep asserting over the full dataset.
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where original_col = 1 | stats take(original_text, 2),"
-                    + " last(original_text), first(original_text), take(alias_text, 2),"
-                    + " last(alias_text), first(alias_text), take(original_col, 2),"
-                    + " last(original_col), first(original_col), take(alias_col, 2),"
-                    + " last(alias_col), first(alias_col)",
+                "source=%s | stats take(original_text, 2), last(original_text),"
+                    + " first(original_text), take(alias_text, 2), last(alias_text),"
+                    + " first(alias_text), take(original_col, 2), last(original_col),"
+                    + " first(original_col), take(alias_col, 2), last(alias_col), first(alias_col),"
+                    + " latest(original_col), earliest(original_col), latest(alias_col),"
+                    + " earliest(alias_col), latest(original_text), earliest(original_text),"
+                    + " latest(alias_text), earliest(alias_text)",
                 TEST_INDEX_ALIAS));
-    verifyDataRows(
-        actual,
-        rows(
-            List.of("a b c"),
-            "a b c",
-            "a b c",
-            List.of("a b c"),
-            "a b c",
-            "a b c",
-            List.of(1),
-            1,
-            1,
-            List.of(1),
-            1,
-            1));
 
-    JSONObject ordered =
-        executeQuery(
-            String.format(
-                "source=%s | stats latest(original_col), earliest(original_col),"
-                    + " latest(alias_col), earliest(alias_col), latest(original_text),"
-                    + " earliest(original_text), latest(alias_text), earliest(alias_text)",
-                TEST_INDEX_ALIAS));
-    verifyDataRows(ordered, rows(3, 1, 3, 1, "x y z", "a b c", "x y z", "a b c"));
+    JSONArray row = actual.getJSONArray("datarows").getJSONArray(0);
+    Set<String> texts = Set.of("a b c", "d e f", "x y z");
+    Set<Integer> numbers = Set.of(1, 2, 3);
+    assertTakeMembers(row.getJSONArray(0), 2, texts);
+    assertMember(row.get(1), texts);
+    assertMember(row.get(2), texts);
+    assertTakeMembers(row.getJSONArray(3), 2, texts);
+    assertMember(row.get(4), texts);
+    assertMember(row.get(5), texts);
+    assertTakeMembers(row.getJSONArray(6), 2, numbers);
+    assertMember(row.get(7), numbers);
+    assertMember(row.get(8), numbers);
+    assertTakeMembers(row.getJSONArray(9), 2, numbers);
+    assertMember(row.get(10), numbers);
+    assertMember(row.get(11), numbers);
+
+    assertEquals(3, row.getInt(12));
+    assertEquals(1, row.getInt(13));
+    assertEquals(3, row.getInt(14));
+    assertEquals(1, row.getInt(15));
+    assertEquals("x y z", row.getString(16));
+    assertEquals("a b c", row.getString(17));
+    assertEquals("x y z", row.getString(18));
+    assertEquals("a b c", row.getString(19));
+  }
+
+  private static void assertMember(Object actual, Set<?> expectedValues) {
+    assertTrue(
+        "Expected one of " + expectedValues + " but got " + actual,
+        expectedValues.contains(actual));
+  }
+
+  private static void assertTakeMembers(JSONArray actual, int expectedSize, Set<?> expectedValues) {
+    assertEquals(expectedSize, actual.length());
+    Set<Object> distinct = new HashSet<>();
+    for (int i = 0; i < actual.length(); i++) {
+      Object value = actual.get(i);
+      assertMember(value, expectedValues);
+      distinct.add(value);
+    }
+    assertEquals(expectedSize, distinct.size());
+  }
+
+  private static String normalizeTimestamp(Object value) {
+    return value.toString().replace('T', ' ').replace(".000Z", "").replace("Z", "");
+  }
+
+  private static void assertTimestampMember(Object actual) {
+    assertMember(
+        normalizeTimestamp(actual),
+        Set.of("2024-01-01 10:00:00", "2024-01-02 10:00:00", "2024-01-03 10:00:00"));
+  }
+
+  private static void assertTimestampTakeMembers(JSONArray actual) {
+    assertEquals(2, actual.length());
+    Set<String> normalized = new HashSet<>();
+    for (int i = 0; i < actual.length(); i++) {
+      String value = normalizeTimestamp(actual.get(i));
+      assertTimestampMember(value);
+      normalized.add(value);
+    }
+    assertEquals(2, normalized.size());
   }
 }

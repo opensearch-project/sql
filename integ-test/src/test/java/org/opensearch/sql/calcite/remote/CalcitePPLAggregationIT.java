@@ -26,7 +26,10 @@ import static org.opensearch.sql.util.TestUtils.performRequest;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
@@ -56,6 +59,23 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
           + "20,Elinor,Ratliff,Scentric,M,36,16418\\n"
           + "25,Virginia,Ayala,Filodyne,F,39,40540\\n"
           + "32,Dillard,Mcpherson,Quailcom,F,34,48086'";
+
+  private static void assertMember(Object actual, Set<?> expectedValues) {
+    assertTrue(
+        "Expected one of " + expectedValues + " but got " + actual,
+        expectedValues.contains(actual));
+  }
+
+  private static void assertTakeMembers(JSONArray actual, int expectedSize, Set<?> expectedValues) {
+    assertEquals(expectedSize, actual.length());
+    Set<Object> distinct = new HashSet<>();
+    for (int i = 0; i < actual.length(); i++) {
+      Object value = actual.get(i);
+      assertMember(value, expectedValues);
+      distinct.add(value);
+    }
+    assertEquals(expectedSize, distinct.size());
+  }
 
   @Override
   public void init() throws Exception {
@@ -707,6 +727,201 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         rows(4180L, 4180L, 33),
         rows(48086L, 48086L, 34),
         rows(null, null, 36)); // balance is null for age 36
+  }
+
+  @Test
+  public void testIndexBackedFirstLastValuesBelongToSourceAcrossShards() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(firstname), last(firstname), first(employer), last(email),"
+                    + " first(age), last(balance), first(birthdate), last(birthdate)",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("first(firstname)", "string"),
+        schema("last(firstname)", "string"),
+        schema("first(employer)", "string"),
+        schema("last(email)", "string"),
+        schema("first(age)", "int"),
+        schema("last(balance)", "bigint"),
+        schema("first(birthdate)", "timestamp"),
+        schema("last(birthdate)", "timestamp"));
+
+    JSONArray row = actual.getJSONArray("datarows").getJSONArray(0);
+    assertMember(
+        row.get(0),
+        Set.of("Amber JOHnny", "Hattie", "Nanette", "Dale", "Elinor", "Virginia", "Dillard"));
+    assertMember(
+        row.get(1),
+        Set.of("Amber JOHnny", "Hattie", "Nanette", "Dale", "Elinor", "Virginia", "Dillard"));
+    assertMember(
+        row.get(2),
+        Set.of("Pyrami", "Netagy", "Quility", "Boink", "Scentric", "Filodyne", "Quailcom"));
+    assertMember(
+        row.get(3),
+        Set.of(
+            "amberduke@pyrami.com",
+            "hattiebond@netagy.com",
+            "nanettebates@quility.com",
+            "daleadams@boink.com",
+            "elinorratliff@scentric.com",
+            "virginiaayala@filodyne.com",
+            "dillardmcpherson@quailcom.com"));
+    assertMember(row.getInt(4), Set.of(28, 32, 33, 34, 36, 39));
+    assertMember(row.getLong(5), Set.of(4180L, 5686L, 16418L, 32838L, 39225L, 40540L, 48086L));
+    assertMember(
+        row.getString(6),
+        Set.of(
+            "2017-10-23 00:00:00",
+            "2017-11-20 00:00:00",
+            "2018-06-23 00:00:00",
+            "2018-06-27 00:00:00",
+            "2018-08-11 00:00:00",
+            "2018-08-19 00:00:00",
+            "2018-11-13 23:33:20"));
+    assertMember(
+        row.getString(7),
+        Set.of(
+            "2017-10-23 00:00:00",
+            "2017-11-20 00:00:00",
+            "2018-06-23 00:00:00",
+            "2018-06-27 00:00:00",
+            "2018-08-11 00:00:00",
+            "2018-08-19 00:00:00",
+            "2018-11-13 23:33:20"));
+  }
+
+  @Test
+  public void testIndexBackedFirstLastByGroupRemainWithinGroupAcrossShards() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(firstname), last(lastname), first(employer), last(email),"
+                    + " count(), avg(age) by gender",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("first(firstname)", "string"),
+        schema("last(lastname)", "string"),
+        schema("first(employer)", "string"),
+        schema("last(email)", "string"),
+        schema("count()", "bigint"),
+        schema("avg(age)", "double"),
+        schema("gender", "string"));
+
+    JSONArray rows = actual.getJSONArray("datarows");
+    assertEquals(2, rows.length());
+    for (int i = 0; i < rows.length(); i++) {
+      JSONArray row = rows.getJSONArray(i);
+      if ("F".equals(row.getString(6))) {
+        assertMember(row.get(0), Set.of("Nanette", "Virginia", "Dillard"));
+        assertMember(row.get(1), Set.of("Bates", "Ayala", "Mcpherson"));
+        assertMember(row.get(2), Set.of("Quility", "Filodyne", "Quailcom"));
+        assertMember(
+            row.get(3),
+            Set.of(
+                "nanettebates@quility.com",
+                "virginiaayala@filodyne.com",
+                "dillardmcpherson@quailcom.com"));
+        assertEquals(3L, row.getLong(4));
+        assertEquals(33.666666666666664, row.getDouble(5), 0.0);
+      } else {
+        assertEquals("M", row.getString(6));
+        assertMember(row.get(0), Set.of("Amber JOHnny", "Hattie", "Dale", "Elinor"));
+        assertMember(row.get(1), Set.of("Duke Willmington", "Bond", "Adams", "Ratliff"));
+        assertMember(row.get(2), Set.of("Pyrami", "Netagy", "Boink", "Scentric"));
+        assertMember(
+            row.get(3),
+            Set.of(
+                "amberduke@pyrami.com",
+                "hattiebond@netagy.com",
+                "daleadams@boink.com",
+                "elinorratliff@scentric.com"));
+        assertEquals(4L, row.getLong(4));
+        assertEquals(34.25, row.getDouble(5), 0.0);
+      }
+    }
+  }
+
+  @Test
+  public void testIndexBackedNestedFirstLastRemainWithinGroupAcrossShards() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(`resource.attributes.telemetry.sdk.language`) as lang,"
+                    + " last(`resource.attributes.telemetry.sdk.version`) as version,"
+                    + " first(`resource.attributes.telemetry.sdk.enabled`) as enabled, count() as"
+                    + " cnt by severityNumber",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(
+        actual,
+        schema("lang", "string"),
+        schema("version", "int"),
+        schema("enabled", "boolean"),
+        schema("cnt", "bigint"),
+        schema("severityNumber", "int"));
+
+    JSONArray rows = actual.getJSONArray("datarows");
+    assertEquals(3, rows.length());
+    for (int i = 0; i < rows.length(); i++) {
+      JSONArray row = rows.getJSONArray(i);
+      switch (row.getInt(4)) {
+        case 9 -> {
+          assertMember(row.get(0), Set.of("java", "javascript"));
+          assertMember(row.getInt(1), Set.of(10, 12));
+          assertEquals(true, row.getBoolean(2));
+          assertEquals(2L, row.getLong(3));
+        }
+        case 12 -> {
+          assertMember(row.get(0), Set.of("python", "rust"));
+          assertMember(row.getInt(1), Set.of(11, 14));
+          assertMember(row.getBoolean(2), Set.of(false, true));
+          assertEquals(2L, row.getLong(3));
+        }
+        case 16 -> {
+          assertEquals("go", row.getString(0));
+          assertEquals(13, row.getInt(1));
+          assertEquals(false, row.getBoolean(2));
+          assertEquals(1L, row.getLong(3));
+        }
+        default -> fail("Unexpected severityNumber " + row.getInt(4));
+      }
+    }
+  }
+
+  @Test
+  public void testIndexBackedTakeFirstLastWithEvalReturnSourceMembersAcrossShards()
+      throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval new_address = upper(address), new_state = lower(state),"
+                    + " new_balance = balance * 10 | stats take(new_address, 2), last(new_address),"
+                    + " first(new_address), take(new_state, 2), last(new_state), first(new_state),"
+                    + " take(new_balance, 2), last(new_balance), first(new_balance)",
+                TEST_INDEX_BANK));
+    JSONArray row = actual.getJSONArray("datarows").getJSONArray(0);
+    Set<String> addresses =
+        Set.of(
+            "880 HOLMES LANE",
+            "671 BRISTOL STREET",
+            "789 MADISON STREET",
+            "467 HUTCHINSON COURT",
+            "282 KINGS PLACE",
+            "171 PUTNAM AVENUE",
+            "702 QUENTIN STREET");
+    Set<String> states = Set.of("il", "tn", "va", "md", "wa", "pa", "in");
+    Set<Integer> balances = Set.of(392250, 56860, 328380, 41800, 164180, 405400, 480860);
+    assertTakeMembers(row.getJSONArray(0), 2, addresses);
+    assertMember(row.get(1), addresses);
+    assertMember(row.get(2), addresses);
+    assertTakeMembers(row.getJSONArray(3), 2, states);
+    assertMember(row.get(4), states);
+    assertMember(row.get(5), states);
+    assertTakeMembers(row.getJSONArray(6), 2, balances);
+    assertMember(row.get(7), balances);
+    assertMember(row.get(8), balances);
   }
 
   @Test
