@@ -55,6 +55,10 @@ public class PPLTracingIT extends PPLIntegTestCase {
   @Override
   public void init() throws Exception {
     super.init();
+    org.junit.Assume.assumeTrue(
+        "telemetry-otel plugin not installed on test cluster; skipping PPL tracing tests",
+        org.opensearch.sql.util.ClusterPlugins.isPluginInstalled(
+            client(), org.opensearch.sql.util.ClusterPlugins.TELEMETRY_OTEL_PLUGIN));
     enableCalcite();
     loadIndex(Index.BANK);
     receiver.clear();

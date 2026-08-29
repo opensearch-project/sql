@@ -55,6 +55,10 @@ public class PPLPermissionsIT extends SecurityTestBase {
 
   @Override
   protected void init() throws Exception {
+    org.junit.Assume.assumeTrue(
+        "opensearch-security plugin not installed on test cluster; skipping FGAC tests",
+        org.opensearch.sql.util.ClusterPlugins.isPluginInstalled(
+            client(), org.opensearch.sql.util.ClusterPlugins.SECURITY_PLUGIN));
     super.init();
     createSecurityRolesAndUsers();
     loadIndex(Index.BANK);

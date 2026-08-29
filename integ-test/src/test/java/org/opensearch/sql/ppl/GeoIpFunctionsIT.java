@@ -52,6 +52,11 @@ public class GeoIpFunctionsIT extends PPLIntegTestCase {
   @Override
   public void init() throws Exception {
     super.init();
+    org.junit.Assume.assumeTrue(
+        "opensearch-geospatial plugin not installed on test cluster; skipping geoip enrichment"
+            + " tests",
+        org.opensearch.sql.util.ClusterPlugins.isPluginInstalled(
+            client(), org.opensearch.sql.util.ClusterPlugins.GEOSPATIAL_PLUGIN));
     loadIndex(Index.GEOIP);
     if (!initialized) {
       // Create a new dataSource
