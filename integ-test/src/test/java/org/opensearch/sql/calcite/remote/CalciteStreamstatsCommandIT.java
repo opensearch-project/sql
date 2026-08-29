@@ -7,12 +7,16 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.Capability.CHAINED_STREAMSTATS_BY;
-import static org.opensearch.sql.util.Capability.DOC_MUTATION;
 import static org.opensearch.sql.util.Capability.STREAMSTATS_SORT_NOT_HONORED;
 import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
@@ -30,15 +34,44 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     loadIndex(Index.LOGS);
   }
 
+  // streamstats computes running/window aggregates over the input stream in encounter order. On a
+  // multi-shard index that order is not deterministic, so the per-row cumulative values diverge
+  // between runs. To assert exact stream semantics we feed a deterministic in-memory stream via
+  // `makeresults format=csv` (typed inline rows, single relation, no shards) that mirrors the
+  // STATE_COUNTRY / STATE_COUNTRY_WITH_NULL fixtures row-for-row and in the same column order the
+  // index presents (name, country, state, month, year, age). The expected values are unchanged --
+  // only the source is made deterministic. Real multi-shard index coverage is retained separately
+  // by testStreamstatsIndexMultiShardCoverage below, which asserts order-independent properties.
+  private static final String SC =
+      "name:string,country:string,state:string,month:int,year:int,age:int\\n"
+          + "Jake,USA,California,4,2023,70\\n"
+          + "Hello,USA,New York,4,2023,30\\n"
+          + "John,Canada,Ontario,4,2023,25\\n"
+          + "Jane,Canada,Quebec,4,2023,20";
+
+  // Doc-mutation fixtures: the original tests PUT an extra "Jay" doc as the last document. These
+  // deterministic streams preserve that order without mutating a shared index.
+  private static final String SC_JAY40 = SC + "\\nJay,USA,Quebec,4,2023,40";
+  private static final String SC_JAY28 = SC + "\\nJay,USA,Quebec,4,2023,28";
+
+  private static final String LOGS_STREAM =
+      "created_at:string,server:string,@timestamp:string,message:string,level:string\\n"
+          + "2023-01-05T00:00:00.000Z,server1,2023-01-01T00:00:00.000Z,Database connection"
+          + " failed,ERROR\\n"
+          + "2023-01-04T00:00:00.000Z,server2,2023-01-02T00:00:00.000Z,Service started,INFO\\n"
+          + "2023-01-03T00:00:00.000Z,server1,2023-01-03T00:00:00.000Z,High memory usage,WARN\\n"
+          + "2023-01-02T00:00:00.000Z,server3,2023-01-04T00:00:00.000Z,Disk space low,ERROR\\n"
+          + "2023-01-01T00:00:00.000Z,server2,2023-01-05T00:00:00.000Z,Backup completed,INFO";
+
   @Test
   public void testStreamstats() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max | fields name, country, state, month, year, age, cnt, avg, min,"
-                    + " max",
-                TEST_INDEX_STATE_COUNTRY));
+                "makeresults format=csv data='%s' | streamstats count() as cnt, avg(age) as avg,"
+                    + " min(age) as min, max(age) as max | fields name, country, state, month,"
+                    + " year, age, cnt, avg, min, max",
+                SC));
 
     verifySchemaInOrder(
         actual,
@@ -99,10 +132,10 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by country | fields name, country, state, month, year, age, cnt,"
-                    + " avg, min, max",
-                TEST_INDEX_STATE_COUNTRY));
+                "makeresults format=csv data='%s' | streamstats count() as cnt, avg(age) as avg,"
+                    + " min(age) as min, max(age) as max by country | fields name, country, state,"
+                    + " month, year, age, cnt, avg, min, max",
+                SC));
 
     verifySchemaInOrder(
         actual,
@@ -228,10 +261,10 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by span(age, 10) as age_span | fields name, country, state, month,"
-                    + " year, age, cnt, avg, min, max",
-                TEST_INDEX_STATE_COUNTRY));
+                "makeresults format=csv data='%s' | streamstats count() as cnt, avg(age) as avg,"
+                    + " min(age) as min, max(age) as max by span(age, 10) as age_span | fields"
+                    + " name, country, state, month, year, age, cnt, avg, min, max",
+                SC));
 
     verifyDataRows(
         actual,
@@ -266,10 +299,10 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by span(age, 10) as age_span, country | fields name, country, state,"
-                    + " month, year, age, cnt, avg, min, max",
-                TEST_INDEX_STATE_COUNTRY));
+                "makeresults format=csv data='%s' | streamstats count() as cnt, avg(age) as avg,"
+                    + " min(age) as min, max(age) as max by span(age, 10) as age_span, country |"
+                    + " fields name, country, state, month, year, age, cnt, avg, min, max",
+                SC));
 
     verifyDataRows(
         actual,
@@ -284,10 +317,10 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by span(age, 10) as age_span, state | fields name, country, state,"
-                    + " month, year, age, cnt, avg, min, max",
-                TEST_INDEX_STATE_COUNTRY));
+                "makeresults format=csv data='%s' | streamstats count() as cnt, avg(age) as avg,"
+                    + " min(age) as min, max(age) as max by span(age, 10) as age_span, state |"
+                    + " fields name, country, state, month, year, age, cnt, avg, min, max",
+                SC));
 
     verifyDataRows(
         actual,
@@ -376,9 +409,9 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats current=false avg(age) as prev_avg | fields name, country,"
-                    + " state, month, year, age, prev_avg",
-                TEST_INDEX_STATE_COUNTRY));
+                "makeresults format=csv data='%s' | streamstats current=false avg(age) as prev_avg"
+                    + " | fields name, country, state, month, year, age, prev_avg",
+                SC));
 
     verifyDataRows(
         actual,
@@ -412,9 +445,9 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats window = 3 avg(age) as avg | fields name, country, state,"
-                    + " month, year, age, avg",
-                TEST_INDEX_STATE_COUNTRY));
+                "makeresults format=csv data='%s' | streamstats window = 3 avg(age) as avg | fields"
+                    + " name, country, state, month, year, age, avg",
+                SC));
 
     verifyDataRows(
         actual,
@@ -448,9 +481,9 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats window = 10 avg(age) as avg | fields name, country, state,"
-                    + " month, year, age, avg",
-                TEST_INDEX_STATE_COUNTRY));
+                "makeresults format=csv data='%s' | streamstats window = 10 avg(age) as avg |"
+                    + " fields name, country, state, month, year, age, avg",
+                SC));
 
     verifyDataRows(
         actual,
@@ -478,9 +511,9 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats current = false window = 2 avg(age) as avg | fields name,"
-                    + " country, state, month, year, age, avg",
-                TEST_INDEX_STATE_COUNTRY));
+                "makeresults format=csv data='%s' | streamstats current = false window = 2 avg(age)"
+                    + " as avg | fields name, country, state, month, year, age, avg",
+                SC));
 
     verifyDataRows(
         actual,
@@ -510,57 +543,41 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  @RequiresCapability(DOC_MUTATION)
   public void testStreamstatsGlobal() throws IOException {
-    final int docId = 5;
-    Request insertRequest =
-        new Request(
-            "PUT", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY, docId));
-    insertRequest.setJsonEntity(
-        "{\"name\": \"Jay\",\"age\": 40,\"state\":"
-            + " \"Quebec\",\"country\": \"USA\",\"year\": 2023,\"month\":"
-            + " 4}\n");
-    client().performRequest(insertRequest);
-    try {
-      JSONObject actual =
-          executeQuery(
-              String.format(
-                  "source=%s | streamstats window=2 global=false avg(age) as avg by country |"
-                      + " fields name, country, state, month, year, age, avg",
-                  TEST_INDEX_STATE_COUNTRY));
+    // Jay (age 40) is inlined as the trailing row of the deterministic stream, matching the
+    // original test which PUT it as the last document (encountered last) then DELETEd it.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "makeresults format=csv data='%s' | streamstats window=2 global=false avg(age) as"
+                    + " avg by country | fields name, country, state, month, year, age, avg",
+                SC_JAY40));
 
-      verifyDataRows(
-          actual,
-          rows("Jake", "USA", "California", 4, 2023, 70, 70),
-          rows("Hello", "USA", "New York", 4, 2023, 30, 50),
-          rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
-          rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
-          rows("Jay", "USA", "Quebec", 4, 2023, 40, 35));
+    verifyDataRows(
+        actual,
+        rows("Jake", "USA", "California", 4, 2023, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 50),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
+        rows("Jay", "USA", "Quebec", 4, 2023, 40, 35));
 
-      JSONObject actual2 =
-          executeQuery(
-              String.format(
-                  "source=%s | streamstats window=2 global=true avg(age) as avg by country |"
-                      + " fields name, country, state, month, year, age, avg",
-                  TEST_INDEX_STATE_COUNTRY));
+    JSONObject actual2 =
+        executeQuery(
+            String.format(
+                "makeresults format=csv data='%s' | streamstats window=2 global=true avg(age) as"
+                    + " avg by country | fields name, country, state, month, year, age, avg",
+                SC_JAY40));
 
-      verifyDataRows(
-          actual2,
-          rows("Jake", "USA", "California", 4, 2023, 70, 70),
-          rows("Hello", "USA", "New York", 4, 2023, 30, 50),
-          rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
-          rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
-          rows("Jay", "USA", "Quebec", 4, 2023, 40, 40));
-    } finally {
-      Request deleteRequest =
-          new Request(
-              "DELETE", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY, docId));
-      client().performRequest(deleteRequest);
-    }
+    verifyDataRows(
+        actual2,
+        rows("Jake", "USA", "California", 4, 2023, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 50),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
+        rows("Jay", "USA", "Quebec", 4, 2023, 40, 40));
   }
 
   @Test
-  @RequiresCapability(DOC_MUTATION)
   public void testStreamstatsGlobalWithNull() throws IOException {
     final int docId = 7;
     Request insertRequest =
@@ -616,7 +633,6 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  @RequiresCapability(DOC_MUTATION)
   public void testStreamstatsGlobalWithNullBucket() throws IOException {
     final int docId = 7;
     Request insertRequest =
@@ -672,57 +688,43 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  @RequiresCapability(DOC_MUTATION)
   public void testStreamstatsReset() throws IOException {
-    final int docId = 5;
-    Request insertRequest =
-        new Request(
-            "PUT", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY, docId));
-    insertRequest.setJsonEntity(
-        "{\"name\": \"Jay\",\"age\": 28,\"state\":"
-            + " \"Quebec\",\"country\": \"USA\",\"year\": 2023,\"month\":"
-            + " 4}\n");
-    client().performRequest(insertRequest);
-    try {
-      JSONObject actual =
-          executeQuery(
-              String.format(
-                  "source=%s | streamstats window=2 reset_before=age>29 avg(age) as avg by country"
-                      + " | fields name, country, state, month, year, age, avg",
-                  TEST_INDEX_STATE_COUNTRY));
+    // Jay (age 28) is inlined as the trailing row of the deterministic stream, matching the
+    // original test which PUT it as the last document (encountered last) then DELETEd it.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "makeresults format=csv data='%s' | streamstats window=2 reset_before=age>29"
+                    + " avg(age) as avg by country | fields name, country, state, month, year, age,"
+                    + " avg",
+                SC_JAY28));
 
-      verifyDataRows(
-          actual,
-          rows("Jake", "USA", "California", 4, 2023, 70, 70),
-          rows("Hello", "USA", "New York", 4, 2023, 30, 30),
-          rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
-          rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
-          rows("Jay", "USA", "Quebec", 4, 2023, 28, 28));
+    verifyDataRows(
+        actual,
+        rows("Jake", "USA", "California", 4, 2023, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 30),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 22.5),
+        rows("Jay", "USA", "Quebec", 4, 2023, 28, 28));
 
-      JSONObject actual2 =
-          executeQuery(
-              String.format(
-                  "source=%s | streamstats window=2 reset_after=age>22 avg(age) as avg by country"
-                      + " | fields name, country, state, month, year, age, avg",
-                  TEST_INDEX_STATE_COUNTRY));
+    JSONObject actual2 =
+        executeQuery(
+            String.format(
+                "makeresults format=csv data='%s' | streamstats window=2 reset_after=age>22"
+                    + " avg(age) as avg by country | fields name, country, state, month, year, age,"
+                    + " avg",
+                SC_JAY28));
 
-      verifyDataRows(
-          actual2,
-          rows("Jake", "USA", "California", 4, 2023, 70, 70),
-          rows("Hello", "USA", "New York", 4, 2023, 30, 30),
-          rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
-          rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20),
-          rows("Jay", "USA", "Quebec", 4, 2023, 28, 28));
-    } finally {
-      Request deleteRequest =
-          new Request(
-              "DELETE", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY, docId));
-      client().performRequest(deleteRequest);
-    }
+    verifyDataRows(
+        actual2,
+        rows("Jake", "USA", "California", 4, 2023, 70, 70),
+        rows("Hello", "USA", "New York", 4, 2023, 30, 30),
+        rows("John", "Canada", "Ontario", 4, 2023, 25, 25),
+        rows("Jane", "Canada", "Quebec", 4, 2023, 20, 20),
+        rows("Jay", "USA", "Quebec", 4, 2023, 28, 28));
   }
 
   @Test
-  @RequiresCapability(DOC_MUTATION)
   public void testStreamstatsResetWithNull() throws IOException {
     final int docId = 7;
     Request insertRequest =
@@ -778,7 +780,6 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  @RequiresCapability(DOC_MUTATION)
   public void testStreamstatsResetWithNullBucket() throws IOException {
     final int docId = 7;
     Request insertRequest =
@@ -856,10 +857,10 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats avg(age) as avg_age by state, country | streamstats"
-                    + " avg(avg_age) as avg_state_age by country | fields name, country, state,"
-                    + " month, year, age, avg_age, avg_state_age",
-                TEST_INDEX_STATE_COUNTRY));
+                "makeresults format=csv data='%s' | streamstats avg(age) as avg_age by state,"
+                    + " country | streamstats avg(avg_age) as avg_state_age by country | fields"
+                    + " name, country, state, month, year, age, avg_age, avg_state_age",
+                SC));
 
     verifyDataRows(
         actual,
@@ -946,7 +947,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  @RequiresCapability(DOC_MUTATION)
+  @RequiresCapability(CHAINED_STREAMSTATS_BY)
   public void testMultipleStreamstatsWithNull2() throws IOException {
     final int docId = 5;
     Request insertRequest =
@@ -1003,10 +1004,10 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eventstats avg(age) as avg_age| streamstats"
+                "makeresults format=csv data='%s' | eventstats avg(age) as avg_age| streamstats"
                     + " avg(age) as avg_age_stream | fields name, country, state, month, year,"
                     + " age, avg_age, avg_age_stream",
-                TEST_INDEX_STATE_COUNTRY));
+                SC));
 
     verifyDataRows(
         actual,
@@ -1089,13 +1090,14 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats avg(age) as avg_age by country, state, name | eval"
-                    + " avg_age_divide_20 = avg_age - 20 | streamstats avg(avg_age_divide_20) as"
-                    + " avg_state_age by country, state | where avg_state_age > 0 | streamstats"
-                    + " count(avg_state_age) as count_country_age_greater_20 by country | fields"
-                    + " name, country, state, month, year, age, avg_age, avg_age_divide_20,"
-                    + " avg_state_age, count_country_age_greater_20",
-                TEST_INDEX_STATE_COUNTRY));
+                "makeresults format=csv data='%s' | streamstats avg(age) as avg_age by country,"
+                    + " state, name | eval avg_age_divide_20 = avg_age - 20 | streamstats"
+                    + " avg(avg_age_divide_20) as avg_state_age by country, state | where"
+                    + " avg_state_age > 0 | streamstats count(avg_state_age) as"
+                    + " count_country_age_greater_20 by country | fields name, country, state,"
+                    + " month, year, age, avg_age, avg_age_divide_20, avg_state_age,"
+                    + " count_country_age_greater_20",
+                SC));
 
     verifyDataRows(
         actual,
@@ -1180,10 +1182,11 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats stddev_pop(age), stddev_samp(age), var_pop(age),"
-                    + " var_samp(age) | fields name, country, state, month, year, age,"
-                    + " `stddev_pop(age)`, `stddev_samp(age)`, `var_pop(age)`, `var_samp(age)`",
-                TEST_INDEX_STATE_COUNTRY));
+                "makeresults format=csv data='%s' | streamstats stddev_pop(age), stddev_samp(age),"
+                    + " var_pop(age), var_samp(age) | fields name, country, state, month, year,"
+                    + " age, `stddev_pop(age)`, `stddev_samp(age)`, `var_pop(age)`,"
+                    + " `var_samp(age)`",
+                SC));
 
     verifySchemaInOrder(
         actual,
@@ -1284,10 +1287,11 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats stddev_pop(age), stddev_samp(age), var_pop(age),"
-                    + " var_samp(age) by country | fields name, country, state, month, year, age,"
-                    + " `stddev_pop(age)`, `stddev_samp(age)`, `var_pop(age)`, `var_samp(age)`",
-                TEST_INDEX_STATE_COUNTRY));
+                "makeresults format=csv data='%s' | streamstats stddev_pop(age), stddev_samp(age),"
+                    + " var_pop(age), var_samp(age) by country | fields name, country, state,"
+                    + " month, year, age, `stddev_pop(age)`, `stddev_samp(age)`, `var_pop(age)`,"
+                    + " `var_samp(age)`",
+                SC));
 
     verifyDataRows(
         actual,
@@ -1302,9 +1306,10 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | where country != 'USA' | streamstats stddev_samp(age) by span(age,"
-                    + " 10) | fields name, country, state, month, year, age, `stddev_samp(age)`",
-                TEST_INDEX_STATE_COUNTRY));
+                "makeresults format=csv data='%s' | where country != 'USA' | streamstats"
+                    + " stddev_samp(age) by span(age, 10) | fields name, country, state, month,"
+                    + " year, age, `stddev_samp(age)`",
+                SC));
 
     verifyDataRows(
         actual,
@@ -1347,9 +1352,9 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats dc(state) as dc_state | fields name, country, state,"
-                    + " month, year, age, dc_state",
-                TEST_INDEX_STATE_COUNTRY));
+                "makeresults format=csv data='%s' | streamstats dc(state) as dc_state | fields"
+                    + " name, country, state, month, year, age, dc_state",
+                SC));
 
     verifySchemaInOrder(
         actual,
@@ -1374,9 +1379,9 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats dc(state) as dc_state by country | fields name, country,"
-                    + " state, month, year, age, dc_state",
-                TEST_INDEX_STATE_COUNTRY));
+                "makeresults format=csv data='%s' | streamstats dc(state) as dc_state by country |"
+                    + " fields name, country, state, month, year, age, dc_state",
+                SC));
 
     verifySchemaInOrder(
         actual,
@@ -1401,9 +1406,9 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats distinct_count(country) as dc_country | fields name,"
-                    + " country, state, month, year, age, dc_country",
-                TEST_INDEX_STATE_COUNTRY));
+                "makeresults format=csv data='%s' | streamstats distinct_count(country) as"
+                    + " dc_country | fields name, country, state, month, year, age, dc_country",
+                SC));
 
     verifySchemaInOrder(
         actual,
@@ -1457,10 +1462,11 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats earliest(message), latest(message) by server | fields"
-                    + " created_at, server, `@timestamp`, message, level, `earliest(message)`,"
-                    + " `latest(message)`",
-                TEST_INDEX_LOGS));
+                "makeresults format=csv data='%s' | eval created_at=cast(created_at as timestamp),"
+                    + " `@timestamp`=cast(`@timestamp` as timestamp) | streamstats"
+                    + " earliest(message), latest(message) by server | fields created_at, server,"
+                    + " `@timestamp`, message, level, `earliest(message)`, `latest(message)`",
+                LOGS_STREAM));
     verifySchema(
         actual,
         schema("created_at", "timestamp"),
@@ -1512,5 +1518,57 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
             "INFO",
             "Service started",
             "Backup completed"));
+  }
+
+  @Test
+  public void testStreamstatsEarliestLatestIndexMultiShardCoverage() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | streamstats earliest(message), latest(message) by server | fields"
+                    + " server, message, `earliest(message)`, `latest(message)`",
+                TEST_INDEX_LOGS));
+
+    Map<String, Set<String>> messagesByServer =
+        Map.of(
+            "server1", Set.of("Database connection failed", "High memory usage"),
+            "server2", Set.of("Service started", "Backup completed"),
+            "server3", Set.of("Disk space low"));
+    JSONArray rows = actual.getJSONArray("datarows");
+    assertEquals(5, rows.length());
+    for (int i = 0; i < rows.length(); i++) {
+      JSONArray row = rows.getJSONArray(i);
+      Set<String> validMessages = messagesByServer.get(row.getString(0));
+      assertTrue(validMessages.contains(row.getString(1)));
+      assertTrue(validMessages.contains(row.getString(2)));
+      assertTrue(validMessages.contains(row.getString(3)));
+    }
+  }
+
+  @Test
+  public void testStreamstatsIndexMultiShardCoverage() throws IOException {
+    // Retains real multi-document, multi-shard index coverage for streamstats. streamstats' running
+    // count() visits every document exactly once, so regardless of shard encounter order the cnt
+    // column is always the multiset {1, 2, 3, 4} and the age column is the full fixture multiset.
+    // These are order-independent properties, so they are stable across shard layouts.
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | streamstats count() as cnt | fields age, cnt",
+                TEST_INDEX_STATE_COUNTRY));
+    verifySchema(result, schema("age", "int"), schema("cnt", "bigint"));
+
+    JSONArray datarows = result.getJSONArray("datarows");
+    assertEquals(4, datarows.length());
+    List<Integer> ages = new ArrayList<>();
+    List<Integer> cnts = new ArrayList<>();
+    for (int i = 0; i < datarows.length(); i++) {
+      ages.add(datarows.getJSONArray(i).getInt(0));
+      cnts.add(datarows.getJSONArray(i).getInt(1));
+    }
+    Collections.sort(ages);
+    Collections.sort(cnts);
+    assertEquals(List.of(20, 25, 30, 70), ages);
+    assertEquals(List.of(1, 2, 3, 4), cnts);
   }
 }

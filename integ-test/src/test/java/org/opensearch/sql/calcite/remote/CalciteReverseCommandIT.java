@@ -34,6 +34,17 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
     loadIndex(Index.EVENTS);
   }
 
+  // See CalciteStreamstatsCommandIT: streamstats runs over the input stream in encounter order,
+  // which is non-deterministic on a multi-shard index. A deterministic in-memory makeresults
+  // stream (mirroring STATE_COUNTRY in the column order the index presents) keeps the streamstats
+  // values -- and therefore reverse's behavior over them -- stable across shard layouts.
+  private static final String SC =
+      "name:string,country:string,state:string,month:int,year:int,age:int\\n"
+          + "Jake,USA,California,4,2023,70\\n"
+          + "Hello,USA,New York,4,2023,30\\n"
+          + "John,Canada,Ontario,4,2023,25\\n"
+          + "Jane,Canada,Quebec,4,2023,20";
+
   @Test
   public void testReverse() throws IOException {
     JSONObject result =
@@ -309,8 +320,9 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | streamstats count() as cnt, avg(age) as avg by country | reverse",
-                TEST_INDEX_STATE_COUNTRY));
+                "makeresults format=csv data='%s' | streamstats count() as cnt, avg(age) as avg by"
+                    + " country | reverse",
+                SC));
     verifySchema(
         result,
         schema("name", "string"),
@@ -342,8 +354,9 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | streamstats count() as cnt | sort age | reverse | head 3",
-                TEST_INDEX_STATE_COUNTRY));
+                "makeresults format=csv data='%s' | streamstats count() as cnt | sort age | reverse"
+                    + " | head 3",
+                SC));
     verifySchema(
         result,
         schema("name", "string"),
