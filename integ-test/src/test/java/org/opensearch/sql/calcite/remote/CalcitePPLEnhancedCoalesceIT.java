@@ -44,8 +44,8 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval result = coalesce(name, age, 0) | fields name, age, result |"
-                    + " head 3",
+                "source=%s | eval result = coalesce(name, age, 0) | sort - age | fields name, age,"
+                    + " result | head 3",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchema(
@@ -61,7 +61,7 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | eval result = coalesce(name, age, 'fallback') |"
-                    + " fields name, age, result | head 3",
+                    + " sort - age | fields name, age, result | head 3",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchema(
@@ -170,8 +170,8 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval result = coalesce(field1, field2, field3) | fields name, result |"
-                    + " head 1",
+                "source=%s | eval result = coalesce(field1, field2, field3) | sort - age | fields"
+                    + " name, result | head 1",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     // When every COALESCE operand is missing/null, the result has no known type (see #5175).

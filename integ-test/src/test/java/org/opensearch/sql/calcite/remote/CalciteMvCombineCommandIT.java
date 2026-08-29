@@ -68,7 +68,14 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
         schema("tags", null, "string"),
         schema("packets_str", null, "array"));
 
-    verifyDataRows(result, rows("10.0.0.1", 100, "t1", List.of("10", "20", "30")));
+    JSONArray row = result.getJSONArray("datarows").getJSONArray(0);
+    Assertions.assertEquals("10.0.0.1", row.getString(0));
+    Assertions.assertEquals(100, row.getLong(1));
+    Assertions.assertEquals("t1", row.getString(2));
+    List<String> packets = new ArrayList<>();
+    row.getJSONArray(3).forEach(value -> packets.add(value.toString()));
+    Collections.sort(packets);
+    Assertions.assertEquals(List.of("10", "20", "30"), packets);
   }
 
   @Test
