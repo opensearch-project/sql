@@ -22,19 +22,19 @@ public class WildcardQueryIT extends SQLIntegTestCase {
 
   @Test
   public void test_wildcard_query_asterisk_function() throws IOException {
-    String expected = "test wildcard";
+    String expected = "test backslash wildcard \\_";
 
     String query1 =
         "SELECT KeywordBody FROM "
             + TEST_INDEX_WILDCARD
-            + " WHERE wildcard_query(KeywordBody, 't*') LIMIT 1";
+            + " WHERE wildcard_query(KeywordBody, 't*') ORDER BY KeywordBody LIMIT 1";
     JSONObject result1 = executeJdbcRequest(query1);
     verifyDataRows(result1, rows(expected));
 
     String query2 =
         "SELECT KeywordBody FROM "
             + TEST_INDEX_WILDCARD
-            + " WHERE wildcardquery(KeywordBody, 't*') LIMIT 1";
+            + " WHERE wildcardquery(KeywordBody, 't*') ORDER BY KeywordBody LIMIT 1";
     JSONObject result2 = executeJdbcRequest(query2);
     verifyDataRows(result2, rows(expected));
   }

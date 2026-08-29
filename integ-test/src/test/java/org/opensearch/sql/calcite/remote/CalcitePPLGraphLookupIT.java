@@ -14,10 +14,15 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.hamcrest.Description;
+import org.hamcrest.TypeSafeMatcher;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
@@ -61,6 +66,91 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
       map.put((String) keysAndValues[i], keysAndValues[i + 1]);
     }
     return map;
+  }
+
+  /**
+   * Row matcher for graphLookup results whose collected arrays come back in a shard-dependent
+   * order.
+   *
+   * <p>graphLookup gathers traversal results into an array, and the order of elements within that
+   * array is not defined across shards. A multi-shard run therefore returns the same set of nodes
+   * (same values, same {@code depth}/{@code numConnections}, same cardinality) as a single-shard
+   * run, only in a different order. Unlike {@link
+   * org.opensearch.sql.util.MatcherUtils#rows(Object...)}, which compares row cells with
+   * order-sensitive {@link JSONArray#similar}, this matcher compares the row against the expected
+   * cells treating every nested JSON array as an unordered multiset. It is scoped to this test
+   * class so the relaxed comparison never leaks into other suites.
+   */
+  private static TypeSafeMatcher<JSONArray> rowsUnordered(Object... expectedObjects) {
+    return new TypeSafeMatcher<>() {
+      @Override
+      protected boolean matchesSafely(JSONArray array) {
+        return jsonArrayEqualsIgnoringNestedOrder(array, new JSONArray(expectedObjects));
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText(new JSONArray(expectedObjects).toString());
+      }
+    };
+  }
+
+  /** Recursively compares two JSON values, treating every array as an unordered multiset. */
+  private static boolean jsonEqualsIgnoringOrder(Object a, Object b) {
+    if (a instanceof JSONArray && b instanceof JSONArray) {
+      return jsonArrayEqualsIgnoringNestedOrder((JSONArray) a, (JSONArray) b);
+    }
+    if (a instanceof JSONObject && b instanceof JSONObject) {
+      JSONObject ao = (JSONObject) a;
+      JSONObject bo = (JSONObject) b;
+      if (ao.keySet().size() != bo.keySet().size()) {
+        return false;
+      }
+      for (String key : ao.keySet()) {
+        if (!bo.has(key) || !jsonEqualsIgnoringOrder(ao.get(key), bo.get(key))) {
+          return false;
+        }
+      }
+      return true;
+    }
+    return scalarEquals(a, b);
+  }
+
+  private static boolean jsonArrayEqualsIgnoringNestedOrder(JSONArray actual, JSONArray expected) {
+    if (actual.length() != expected.length()) {
+      return false;
+    }
+    List<Object> remaining = new ArrayList<>();
+    for (int i = 0; i < expected.length(); i++) {
+      remaining.add(expected.get(i));
+    }
+    for (int i = 0; i < actual.length(); i++) {
+      Object actualElement = actual.get(i);
+      boolean matched = false;
+      for (Iterator<Object> it = remaining.iterator(); it.hasNext(); ) {
+        if (jsonEqualsIgnoringOrder(actualElement, it.next())) {
+          it.remove();
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private static boolean scalarEquals(Object a, Object b) {
+    boolean aNull = a == null || a == JSONObject.NULL;
+    boolean bNull = b == null || b == JSONObject.NULL;
+    if (aNull || bNull) {
+      return aNull && bNull;
+    }
+    if (a instanceof Number && b instanceof Number) {
+      return ((Number) a).doubleValue() == ((Number) b).doubleValue();
+    }
+    return a.toString().equals(b.toString());
   }
 
   // ==================== Employee Hierarchy Tests ====================
@@ -398,9 +488,11 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("name", "string"),
         schema("nearestAirport", "string"),
         schema("reachableAirports", "array"));
+    // graphLookup collects reachable airports into an array whose element order is shard-dependent;
+    // compare values/connects/cardinality while ignoring nested array order.
     verifyDataRows(
         result,
-        rows(
+        rowsUnordered(
             "Jeff",
             "BOS",
             List.of(
@@ -708,9 +800,11 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
 
     verifySchema(result, schema("reportsTo", "array"), schema("reportingHierarchy", "array"));
+    // Batch mode returns a single row; the source-rows array and the hierarchy array both come
+    // back in a shard-dependent order, so compare them as unordered multisets.
     verifyDataRows(
         result,
-        rows(
+        rowsUnordered(
             List.of(
                 Map.of("name", "Dev", "reportsTo", "Eliot", "id", 1),
                 Map.of("name", "Asya", "reportsTo", "Ron", "id", 5)),
@@ -746,7 +840,7 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
     // - lookupResults: airports reachable from JFK and BOS within maxDepth=1
     verifyDataRows(
         result,
-        rows(
+        rowsUnordered(
             List.of(
                 Map.of("name", "Dev", "nearestAirport", "JFK"),
                 Map.of("name", "Eliot", "nearestAirport", "JFK"),
@@ -850,7 +944,7 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
     //   because Ron.reportsTo=Andrew is in visited set
     verifyDataRows(
         result,
-        rows(
+        rowsUnordered(
             (Object)
                 List.of(
                     Map.of("name", "Eliot", "reportsTo", "Ron", "id", 2),

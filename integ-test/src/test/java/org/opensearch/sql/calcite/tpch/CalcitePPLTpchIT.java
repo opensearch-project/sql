@@ -170,7 +170,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
     String ppl = sanitize(loadFromFile("tpch/queries/q6.ppl"));
     JSONObject actual = executeQuery(ppl);
     verifySchemaInOrder(actual, schema("revenue", "double"));
-    verifyDataRows(actual, rows(77949.9186));
+    verifyDataRows(actual, closeTo(77949.9186));
   }
 
   @Test
@@ -224,9 +224,13 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
         schema("c_comment", "string"));
     verifyNumOfRows(actual, 20);
     actual = executeQuery(ppl + "| head 1");
+    // `revenue` is a floating-point SUM whose accumulation order depends on how documents are
+    // partitioned across shards, so a multi-shard run yields the same value up to a tiny rounding
+    // difference (282635.1719 vs 282635.17189999996). Use closeTo to compare numerics within
+    // tolerance while still asserting the non-numeric columns exactly.
     verifyDataRows(
         actual,
-        rows(
+        closeTo(
             121,
             "Customer#000000121",
             282635.17189999996,

@@ -441,8 +441,8 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | bin @timestamp span=7day | fields"
-                    + " @timestamp, value | sort @timestamp | head 3",
+                "source=%s | eval original_timestamp = @timestamp | bin @timestamp span=7day |"
+                    + " sort original_timestamp | head 3 | fields @timestamp, value",
                 TEST_INDEX_TIME_DATA));
     verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
     verifyDataRows(
@@ -457,8 +457,8 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | bin @timestamp span=6day | fields"
-                    + " @timestamp, value | sort @timestamp | head 3",
+                "source=%s | eval original_timestamp = @timestamp | bin @timestamp span=6day |"
+                    + " sort original_timestamp | head 3 | fields @timestamp, value",
                 TEST_INDEX_TIME_DATA));
     verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
     verifyDataRows(

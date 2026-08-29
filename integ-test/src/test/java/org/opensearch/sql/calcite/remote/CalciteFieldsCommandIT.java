@@ -573,10 +573,14 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
   public void testFieldsAndTableEquivalence() throws IOException {
     JSONObject fieldsResult =
         executeQuery(
-            String.format("source=%s | fields firstname, lastname | head 3", TEST_INDEX_ACCOUNT));
+            String.format(
+                "source=%s | where account_number in (1, 6, 13) | fields firstname, lastname",
+                TEST_INDEX_ACCOUNT));
     JSONObject tableResult =
         executeQuery(
-            String.format("source=%s | table firstname, lastname | head 3", TEST_INDEX_ACCOUNT));
+            String.format(
+                "source=%s | where account_number in (1, 6, 13) | table firstname, lastname",
+                TEST_INDEX_ACCOUNT));
 
     verifySchema(fieldsResult, schema("firstname", "string"), schema("lastname", "string"));
     verifySchema(tableResult, schema("firstname", "string"), schema("lastname", "string"));
@@ -592,11 +596,13 @@ public class CalciteFieldsCommandIT extends PPLIntegTestCase {
     JSONObject commaResult =
         executeQuery(
             String.format(
-                "source=%s | fields firstname, lastname, age | head 3", TEST_INDEX_ACCOUNT));
+                "source=%s | where account_number in (1, 6, 13) | fields firstname, lastname, age",
+                TEST_INDEX_ACCOUNT));
     JSONObject spaceResult =
         executeQuery(
             String.format(
-                "source=%s | fields firstname lastname age | head 3", TEST_INDEX_ACCOUNT));
+                "source=%s | where account_number in (1, 6, 13) | fields firstname lastname age",
+                TEST_INDEX_ACCOUNT));
 
     verifySchema(
         commaResult,
