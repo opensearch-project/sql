@@ -7,7 +7,6 @@ package org.opensearch.sql.opensearch.request;
 
 import static org.opensearch.action.search.SearchRequest.DEFAULT_INDICES_OPTIONS;
 import static org.opensearch.sql.calcite.plan.OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP;
-import static org.opensearch.transport.RemoteClusterAware.REMOTE_CLUSTER_INDEX_SEPARATOR;
 
 import java.util.Arrays;
 import java.util.List;
@@ -33,11 +32,8 @@ import org.opensearch.transport.client.node.NodeClient;
 @RequiredArgsConstructor
 public class IndexPruner {
 
-  /** Caps the substituted expression, not what is read: the wildcard fallback reads no fewer. */
-  private static final int MAX_PRUNED_INDICES = 50;
-
-  /** Bounds each probe. The match probe can cost a round trip per shard. */
-  private static final TimeValue PROBE_TIMEOUT = TimeValue.timeValueSeconds(5);
+  /** Bounds each probe. Generous because a fallback can fail the query, not merely slow it. */
+  private static final TimeValue PROBE_TIMEOUT = TimeValue.timeValueSeconds(10);
 
   /** Both probes are transport actions, so only the node client can issue them. */
   private final NodeClient node;
@@ -60,9 +56,7 @@ public class IndexPruner {
       }
 
       String[] candidates = indexExpr.probeMatching(filter);
-      if (0 < candidates.length
-          && candidates.length <= MAX_PRUNED_INDICES
-          && indexExpr.isPrunedBy(candidates)) {
+      if (0 < candidates.length && indexExpr.isPrunedBy(candidates)) {
         return new IndexName(String.join(",", candidates));
       }
       log.info(
@@ -77,7 +71,6 @@ public class IndexPruner {
 
   private static boolean isPrunable(IndexExpression expression, QueryBuilder filter) {
     return expression.hasWildcard()
-        && !expression.isCrossCluster()
         && containsTimeRange(filter)
         // Keep these last: unlike the gates above, they resolve the expression.
         && !expression.hasAlias()
@@ -115,11 +108,6 @@ public class IndexPruner {
       return Arrays.stream(indexName.getIndexNames()).anyMatch(Regex::isSimpleMatchPattern);
     }
 
-    boolean isCrossCluster() {
-      return Arrays.stream(indexName.getIndexNames())
-          .anyMatch(name -> name.indexOf(REMOTE_CLUSTER_INDEX_SEPARATOR) >= 0);
-    }
-
     boolean hasAlias() {
       return !resolved().getAliases().isEmpty();
     }
@@ -146,9 +134,8 @@ public class IndexPruner {
     @Override
     public String toString() {
       return String.format(
-          "wildcard=%s, crossCluster=%s, alias=%s, dataStream=%s",
+          "wildcard=%s, alias=%s, dataStream=%s",
           hasWildcard(),
-          isCrossCluster(),
           // Guarded so neither a log nor a debugger inspection can fire a resolve probe.
           resolved == null ? "n/a" : hasAlias(),
           resolved == null ? "n/a" : hasDataStream());

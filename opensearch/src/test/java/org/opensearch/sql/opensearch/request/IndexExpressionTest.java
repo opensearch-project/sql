@@ -40,26 +40,4 @@ class IndexExpressionTest {
   void oneWildcardAmongConcreteNamesIsWildcard() {
     assertTrue(expression("logs-2024,logs-*").hasWildcard());
   }
-
-  @Test
-  void localNameIsNotCrossCluster() {
-    assertFalse(expression("logs-*").isCrossCluster());
-  }
-
-  @Test
-  void qualifiedNameIsCrossCluster() {
-    assertTrue(expression("remote:logs-*").isCrossCluster());
-  }
-
-  @Test
-  void oneQualifiedNameAmongLocalNamesIsCrossCluster() {
-    assertTrue(expression("logs-*,remote:logs-*").isCrossCluster());
-  }
-
-  @Test
-  void leadingSeparatorIsCrossCluster() {
-    // Pins the deliberately conservative reading: a colon anywhere makes the expression
-    // unprunable, rather than only a colon that follows a cluster name.
-    assertTrue(expression(":logs-*").isCrossCluster());
-  }
 }

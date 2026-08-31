@@ -24,7 +24,6 @@ import static org.opensearch.index.query.QueryBuilders.rangeQuery;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -91,11 +90,6 @@ class IndexPrunerTest {
     }
 
     @Test
-    void shouldNotPruneWhenExpressionIsCrossCluster() {
-      givenIndexExpression("remote:logs-*", timeRange()).shouldNotPrune().shouldNotProbe();
-    }
-
-    @Test
     void shouldNotPruneWhenFilterHasNoTimestampRange() {
       givenIndexExpression("logs-*", queryStringQuery("error")).shouldNotPrune().shouldNotProbe();
     }
@@ -127,20 +121,6 @@ class IndexPrunerTest {
     void shouldNotPruneWhenMoreIndicesMatchThanResolved() {
       givenIndexExpression(indices("logs-*", 3), timeRange())
           .whenMatching("logs-a", "logs-b", "logs-c", "logs-d")
-          .shouldNotPrune();
-    }
-
-    @Test
-    void shouldPruneWhenMatchCountIsAtTheCap() {
-      givenIndexExpression(indices("logs-*", 100), timeRange())
-          .whenMatching(logs(50))
-          .shouldPruneTo(String.join(",", logs(50)));
-    }
-
-    @Test
-    void shouldNotPruneWhenMatchCountExceedsTheCap() {
-      givenIndexExpression(indices("logs-*", 100), timeRange())
-          .whenMatching(logs(51))
           .shouldNotPrune();
     }
   }
@@ -215,10 +195,6 @@ class IndexPrunerTest {
 
   private static QueryBuilder timeRange() {
     return rangeQuery("@timestamp").gte("now-1d");
-  }
-
-  private static String[] logs(int count) {
-    return IntStream.rangeClosed(1, count).mapToObj(i -> "logs-" + i).toArray(String[]::new);
   }
 
   /** What the resolve probe reports for an expression. */
