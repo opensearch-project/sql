@@ -79,6 +79,7 @@ import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
 import org.opensearch.sql.ast.tree.Foreach;
+import org.opensearch.sql.ast.tree.Format;
 import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
@@ -632,6 +633,24 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
                         "%s = %s", MASK_COLUMN, visitExpression(clause.getExpression())))
             .collect(Collectors.joining(", "));
     return command.append(" [ eval ").append(evalClauses).append(" ]").toString();
+  }
+
+  @Override
+  public String visitFormat(Format node, String context) {
+    String child = node.getChild().getFirst().accept(this, context);
+    return StringUtils.format(
+        "%s | format mvsep=\"%s\" maxresults=%s \"%s\" \"%s\" \"%s\" \"%s\" \"%s\""
+            + " \"%s\" emptystr=\"%s\"",
+        child,
+        MASK_LITERAL,
+        MASK_LITERAL,
+        MASK_LITERAL,
+        MASK_LITERAL,
+        MASK_LITERAL,
+        MASK_LITERAL,
+        MASK_LITERAL,
+        MASK_LITERAL,
+        MASK_LITERAL);
   }
 
   /** Build {@link LogicalSort}. */

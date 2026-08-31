@@ -14,6 +14,7 @@ import java.sql.Connection;
 import java.util.List;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.FrameworkConfig;
@@ -27,6 +28,9 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.ast.expression.LambdaFunction;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
+import org.opensearch.sql.ast.tree.Format;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelBuilder;
 import org.opensearch.sql.datasource.DataSourceService;
@@ -209,5 +213,46 @@ public class CalciteRexNodeVisitorTest {
     assertEquals(
         lambdaContext.getRexLambdaRefMap().get("acc").getType().getSqlTypeName(),
         SqlTypeName.FLOAT);
+  }
+
+  @Test
+  public void testOnlyImplicitFormatScalarSubqueryIsRegisteredForRuntimeSearch() {
+    RexSubQuery implicitFormatRex = Mockito.mock(RexSubQuery.class);
+    RexSubQuery explicitFormatRex = Mockito.mock(RexSubQuery.class);
+    RexSubQuery ordinaryScalarRex = Mockito.mock(RexSubQuery.class);
+    when(relBuilder.scalarQuery(any()))
+        .thenReturn(implicitFormatRex, explicitFormatRex, ordinaryScalarRex);
+
+    Format implicitFormat =
+        new Format(
+            Format.DEFAULT_MV_SEPARATOR,
+            Format.DEFAULT_MAX_RESULTS,
+            Format.DEFAULT_ROW_PREFIX,
+            Format.DEFAULT_COLUMN_PREFIX,
+            Format.DEFAULT_COLUMN_SEPARATOR,
+            Format.DEFAULT_COLUMN_END,
+            Format.DEFAULT_ROW_SEPARATOR,
+            Format.DEFAULT_ROW_END,
+            Format.DEFAULT_EMPTY_STRING);
+    implicitFormat.setImplicit(true);
+    Format explicitFormat =
+        new Format(
+            Format.DEFAULT_MV_SEPARATOR,
+            Format.DEFAULT_MAX_RESULTS,
+            Format.DEFAULT_ROW_PREFIX,
+            Format.DEFAULT_COLUMN_PREFIX,
+            Format.DEFAULT_COLUMN_SEPARATOR,
+            Format.DEFAULT_COLUMN_END,
+            Format.DEFAULT_ROW_SEPARATOR,
+            Format.DEFAULT_ROW_END,
+            Format.DEFAULT_EMPTY_STRING);
+
+    visitor.visitScalarSubquery(new ScalarSubquery(implicitFormat), context);
+    visitor.visitScalarSubquery(new ScalarSubquery(explicitFormat), context);
+    visitor.visitScalarSubquery(new ScalarSubquery(Mockito.mock(UnresolvedPlan.class)), context);
+
+    assertTrue(context.isImplicitFormatSubquery(implicitFormatRex));
+    assertFalse(context.isImplicitFormatSubquery(explicitFormatRex));
+    assertFalse(context.isImplicitFormatSubquery(ordinaryScalarRex));
   }
 }

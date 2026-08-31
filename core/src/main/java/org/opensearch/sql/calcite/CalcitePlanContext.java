@@ -9,10 +9,13 @@ import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTOR
 
 import java.sql.Connection;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.Stack;
 import java.util.function.BiFunction;
 import lombok.Getter;
@@ -21,6 +24,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.tools.FrameworkConfig;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.ast.expression.AggregateFunction;
@@ -89,6 +93,10 @@ public class CalcitePlanContext {
 
   private final Stack<RexCorrelVariable> correlVar = new Stack<>();
   private final Stack<List<RexNode>> windowPartitions = new Stack<>();
+
+  /** Identity marker for scalar subqueries produced by an implicit format inside search. */
+  private final Set<RexSubQuery> implicitFormatSubqueries =
+      Collections.newSetFromMap(new IdentityHashMap<>());
 
   @Getter public Map<String, RexLambdaRef> rexLambdaRefMap;
 
@@ -195,6 +203,14 @@ public class CalcitePlanContext {
     } else {
       return Optional.empty();
     }
+  }
+
+  void registerImplicitFormatSubquery(RexSubQuery subquery) {
+    implicitFormatSubqueries.add(subquery);
+  }
+
+  boolean isImplicitFormatSubquery(RexSubQuery subquery) {
+    return implicitFormatSubqueries.contains(subquery);
   }
 
   /**

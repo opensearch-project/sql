@@ -2931,7 +2931,7 @@ public class CalciteExplainIT extends ExplainIT {
     String logical = logicalPlan(explainQueryYaml(query));
     Assert.assertTrue(
         "Expected logical plan to contain ARRAY_JOIN function",
-        logical.toLowerCase(java.util.Locale.ROOT).contains("array_join"));
+        logical.toLowerCase(Locale.ROOT).contains("array_join"));
   }
 
   @Test
@@ -2941,10 +2941,57 @@ public class CalciteExplainIT extends ExplainIT {
             "source=%s | eval full_name = concat(firstname, ' J.') | eval name_array ="
                 + " array(full_name) | nomv name_array | fields name_array",
             TEST_INDEX_BANK);
-    String logical = logicalPlan(explainQueryYaml(query)).toLowerCase(java.util.Locale.ROOT);
+    String logical = logicalPlan(explainQueryYaml(query)).toLowerCase(Locale.ROOT);
     Assert.assertTrue(
         "Expected logical plan to contain both CONCAT and ARRAY_JOIN",
         logical.contains("concat") && logical.contains("array_join"));
+  }
+
+  @Test
+  public void testFormatExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String actual =
+        explainQueryYaml(
+            StringUtils.format(
+                "source=%s | where account_number < 3 | fields firstname, account_number | format",
+                TEST_INDEX_BANK));
+    assertYamlEqualsIgnoreId(loadExpectedPlan("explain_format_default.yaml"), actual);
+  }
+
+  @Test
+  public void testFormatCustomDelimitersAndMultivalueExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String actual =
+        explainQueryYaml(
+            StringUtils.format(
+                "source=%s | where account_number=1 | eval names=array(firstname, lastname) |"
+                    + " fields names | format mvsep='OR' '{' '[' 'AND' ']' 'OR' '}'",
+                TEST_INDEX_BANK));
+    assertYamlEqualsIgnoreId(loadExpectedPlan("explain_format_custom_multivalue.yaml"), actual);
+  }
+
+  @Test
+  public void testFormatEmptyResultExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String actual =
+        explainQueryYaml(
+            StringUtils.format(
+                "source=%s | where account_number < 0 | fields firstname | format"
+                    + " emptystr='no matching data'",
+                TEST_INDEX_BANK));
+    assertYamlEqualsIgnoreId(loadExpectedPlan("explain_format_empty_result.yaml"), actual);
+  }
+
+  @Test
+  public void testImplicitFormatSubsearchExplain() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String actual =
+        explainQueryYaml(
+            StringUtils.format(
+                "search source=%s age=36 [ search source=%s account_number=6 OR"
+                    + " account_number=13 | fields account_number ] | fields account_number",
+                TEST_INDEX_BANK, TEST_INDEX_BANK));
+    assertYamlEqualsIgnoreId(loadExpectedPlan("explain_format_implicit_subsearch.yaml"), actual);
   }
 
   @Test

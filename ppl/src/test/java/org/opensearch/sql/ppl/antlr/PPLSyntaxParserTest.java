@@ -36,6 +36,14 @@ public class PPLSyntaxParserTest {
   }
 
   @Test
+  public void testSearchCommandWithImplicitFormatSubsearchShouldPass() {
+    ParseTree tree =
+        new PPLSyntaxParser()
+            .parse("search source=outer [ search source=inner | fields status, host ]");
+    assertNotNull(tree);
+  }
+
+  @Test
   public void testSearchCommandWithMultipleIndicesShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("search source=t,u a=1 b=2");
     assertNotEquals(null, tree);

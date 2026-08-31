@@ -44,6 +44,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.calcite.OpenSearchSchema;
+import org.opensearch.sql.calcite.SearchPredicateCompiler;
 import org.opensearch.sql.calcite.SysLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
@@ -82,6 +83,7 @@ public class QueryService {
   private DataSourceService dataSourceService;
   private Settings settings;
   private ExecutionDispatcher executionDispatcher = new DirectExecutionDispatcher();
+  private SearchPredicateCompiler searchPredicateCompiler;
 
   public QueryService(
       Analyzer analyzer,
@@ -95,7 +97,8 @@ public class QueryService {
         planner,
         dataSourceService,
         settings,
-        new DirectExecutionDispatcher());
+        new DirectExecutionDispatcher(),
+        null);
   }
 
   public QueryService(
@@ -105,16 +108,30 @@ public class QueryService {
       DataSourceService dataSourceService,
       Settings settings,
       ExecutionDispatcher executionDispatcher) {
+    this(
+        analyzer, executionEngine, planner, dataSourceService, settings, executionDispatcher, null);
+  }
+
+  public QueryService(
+      Analyzer analyzer,
+      ExecutionEngine executionEngine,
+      Planner planner,
+      DataSourceService dataSourceService,
+      Settings settings,
+      ExecutionDispatcher executionDispatcher,
+      SearchPredicateCompiler searchPredicateCompiler) {
     this.analyzer = analyzer;
     this.executionEngine = executionEngine;
     this.planner = planner;
     this.dataSourceService = dataSourceService;
     this.settings = settings;
     this.executionDispatcher = executionDispatcher;
+    this.searchPredicateCompiler = searchPredicateCompiler;
   }
 
   @Getter(lazy = true)
-  private final CalciteRelNodeVisitor relNodeVisitor = new CalciteRelNodeVisitor(dataSourceService);
+  private final CalciteRelNodeVisitor relNodeVisitor =
+      new CalciteRelNodeVisitor(dataSourceService, searchPredicateCompiler);
 
   /** Helper: depending on the type of error, either re-raise or propagate to the listener. */
   private void propagateCalciteError(Throwable t, ResponseListener<?> listener)

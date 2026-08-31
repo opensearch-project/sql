@@ -98,6 +98,7 @@ commands
    | replaceCommand
    | mvcombineCommand
    | fieldformatCommand
+   | formatCommand
    | nomvCommand
    | graphLookupCommand
    | xyseriesCommand
@@ -123,6 +124,7 @@ commandName
    | EVAL
    | FOREACH
    | FIELDFORMAT
+   | FORMAT
    | HEAD
    | BIN
    | TOP
@@ -167,11 +169,16 @@ searchCommand
 
 searchExpression
  : timeModifier                                       # timeModifierExpression
+ | LT_SQR_PRTHS subSearch RT_SQR_PRTHS                # implicitSubqueryExpression
  | LT_PRTHS searchExpression RT_PRTHS                 # groupedExpression
  | NOT searchExpression                               # notExpression
  | searchExpression OR searchExpression               # orExpression
  | searchExpression AND searchExpression              # andExpression
  | searchTerm                                         # termExpression
+ ;
+
+searchPredicate
+ : searchExpression EOF
  ;
 
 searchTerm
@@ -348,6 +355,20 @@ sortCommand
 
 reverseCommand
    : REVERSE
+   ;
+
+formatCommand
+   : FORMAT formatOption* formatDelimiters? formatOption*
+   ;
+
+formatOption
+   : MVSEP EQUAL stringLiteral
+   | MAXRESULTS EQUAL integerLiteral
+   | EMPTYSTR EQUAL stringLiteral
+   ;
+
+formatDelimiters
+   : stringLiteral stringLiteral stringLiteral stringLiteral stringLiteral stringLiteral
    ;
 
 chartCommand
@@ -1823,6 +1844,9 @@ searchableKeyWord
    | PERCENTFIELD
    | SHOWPERC
    | MAXOUT
+   | MVSEP
+   | MAXRESULTS
+   | EMPTYSTR
    | PATH
    | INPUT
    | OUTPUT

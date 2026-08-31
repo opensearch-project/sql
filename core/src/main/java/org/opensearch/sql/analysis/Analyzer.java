@@ -75,6 +75,7 @@ import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
 import org.opensearch.sql.ast.tree.Foreach;
+import org.opensearch.sql.ast.tree.Format;
 import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
@@ -299,6 +300,9 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   @Override
   public LogicalPlan visitSearch(Search node, AnalysisContext context) {
+    if (node.hasImplicitSubquery()) {
+      throw getOnlyForCalciteException("Implicit format subsearch");
+    }
     LogicalPlan child = node.getChild().get(0).accept(this, context);
     Function queryStringFunc =
         AstDSL.function(
@@ -831,6 +835,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitReverse(Reverse node, AnalysisContext context) {
     throw getOnlyForCalciteException("Reverse");
+  }
+
+  @Override
+  public LogicalPlan visitFormat(Format node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Format");
   }
 
   @Override

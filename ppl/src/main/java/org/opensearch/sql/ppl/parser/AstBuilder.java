@@ -90,6 +90,7 @@ import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
 import org.opensearch.sql.ast.tree.Foreach;
 import org.opensearch.sql.ast.tree.Foreach.ForeachEvalClause;
+import org.opensearch.sql.ast.tree.Format;
 import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.GraphLookup.Direction;
 import org.opensearch.sql.ast.tree.Head;
@@ -230,12 +231,10 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
                 .get(); // Safe because we know size > 1 from the if condition
       }
 
-      // Convert to query string
-      String queryString = combined.toQueryString();
-
-      // Create Search node with relation and query string
+      // Static search expressions are converted immediately. An implicit subsearch remains in the
+      // expression tree so the planner can lower it to a correlated runtime input.
       Relation relation = (Relation) visitFromClause(ctx.fromClause());
-      return new Search(relation, queryString, combined);
+      return Search.fromExpression(relation, combined);
     }
   }
 
@@ -830,6 +829,51 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitReverseCommand(OpenSearchPPLParser.ReverseCommandContext ctx) {
     return new Reverse();
+  }
+
+  /** Format command. */
+  @Override
+  public UnresolvedPlan visitFormatCommand(OpenSearchPPLParser.FormatCommandContext ctx) {
+    String mvSeparator = Format.DEFAULT_MV_SEPARATOR;
+    int maxResults = Format.DEFAULT_MAX_RESULTS;
+    String emptyString = Format.DEFAULT_EMPTY_STRING;
+
+    for (OpenSearchPPLParser.FormatOptionContext option : ctx.formatOption()) {
+      if (option.MVSEP() != null) {
+        mvSeparator = StringUtils.unquoteText(getTextInQuery(option.stringLiteral()));
+      } else if (option.MAXRESULTS() != null) {
+        maxResults = Integer.parseInt(option.integerLiteral().getText());
+        if (maxResults < 0) {
+          throw new SemanticCheckException("format maxresults must be non-negative");
+        }
+      } else {
+        emptyString = StringUtils.unquoteText(getTextInQuery(option.stringLiteral()));
+      }
+    }
+
+    List<String> delimiters =
+        ctx.formatDelimiters() == null
+            ? List.of(
+                Format.DEFAULT_ROW_PREFIX,
+                Format.DEFAULT_COLUMN_PREFIX,
+                Format.DEFAULT_COLUMN_SEPARATOR,
+                Format.DEFAULT_COLUMN_END,
+                Format.DEFAULT_ROW_SEPARATOR,
+                Format.DEFAULT_ROW_END)
+            : ctx.formatDelimiters().stringLiteral().stream()
+                .map(literal -> StringUtils.unquoteText(getTextInQuery(literal)))
+                .toList();
+
+    return new Format(
+        mvSeparator,
+        maxResults,
+        delimiters.get(0),
+        delimiters.get(1),
+        delimiters.get(2),
+        delimiters.get(3),
+        delimiters.get(4),
+        delimiters.get(5),
+        emptyString);
   }
 
   /** Transpose command. */

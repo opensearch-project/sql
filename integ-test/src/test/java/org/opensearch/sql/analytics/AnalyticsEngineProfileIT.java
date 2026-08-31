@@ -187,6 +187,16 @@ public class AnalyticsEngineProfileIT extends OpenSearchRestTestCase {
   }
 
   @Test
+  public void testStaticSearchStillRunsThroughAnalyticsEngine() throws IOException {
+    ensureSetup();
+    JSONObject result =
+        executeWithProfile(
+            "search source=" + INDEX + " name=alice | fields name", "/_plugins/_ppl");
+
+    assertEquals("alice", result.getJSONArray("datarows").getJSONArray(0).getString(0));
+  }
+
+  @Test
   public void testPplExplainReturnsOnlyPlan() throws IOException {
     ensureSetup();
     Request request = new Request("POST", "/_plugins/_ppl/_explain");

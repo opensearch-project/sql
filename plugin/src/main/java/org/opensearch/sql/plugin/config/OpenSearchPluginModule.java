@@ -37,6 +37,7 @@ import org.opensearch.sql.planner.Planner;
 import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
 import org.opensearch.sql.ppl.PPLService;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
+import org.opensearch.sql.ppl.parser.PPLSearchPredicateCompiler;
 import org.opensearch.sql.sql.SQLService;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.storage.StorageEngine;
@@ -137,7 +138,13 @@ public class OpenSearchPluginModule extends AbstractModule {
         new ThreadPoolExecutionDispatcher(nodeClient.threadPool(), settings);
     QueryService queryService =
         new QueryService(
-            analyzer, executionEngine, planner, dataSourceService, settings, executionDispatcher);
+            analyzer,
+            executionEngine,
+            planner,
+            dataSourceService,
+            settings,
+            executionDispatcher,
+            PPLSearchPredicateCompiler.INSTANCE);
     return new QueryPlanFactory(queryService);
   }
 }

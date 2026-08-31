@@ -10,9 +10,11 @@ import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.PhysType;
 import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
+import org.apache.calcite.adapter.enumerable.RexToLixTranslator;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Enumerator;
+import org.apache.calcite.linq4j.tree.BlockBuilder;
 import org.apache.calcite.linq4j.tree.Blocks;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
@@ -27,6 +29,7 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.sql.calcite.plan.Scannable;
 import org.opensearch.sql.calcite.plan.rule.OpenSearchRules;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
@@ -105,6 +108,23 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
             pref.preferArray());
 
     Expression scanOperator = implementor.stash(this, CalciteEnumerableIndexScan.class);
+    if (pushDownContext.getDynamicQueryString() != null) {
+      BlockBuilder builder = new BlockBuilder();
+      RexToLixTranslator translator =
+          RexToLixTranslator.forAggregation(
+                  implementor.getTypeFactory(), builder, null, implementor.getConformance())
+              .setCorrelates(implementor::getCorrelVariableGetter);
+      List<Expression> queryParts =
+          translator.translateList(pushDownContext.getDynamicQueryString().queryParts()).stream()
+              .map(expression -> (Expression) Expressions.convert_(expression, String.class))
+              .toList();
+      builder.add(
+          Expressions.return_(
+              null,
+              Expressions.call(
+                  scanOperator, "scan", Expressions.newArrayInit(String.class, queryParts))));
+      return implementor.result(physType, builder.toBlock());
+    }
     return implementor.result(physType, Blocks.toBlock(Expressions.call(scanOperator, "scan")));
   }
 
@@ -115,10 +135,20 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
    */
   @Override
   public Enumerable<@Nullable Object> scan() {
+    return scan((String[]) null);
+  }
+
+  /** Builds a scan whose query-string predicate comes from a correlated single-row input. */
+  public Enumerable<@Nullable Object> scan(String @Nullable [] runtimeQueryParts) {
     return new AbstractEnumerable<>() {
       @Override
       public Enumerator<Object> enumerator() {
         OpenSearchRequestBuilder requestBuilder = pushDownContext.createRequestBuilder();
+        if (runtimeQueryParts != null) {
+          String runtimeQuery =
+              pushDownContext.getDynamicQueryString().buildRuntimeQuery(runtimeQueryParts);
+          requestBuilder.pushDownFilterForCalcite(QueryBuilders.queryStringQuery(runtimeQuery));
+        }
         return new OpenSearchIndexEnumerator(
             osIndex.getClient(),
             getRowType().getFieldNames(),

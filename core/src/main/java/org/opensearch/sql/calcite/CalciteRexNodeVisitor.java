@@ -34,6 +34,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -79,6 +80,7 @@ import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
 import org.opensearch.sql.ast.expression.subquery.SubqueryExpression;
+import org.opensearch.sql.ast.tree.Format;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.Sort.SortOrder;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -867,11 +869,16 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
   @Override
   public RexNode visitScalarSubquery(ScalarSubquery node, CalcitePlanContext context) {
-    return context.relBuilder.scalarQuery(
-        b -> {
-          UnresolvedPlan subquery = node.getQuery();
-          return resolveSubqueryPlan(subquery, node, context);
-        });
+    RexSubQuery subquery =
+        context.relBuilder.scalarQuery(
+            b -> {
+              UnresolvedPlan subqueryPlan = node.getQuery();
+              return resolveSubqueryPlan(subqueryPlan, node, context);
+            });
+    if (node.getQuery() instanceof Format format && format.isImplicit()) {
+      context.registerImplicitFormatSubquery(subquery);
+    }
+    return subquery;
   }
 
   @Override

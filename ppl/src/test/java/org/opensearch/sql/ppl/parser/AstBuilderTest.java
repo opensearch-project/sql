@@ -77,6 +77,7 @@ import org.opensearch.sql.ast.expression.PatternMode;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Chart;
+import org.opensearch.sql.ast.tree.Format;
 import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -180,6 +181,31 @@ public class AstBuilderTest extends AstPlanningTestBase {
   public void testSearchCommandWithoutSearch() {
     assertEqual(
         "source=t | where a=1", filter(relation("t"), compare("=", field("a"), intLiteral(1))));
+  }
+
+  @Test
+  public void testFormatCommandDefaults() {
+    assertEqual(
+        "source=t | format",
+        new Format(
+                Format.DEFAULT_MV_SEPARATOR,
+                Format.DEFAULT_MAX_RESULTS,
+                Format.DEFAULT_ROW_PREFIX,
+                Format.DEFAULT_COLUMN_PREFIX,
+                Format.DEFAULT_COLUMN_SEPARATOR,
+                Format.DEFAULT_COLUMN_END,
+                Format.DEFAULT_ROW_SEPARATOR,
+                Format.DEFAULT_ROW_END,
+                Format.DEFAULT_EMPTY_STRING)
+            .attach(relation("t")));
+  }
+
+  @Test
+  public void testFormatCommandOptionsAndDelimiters() {
+    assertEqual(
+        "source=t | format mvsep=\"MV\" maxresults=2 emptystr=\"empty\" "
+            + "\"[\" \"{\" \"&&\" \"}\" \"||\" \"]\"",
+        new Format("MV", 2, "[", "{", "&&", "}", "||", "]", "empty").attach(relation("t")));
   }
 
   @Test

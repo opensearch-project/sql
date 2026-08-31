@@ -1,0 +1,224 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.ppl.calcite;
+
+import static org.junit.Assert.assertThrows;
+
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.test.CalciteAssert;
+import org.junit.Assert;
+import org.junit.Test;
+import org.opensearch.sql.exception.SemanticCheckException;
+
+public class CalcitePPLFormatTest extends CalcitePPLAbstractTest {
+
+  public CalcitePPLFormatTest() {
+    super(CalciteAssert.SchemaSpec.SCOTT_WITH_TEMPORAL);
+  }
+
+  @Test
+  public void testDefaultFormat() {
+    withPPLQuery("source=EMP | fields ENAME, JOB | head 2 | format")
+        .expectResult(
+            "search=( ( ENAME=\"SMITH\" AND JOB=\"CLERK\" ) OR ( ENAME=\"ALLEN\" AND"
+                + " JOB=\"SALESMAN\" ) )\n");
+  }
+
+  @Test
+  public void testUpstreamSortBecomesAggregateOrderKey() {
+    RelNode root = getRelNode("source=EMP | fields ENAME | sort ENAME | head 2 | format");
+    String logical = RelOptUtil.toString(root);
+
+    Assert.assertTrue(
+        logical, logical.contains("ARRAY_AGG($0) WITHIN GROUP ([1 ASC-nulls-first])"));
+    verifyResult(root, "search=( ( ENAME=\"ADAMS\" ) OR ( ENAME=\"ALLEN\" ) )\n");
+  }
+
+  @Test
+  public void testLogicalAndSparkSqlPlan() {
+    RelNode root = getRelNode("source=EMP | fields ENAME | format maxresults=1");
+    verifyLogical(
+        root,
+        "LogicalProject(search=[CASE(>(CHAR_LENGTH(ARRAY_JOIN(ARRAY_COMPACT($0), ' OR ':VARCHAR)),"
+            + " 0), ||(||('( ':VARCHAR, ARRAY_JOIN(ARRAY_COMPACT($0), ' OR ':VARCHAR)), '"
+            + " )':VARCHAR), 'NOT ()':VARCHAR)])\n"
+            + "  LogicalAggregate(group=[{}], __format_rows=[ARRAY_AGG($0)])\n"
+            + "    LogicalProject(__format_row=[CASE(>(CHAR_LENGTH(ARRAY_JOIN(ARRAY_COMPACT(ARRAY(CASE(IS"
+            + " NOT NULL($0), ||(||('ENAME=\"':VARCHAR, REPLACE(REPLACE(CAST($0):VARCHAR NOT NULL,"
+            + " '\\':VARCHAR, '\\\\':VARCHAR), '\"':VARCHAR, '\\\"':VARCHAR)), '\"':VARCHAR),"
+            + " null:VARCHAR))), ' AND ':VARCHAR)), 0), ||(||('( ':VARCHAR,"
+            + " ARRAY_JOIN(ARRAY_COMPACT(ARRAY(CASE(IS NOT NULL($0), ||(||('ENAME=\"':VARCHAR,"
+            + " REPLACE(REPLACE(CAST($0):VARCHAR NOT NULL, '\\':VARCHAR, '\\\\':VARCHAR),"
+            + " '\"':VARCHAR, '\\\"':VARCHAR)), '\"':VARCHAR), null:VARCHAR))), ' AND ':VARCHAR)),"
+            + " ' )':VARCHAR), null:VARCHAR)])\n"
+            + "      LogicalSort(fetch=[1])\n"
+            + "        LogicalProject(ENAME=[$1])\n"
+            + "          LogicalTableScan(table=[[scott, EMP]])\n");
+    verifyPPLToSparkSQL(
+        root,
+        "SELECT CASE WHEN CHAR_LENGTH(ARRAY_JOIN(ARRAY_COMPACT(ARRAY_AGG(`__format_row`)), ' OR '))"
+            + " > 0 THEN '( ' || ARRAY_JOIN(ARRAY_COMPACT(ARRAY_AGG(`__format_row`)), ' OR ') || '"
+            + " )' ELSE 'NOT ()' END `search`\n"
+            + "FROM (SELECT CASE WHEN CHAR_LENGTH(ARRAY_JOIN(ARRAY_COMPACT(ARRAY (CASE WHEN `ENAME`"
+            + " IS NOT NULL THEN 'ENAME=\"' || REPLACE(REPLACE(CAST(`ENAME` AS STRING), '\\',"
+            + " '\\\\'), '\"', '\\\"') || '\"' ELSE NULL END)), ' AND ')) > 0 THEN '( ' ||"
+            + " ARRAY_JOIN(ARRAY_COMPACT(ARRAY (CASE WHEN `ENAME` IS NOT NULL THEN 'ENAME=\"' ||"
+            + " REPLACE(REPLACE(CAST(`ENAME` AS STRING), '\\', '\\\\'), '\"', '\\\"') || '\"'"
+            + " ELSE NULL END)), ' AND ') || ' )' ELSE NULL END `__format_row`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "LIMIT 1) `t1`");
+  }
+
+  @Test
+  public void testCustomDelimitersAndMaxResults() {
+    withPPLQuery(
+            "source=EMP | fields ENAME, JOB | head 2 "
+                + "| format maxresults=1 \"[\" \"[\" \"&&\" \"]\" \"||\" \"]\"")
+        .expectResult("search=[ [ ENAME=\"SMITH\" && JOB=\"CLERK\" ] ]\n");
+  }
+
+  @Test
+  public void testAllEmptyDelimitersPreserveExpectedSpacing() {
+    withPPLQuery(
+            "source=EMP | where EMPNO=7369 | fields ENAME, JOB "
+                + "| format \"\" \"\" \"\" \"\" \"\" \"\"")
+        .expectResult("search=  ENAME=\"SMITH\"  JOB=\"CLERK\"  \n");
+  }
+
+  @Test
+  public void testMultivalueFormat() {
+    withPPLQuery(
+            "source=EMP | head 1 | eval tags=array(\"critical\", \"network\") "
+                + "| fields tags | format mvsep=\"mvseparator\" "
+                + "\"{\" \"[\" \"AND\" \"]\" \"AND\" \"}\"")
+        .expectResult("search={ [ ( tags=\"critical\" mvseparator tags=\"network\" ) ] }\n");
+  }
+
+  @Test
+  public void testMultivalueElementsAreEscapedIndividually() {
+    withPPLQuery(
+            "source=EMP | head 1 | eval tags=array('say \\\"hi\\\"', 'a\\\\b') "
+                + "| fields tags | format")
+        .expectResult("search=( ( ( tags=\"say \\\"hi\\\"\" OR tags=\"a\\\\b\" ) ) )\n");
+  }
+
+  @Test
+  public void testEmptyMultivalueUsesFallback() {
+    withPPLQuery(
+            "source=EMP | head 1 | eval tags=array() | fields tags "
+                + "| format emptystr=\"empty\"")
+        .expectResult("search=empty\n");
+  }
+
+  @Test
+  public void testEmptyResultFallback() {
+    withPPLQuery(
+            "source=EMP | where EMPNO < 0 | fields ENAME | format emptystr=\"no matching data\"")
+        .expectResult("search=no matching data\n");
+  }
+
+  @Test
+  public void testDefaultEmptyResultUsesExpectedSpacing() {
+    withPPLQuery("source=EMP | where EMPNO < 0 | fields ENAME | format")
+        .expectResult("search=NOT ()\n");
+  }
+
+  @Test
+  public void testNullOnlyRowUsesFallback() {
+    withPPLQuery("source=EMP | where EMPNO=7369 | fields COMM | format emptystr=\"empty\"")
+        .expectResult("search=empty\n");
+  }
+
+  @Test
+  public void testQuotesInValuesAreEscaped() {
+    withPPLQuery("source=EMP | head 1 | eval message='say \\\"hi\\\"' | fields message | format")
+        .expectResult("search=( ( message=\"say \\\"hi\\\"\" ) )\n");
+  }
+
+  @Test
+  public void testBackslashesInValuesAreEscaped() {
+    withPPLQuery("source=EMP | head 1 | eval path='a\\\\b' | fields path | format")
+        .expectResult("search=( ( path=\"a\\\\b\" ) )\n");
+  }
+
+  @Test
+  public void testUserFieldWithLeadingUnderscoreIsFormatted() {
+    withPPLQuery(
+            "source=EMP | head 1 | eval _private='hidden', visible='shown' "
+                + "| fields _private, visible | format")
+        .expectResult("search=( ( _private=\"hidden\" AND visible=\"shown\" ) )\n");
+  }
+
+  @Test
+  public void testSearchAndQueryAreOrdinaryFieldsForExplicitFormat() {
+    withPPLQuery(
+            "source=EMP | head 1 | eval search='status=200', query='method=GET', a='x' "
+                + "| fields search, query, a | format")
+        .expectResult(
+            "search=( ( a=\"x\" AND query=\"method=GET\" AND search=\"status=200\" ) )\n");
+  }
+
+  @Test
+  public void testQualifiedFieldNameUsesPplSyntax() {
+    withPPLQuery("source=EMP | head 1 | eval a.b='x' | fields a.b | format")
+        .expectResult("search=( ( a.b=\"x\" ) )\n");
+  }
+
+  @Test
+  public void testFieldNameWithSpacesUsesPplIdentifierQuoting() {
+    withPPLQuery(
+            "source=EMP | head 1 | rename ENAME as `display name` "
+                + "| fields `display name` | format")
+        .expectResult("search=( ( `display name`=\"SMITH\" ) )\n");
+  }
+
+  @Test
+  public void testSearchOperatorFieldNameUsesPplIdentifierQuoting() {
+    withPPLQuery("source=EMP | head 1 | eval `AND`='reserved' | fields `AND` | format")
+        .expectResult("search=( ( `AND`=\"reserved\" ) )\n");
+  }
+
+  @Test
+  public void testAllSixDelimitersAreRequired() {
+    assertThrows(
+        RuntimeException.class,
+        () -> getRelNode("source=EMP | fields ENAME | format \"[\" \"[\" \"AND\""));
+  }
+
+  @Test
+  public void testUnsupportedMapFieldReportsActionableError() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                getRelNode(
+                    "source=EMP | head 1 | eval json='{\"status\":500}'"
+                        + " | spath input=json output=payload | fields payload | format"));
+
+    Assert.assertEquals(
+        "The format command cannot convert field 'payload' of type MAP<VARCHAR, VARCHAR> to text."
+            + " Select scalar fields before format.",
+        exception.getMessage());
+  }
+
+  @Test
+  public void testImplicitFormatRejectsUnsupportedMapFieldWithActionableError() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                getRelNode(
+                    "search source=EMP [ search source=EMP | head 1"
+                        + " | eval json='{\"status\":500}'"
+                        + " | spath input=json output=payload | fields payload ]"));
+
+    Assert.assertEquals(
+        "The subsearch cannot use field 'payload' of type MAP<VARCHAR, VARCHAR> in a search"
+            + " predicate. Return scalar fields from the subsearch instead.",
+        exception.getMessage());
+  }
+}

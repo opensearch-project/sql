@@ -24,6 +24,13 @@ public class PPLSyntaxParser implements Parser {
     return parser.root();
   }
 
+  /** Parses predicate text produced by an implicit subsearch format operation. */
+  public OpenSearchPPLParser.SearchPredicateContext parseSearchPredicate(String predicate) {
+    OpenSearchPPLParser parser = createParser(createLexer(predicate));
+    parser.addErrorListener(new SyntaxAnalysisErrorListener());
+    return parser.searchPredicate();
+  }
+
   private OpenSearchPPLParser createParser(Lexer lexer) {
     return new OpenSearchPPLParser(new CommonTokenStream(lexer));
   }

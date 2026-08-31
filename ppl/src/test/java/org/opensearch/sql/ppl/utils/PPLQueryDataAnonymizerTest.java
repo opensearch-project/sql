@@ -42,6 +42,13 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testImplicitFormatSubsearch() {
+    assertEquals(
+        "source=table [ subsearch ]",
+        anonymize("search source=outer [ search source=inner | fields host ]"));
+  }
+
+  @Test
   public void testTableFunctionCommand() {
     assertEquals(
         "source=prometheus.query_range(***,***,***,***)",
@@ -1296,6 +1303,16 @@ public class PPLQueryDataAnonymizerTest {
             + " +(identifier,identifier) ]",
         anonymize(
             "source=t | foreach mode=json_array '[1,2,3]' [ eval total = total + <<ITEM>> ]"));
+  }
+
+  @Test
+  public void testFormatCommand() {
+    assertEquals(
+        "source=table | format mvsep=\"***\" maxresults=*** \"***\" \"***\" \"***\" \"***\""
+            + " \"***\" \"***\" emptystr=\"***\"",
+        anonymize(
+            "source=sensitive | format mvsep=\"SECRET\" maxresults=5 \"[\" \"[\" \"AND\""
+                + " \"]\" \"OR\" \"]\" emptystr=\"PRIVATE\""));
   }
 
   @Test

@@ -1,0 +1,14 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(search=[CASE(>(CHAR_LENGTH(ARRAY_JOIN(ARRAY_COMPACT($0), ' OR ':VARCHAR)), 0), ||(||('( ':VARCHAR, ARRAY_JOIN(ARRAY_COMPACT($0), ' OR ':VARCHAR)), ' )':VARCHAR), 'no matching data':VARCHAR)])
+        LogicalAggregate(group=[{}], __format_rows=[ARRAY_AGG($0)])
+          LogicalProject(__format_row=[CASE(>(CHAR_LENGTH(ARRAY_JOIN(ARRAY_COMPACT(ARRAY(CASE(IS NOT NULL($1), ||(||('firstname="':VARCHAR, REPLACE(REPLACE(CAST($1):VARCHAR NOT NULL, '\':VARCHAR, '\\':VARCHAR), '"':VARCHAR, '\"':VARCHAR)), '"':VARCHAR), null:VARCHAR))), ' AND ':VARCHAR)), 0), ||(||('( ':VARCHAR, ARRAY_JOIN(ARRAY_COMPACT(ARRAY(CASE(IS NOT NULL($1), ||(||('firstname="':VARCHAR, REPLACE(REPLACE(CAST($1):VARCHAR NOT NULL, '\':VARCHAR, '\\':VARCHAR), '"':VARCHAR, '\"':VARCHAR)), '"':VARCHAR), null:VARCHAR))), ' AND ':VARCHAR)), ' )':VARCHAR), null:VARCHAR)])
+            LogicalFilter(condition=[<($0, 0)])
+              CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0=[{inputs}], expr#1=[CAST($t0):VARCHAR ARRAY], expr#2=[ARRAY_COMPACT($t1)], expr#3=[' OR ':VARCHAR], expr#4=[ARRAY_JOIN($t2, $t3)], expr#5=[CHAR_LENGTH($t4)], expr#6=[0], expr#7=[>($t5, $t6)], expr#8=['( ':VARCHAR], expr#9=[||($t8, $t4)], expr#10=[' )':VARCHAR], expr#11=[||($t9, $t10)], expr#12=['no matching data':VARCHAR], expr#13=[CASE($t7, $t11, $t12)], search=[$t13])
+        EnumerableAggregate(group=[{}], __format_rows=[ARRAY_AGG($0) FILTER $1])
+          EnumerableCalc(expr#0=[{inputs}], expr#1=['( ':VARCHAR], expr#2=[IS NOT NULL($t0)], expr#3=['firstname="':VARCHAR], expr#4=[CAST($t0):VARCHAR NOT NULL], expr#5=['\':VARCHAR], expr#6=['\\':VARCHAR], expr#7=[REPLACE($t4, $t5, $t6)], expr#8=['"':VARCHAR], expr#9=['\"':VARCHAR], expr#10=[REPLACE($t7, $t8, $t9)], expr#11=[||($t3, $t10)], expr#12=[||($t11, $t8)], expr#13=[null:VARCHAR], expr#14=[CASE($t2, $t12, $t13)], expr#15=[ARRAY($t14)], expr#16=[ARRAY_COMPACT($t15)], expr#17=[' AND ':VARCHAR], expr#18=[ARRAY_JOIN($t16, $t17)], expr#19=[||($t1, $t18)], expr#20=[' )':VARCHAR], expr#21=[||($t19, $t20)], expr#22=[CHAR_LENGTH($t18)], expr#23=[0], expr#24=[>($t22, $t23)], $f1=[$t21], $f2=[$t24])
+            CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]], PushDownContext=[[PROJECT->[account_number, firstname], FILTER-><($0, 0), PROJECT->[firstname]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"timeout":"1m","query":{"range":{"account_number":{"from":null,"to":0,"include_lower":true,"include_upper":false,"boost":1.0}}},"_source":{"includes":["firstname"]}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])
