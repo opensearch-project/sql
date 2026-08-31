@@ -83,9 +83,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
    * order-sensitive {@link JSONArray#similar}, this matcher relaxes ordering <em>only within nested
    * arrays and objects</em>. The top-level row cells are still compared positionally: cell {@code
    * i} of the actual row must match cell {@code i} of the expected row. This preserves column
-   * identity, so a swap of two same-typed top-level columns is still rejected, while a shard
-   * -dependent reorder inside a collected array is tolerated. It is scoped to this test class so
-   * the relaxed comparison never leaks into other suites.
+   * identity, so a swap of two same-typed top-level columns is still rejected, while collected
+   * array order may vary across shards. It is scoped to this test class so the relaxed comparison
+   * never leaks into other suites.
    */
   private static TypeSafeMatcher<JSONArray> rowsUnordered(Object... expectedObjects) {
     return new TypeSafeMatcher<>() {
