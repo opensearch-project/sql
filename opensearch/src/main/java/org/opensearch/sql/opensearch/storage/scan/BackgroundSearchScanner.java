@@ -207,8 +207,7 @@ public class BackgroundSearchScanner {
       if (!stopIteration && isAsync()) {
         CancellableTask task = OpenSearchQueryManager.getCancellableTask();
         nextBatchFuture =
-            CompletableFuture.supplyAsync(
-                () -> searchWithTask(request, task), backgroundExecutor);
+            CompletableFuture.supplyAsync(() -> searchWithTask(request, task), backgroundExecutor);
       }
     } else {
       iterator = Collections.emptyIterator();
