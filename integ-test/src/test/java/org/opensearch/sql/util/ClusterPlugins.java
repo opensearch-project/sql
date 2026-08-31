@@ -6,6 +6,10 @@
 package org.opensearch.sql.util;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import org.junit.Assert;
+import org.junit.Assume;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
 import org.opensearch.client.RestClient;
@@ -13,14 +17,27 @@ import org.opensearch.client.RestClient;
 /**
  * Runtime detection of optional cluster plugins, used to environment-gate integration tests that
  * depend on plugins which are not always installed on the target cluster (for example the plain
- * plugin-enabled {@code integTestRemote} cluster does not bundle security, and a multi-shard
- * external cluster may lack geospatial or telemetry).
+ * external {@code integTestRemote} cluster does not bundle security, and a multi-shard external
+ * cluster may lack geospatial or telemetry).
  *
- * <p>Mirrors the private {@code isKnnPluginInstalled} probe in {@code VectorSearchIT} /{@code
- * VectorSearchExecutionIT}: it reads {@code /_cat/plugins?h=component} and checks whether the
- * installed component list contains the requested plugin. Tests gate on the result with {@link
- * org.junit.Assume#assumeTrue} so a missing dependency is reported as a skipped assumption rather
- * than a failure, while a cluster that does have the plugin still runs the tests.
+ * <p>The probe reads {@code /_cat/plugins?h=component} and matches an installed component by exact
+ * line equality (never substring), so {@code opensearch-security} is not falsely reported present
+ * on a cluster that only has {@code opensearch-security-analytics}.
+ *
+ * <p>Gating uses two modes decided by the running Gradle task:
+ *
+ * <ul>
+ *   <li><b>Optional</b> (default, e.g. {@code integTestRemote}): a missing plugin is reported as a
+ *       skipped assumption via {@link org.junit.Assume#assumeTrue}. Plain external clusters are the
+ *       intended skip environment.
+ *   <li><b>Required</b> (dedicated tasks that provision the plugin, e.g. {@code
+ *       integTestWithSecurity}, {@code tracingIntegTest}, or the local {@code integTest} that
+ *       bundles geospatial): a missing plugin is a hard {@link org.junit.Assert#assertTrue}
+ *       failure, so a broken plugin stack never silently vanishes into a green run.
+ * </ul>
+ *
+ * The required set is declared by the task via the {@link #REQUIRED_PLUGINS_PROPERTY} system
+ * property; tasks leave it unset to keep the optional (skip-on-absence) behaviour.
  */
 public final class ClusterPlugins {
 
@@ -34,19 +51,95 @@ public final class ClusterPlugins {
   public static final String TELEMETRY_OTEL_PLUGIN = "telemetry-otel";
 
   /**
+   * Comma-separated list of plugin component names the current Gradle test task declares mandatory.
+   * When a plugin appears here, {@link #requirePluginOrAssume} turns a missing plugin into a hard
+   * assertion failure instead of a skipped assumption. Tasks that run against arbitrary external
+   * clusters (for example {@code integTestRemote}) leave this unset so absence remains a skip.
+   */
+  public static final String REQUIRED_PLUGINS_PROPERTY = "tests.required.plugins";
+
+  /**
+   * Boolean system property set by dedicated tasks that provision a remote (cross-cluster) cluster.
+   * When {@code true}, an absent remote cluster is a hard failure rather than a skipped assumption.
+   */
+  public static final String REQUIRE_REMOTE_CLUSTER_PROPERTY = "tests.required.remote.cluster";
+
+  /**
    * Returns {@code true} when the given plugin component is installed on the cluster the client is
-   * pointed at. Any I/O error is treated as "not installed" so the caller skips rather than fails.
+   * pointed at, matching the {@code _cat/plugins?h=component} output line by line with exact
+   * equality. Any I/O or HTTP error (including a non-2xx {@link
+   * org.opensearch.client.ResponseException}, which extends {@link IOException}) propagates to the
+   * caller so a broken probe fails loudly rather than being misreported as "not installed".
    *
    * @param client REST client connected to the cluster under test
    * @param pluginComponentName component name as it appears in {@code _cat/plugins?h=component}
+   * @throws IOException if the probe request fails or returns a non-2xx response
    */
-  public static boolean isPluginInstalled(RestClient client, String pluginComponentName) {
-    try {
-      Response response = client.performRequest(new Request("GET", "/_cat/plugins?h=component"));
-      String body = new String(response.getEntity().getContent().readAllBytes());
-      return body.contains(pluginComponentName);
-    } catch (IOException e) {
-      return false;
+  public static boolean isPluginInstalled(RestClient client, String pluginComponentName)
+      throws IOException {
+    Response response = client.performRequest(new Request("GET", "/_cat/plugins?h=component"));
+    String body;
+    try (InputStream content = response.getEntity().getContent()) {
+      body = new String(content.readAllBytes(), StandardCharsets.UTF_8);
+    }
+    for (String line : body.split("\n")) {
+      if (line.trim().equals(pluginComponentName)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Returns {@code true} when {@code pluginComponentName} is listed in {@link
+   * #REQUIRED_PLUGINS_PROPERTY}. Matching is exact per comma-separated token (whitespace trimmed).
+   */
+  public static boolean isPluginRequired(String pluginComponentName) {
+    String required = System.getProperty(REQUIRED_PLUGINS_PROPERTY, "");
+    for (String token : required.split(",")) {
+      if (token.trim().equals(pluginComponentName)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Gates a test on the presence of {@code pluginComponentName}. If the current task marks the
+   * plugin required (see {@link #REQUIRED_PLUGINS_PROPERTY}) an absent plugin fails the test;
+   * otherwise it is skipped with {@code skipMessage}. Probe I/O errors propagate.
+   *
+   * @throws IOException if the underlying probe request fails
+   */
+  public static void requirePluginOrAssume(
+      RestClient client, String pluginComponentName, String skipMessage) throws IOException {
+    requireOrAssume(
+        isPluginInstalled(client, pluginComponentName),
+        isPluginRequired(pluginComponentName),
+        skipMessage,
+        "Plugin '"
+            + pluginComponentName
+            + "' is marked required for this task via -D"
+            + REQUIRED_PLUGINS_PROPERTY
+            + " but is not installed on the target cluster");
+  }
+
+  /**
+   * Core gate primitive. When {@code required} is {@code true} an absent capability ({@code present
+   * == false}) fails via {@link Assert#assertTrue}; otherwise it is skipped via {@link
+   * Assume#assumeTrue}. When the capability is present the caller proceeds unchanged in both modes.
+   *
+   * @param present whether the capability (plugin, remote cluster, ...) is available
+   * @param required whether the current task declares the capability mandatory
+   * @param skipMessage assumption message used when optional and absent
+   * @param failMessage assertion message used when required and absent
+   */
+  public static void requireOrAssume(
+      boolean present, boolean required, String skipMessage, String failMessage) {
+    if (required) {
+      Assert.assertTrue(failMessage, present);
+    } else {
+      Assume.assumeTrue(skipMessage, present);
     }
   }
 

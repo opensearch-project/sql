@@ -29,6 +29,7 @@ import org.opensearch.client.Response;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.sql.util.ClusterPlugins;
 
 /** IP enrichment PPL request with OpenSearch Geo-sptial plugin */
 public class GeoIpFunctionsIT extends PPLIntegTestCase {
@@ -52,11 +53,11 @@ public class GeoIpFunctionsIT extends PPLIntegTestCase {
   @Override
   public void init() throws Exception {
     super.init();
-    org.junit.Assume.assumeTrue(
+    ClusterPlugins.requirePluginOrAssume(
+        client(),
+        ClusterPlugins.GEOSPATIAL_PLUGIN,
         "opensearch-geospatial plugin not installed on test cluster; skipping geoip enrichment"
-            + " tests",
-        org.opensearch.sql.util.ClusterPlugins.isPluginInstalled(
-            client(), org.opensearch.sql.util.ClusterPlugins.GEOSPATIAL_PLUGIN));
+            + " tests");
     loadIndex(Index.GEOIP);
     if (!initialized) {
       // Create a new dataSource

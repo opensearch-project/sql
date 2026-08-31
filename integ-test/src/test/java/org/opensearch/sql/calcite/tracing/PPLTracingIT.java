@@ -28,6 +28,7 @@ import org.opensearch.client.Request;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.calcite.tracing.OtlpHttpTraceReceiver.Span;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.ClusterPlugins;
 
 public class PPLTracingIT extends PPLIntegTestCase {
 
@@ -55,10 +56,10 @@ public class PPLTracingIT extends PPLIntegTestCase {
   @Override
   public void init() throws Exception {
     super.init();
-    org.junit.Assume.assumeTrue(
-        "telemetry-otel plugin not installed on test cluster; skipping PPL tracing tests",
-        org.opensearch.sql.util.ClusterPlugins.isPluginInstalled(
-            client(), org.opensearch.sql.util.ClusterPlugins.TELEMETRY_OTEL_PLUGIN));
+    ClusterPlugins.requirePluginOrAssume(
+        client(),
+        ClusterPlugins.TELEMETRY_OTEL_PLUGIN,
+        "telemetry-otel plugin not installed on test cluster; skipping PPL tracing tests");
     enableCalcite();
     loadIndex(Index.BANK);
     receiver.clear();

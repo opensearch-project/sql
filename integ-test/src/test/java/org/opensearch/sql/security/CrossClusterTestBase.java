@@ -11,9 +11,9 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_MVEXPAND_EDGE_CASES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TIME_DATA;
 
-import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.ClusterPlugins;
 
 public class CrossClusterTestBase extends PPLIntegTestCase {
   static {
@@ -40,10 +40,18 @@ public class CrossClusterTestBase extends PPLIntegTestCase {
 
   @BeforeClass
   public static void requireRemoteCluster() {
-    Assume.assumeTrue(
+    // On plain external-cluster runs a missing remote cluster is a skipped assumption. On the
+    // dedicated task that provisions the remote cluster (integTestWithSecurity sets
+    // -Dtests.required.remote.cluster=true) its absence is instead a hard failure, so a broken
+    // cross-cluster setup cannot masquerade as an all-green run.
+    ClusterPlugins.requireOrAssume(
+        HAS_REMOTE_CLUSTER,
+        Boolean.getBoolean(ClusterPlugins.REQUIRE_REMOTE_CLUSTER_PROPERTY),
         "Cross-cluster search requires a configured remote cluster (-Dcluster.names must include a"
             + " 'remote*' cluster); skipping",
-        HAS_REMOTE_CLUSTER);
+        "Cross-cluster search requires a configured remote cluster (-Dcluster.names must include a"
+            + " 'remote*' cluster) but none was found, and this task marks it required via -D"
+            + ClusterPlugins.REQUIRE_REMOTE_CLUSTER_PROPERTY);
   }
 
   protected static final String TEST_INDEX_BANK_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_BANK;
