@@ -95,16 +95,15 @@ for wt in .claude/worktrees/agent-*/; do
 done
 ```
 
-**If existing worktree found**: Do NOT use `isolation: "worktree"`. Pass the worktree path in the prompt so the subagent works there directly.
+**If existing worktree found**: Do NOT use `isolation: "worktree"`. Instruct the subagent to call `EnterWorktree(path=...)` to switch cwd into the existing one.
 
 ```
 Agent(
   mode: "<resolved_mode>",
   name: "bugfix-<issue_number>",
   description: "PPL bugfix #<issue_number> followup",
-  prompt: "cd <worktree_path> first, then read .claude/harness/ppl-bugfix-followup.md and follow it.
-           PR: <pr_number> (<pr_url>), Issue: #<issue_number>
-           Working directory: <worktree_path>"
+  prompt: "First, call EnterWorktree(path=\"<worktree_path>\") to switch cwd. Then read .claude/harness/ppl-bugfix-followup.md and follow it. Do NOT use `cd` in Bash commands.
+           PR: <pr_number> (<pr_url>), Issue: #<issue_number>"
 )
 ```
 
