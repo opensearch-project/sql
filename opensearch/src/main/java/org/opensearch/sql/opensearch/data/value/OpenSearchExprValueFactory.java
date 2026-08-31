@@ -222,7 +222,14 @@ public class OpenSearchExprValueFactory {
       return parseArray(content, field, type, supportArrays);
     } else if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Object))
         || type == STRUCT) {
-      return parseStruct(content, field, supportArrays);
+      // A scalar under an object-typed field (wildcard over indices with conflicting mappings)
+      // would throw here; return null instead. CCE-scoped: this is also the whole-document parse
+      // entry, so a broader catch would hide unrelated errors deeper in the recursion.
+      try {
+        return parseStruct(content, field, supportArrays);
+      } catch (ClassCastException e) {
+        return ExprNullValue.of();
+      }
     } else if (typeActionMap.containsKey(type)) {
       if (content.isArray()) {
         return parseArray(content, field, type, supportArrays);

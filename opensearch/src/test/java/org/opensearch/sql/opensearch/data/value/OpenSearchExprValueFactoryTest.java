@@ -728,6 +728,13 @@ class OpenSearchExprValueFactoryTest {
         constructFromObject("structV", ImmutableMap.of("id", 1, "state", "WA")));
   }
 
+  /** A scalar under an object-typed field parses to null instead of throwing. */
+  @Test
+  public void constructStructWithScalarValueReturnsNull() {
+    assertEquals(nullValue(), constructFromObject("structV", "prod"));
+    assertEquals(nullValue(), constructFromObject("structV", 1));
+  }
+
   @Test
   public void constructIP() {
     final String ipString = "192.168.0.1";
