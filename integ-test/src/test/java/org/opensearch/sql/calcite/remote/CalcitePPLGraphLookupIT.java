@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_GRAPH_AIRPORTS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_GRAPH_EMPLOYEES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_GRAPH_TRAVELERS;
@@ -21,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.hamcrest.Description;
+import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -77,15 +80,29 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
    * (same values, same {@code depth}/{@code numConnections}, same cardinality) as a single-shard
    * run, only in a different order. Unlike {@link
    * org.opensearch.sql.util.MatcherUtils#rows(Object...)}, which compares row cells with
-   * order-sensitive {@link JSONArray#similar}, this matcher compares the row against the expected
-   * cells treating every nested JSON array as an unordered multiset. It is scoped to this test
-   * class so the relaxed comparison never leaks into other suites.
+   * order-sensitive {@link JSONArray#similar}, this matcher relaxes ordering <em>only within nested
+   * arrays and objects</em>. The top-level row cells are still compared positionally: cell {@code
+   * i} of the actual row must match cell {@code i} of the expected row. This preserves column
+   * identity, so a swap of two same-typed top-level columns is still rejected, while a shard
+   * -dependent reorder inside a collected array is tolerated. It is scoped to this test class so
+   * the relaxed comparison never leaks into other suites.
    */
   private static TypeSafeMatcher<JSONArray> rowsUnordered(Object... expectedObjects) {
     return new TypeSafeMatcher<>() {
       @Override
       protected boolean matchesSafely(JSONArray array) {
-        return jsonArrayEqualsIgnoringNestedOrder(array, new JSONArray(expectedObjects));
+        JSONArray expected = new JSONArray(expectedObjects);
+        if (array.length() != expected.length()) {
+          return false;
+        }
+        // Compare top-level cells positionally so column identity is preserved; only descend into
+        // nested arrays/objects with order-insensitive comparison.
+        for (int i = 0; i < expected.length(); i++) {
+          if (!jsonEqualsIgnoringOrder(array.get(i), expected.get(i))) {
+            return false;
+          }
+        }
+        return true;
       }
 
       @Override
@@ -151,6 +168,28 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
       return ((Number) a).doubleValue() == ((Number) b).doubleValue();
     }
     return a.toString().equals(b.toString());
+  }
+
+  /**
+   * Regression test for {@link #rowsUnordered(Object...)}. Proves the matcher relaxes ordering only
+   * inside nested arrays/objects while keeping top-level column positions and cardinality
+   * significant. This runs without a cluster so it always executes as part of the suite.
+   */
+  @Test
+  public void testRowsUnorderedMatcherPreservesColumnPositions() {
+    // 1. A shard-dependent reorder inside a nested collected array still matches.
+    Matcher<JSONArray> matcher = rowsUnordered("Jeff", List.of("BOS", "JFK", "LAX"));
+    JSONArray nestedReordered = new JSONArray(List.of("Jeff", List.of("LAX", "BOS", "JFK")));
+    assertTrue("nested array reorder should match", matcher.matches(nestedReordered));
+
+    // 2. A swap of two same-typed top-level columns must NOT match (column identity preserved).
+    Matcher<JSONArray> swapMatcher = rowsUnordered("BOS", "JFK");
+    JSONArray swapped = new JSONArray(List.of("JFK", "BOS"));
+    assertFalse("same-type top-level column swap must not match", swapMatcher.matches(swapped));
+
+    // 3. A missing value inside the nested array (different cardinality) must NOT match.
+    JSONArray missingNested = new JSONArray(List.of("Jeff", List.of("BOS", "JFK")));
+    assertFalse("missing nested element must not match", matcher.matches(missingNested));
   }
 
   // ==================== Employee Hierarchy Tests ====================
