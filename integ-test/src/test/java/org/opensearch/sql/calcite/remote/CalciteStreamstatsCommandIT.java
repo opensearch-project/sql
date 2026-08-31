@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.Capability.CHAINED_STREAMSTATS_BY;
+import static org.opensearch.sql.util.Capability.DOC_MUTATION;
 import static org.opensearch.sql.util.Capability.STREAMSTATS_SORT_NOT_HONORED;
 import static org.opensearch.sql.util.MatcherUtils.*;
 
@@ -578,6 +579,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DOC_MUTATION)
   public void testStreamstatsGlobalWithNull() throws IOException {
     final int docId = 7;
     Request insertRequest =
@@ -633,6 +635,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DOC_MUTATION)
   public void testStreamstatsGlobalWithNullBucket() throws IOException {
     final int docId = 7;
     Request insertRequest =
@@ -725,6 +728,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DOC_MUTATION)
   public void testStreamstatsResetWithNull() throws IOException {
     final int docId = 7;
     Request insertRequest =
@@ -780,6 +784,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DOC_MUTATION)
   public void testStreamstatsResetWithNullBucket() throws IOException {
     final int docId = 7;
     Request insertRequest =
@@ -947,7 +952,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  @RequiresCapability(CHAINED_STREAMSTATS_BY)
+  @RequiresCapability({DOC_MUTATION, CHAINED_STREAMSTATS_BY})
   public void testMultipleStreamstatsWithNull2() throws IOException {
     final int docId = 5;
     Request insertRequest =
