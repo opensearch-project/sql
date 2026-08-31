@@ -171,6 +171,8 @@ ext {
 
 tasks.withType(licenseHeaders.class) {
     additionalLicense 'AL   ', 'Apache', 'Licensed under the Apache License, Version 2.0 (the "License")'
+    // RAT 0.18 misdetects this 256-byte prefix as IBM424_rtl due to FULLTEXT_RELEVANCE_FUNC.
+    excludes << 'org/opensearch/sql/sql/HighlightFunctionIT.java'
 }
 
 validateNebulaPom.enabled = false
