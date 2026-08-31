@@ -26,7 +26,10 @@ import static org.opensearch.sql.util.TestUtils.performRequest;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
@@ -38,6 +41,41 @@ import org.opensearch.sql.util.RequiresCapability;
 public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
   private static final String TEST_INDEX_TIME_DATA = "opensearch-sql_test_index_time_data";
+
+  /**
+   * first() and last() select by position in the input stream. Document order across a multi-shard
+   * index is not defined, so tests that assert stream position build the stream deterministically
+   * with makeresults rather than relying on index document order. The rows mirror the bank fixture
+   * in its indexed order, so the expected values are the same ones the index-backed queries
+   * produced on a single shard.
+   */
+  private static final String BANK_STREAM =
+      "makeresults format=csv data='account_number:long,firstname:string,lastname:string,"
+          + "employer:string,gender:string,age:int,balance:long\\n"
+          + "1,Amber JOHnny,Duke Willmington,Pyrami,M,32,39225\\n"
+          + "6,Hattie,Bond,Netagy,M,36,5686\\n"
+          + "13,Nanette,Bates,Quility,F,28,32838\\n"
+          + "18,Dale,Adams,Boink,M,33,4180\\n"
+          + "20,Elinor,Ratliff,Scentric,M,36,16418\\n"
+          + "25,Virginia,Ayala,Filodyne,F,39,40540\\n"
+          + "32,Dillard,Mcpherson,Quailcom,F,34,48086'";
+
+  private static void assertMember(Object actual, Set<?> expectedValues) {
+    assertTrue(
+        "Expected one of " + expectedValues + " but got " + actual,
+        expectedValues.contains(actual));
+  }
+
+  private static void assertTakeMembers(JSONArray actual, int expectedSize, Set<?> expectedValues) {
+    assertEquals(expectedSize, actual.length());
+    Set<Object> distinct = new HashSet<>();
+    for (int i = 0; i < actual.length(); i++) {
+      Object value = actual.get(i);
+      assertMember(value, expectedValues);
+      distinct.add(value);
+    }
+    assertEquals(expectedSize, distinct.size());
+  }
 
   @Override
   public void init() throws Exception {
@@ -415,16 +453,14 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
   @Test
   public void testFirstAggregation() throws IOException {
-    JSONObject actual =
-        executeQuery(String.format("source=%s | stats first(firstname)", TEST_INDEX_BANK));
+    JSONObject actual = executeQuery(BANK_STREAM + " | stats first(firstname)");
     verifySchema(actual, schema("first(firstname)", "string"));
     verifyDataRows(actual, rows("Amber JOHnny"));
   }
 
   @Test
   public void testLastAggregation() throws IOException {
-    JSONObject actual =
-        executeQuery(String.format("source=%s | stats last(firstname)", TEST_INDEX_BANK));
+    JSONObject actual = executeQuery(BANK_STREAM + " | stats last(firstname)");
     verifySchema(actual, schema("last(firstname)", "string"));
     verifyDataRows(actual, rows("Dillard"));
   }
@@ -432,9 +468,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   @Test
   public void testFirstLastByGroup() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | stats first(firstname), last(lastname) by gender", TEST_INDEX_BANK));
+        executeQuery(BANK_STREAM + " | stats first(firstname), last(lastname) by gender");
     verifySchema(
         actual,
         schema("first(firstname)", "string"),
@@ -447,9 +481,8 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   public void testFirstLastWithOtherAggregations() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | stats first(firstname), last(firstname), count(), avg(age) by gender",
-                TEST_INDEX_BANK));
+            BANK_STREAM
+                + " | stats first(firstname), last(firstname), count(), avg(age) by gender");
     verifySchema(
         actual,
         schema("first(firstname)", "string"),
@@ -466,10 +499,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   @Test
   public void testFirstLastDifferentFields() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | stats first(account_number), last(balance), first(age)",
-                TEST_INDEX_BANK));
+        executeQuery(BANK_STREAM + " | stats first(account_number), last(balance), first(age)");
     verifySchema(
         actual,
         schema("first(account_number)", "bigint"),
@@ -478,11 +508,17 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     verifyDataRows(actual, rows(1L, 48086L, 32L));
   }
 
+  // The text-field, nested-field, alias and script cases below must stay index-backed because they
+  // exercise field-access paths that makeresults cannot reproduce. They are made deterministic by
+  // narrowing to a single candidate document per output cell, so the selected row no longer depends
+  // on shard-local document order.
   @Test
   public void testFirstAggregationOnTextField() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format("source=%s | stats first(employer), first(email)", TEST_INDEX_BANK));
+            String.format(
+                "source=%s | where account_number = 1 | stats first(employer), first(email)",
+                TEST_INDEX_BANK));
     verifySchema(actual, schema("first(employer)", "string"), schema("first(email)", "string"));
     verifyDataRows(actual, rows("Pyrami", "amberduke@pyrami.com"));
   }
@@ -491,9 +527,11 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   public void testLastAggregationOnTextField() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format("source=%s | stats last(employer), first(email)", TEST_INDEX_BANK));
+            String.format(
+                "source=%s | where account_number = 32 | stats last(employer), first(email)",
+                TEST_INDEX_BANK));
     verifySchema(actual, schema("last(employer)", "string"), schema("first(email)", "string"));
-    verifyDataRows(actual, rows("Quailcom", "amberduke@pyrami.com"));
+    verifyDataRows(actual, rows("Quailcom", "dillardmcpherson@quailcom.com"));
   }
 
   @Test
@@ -501,7 +539,9 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats first(employer), last(email) by gender", TEST_INDEX_BANK));
+                "source=%s | where account_number in (1, 13) | stats first(employer), last(email)"
+                    + " by gender",
+                TEST_INDEX_BANK));
     verifySchema(
         actual,
         schema("first(employer)", "string"),
@@ -509,8 +549,8 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         schema("gender", "string"));
     verifyDataRows(
         actual,
-        rows("Quility", "dillardmcpherson@quailcom.com", "F"),
-        rows("Pyrami", "elinorratliff@scentric.com", "M"));
+        rows("Quility", "nanettebates@quility.com", "F"),
+        rows("Pyrami", "amberduke@pyrami.com", "M"));
   }
 
   @Test
@@ -518,7 +558,8 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats first(employer), last(email), count(), avg(age) by gender",
+                "source=%s | where account_number in (1, 13) | stats first(employer), last(email),"
+                    + " count(), avg(age) by gender",
                 TEST_INDEX_BANK));
     verifySchema(
         actual,
@@ -529,16 +570,14 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         schema("gender", "string"));
     verifyDataRows(
         actual,
-        rows("Quility", "dillardmcpherson@quailcom.com", 3, 33.666666666666664, "F"),
-        rows("Pyrami", "elinorratliff@scentric.com", 4, 34.25, "M"));
+        rows("Quility", "nanettebates@quility.com", 1, 28.0, "F"),
+        rows("Pyrami", "amberduke@pyrami.com", 1, 32.0, "M"));
   }
 
   @Test
   public void testFirstLastMixedFields() throws IOException {
     JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | stats first(employer), last(balance), first(age)", TEST_INDEX_BANK));
+        executeQuery(BANK_STREAM + " | stats first(employer), last(balance), first(age)");
     verifySchema(
         actual,
         schema("first(employer)", "string"),
@@ -551,10 +590,12 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   public void testFirstLastWithBirthdate() throws IOException {
     JSONObject actual =
         executeQuery(
-            String.format("source=%s | stats first(birthdate), last(birthdate)", TEST_INDEX_BANK));
+            String.format(
+                "source=%s | where account_number = 1 | stats first(birthdate), last(birthdate)",
+                TEST_INDEX_BANK));
     verifySchema(
         actual, schema("first(birthdate)", "timestamp"), schema("last(birthdate)", "timestamp"));
-    verifyDataRows(actual, rows("2017-10-23 00:00:00", "2018-08-11 00:00:00"));
+    verifyDataRows(actual, rows("2017-10-23 00:00:00", "2017-10-23 00:00:00"));
   }
 
   @Test
@@ -562,8 +603,8 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats first(birthdate) as first_bd, last(birthdate) as last_bd by"
-                    + " gender",
+                "source=%s | where account_number in (1, 13) | stats first(birthdate) as first_bd,"
+                    + " last(birthdate) as last_bd by gender",
                 TEST_INDEX_BANK));
     verifySchema(
         actual,
@@ -572,8 +613,8 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         schema("gender", "string"));
     verifyDataRows(
         actual,
-        rows("2017-10-23 00:00:00", "2018-06-27 00:00:00", "M"),
-        rows("2018-06-23 00:00:00", "2018-08-11 00:00:00", "F"));
+        rows("2017-10-23 00:00:00", "2017-10-23 00:00:00", "M"),
+        rows("2018-06-23 00:00:00", "2018-06-23 00:00:00", "F"));
   }
 
   @Test
@@ -581,8 +622,8 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats first(firstname), first(birthdate), last(lastname),"
-                    + " last(birthdate) by gender",
+                "source=%s | where account_number in (1, 13) | stats first(firstname),"
+                    + " first(birthdate), last(lastname), last(birthdate) by gender",
                 TEST_INDEX_BANK));
     verifySchema(
         actual,
@@ -593,8 +634,8 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         schema("gender", "string"));
     verifyDataRows(
         actual,
-        rows("Amber JOHnny", "2017-10-23 00:00:00", "Ratliff", "2018-06-27 00:00:00", "M"),
-        rows("Nanette", "2018-06-23 00:00:00", "Mcpherson", "2018-08-11 00:00:00", "F"));
+        rows("Amber JOHnny", "2017-10-23 00:00:00", "Duke Willmington", "2017-10-23 00:00:00", "M"),
+        rows("Nanette", "2018-06-23 00:00:00", "Bates", "2018-06-23 00:00:00", "F"));
   }
 
   @Test
@@ -602,20 +643,29 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats first(timestamp), last(timestamp)", TEST_INDEX_TIME_DATA));
+                "source=%s | where value = 8945 | stats first(timestamp), last(timestamp)",
+                TEST_INDEX_TIME_DATA));
     verifySchema(
         actual, schema("first(timestamp)", "timestamp"), schema("last(timestamp)", "timestamp"));
-    verifyDataRows(actual, rows("2025-07-28 00:15:23", "2025-08-01 03:47:41"));
+    verifyDataRows(actual, rows("2025-07-28 00:15:23", "2025-07-28 00:15:23"));
   }
 
   @Test
   public void testFirstLastTimestampByCategory() throws IOException {
+    // Two rows per category, early row first, so first_ts and last_ts differ per group. The values
+    // are the same ones the index-backed query produced on a single shard.
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | stats first(timestamp) as first_ts, last(timestamp) as last_ts by"
-                    + " category",
-                TEST_INDEX_TIME_DATA));
+            "makeresults format=csv data='category:string,ts:string\\n"
+                + "A,2025-07-28 00:15:23\\n"
+                + "B,2025-07-28 01:42:15\\n"
+                + "C,2025-07-28 02:28:45\\n"
+                + "D,2025-07-28 04:33:10\\n"
+                + "B,2025-08-01 01:14:11\\n"
+                + "C,2025-08-01 02:00:56\\n"
+                + "D,2025-08-01 00:27:26\\n"
+                + "A,2025-08-01 03:47:41' | eval timestamp = cast(ts as timestamp) | stats"
+                + " first(timestamp) as first_ts, last(timestamp) as last_ts by category");
     verifySchema(
         actual,
         schema("first_ts", "timestamp"),
@@ -634,7 +684,8 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats first(value), first(timestamp), last(value), last(timestamp)",
+                "source=%s | where value = 8945 | stats first(value), first(timestamp),"
+                    + " last(value), last(timestamp)",
                 TEST_INDEX_TIME_DATA));
     verifySchema(
         actual,
@@ -642,19 +693,19 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         schema("first(timestamp)", "timestamp"),
         schema("last(value)", "int"),
         schema("last(timestamp)", "timestamp"));
-    verifyDataRows(actual, rows(8945, "2025-07-28 00:15:23", 8762, "2025-08-01 03:47:41"));
+    verifyDataRows(actual, rows(8945, "2025-07-28 00:15:23", 8945, "2025-07-28 00:15:23"));
   }
 
   @Test
   public void testFirstLastWithNullValues() throws IOException {
+    // Nulls are skipped, so the result is the first and last non-null value in stream order. The
+    // balance column mirrors the bank_with_null_values fixture, where accounts 6, 20 and 25 have no
+    // balance.
     JSONObject actual =
         executeQuery(
-            String.format(
-                "source=%s | stats first(balance) as first_bal, last(balance) as last_bal",
-                TEST_INDEX_BANK_WITH_NULL_VALUES));
+            "makeresults format=csv data='balance:long\\n39225\\n\\n32838\\n4180\\n\\n\\n48086' |"
+                + " stats first(balance) as first_bal, last(balance) as last_bal");
     verifySchema(actual, schema("first_bal", "bigint"), schema("last_bal", "bigint"));
-    // Note: Current implementation skips nulls, so we expect first and last non-null values
-    // This test verifies current behavior - may need to change based on requirements
     verifyDataRows(actual, rows(39225L, 48086L));
   }
 
@@ -676,6 +727,201 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         rows(4180L, 4180L, 33),
         rows(48086L, 48086L, 34),
         rows(null, null, 36)); // balance is null for age 36
+  }
+
+  @Test
+  public void testIndexBackedFirstLastValuesBelongToSourceAcrossShards() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(firstname), last(firstname), first(employer), last(email),"
+                    + " first(age), last(balance), first(birthdate), last(birthdate)",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("first(firstname)", "string"),
+        schema("last(firstname)", "string"),
+        schema("first(employer)", "string"),
+        schema("last(email)", "string"),
+        schema("first(age)", "int"),
+        schema("last(balance)", "bigint"),
+        schema("first(birthdate)", "timestamp"),
+        schema("last(birthdate)", "timestamp"));
+
+    JSONArray row = actual.getJSONArray("datarows").getJSONArray(0);
+    assertMember(
+        row.get(0),
+        Set.of("Amber JOHnny", "Hattie", "Nanette", "Dale", "Elinor", "Virginia", "Dillard"));
+    assertMember(
+        row.get(1),
+        Set.of("Amber JOHnny", "Hattie", "Nanette", "Dale", "Elinor", "Virginia", "Dillard"));
+    assertMember(
+        row.get(2),
+        Set.of("Pyrami", "Netagy", "Quility", "Boink", "Scentric", "Filodyne", "Quailcom"));
+    assertMember(
+        row.get(3),
+        Set.of(
+            "amberduke@pyrami.com",
+            "hattiebond@netagy.com",
+            "nanettebates@quility.com",
+            "daleadams@boink.com",
+            "elinorratliff@scentric.com",
+            "virginiaayala@filodyne.com",
+            "dillardmcpherson@quailcom.com"));
+    assertMember(row.getInt(4), Set.of(28, 32, 33, 34, 36, 39));
+    assertMember(row.getLong(5), Set.of(4180L, 5686L, 16418L, 32838L, 39225L, 40540L, 48086L));
+    assertMember(
+        row.getString(6),
+        Set.of(
+            "2017-10-23 00:00:00",
+            "2017-11-20 00:00:00",
+            "2018-06-23 00:00:00",
+            "2018-06-27 00:00:00",
+            "2018-08-11 00:00:00",
+            "2018-08-19 00:00:00",
+            "2018-11-13 23:33:20"));
+    assertMember(
+        row.getString(7),
+        Set.of(
+            "2017-10-23 00:00:00",
+            "2017-11-20 00:00:00",
+            "2018-06-23 00:00:00",
+            "2018-06-27 00:00:00",
+            "2018-08-11 00:00:00",
+            "2018-08-19 00:00:00",
+            "2018-11-13 23:33:20"));
+  }
+
+  @Test
+  public void testIndexBackedFirstLastByGroupRemainWithinGroupAcrossShards() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(firstname), last(lastname), first(employer), last(email),"
+                    + " count(), avg(age) by gender",
+                TEST_INDEX_BANK));
+    verifySchema(
+        actual,
+        schema("first(firstname)", "string"),
+        schema("last(lastname)", "string"),
+        schema("first(employer)", "string"),
+        schema("last(email)", "string"),
+        schema("count()", "bigint"),
+        schema("avg(age)", "double"),
+        schema("gender", "string"));
+
+    JSONArray rows = actual.getJSONArray("datarows");
+    assertEquals(2, rows.length());
+    for (int i = 0; i < rows.length(); i++) {
+      JSONArray row = rows.getJSONArray(i);
+      if ("F".equals(row.getString(6))) {
+        assertMember(row.get(0), Set.of("Nanette", "Virginia", "Dillard"));
+        assertMember(row.get(1), Set.of("Bates", "Ayala", "Mcpherson"));
+        assertMember(row.get(2), Set.of("Quility", "Filodyne", "Quailcom"));
+        assertMember(
+            row.get(3),
+            Set.of(
+                "nanettebates@quility.com",
+                "virginiaayala@filodyne.com",
+                "dillardmcpherson@quailcom.com"));
+        assertEquals(3L, row.getLong(4));
+        assertEquals(33.666666666666664, row.getDouble(5), 0.0);
+      } else {
+        assertEquals("M", row.getString(6));
+        assertMember(row.get(0), Set.of("Amber JOHnny", "Hattie", "Dale", "Elinor"));
+        assertMember(row.get(1), Set.of("Duke Willmington", "Bond", "Adams", "Ratliff"));
+        assertMember(row.get(2), Set.of("Pyrami", "Netagy", "Boink", "Scentric"));
+        assertMember(
+            row.get(3),
+            Set.of(
+                "amberduke@pyrami.com",
+                "hattiebond@netagy.com",
+                "daleadams@boink.com",
+                "elinorratliff@scentric.com"));
+        assertEquals(4L, row.getLong(4));
+        assertEquals(34.25, row.getDouble(5), 0.0);
+      }
+    }
+  }
+
+  @Test
+  public void testIndexBackedNestedFirstLastRemainWithinGroupAcrossShards() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats first(`resource.attributes.telemetry.sdk.language`) as lang,"
+                    + " last(`resource.attributes.telemetry.sdk.version`) as version,"
+                    + " first(`resource.attributes.telemetry.sdk.enabled`) as enabled, count() as"
+                    + " cnt by severityNumber",
+                TEST_INDEX_TELEMETRY));
+    verifySchema(
+        actual,
+        schema("lang", "string"),
+        schema("version", "int"),
+        schema("enabled", "boolean"),
+        schema("cnt", "bigint"),
+        schema("severityNumber", "int"));
+
+    JSONArray rows = actual.getJSONArray("datarows");
+    assertEquals(3, rows.length());
+    for (int i = 0; i < rows.length(); i++) {
+      JSONArray row = rows.getJSONArray(i);
+      switch (row.getInt(4)) {
+        case 9 -> {
+          assertMember(row.get(0), Set.of("java", "javascript"));
+          assertMember(row.getInt(1), Set.of(10, 12));
+          assertEquals(true, row.getBoolean(2));
+          assertEquals(2L, row.getLong(3));
+        }
+        case 12 -> {
+          assertMember(row.get(0), Set.of("python", "rust"));
+          assertMember(row.getInt(1), Set.of(11, 14));
+          assertMember(row.getBoolean(2), Set.of(false, true));
+          assertEquals(2L, row.getLong(3));
+        }
+        case 16 -> {
+          assertEquals("go", row.getString(0));
+          assertEquals(13, row.getInt(1));
+          assertEquals(false, row.getBoolean(2));
+          assertEquals(1L, row.getLong(3));
+        }
+        default -> fail("Unexpected severityNumber " + row.getInt(4));
+      }
+    }
+  }
+
+  @Test
+  public void testIndexBackedTakeFirstLastWithEvalReturnSourceMembersAcrossShards()
+      throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval new_address = upper(address), new_state = lower(state),"
+                    + " new_balance = balance * 10 | stats take(new_address, 2), last(new_address),"
+                    + " first(new_address), take(new_state, 2), last(new_state), first(new_state),"
+                    + " take(new_balance, 2), last(new_balance), first(new_balance)",
+                TEST_INDEX_BANK));
+    JSONArray row = actual.getJSONArray("datarows").getJSONArray(0);
+    Set<String> addresses =
+        Set.of(
+            "880 HOLMES LANE",
+            "671 BRISTOL STREET",
+            "789 MADISON STREET",
+            "467 HUTCHINSON COURT",
+            "282 KINGS PLACE",
+            "171 PUTNAM AVENUE",
+            "702 QUENTIN STREET");
+    Set<String> states = Set.of("il", "tn", "va", "md", "wa", "pa", "in");
+    Set<Integer> balances = Set.of(392250, 56860, 328380, 41800, 164180, 405400, 480860);
+    assertTakeMembers(row.getJSONArray(0), 2, addresses);
+    assertMember(row.get(1), addresses);
+    assertMember(row.get(2), addresses);
+    assertTakeMembers(row.getJSONArray(3), 2, states);
+    assertMember(row.get(4), states);
+    assertMember(row.get(5), states);
+    assertTakeMembers(row.getJSONArray(6), 2, balances);
+    assertMember(row.get(7), balances);
+    assertMember(row.get(8), balances);
   }
 
   @Test
@@ -1132,9 +1378,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
   @Test
   public void testTake() throws IOException {
-    JSONObject actual =
-        executeQuery(
-            String.format("source=%s | stats take(firstname, 2) as take", TEST_INDEX_BANK));
+    JSONObject actual = executeQuery(BANK_STREAM + " | stats take(firstname, 2) as take");
     verifySchema(actual, schema("take", "array"));
     verifyDataRows(actual, rows(List.of("Amber JOHnny", "Hattie")));
   }
@@ -1538,18 +1782,23 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     // This should work - testing simple field first
     JSONObject actual =
         executeQuery(
-            String.format("source=%s | stats first(severityNumber)", TEST_INDEX_TELEMETRY));
+            String.format(
+                "source=%s | where `resource.attributes.telemetry.sdk.version` = 10 | stats"
+                    + " first(severityNumber)",
+                TEST_INDEX_TELEMETRY));
     verifySchema(actual, schema("first(severityNumber)", "int"));
     verifyDataRows(actual, rows(9));
   }
 
   @Test
   public void testFirstLastWithDeepNestedField() throws IOException {
-    // This test should now work with the fix for ClassCastException
+    // Narrowed to the single document with version 10 so the selected row does not depend on
+    // shard-local document order. The nested-field access path is still exercised.
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats first(`resource.attributes.telemetry.sdk.language`)",
+                "source=%s | where `resource.attributes.telemetry.sdk.version` = 10 | stats"
+                    + " first(`resource.attributes.telemetry.sdk.language`)",
                 TEST_INDEX_TELEMETRY));
     verifySchema(actual, schema("first(`resource.attributes.telemetry.sdk.language`)", "string"));
     verifyDataRows(actual, rows("java"));
@@ -1557,11 +1806,11 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
   @Test
   public void testLastWithDeepNestedField() throws IOException {
-    // This test should now work with the fix for ClassCastException
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats last(`resource.attributes.telemetry.sdk.language`)",
+                "source=%s | where `resource.attributes.telemetry.sdk.version` = 14 | stats"
+                    + " last(`resource.attributes.telemetry.sdk.language`)",
                 TEST_INDEX_TELEMETRY));
     verifySchema(actual, schema("last(`resource.attributes.telemetry.sdk.language`)", "string"));
     verifyDataRows(actual, rows("rust"));
@@ -1569,11 +1818,12 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
   @Test
   public void testFirstLastWithDeepNestedFieldByGroup() throws IOException {
-    // This test should now work with the fix for ClassCastException
+    // Versions 10, 11 and 13 give exactly one document per severityNumber group.
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats first(`resource.attributes.telemetry.sdk.language`) by"
+                "source=%s | where `resource.attributes.telemetry.sdk.version` in (10, 11, 13) |"
+                    + " stats first(`resource.attributes.telemetry.sdk.language`) by"
                     + " severityNumber",
                 TEST_INDEX_TELEMETRY));
     verifySchema(
@@ -1688,15 +1938,17 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
   @Test
   public void testFirstLastWithIntegerNestedField() throws IOException {
-    // Test first/last with deeply nested integer fields
+    // Test first/last with deeply nested integer fields. Narrowed to the single severityNumber 16
+    // document so the selection is independent of shard-local document order.
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats first(`resource.attributes.telemetry.sdk.version`) as first_ver,"
+                "source=%s | where severityNumber = 16 | stats"
+                    + " first(`resource.attributes.telemetry.sdk.version`) as first_ver,"
                     + " last(`resource.attributes.telemetry.sdk.version`) as last_ver",
                 TEST_INDEX_TELEMETRY));
     verifySchema(actual, schema("first_ver", "int"), schema("last_ver", "int"));
-    verifyDataRows(actual, rows(10, 14));
+    verifyDataRows(actual, rows(13, 13));
   }
 
   @Test
@@ -1705,7 +1957,8 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats first(`resource.attributes.telemetry.sdk.enabled`) as"
+                "source=%s | where severityNumber = 9 | stats"
+                    + " first(`resource.attributes.telemetry.sdk.enabled`) as"
                     + " first_enabled, last(`resource.attributes.telemetry.sdk.enabled`) as"
                     + " last_enabled",
                 TEST_INDEX_TELEMETRY));
@@ -1743,11 +1996,13 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
 
   @Test
   public void testBooleanNestedFieldByGroup() throws IOException {
-    // Test boolean nested fields with grouping by other fields
+    // Test boolean nested fields with grouping by other fields. Versions 10, 11 and 13 give exactly
+    // one document per severityNumber group, so first() does not depend on document order.
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats count() as cnt,"
+                "source=%s | where `resource.attributes.telemetry.sdk.version` in (10, 11, 13) |"
+                    + " stats count() as cnt,"
                     + " first(`resource.attributes.telemetry.sdk.enabled`) as enabled by"
                     + " severityNumber",
                 TEST_INDEX_TELEMETRY));
@@ -1756,19 +2011,21 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         schema("cnt", "bigint"),
         schema("enabled", "boolean"),
         schema("severityNumber", "int"));
-    // severityNumber 9: java (true), javascript (true) -> 2 records, first is true
-    // severityNumber 12: python (false), rust (true) -> 2 records, first is false
-    // severityNumber 16: go (false) -> 1 record, first is false
-    verifyDataRows(actual, rows(2L, true, 9), rows(2L, false, 12), rows(1L, false, 16));
+    // severityNumber 9: java (true); severityNumber 12: python (false); severityNumber 16: go
+    // (false)
+    verifyDataRows(actual, rows(1L, true, 9), rows(1L, false, 12), rows(1L, false, 16));
   }
 
   @Test
   public void testMixedTypesNestedFieldAggregations() throws IOException {
-    // Test aggregating multiple nested field types in one query
+    // Test aggregating multiple nested field types in one query. Narrowed to the single
+    // severityNumber 16 document so first() does not depend on document order. min/max across
+    // multiple documents are covered by the dedicated nested min/max tests above.
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats min(`resource.attributes.telemetry.sdk.version`) as min_ver,"
+                "source=%s | where severityNumber = 16 | stats"
+                    + " min(`resource.attributes.telemetry.sdk.version`) as min_ver,"
                     + " max(`resource.attributes.telemetry.sdk.version`) as max_ver,"
                     + " min(`resource.attributes.telemetry.sdk.enabled`) as min_enabled,"
                     + " max(`resource.attributes.telemetry.sdk.enabled`) as max_enabled,"
@@ -1781,7 +2038,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
         schema("min_enabled", "boolean"),
         schema("max_enabled", "boolean"),
         schema("first_lang", "string"));
-    verifyDataRows(actual, rows(10, 14, false, true, "java"));
+    verifyDataRows(actual, rows(13, 13, false, false, "go"));
   }
 
   @Test
@@ -1789,21 +2046,22 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | stats take(address, 2), last(address), first(address), "
+                "source=%s | where account_number = 1 | stats take(address, 2), last(address),"
+                    + " first(address), "
                     + "take(state, 2), last(state), first(state), "
                     + "take(balance, 2), last(balance), first(balance)",
                 TEST_INDEX_BANK));
     verifyDataRows(
         actual,
         rows(
-            List.of("880 Holmes Lane", "671 Bristol Street"),
-            "702 Quentin Street",
+            List.of("880 Holmes Lane"),
             "880 Holmes Lane",
-            List.of("IL", "TN"),
-            "IN",
+            "880 Holmes Lane",
+            List.of("IL"),
             "IL",
-            List.of(39225, 5686),
-            48086,
+            "IL",
+            List.of(39225),
+            39225,
             39225));
   }
 
@@ -1812,22 +2070,23 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval new_address = upper(address), new_state = lower(state),"
-                    + " new_balance = balance * 10 | stats take(new_address, 2), last(new_address),"
-                    + " first(new_address), take(new_state, 2), last(new_state), first(new_state),"
-                    + " take(new_balance, 2), last(new_balance), first(new_balance)",
+                "source=%s | where account_number = 1 | eval new_address = upper(address),"
+                    + " new_state = lower(state), new_balance = balance * 10 | stats"
+                    + " take(new_address, 2), last(new_address), first(new_address),"
+                    + " take(new_state, 2), last(new_state), first(new_state), take(new_balance,"
+                    + " 2), last(new_balance), first(new_balance)",
                 TEST_INDEX_BANK));
     verifyDataRows(
         actual,
         rows(
-            List.of("880 HOLMES LANE", "671 BRISTOL STREET"),
-            "702 QUENTIN STREET",
+            List.of("880 HOLMES LANE"),
             "880 HOLMES LANE",
-            List.of("il", "tn"),
-            "in",
+            "880 HOLMES LANE",
+            List.of("il"),
             "il",
-            List.of(392250, 56860),
-            480860,
+            "il",
+            List.of(392250),
+            392250,
             392250));
   }
 
