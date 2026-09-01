@@ -31,6 +31,9 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     enableCalcite();
     loadIndex(Index.STATE_COUNTRY);
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
+    loadIndex(Index.STATE_COUNTRY_ORDERED);
+    loadIndex(Index.STATE_COUNTRY_WITH_NULL_ORDERED);
+    loadIndex(Index.STATE_COUNTRY_WITH_NULL_SINGLE_SHARD);
     loadIndex(Index.BANK_TWO);
     loadIndex(Index.LOGS);
   }
@@ -96,14 +99,20 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  // Multi-shard determinism: streamstats orders by encounter order, which is non-deterministic
+  // across shards. Sourcing the seq-augmented fixture and adding `| sort seq` restores the
+  // single-shard encounter order on any shard layout; the AE route ignores that sort
+  // (STREAMSTATS_SORT_NOT_HONORED), so this exact-value assertion is gated to the routes that
+  // honor it. The expected rows are unchanged.
+  @RequiresCapability(STREAMSTATS_SORT_NOT_HONORED)
   public void testStreamstatsWithNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max | fields name, country, state, month, year, age, cnt, avg, min,"
-                    + " max",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+                "source=%s | sort seq | streamstats count() as cnt, avg(age) as avg, min(age) as"
+                    + " min, max(age) as max | fields name, country, state, month, year, age, cnt,"
+                    + " avg, min, max",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL_ORDERED));
 
     verifySchemaInOrder(
         actual,
@@ -160,14 +169,18 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  // See testStreamstatsWithNull: `| sort seq` on the seq-augmented fixture restores the
+  // single-shard encounter order across shards; gated to routes that honor a sort before
+  // streamstats. Expected rows are unchanged.
+  @RequiresCapability(STREAMSTATS_SORT_NOT_HONORED)
   public void testStreamstatsByWithNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by country | fields name, country, state, month, year, age, cnt,"
-                    + " avg, min, max",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+                "source=%s | sort seq | streamstats count() as cnt, avg(age) as avg, min(age) as"
+                    + " min, max(age) as max by country | fields name, country, state, month, year,"
+                    + " age, cnt, avg, min, max",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL_ORDERED));
 
     verifySchemaInOrder(
         actual,
@@ -194,10 +207,10 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats count() as cnt, avg(age) as avg, min(age) as min, max(age)"
-                    + " as max by state | fields name, country, state, month, year, age, cnt, avg,"
-                    + " min, max",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+                "source=%s | sort seq | streamstats count() as cnt, avg(age) as avg, min(age) as"
+                    + " min, max(age) as max by state | fields name, country, state, month, year,"
+                    + " age, cnt, avg, min, max",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL_ORDERED));
     verifyDataRows(
         actual,
         rows("Jake", "USA", "California", 4, 2023, 70, 1, 70, 70, 70),
@@ -209,14 +222,20 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  // Multi-shard determinism: streamstats orders by encounter order, which is non-deterministic
+  // across shards. Sourcing the seq-augmented fixture and adding `| sort seq` restores the
+  // single-shard encounter order on any shard layout (the Calcite/Lucene route honors a sort
+  // before streamstats). The AE route ignores that sort (STREAMSTATS_SORT_NOT_HONORED), so this
+  // exact-value assertion is gated to the routes that honor it; the expected rows are unchanged.
+  @RequiresCapability(STREAMSTATS_SORT_NOT_HONORED)
   public void testStreamstatsByWithNullBucket() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats bucket_nullable=false count() as cnt, avg(age) as avg,"
-                    + " min(age) as min, max(age) as max by country | fields name, country, state,"
-                    + " month, year, age, cnt, avg, min, max",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+                "source=%s | sort seq | streamstats bucket_nullable=false count() as cnt, avg(age)"
+                    + " as avg, min(age) as min, max(age) as max by country | fields name, country,"
+                    + " state, month, year, age, cnt, avg, min, max",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL_ORDERED));
 
     verifySchemaInOrder(
         actual,
@@ -243,10 +262,10 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats bucket_nullable=false count() as cnt, avg(age) as avg,"
-                    + " min(age) as min, max(age) as max by state | fields name, country, state,"
-                    + " month, year, age, cnt, avg, min, max",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+                "source=%s | sort seq | streamstats bucket_nullable=false count() as cnt, avg(age)"
+                    + " as avg, min(age) as min, max(age) as max by state | fields name, country,"
+                    + " state, month, year, age, cnt, avg, min, max",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL_ORDERED));
     verifyDataRows(
         actual,
         rows("Jake", "USA", "California", 4, 2023, 70, 1, 70, 70, 70),
@@ -423,13 +442,17 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  // See testStreamstatsWithNull: `| sort seq` on the seq-augmented fixture restores the
+  // single-shard encounter order across shards; gated to routes that honor a sort before
+  // streamstats. Expected rows are unchanged.
+  @RequiresCapability(STREAMSTATS_SORT_NOT_HONORED)
   public void testStreamstatsCurrentWithNUll() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats current=false avg(age) as prev_avg | fields name, country,"
-                    + " state, month, year, age, prev_avg",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+                "source=%s | sort seq | streamstats current=false avg(age) as prev_avg | fields"
+                    + " name, country, state, month, year, age, prev_avg",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL_ORDERED));
 
     verifyDataRows(
         actual,
@@ -459,13 +482,17 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  // See testStreamstatsWithNull: `| sort seq` on the seq-augmented fixture restores the
+  // single-shard encounter order across shards; gated to routes that honor a sort before
+  // streamstats. Expected rows are unchanged.
+  @RequiresCapability(STREAMSTATS_SORT_NOT_HONORED)
   public void testStreamstatsWindowWithNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats window = 3 avg(age) as avg | fields name, country, state,"
-                    + " month, year, age, avg",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+                "source=%s | sort seq | streamstats window = 3 avg(age) as avg | fields name,"
+                    + " country, state, month, year, age, avg",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL_ORDERED));
 
     verifyDataRows(
         actual,
@@ -525,13 +552,17 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  // See testStreamstatsWithNull: `| sort seq` on the seq-augmented fixture restores the
+  // single-shard encounter order across shards; gated to routes that honor a sort before
+  // streamstats. Expected rows are unchanged.
+  @RequiresCapability(STREAMSTATS_SORT_NOT_HONORED)
   public void testStreamstatsCurrentAndWindowWithNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats current = false window = 2 avg(age) as avg | fields name,"
-                    + " country, state, month, year, age, avg",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+                "source=%s | sort seq | streamstats current = false window = 2 avg(age) as avg |"
+                    + " fields name, country, state, month, year, age, avg",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL_ORDERED));
 
     verifyDataRows(
         actual,
@@ -579,25 +610,30 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  @RequiresCapability(DOC_MUTATION)
+  @RequiresCapability({DOC_MUTATION, STREAMSTATS_SORT_NOT_HONORED})
   public void testStreamstatsGlobalWithNull() throws IOException {
+    // Jay is PUT with seq 7 (one past the fixture's 6 rows) so `| sort seq` keeps it in the
+    // trailing encounter position the original single-shard test relied on, while the sort makes
+    // the order deterministic across shards. Mutation stays DOC_MUTATION-gated; the added sort is
+    // ignored on the AE route (STREAMSTATS_SORT_NOT_HONORED). Expected rows are unchanged.
     final int docId = 7;
     Request insertRequest =
         new Request(
             "PUT",
-            String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY_WITH_NULL, docId));
+            String.format(
+                "/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY_WITH_NULL_ORDERED, docId));
     insertRequest.setJsonEntity(
         "{\"name\": \"Jay\",\"age\": 40,\"state\":"
             + " \"Quebec\",\"country\": \"USA\",\"year\": 2023,\"month\":"
-            + " 4}\n");
+            + " 4,\"seq\": 7}\n");
     client().performRequest(insertRequest);
     try {
       JSONObject actual =
           executeQuery(
               String.format(
-                  "source=%s | streamstats window=2 global=false avg(age) as avg by country |"
-                      + " fields name, country, state, month, year, age, avg",
-                  TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+                  "source=%s | sort seq | streamstats window=2 global=false avg(age) as avg by"
+                      + " country | fields name, country, state, month, year, age, avg",
+                  TEST_INDEX_STATE_COUNTRY_WITH_NULL_ORDERED));
 
       verifyDataRows(
           actual,
@@ -612,9 +648,9 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
       JSONObject actual2 =
           executeQuery(
               String.format(
-                  "source=%s | streamstats window=2 global=true avg(age) as avg by country |"
-                      + " fields name, country, state, month, year, age, avg",
-                  TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+                  "source=%s | sort seq | streamstats window=2 global=true avg(age) as avg by"
+                      + " country | fields name, country, state, month, year, age, avg",
+                  TEST_INDEX_STATE_COUNTRY_WITH_NULL_ORDERED));
 
       verifyDataRows(
           actual2,
@@ -629,7 +665,8 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
       Request deleteRequest =
           new Request(
               "DELETE",
-              String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY_WITH_NULL, docId));
+              String.format(
+                  "/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY_WITH_NULL_ORDERED, docId));
       client().performRequest(deleteRequest);
     }
   }
@@ -730,11 +767,20 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   @Test
   @RequiresCapability(DOC_MUTATION)
   public void testStreamstatsResetWithNull() throws IOException {
+    // reset_before/reset_after streamstats builds a self-correlated plan that the physical compiler
+    // cannot combine with an upstream `sort` (planner IndexOutOfBounds), so the seq-sort trick used
+    // by the other WithNull streamstats tests is unavailable here. Instead this drives a
+    // single-shard fixture whose encounter order is the deterministic insertion order on any run,
+    // reproducing the original single-shard behavior without injecting a sort. Jay is PUT as the
+    // last document (docId 7), matching the original trailing-encounter position. Expected rows are
+    // unchanged.
     final int docId = 7;
     Request insertRequest =
         new Request(
             "PUT",
-            String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY_WITH_NULL, docId));
+            String.format(
+                "/%s/_doc/%d?refresh=true",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL_SINGLE_SHARD, docId));
     insertRequest.setJsonEntity(
         "{\"name\": \"Jay\",\"age\": 28,\"state\":"
             + " \"Quebec\",\"country\": \"USA\",\"year\": 2023,\"month\":"
@@ -746,7 +792,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
               String.format(
                   "source=%s | streamstats window=2 reset_before=age>29 avg(age) as avg by country"
                       + " | fields name, country, state, month, year, age, avg",
-                  TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+                  TEST_INDEX_STATE_COUNTRY_WITH_NULL_SINGLE_SHARD));
 
       verifyDataRows(
           actual,
@@ -763,7 +809,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
               String.format(
                   "source=%s | streamstats window=2 reset_after=age>22 avg(age) as avg by country"
                       + " | fields name, country, state, month, year, age, avg",
-                  TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+                  TEST_INDEX_STATE_COUNTRY_WITH_NULL_SINGLE_SHARD));
 
       verifyDataRows(
           actual2,
@@ -778,7 +824,9 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
       Request deleteRequest =
           new Request(
               "DELETE",
-              String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY_WITH_NULL, docId));
+              String.format(
+                  "/%s/_doc/%d?refresh=true",
+                  TEST_INDEX_STATE_COUNTRY_WITH_NULL_SINGLE_SHARD, docId));
       client().performRequest(deleteRequest);
     }
   }
@@ -876,16 +924,18 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  @RequiresCapability(CHAINED_STREAMSTATS_BY)
+  @RequiresCapability({CHAINED_STREAMSTATS_BY, STREAMSTATS_SORT_NOT_HONORED})
   public void testMultipleStreamstatsWithWindow() throws IOException {
-    // Test case from GitHub issue #4800: chained streamstats with window=2
+    // Test case from GitHub issue #4800: chained streamstats with window=2.
+    // `| sort seq` on the seq-augmented fixture makes the encounter order deterministic across
+    // shards; gated to routes that honor a sort before streamstats. Expected rows are unchanged.
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats window=2 avg(age) as avg_age by state, country"
+                "source=%s | sort seq | streamstats window=2 avg(age) as avg_age by state, country"
                     + " | streamstats window=2 avg(avg_age) as avg_state_age by country | fields"
                     + " name, country, state, month, year, age, avg_age, avg_state_age",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL_ORDERED));
 
     verifySchemaInOrder(
         actual,
@@ -913,15 +963,17 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   // causing Calcite's RelDecorrelator to fail on duplicate correlate references.
 
   @Test
-  @RequiresCapability(CHAINED_STREAMSTATS_BY)
+  @RequiresCapability({CHAINED_STREAMSTATS_BY, STREAMSTATS_SORT_NOT_HONORED})
   public void testMultipleStreamstatsWithNull1() throws IOException {
+    // `| sort seq` on the seq-augmented fixture makes the encounter order deterministic across
+    // shards; gated to routes that honor a sort before streamstats. Expected rows are unchanged.
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats avg(age) as avg_age by state, country | streamstats"
-                    + " avg(avg_age) as avg_state_age by country | fields name, country, state,"
-                    + " month, year, age, avg_age, avg_state_age",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+                "source=%s | sort seq | streamstats avg(age) as avg_age by state, country |"
+                    + " streamstats avg(avg_age) as avg_state_age by country | fields name,"
+                    + " country, state, month, year, age, avg_age, avg_state_age",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL_ORDERED));
 
     verifyDataRows(
         actual,
@@ -935,11 +987,11 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     JSONObject actual2 =
         executeQuery(
             String.format(
-                "source=%s | streamstats bucket_nullable=false avg(age) as avg_age by state,"
-                    + " country | streamstats bucket_nullable=false avg(avg_age) as avg_state_age"
-                    + " by country | fields name, country, state, month, year, age, avg_age,"
-                    + " avg_state_age",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+                "source=%s | sort seq | streamstats bucket_nullable=false avg(age) as avg_age by"
+                    + " state, country | streamstats bucket_nullable=false avg(avg_age) as"
+                    + " avg_state_age by country | fields name, country, state, month, year, age,"
+                    + " avg_age, avg_state_age",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL_ORDERED));
 
     verifyDataRows(
         actual2,
@@ -952,25 +1004,29 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
-  @RequiresCapability({DOC_MUTATION, CHAINED_STREAMSTATS_BY})
+  @RequiresCapability({DOC_MUTATION, CHAINED_STREAMSTATS_BY, STREAMSTATS_SORT_NOT_HONORED})
   public void testMultipleStreamstatsWithNull2() throws IOException {
+    // Jay is PUT as the last document (seq 5, one past the fixture's 4 rows) so `| sort seq` keeps
+    // it in the trailing encounter position the original single-shard test relied on, while the
+    // sort makes the order deterministic across shards. Mutation stays DOC_MUTATION-gated.
     final int docId = 5;
     Request insertRequest =
         new Request(
-            "PUT", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY, docId));
+            "PUT",
+            String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY_ORDERED, docId));
     insertRequest.setJsonEntity(
         "{\"name\": \"Jay\",\"age\": 28,"
             + " \"country\": \"USA\",\"year\": 2023,\"month\":"
-            + " 4}\n");
+            + " 4,\"seq\": 5}\n");
     client().performRequest(insertRequest);
     try {
       JSONObject actual =
           executeQuery(
               String.format(
-                  "source=%s | streamstats avg(age) as avg_age by state, country | streamstats"
-                      + " avg(avg_age) as avg_state_age by country | fields name, country, state,"
-                      + " month, year, age, avg_age, avg_state_age",
-                  TEST_INDEX_STATE_COUNTRY));
+                  "source=%s | sort seq | streamstats avg(age) as avg_age by state, country |"
+                      + " streamstats avg(avg_age) as avg_state_age by country | fields name,"
+                      + " country, state, month, year, age, avg_age, avg_state_age",
+                  TEST_INDEX_STATE_COUNTRY_ORDERED));
 
       verifyDataRows(
           actual,
@@ -983,11 +1039,11 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
       JSONObject actual2 =
           executeQuery(
               String.format(
-                  "source=%s | streamstats bucket_nullable=false avg(age) as avg_age by state,"
-                      + " country | streamstats bucket_nullable=false avg(avg_age) as avg_state_age"
-                      + " by country | fields name, country, state, month, year, age, avg_age,"
-                      + " avg_state_age",
-                  TEST_INDEX_STATE_COUNTRY));
+                  "source=%s | sort seq | streamstats bucket_nullable=false avg(age) as avg_age by"
+                      + " state, country | streamstats bucket_nullable=false avg(avg_age) as"
+                      + " avg_state_age by country | fields name, country, state, month, year, age,"
+                      + " avg_age, avg_state_age",
+                  TEST_INDEX_STATE_COUNTRY_ORDERED));
 
       verifyDataRows(
           actual2,
@@ -999,7 +1055,8 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     } finally {
       Request deleteRequest =
           new Request(
-              "DELETE", String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY, docId));
+              "DELETE",
+              String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY_ORDERED, docId));
       client().performRequest(deleteRequest);
     }
   }
@@ -1041,15 +1098,22 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  // The streamstats lives in the JOIN right-subsearch, whose avg_age depends on the subsearch
+  // encounter order. Sourcing the seq-augmented fixture and adding `| sort seq` before streamstats
+  // restores the single-shard encounter order across shards; gated to routes that honor a sort
+  // before streamstats. The left source stays natural-order because verifyDataRows is
+  // order-insensitive and the left order does not change the joined row set. Expected rows are
+  // unchanged.
+  @RequiresCapability(STREAMSTATS_SORT_NOT_HONORED)
   public void testLeftJoinWithStreamstats() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
                 "source=%s as l | left join left=l right=r on l.country = r.country [ source=%s |"
-                    + " streamstats window=2 avg(age) as avg_age] | fields l.name, l.country,"
-                    + " l.state, l.month, l.year, l.age, r.name, r.country, r.state, r.month,"
-                    + " r.year, r.age, avg_age",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+                    + " sort seq | streamstats window=2 avg(age) as avg_age] | fields l.name,"
+                    + " l.country, l.state, l.month, l.year, l.age, r.name, r.country, r.state,"
+                    + " r.month, r.year, r.age, avg_age",
+                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_STATE_COUNTRY_WITH_NULL_ORDERED));
 
     verifyDataRows(
         actual,
@@ -1235,14 +1299,19 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  // See testStreamstatsWithNull: `| sort seq` on the seq-augmented fixture restores the
+  // single-shard encounter order across shards; gated to routes that honor a sort before
+  // streamstats. Expected rows are unchanged.
+  @RequiresCapability(STREAMSTATS_SORT_NOT_HONORED)
   public void testStreamstatsVarianceWithNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats stddev_pop(age), stddev_samp(age), var_pop(age),"
-                    + " var_samp(age) | fields name, country, state, month, year, age,"
-                    + " `stddev_pop(age)`, `stddev_samp(age)`, `var_pop(age)`, `var_samp(age)`",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+                "source=%s | sort seq | streamstats stddev_pop(age), stddev_samp(age),"
+                    + " var_pop(age), var_samp(age) | fields name, country, state, month, year,"
+                    + " age, `stddev_pop(age)`, `stddev_samp(age)`, `var_pop(age)`,"
+                    + " `var_samp(age)`",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL_ORDERED));
 
     verifySchemaInOrder(
         actual,
@@ -1323,14 +1392,19 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  // See testStreamstatsWithNull: `| sort seq` on the seq-augmented fixture restores the
+  // single-shard encounter order across shards; gated to routes that honor a sort before
+  // streamstats. Expected rows are unchanged.
+  @RequiresCapability(STREAMSTATS_SORT_NOT_HONORED)
   public void testStreamstatsVarianceWithNullBy() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats stddev_pop(age), stddev_samp(age), var_pop(age),"
-                    + " var_samp(age) by country | fields name, country, state, month, year, age,"
-                    + " `stddev_pop(age)`, `stddev_samp(age)`, `var_pop(age)`, `var_samp(age)`",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+                "source=%s | sort seq | streamstats stddev_pop(age), stddev_samp(age),"
+                    + " var_pop(age), var_samp(age) by country | fields name, country, state,"
+                    + " month, year, age, `stddev_pop(age)`, `stddev_samp(age)`, `var_pop(age)`,"
+                    + " `var_samp(age)`",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL_ORDERED));
 
     verifyDataRows(
         actual,
@@ -1434,13 +1508,17 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  // See testStreamstatsWithNull: `| sort seq` on the seq-augmented fixture restores the
+  // single-shard encounter order across shards; gated to routes that honor a sort before
+  // streamstats. Expected rows are unchanged.
+  @RequiresCapability(STREAMSTATS_SORT_NOT_HONORED)
   public void testStreamstatsDistinctCountWithNull() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | streamstats dc(state) as dc_state | fields name, country, state,"
-                    + " month, year, age, dc_state",
-                TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+                "source=%s | sort seq | streamstats dc(state) as dc_state | fields name, country,"
+                    + " state, month, year, age, dc_state",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL_ORDERED));
 
     verifySchemaInOrder(
         actual,
@@ -1543,7 +1621,9 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
     assertEquals(5, rows.length());
     for (int i = 0; i < rows.length(); i++) {
       JSONArray row = rows.getJSONArray(i);
-      Set<String> validMessages = messagesByServer.get(row.getString(0));
+      String server = row.getString(0);
+      Set<String> validMessages = messagesByServer.get(server);
+      assertNotNull("unexpected server: " + server, validMessages);
       assertTrue(validMessages.contains(row.getString(1)));
       assertTrue(validMessages.contains(row.getString(2)));
       assertTrue(validMessages.contains(row.getString(3)));

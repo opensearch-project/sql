@@ -1,0 +1,18 @@
+{
+  "mappings": {
+    "properties": {
+      "id": {
+        "type": "integer"
+      },
+      "name": {
+        "type": "keyword"
+      },
+      "category": {
+        "type": "keyword"
+      },
+      "seq": {
+        "type": "integer"
+      }
+    }
+  }
+}

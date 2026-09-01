@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DUPLICATION_NULLABLE;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DUPLICATION_NULLABLE_ORDERED;
 import static org.opensearch.sql.util.Capability.DEDUP_NONDETERMINISTIC;
 import static org.opensearch.sql.util.MatcherUtils.*;
 
@@ -33,6 +34,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
     enableCalcite();
 
     loadIndex(Index.DUPLICATION_NULLABLE);
+    loadIndex(Index.DUPLICATION_NULLABLE_ORDERED);
     loadIndex(Index.ACCOUNT);
   }
 
@@ -64,30 +66,29 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
 
   @Test
   public void testDedupKeepEmpty() throws IOException {
+    // dedup 1 name KEEPEMPTY=true keeps the first row per distinct non-null name plus every
+    // null-name row. An added `sort name, category` (PPL default ASC NULLS FIRST) pins each
+    // non-null name's surviving row to its smallest category on any shard layout and route -- the
+    // same sort-before-dedup determinism the #3922 regression tests rely on -- so the kept
+    // representative is exact rather than merely "some valid pair". Per name that is A->X,
+    // B->null, C->X, D->Z, E->null; the four null-name rows are always kept in full.
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | dedup 1 name KEEPEMPTY=true | fields name, category",
+                "source=%s | sort name, category | dedup 1 name KEEPEMPTY=true | fields name,"
+                    + " category",
                 TEST_INDEX_DUPLICATION_NULLABLE));
-    // KEEPEMPTY keeps one row per distinct non-null name plus every null-name row. The null-name
-    // rows are fully determined (dedup keys on name only); the non-null representatives' category
-    // has no stable cross-shard tiebreaker, so assert one row per name with a valid pair.
-    List<List<Object>> rows = dataRows(actual);
-    assertEquals(9, rows.size());
-    Set<Object> nonNullNames = new HashSet<>();
-    Set<List<Object>> nullNameRows = new HashSet<>();
-    for (List<Object> row : rows) {
-      Object name = row.get(0);
-      Object category = row.get(1);
-      if (name == null) {
-        nullNameRows.add(Arrays.asList(name, category));
-      } else {
-        nonNullNames.add(name);
-        assertValidPair(name, category);
-      }
-    }
-    assertEquals(Set.of("A", "B", "C", "D", "E"), nonNullNames);
-    assertEquals(NULL_NAME_ROWS, nullNameRows);
+    verifyDataRows(
+        actual,
+        rows("A", "X"),
+        rows("B", null),
+        rows("C", "X"),
+        rows("D", "Z"),
+        rows("E", null),
+        rows(null, "Y"),
+        rows(null, "X"),
+        rows(null, "Z"),
+        rows(null, null));
   }
 
   @Test
@@ -116,11 +117,13 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
   /**
    * {@code CONSECUTIVE=true} collapses only <em>adjacent</em> duplicates, so its result depends
    * entirely on the row-encounter order. A multi-shard index has no stable merge order (the counts
-   * observed on a single shard, 8/12/12/16, become 12/... on five shards), so this test cannot run
-   * against a sharded index. Drive it from a coordinator-only {@code makeresults} literal instead:
-   * the literal fixes the encounter order to the historical {@code duplication_nullable} insertion
-   * sequence (name column, with nulls preserved), making the consecutive-dedup counts deterministic
-   * on every route while still exercising real CONSECUTIVE semantics.
+   * observed on a single shard, 8/12/12/16, become 12/... on five shards). To keep the real index
+   * route while making the encounter order deterministic, this drives a seq-augmented fixture
+   * ({@code duplication_nullable_ordered}, same rows plus an explicit {@code seq}) and adds {@code
+   * | sort seq} before dedup, restoring the historical {@code duplication_nullable} insertion
+   * sequence on any shard layout while still exercising real CONSECUTIVE semantics over the index.
+   * The AE route has no stable per-fragment tiebreaker (DEDUP_NONDETERMINISTIC), so the assertion
+   * stays gated to the routes that produce a deterministic ordered stream.
    */
   @Test
   @RequiresCapability(
@@ -130,29 +133,31 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source = %s | dedup 1 name CONSECUTIVE=true | fields name",
-                TEST_INDEX_DUPLICATION_NULLABLE));
+                "source = %s | sort seq | dedup 1 name CONSECUTIVE=true | fields name",
+                TEST_INDEX_DUPLICATION_NULLABLE_ORDERED));
     verifyNumOfRows(actual, 8);
 
     actual =
         executeQuery(
             String.format(
-                "source = %s | dedup 1 name KEEPEMPTY=true CONSECUTIVE=true | fields name",
-                TEST_INDEX_DUPLICATION_NULLABLE));
+                "source = %s | sort seq | dedup 1 name KEEPEMPTY=true CONSECUTIVE=true | fields"
+                    + " name",
+                TEST_INDEX_DUPLICATION_NULLABLE_ORDERED));
     verifyNumOfRows(actual, 12);
 
     actual =
         executeQuery(
             String.format(
-                "source = %s | dedup 2 name CONSECUTIVE=true | fields name",
-                TEST_INDEX_DUPLICATION_NULLABLE));
+                "source = %s | sort seq | dedup 2 name CONSECUTIVE=true | fields name",
+                TEST_INDEX_DUPLICATION_NULLABLE_ORDERED));
     verifyNumOfRows(actual, 12);
 
     actual =
         executeQuery(
             String.format(
-                "source = %s | dedup 2 name KEEPEMPTY=true CONSECUTIVE=true | fields name",
-                TEST_INDEX_DUPLICATION_NULLABLE));
+                "source = %s | sort seq | dedup 2 name KEEPEMPTY=true CONSECUTIVE=true | fields"
+                    + " name",
+                TEST_INDEX_DUPLICATION_NULLABLE_ORDERED));
     verifyNumOfRows(actual, 16);
   }
 
