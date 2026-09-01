@@ -252,6 +252,11 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
           INTERVAL;
       case ARRAY -> ARRAY;
       case MAP -> STRUCT;
+      // Calcite spells a struct as ROW. convertExprTypeToRelDataType builds STRUCT as
+      // MAP<VARCHAR, ANY> since the v2 path only passes _source JSON through, so a genuine ROW —
+      // from an engine that builds a struct out of typed columns — matched nothing and fell
+      // through to UNKNOWN.
+      case ROW -> STRUCT;
       case GEOMETRY -> GEO_POINT;
       case NULL, ANY, OTHER -> UNDEFINED;
       default -> UNKNOWN;

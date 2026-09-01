@@ -286,6 +286,12 @@ public class OpenSearchTypeFactoryTest {
     assertTrue(result.isNullable());
   }
 
+  @Test
+  public void testConvertRowReturnsStructExprType() {
+    assertEquals(
+        ExprCoreType.STRUCT, OpenSearchTypeFactory.convertSqlTypeNameToExprType(SqlTypeName.ROW));
+  }
+
   // ---------- convertAnalyticsEngineRelDataTypeToExprType ----------
   // UDT-aware variant for the response-schema path. Must agree with the
   // planner-internal convertRelDataTypeToExprType on every non-UDT input.
