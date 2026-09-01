@@ -7,6 +7,7 @@ package org.opensearch.sql.plugin.rest;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -330,13 +331,14 @@ public class RestUnifiedQueryActionTest {
   }
 
   @Test
-  public void clusterValuesMaxLimitReachesAnalyticsContext() {
-    // PPL_VALUES_MAX_LIMIT is not seeded at all, so without forwarding AstExpressionBuilder reads
-    // null and falls back to unlimited — the configured cap on values() never applies.
+  public void valuesMaxLimitIsNotForwarded() {
+    // Forwarding PPL_VALUES_MAX_LIMIT would attach a `limit` argument to values(), lowering to
+    // array_agg(DISTINCT x, limit) — a form the analytics-engine backend cannot bind, turning a
+    // silently-ignored cap into a 500. Verified against a live composite/parquet cluster.
     when(pluginSettings.getSettingValue(Key.PPL_VALUES_MAX_LIMIT)).thenReturn(100);
 
-    assertEquals(
-        Integer.valueOf(100),
+    assertNull(
+        "Forwarding values.max.limit breaks values() on the AE route; it must stay unset",
         buildAnalyticsContext().getSettings().getSettingValue(Key.PPL_VALUES_MAX_LIMIT));
   }
 

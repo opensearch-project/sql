@@ -364,7 +364,16 @@ public class RestUnifiedQueryAction {
    * in-cluster path is a separate behavioral decision tracked by
    * https://github.com/opensearch-project/sql/issues/5735.
    *
-   * <p>{@code RestUnifiedQueryActionTest#everySeededPlanningSettingIsClassified} pins those three
+   * <p>{@link Key#PPL_VALUES_MAX_LIMIT} is excluded for a different reason: forwarding it makes
+   * things worse rather than better. The cap is applied by attaching a {@code limit} argument to
+   * the {@code values()} aggregate, which lowers to {@code array_agg(DISTINCT x, limit)} — a
+   * two-argument form the analytics-engine backend has no binding for. Verified against a live
+   * composite/parquet cluster: with the setting forwarded, {@code stats values(f)} fails with
+   * {@code UnsupportedOperationException: Unable to find binding for call array_agg(DISTINCT $0,
+   * $1)} (HTTP 500), where today it merely ignores the cap. Honoring the cap on this route needs
+   * backend support first — see {@code Capability.VALUES_LIMIT_NOT_HONORED}.
+   *
+   * <p>{@code RestUnifiedQueryActionTest#everySeededPlanningSettingIsClassified} pins the seeded
    * exclusions, so a key added to the builder's seed map cannot silently regress to its hardcoded
    * default without failing a test.
    */
@@ -375,7 +384,6 @@ public class RestUnifiedQueryAction {
           Key.PPL_REX_MAX_MATCH_LIMIT,
           Key.PPL_SYNTAX_LEGACY_PREFERRED,
           Key.MAX_EXPRESSION_DEPTH,
-          Key.PPL_VALUES_MAX_LIMIT,
           Key.PATTERN_METHOD,
           Key.PATTERN_MODE,
           Key.PATTERN_MAX_SAMPLE_COUNT,
