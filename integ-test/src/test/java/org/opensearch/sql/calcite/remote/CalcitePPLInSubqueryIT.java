@@ -395,7 +395,10 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
             String.format(
                 "source = %s"
                     + "| where id in ["
-                    + "    source = %s | fields uid"
+                    // Sort the subsearch on a unique key before the maxout cap so the single
+                    // retained row (uid=1000) is deterministic across shard counts. Without this
+                    // the capped subsearch keeps an arbitrary uid on a multi-shard index.
+                    + "    source = %s | sort uid | fields uid"
                     + "  ]"
                     + "| sort  - salary"
                     + "| fields id, name, salary",
