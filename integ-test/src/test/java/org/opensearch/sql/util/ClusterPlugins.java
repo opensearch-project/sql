@@ -65,6 +65,43 @@ public final class ClusterPlugins {
   public static final String REQUIRE_REMOTE_CLUSTER_PROPERTY = "tests.required.remote.cluster";
 
   /**
+   * Name used for {@code REMOTE_CLUSTER} when no remote cluster is configured. It keeps the derived
+   * {@code REMOTE_CLUSTER} constant (and the {@code <cluster>:<index>} names built from it)
+   * non-null so cross-cluster test classes still load; the {@code @BeforeClass} gate skips or fails
+   * the tests before any body that would actually query this non-existent cluster runs.
+   */
+  public static final String DEFAULT_REMOTE_CLUSTER = "remoteCluster";
+
+  /**
+   * Selects the remote cluster name from a comma-separated {@code cluster.names} property value.
+   * Returns the first token (leading/trailing whitespace trimmed) that starts with {@code
+   * "remote"}, or {@code null} when the value is {@code null}, blank, or contains no such token.
+   *
+   * <p>Extracted as a pure, side-effect-free function so the selection logic can be unit-tested
+   * directly, without mutating the {@code cluster.names} system property, reloading a static
+   * initializer, or loading the integration base class (whose {@code OpenSearchTestCase} ancestry
+   * runs randomized-runner bootstrap in its static initializer). Trimming ensures a property such
+   * as {@code "clusterA, remoteCluster"} still matches the {@code remote*} token despite the space
+   * that {@code split(",")} leaves attached.
+   *
+   * @param clusterNamesProperty raw value of the {@code cluster.names} system property (may be
+   *     null)
+   * @return the selected remote cluster name, or {@code null} if none is present
+   */
+  public static String selectRemoteCluster(String clusterNamesProperty) {
+    if (clusterNamesProperty == null || clusterNamesProperty.isBlank()) {
+      return null;
+    }
+    for (String cluster : clusterNamesProperty.split(",")) {
+      String trimmed = cluster.trim();
+      if (trimmed.startsWith("remote")) {
+        return trimmed;
+      }
+    }
+    return null;
+  }
+
+  /**
    * Returns {@code true} when the given plugin component is installed on the cluster the client is
    * pointed at, matching the {@code _cat/plugins?h=component} output line by line with exact
    * equality. Any I/O or HTTP error (including a non-2xx {@link

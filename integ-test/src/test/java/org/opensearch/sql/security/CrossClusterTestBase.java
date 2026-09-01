@@ -19,18 +19,11 @@ public class CrossClusterTestBase extends PPLIntegTestCase {
   static {
     // find a remote cluster; the "cluster.names" property is only set by tasks that stand up a
     // second (remote) cluster, so it may be absent on a plain single-cluster integTestRemote run.
-    String clusterNamesProp = System.getProperty("cluster.names");
-    String remote = null;
-    if (clusterNamesProp != null && !clusterNamesProp.isBlank()) {
-      for (var cluster : clusterNamesProp.split(",")) {
-        if (cluster.startsWith("remote")) {
-          remote = cluster;
-          break;
-        }
-      }
-    }
+    // Selection (including whitespace trimming of comma-separated tokens) is delegated to the pure,
+    // unit-tested ClusterPlugins.selectRemoteCluster helper.
+    String remote = ClusterPlugins.selectRemoteCluster(System.getProperty("cluster.names"));
     HAS_REMOTE_CLUSTER = remote != null;
-    REMOTE_CLUSTER = remote != null ? remote : "remoteCluster";
+    REMOTE_CLUSTER = remote != null ? remote : ClusterPlugins.DEFAULT_REMOTE_CLUSTER;
   }
 
   /** True only when a remote cluster is configured; cross-cluster tests are skipped otherwise. */

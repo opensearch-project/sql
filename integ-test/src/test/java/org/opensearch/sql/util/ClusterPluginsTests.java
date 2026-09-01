@@ -5,7 +5,9 @@
 
 package org.opensearch.sql.util;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -217,5 +219,75 @@ public class ClusterPluginsTests {
     startServer(200, "opensearch-security\nopensearch-job-scheduler\n");
     // Present + required => no exception, test proceeds.
     ClusterPlugins.requirePluginOrAssume(client, ClusterPlugins.SECURITY_PLUGIN, "skip security");
+  }
+
+  // ---- remote-cluster selection from cluster.names (pure parser) -----------------------------
+
+  @Test
+  public void selectRemoteClusterReturnsNullWhenPropertyMissing() {
+    assertNull(ClusterPlugins.selectRemoteCluster(null));
+  }
+
+  @Test
+  public void selectRemoteClusterReturnsNullWhenBlank() {
+    assertNull(ClusterPlugins.selectRemoteCluster(""));
+    assertNull(ClusterPlugins.selectRemoteCluster("   "));
+  }
+
+  @Test
+  public void selectRemoteClusterReturnsNullWhenNoRemoteToken() {
+    assertNull(ClusterPlugins.selectRemoteCluster("clusterA,clusterB"));
+  }
+
+  @Test
+  public void selectRemoteClusterPicksRemoteToken() {
+    assertEquals("remoteCluster", ClusterPlugins.selectRemoteCluster("clusterA,remoteCluster"));
+  }
+
+  @Test
+  public void selectRemoteClusterTrimsSpacesAroundCommaTokens() {
+    // split(",") leaves a leading space on the second token; without trimming, startsWith("remote")
+    // would miss it and cross-cluster tests would silently skip on a correctly-configured cluster.
+    assertEquals("remoteCluster", ClusterPlugins.selectRemoteCluster("clusterA, remoteCluster"));
+    assertEquals("remoteCluster", ClusterPlugins.selectRemoteCluster(" clusterA , remoteCluster "));
+    assertEquals("remote1", ClusterPlugins.selectRemoteCluster("  remote1  ,  clusterB  "));
+  }
+
+  @Test
+  public void selectRemoteClusterReturnsFirstRemoteToken() {
+    assertEquals("remoteA", ClusterPlugins.selectRemoteCluster("clusterX, remoteA, remoteB"));
+  }
+
+  @Test
+  public void selectRemoteClusterRequiresRemotePrefixNotSubstring() {
+    // Must START WITH "remote"; a token that merely contains it (or is a different word) is
+    // ignored.
+    assertNull(ClusterPlugins.selectRemoteCluster("myremote,premote,notremote"));
+  }
+
+  /**
+   * Documents and locks the exact mapping {@code CrossClusterTestBase} applies on top of the
+   * parser: {@code HAS_REMOTE_CLUSTER = selected != null} and {@code REMOTE_CLUSTER = selected !=
+   * null ? selected : DEFAULT_REMOTE_CLUSTER}. Kept here (rather than referencing
+   * CrossClusterTestBase) so the assertion runs without loading the integration base class's
+   * OpenSearchTestCase bootstrap.
+   */
+  @Test
+  public void selectRemoteClusterDrivesHasAndRemoteConstants() {
+    // Present: HAS_REMOTE_CLUSTER true, REMOTE_CLUSTER is the selected (trimmed) name.
+    String selectedPresent = ClusterPlugins.selectRemoteCluster("clusterA, remoteCluster");
+    assertTrue(selectedPresent != null);
+    assertEquals(
+        "remoteCluster",
+        selectedPresent != null ? selectedPresent : ClusterPlugins.DEFAULT_REMOTE_CLUSTER);
+
+    // Absent: HAS_REMOTE_CLUSTER false, REMOTE_CLUSTER falls back to the non-null default so the
+    // static final field and the derived <cluster>:<index> constants stay well-defined.
+    String selectedAbsent = ClusterPlugins.selectRemoteCluster("clusterA,clusterB");
+    assertFalse(selectedAbsent != null);
+    assertEquals(
+        ClusterPlugins.DEFAULT_REMOTE_CLUSTER,
+        selectedAbsent != null ? selectedAbsent : ClusterPlugins.DEFAULT_REMOTE_CLUSTER);
+    assertEquals("remoteCluster", ClusterPlugins.DEFAULT_REMOTE_CLUSTER);
   }
 }
