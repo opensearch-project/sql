@@ -8,6 +8,7 @@ package org.opensearch.sql.common.utils;
 import java.util.Map;
 import java.util.UUID;
 import org.apache.logging.log4j.ThreadContext;
+import org.opensearch.sql.common.setting.Settings;
 
 /**
  * Utility class for recording and accessing context for the query being executed. Implementation
@@ -21,6 +22,10 @@ public class QueryContext {
   private static final String REQUEST_ID_KEY = "request_id";
 
   private static final String PROFILE_KEY = "profile";
+
+  private static final String WARNINGS_SUPPORTED_KEY = "warnings_supported";
+
+  private static final String PARTIAL_RESULT_OVERRIDE_KEY = "partial_result_override";
 
   /**
    * Generates a random UUID and adds to the {@link ThreadContext} as the request id.
@@ -83,5 +88,54 @@ public class QueryContext {
    */
   public static boolean isProfileEnabled() {
     return Boolean.parseBoolean(ThreadContext.get(PROFILE_KEY));
+  }
+
+  /**
+   * Record whether the requested response format can surface non-fatal warnings. Features that
+   * return a knowingly-partial result gate on this so they never silently drop data into a format
+   * (CSV/RAW) that has no warning channel.
+   *
+   * @param supported whether the response format carries a warnings channel
+   */
+  public static void setWarningsSupported(boolean supported) {
+    ThreadContext.put(WARNINGS_SUPPORTED_KEY, Boolean.toString(supported));
+  }
+
+  /**
+   * @return true if the response format for the current request can surface warnings. Defaults to
+   *     false when unset, so a caller that never declared support cannot get a silent partial
+   *     result.
+   */
+  public static boolean isWarningsSupported() {
+    return Boolean.parseBoolean(ThreadContext.get(WARNINGS_SUPPORTED_KEY));
+  }
+
+  /**
+   * Record a per-request override for partial-result mode. When set, it takes precedence over the
+   * cluster setting: {@code true} forces partial mode on for this request, {@code false} forces it
+   * off. A {@code null} value (the default) leaves the decision to the cluster setting.
+   *
+   * @param override the per-request preference, or null to defer to the cluster setting
+   */
+  public static void setPartialResultOverride(Boolean override) {
+    if (override == null) {
+      ThreadContext.remove(PARTIAL_RESULT_OVERRIDE_KEY);
+    } else {
+      ThreadContext.put(PARTIAL_RESULT_OVERRIDE_KEY, Boolean.toString(override));
+    }
+  }
+
+  /**
+   * Whether partial-result mode applies to the current query. The per-request override wins when
+   * present; otherwise the cluster setting decides.
+   *
+   * @param settings the plugin settings to read the cluster default from
+   */
+  public static boolean isPartialResultEnabled(Settings settings) {
+    String override = ThreadContext.get(PARTIAL_RESULT_OVERRIDE_KEY);
+    if (override != null) {
+      return Boolean.parseBoolean(override);
+    }
+    return settings.getSettingValue(Settings.Key.PARTIAL_RESULT_ON_MAPPING_CONFLICT);
   }
 }

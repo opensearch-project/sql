@@ -63,6 +63,15 @@ public class TransportPPLQueryRequest extends ActionRequest {
   @Accessors(fluent = true)
   private String queryId = null;
 
+  /**
+   * Per-request override for partial-result mode; null means defer to the cluster setting. See
+   * {@link PPLQueryRequest#partialResult()}.
+   */
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
+  private Boolean partialResult = null;
+
   /** Constructor of TransportPPLQueryRequest from PPLQueryRequest. */
   public TransportPPLQueryRequest(PPLQueryRequest pplQueryRequest) {
     pplQuery = pplQueryRequest.getRequest();
@@ -75,6 +84,7 @@ public class TransportPPLQueryRequest extends ActionRequest {
     analyze = pplQueryRequest.analyze();
     explainMode = pplQueryRequest.mode().getModeName();
     queryId = pplQueryRequest.queryId();
+    partialResult = pplQueryRequest.partialResult();
   }
 
   /** Constructor of TransportPPLQueryRequest from StreamInput. */
@@ -91,6 +101,7 @@ public class TransportPPLQueryRequest extends ActionRequest {
     profile = in.readBoolean();
     analyze = in.readBoolean();
     queryId = in.readOptionalString();
+    partialResult = in.readOptionalBoolean();
   }
 
   /** Re-create the object from the actionRequest. */
@@ -125,6 +136,7 @@ public class TransportPPLQueryRequest extends ActionRequest {
     out.writeBoolean(profile);
     out.writeBoolean(analyze);
     out.writeOptionalString(queryId);
+    out.writeOptionalBoolean(partialResult);
   }
 
   public String getRequest() {
@@ -184,6 +196,7 @@ public class TransportPPLQueryRequest extends ActionRequest {
     pplQueryRequest.sanitize(sanitize);
     pplQueryRequest.style(style);
     pplQueryRequest.queryId(queryId);
+    pplQueryRequest.partialResult(partialResult);
     return pplQueryRequest;
   }
 }

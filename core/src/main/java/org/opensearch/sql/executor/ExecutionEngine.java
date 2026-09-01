@@ -94,6 +94,9 @@ public interface ExecutionEngine {
     private final Cursor cursor;
     @lombok.Setter private QueryProfile profile;
     @lombok.Setter private Throwable error;
+
+    /** Non-fatal notices attached to a successful result; empty for a plain success. */
+    @lombok.Setter private List<Warning> warnings = List.of();
   }
 
   @Data

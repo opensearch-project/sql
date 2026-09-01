@@ -48,6 +48,7 @@ public abstract class Settings {
 
     /** Query Settings. */
     FIELD_TYPE_TOLERANCE("plugins.query.field_type_tolerance"),
+    PARTIAL_RESULT_ON_MAPPING_CONFLICT("plugins.query.partial_result.on_mapping_conflict.enabled"),
 
     /** Common Settings for SQL and PPL. */
     QUERY_MEMORY_LIMIT("plugins.query.memory_limit"),

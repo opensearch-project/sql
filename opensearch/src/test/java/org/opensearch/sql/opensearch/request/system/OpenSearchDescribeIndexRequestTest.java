@@ -35,6 +35,48 @@ class OpenSearchDescribeIndexRequestTest {
 
   @Mock private IndexMapping mapping2;
 
+  /**
+   * Merging must not mutate the per-index mappings it reads. {@code MergeRuleHelper} rewrites the
+   * accumulated type's nested {@code properties} in place, so without copying, the first index's
+   * nested field would be merged into the second's -- and callers of {@link
+   * OpenSearchDescribeIndexRequest#getLastIndexMappings()} (partial-result partitioning) would see
+   * a text/keyword conflict as no conflict at all.
+   */
+  @Test
+  void getFieldTypesLeavesRetainedPerIndexMappingsIntact() {
+    Map<String, OpenSearchDataType> keywordSide =
+        Map.of("attrs", nestedObject("env", OpenSearchDataType.MappingType.Keyword));
+    Map<String, OpenSearchDataType> textSide =
+        Map.of("attrs", nestedObject("env", OpenSearchDataType.MappingType.Text));
+    when(mapping.getFieldMappings()).thenReturn(keywordSide);
+    when(mapping2.getFieldMappings()).thenReturn(textSide);
+    when(client.getIndexMappings("idx-*"))
+        .thenReturn(ImmutableMap.of("idx-keyword", mapping, "idx-text", mapping2));
+
+    OpenSearchDescribeIndexRequest request = new OpenSearchDescribeIndexRequest(client, "idx-*");
+    request.getFieldTypes();
+
+    // Each index must still report the type it actually declared.
+    assertEquals(
+        OpenSearchDataType.MappingType.Keyword,
+        nestedFieldType(request.getLastIndexMappings().get("idx-keyword"), "attrs", "env"));
+    assertEquals(
+        OpenSearchDataType.MappingType.Text,
+        nestedFieldType(request.getLastIndexMappings().get("idx-text"), "attrs", "env"));
+  }
+
+  private static OpenSearchDataType nestedObject(
+      String innerField, OpenSearchDataType.MappingType innerType) {
+    return OpenSearchDataType.of(
+        OpenSearchDataType.MappingType.Object,
+        Map.of("properties", Map.of(innerField, Map.of("type", innerType.toString()))));
+  }
+
+  private static OpenSearchDataType.MappingType nestedFieldType(
+      IndexMapping indexMapping, String parent, String child) {
+    return indexMapping.getFieldMappings().get(parent).getProperties().get(child).getMappingType();
+  }
+
   @Test
   void testSearch() {
     when(mapping.getFieldMappings())

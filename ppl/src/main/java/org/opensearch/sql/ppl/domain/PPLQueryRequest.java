@@ -63,6 +63,15 @@ public class PPLQueryRequest {
   @Accessors(fluent = true)
   private String queryId = null;
 
+  /**
+   * Per-request override for partial-result mode. {@code null} means the request expressed no
+   * preference and the cluster setting decides; non-null forces partial mode on/off for this query.
+   */
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
+  private Boolean partialResult = null;
+
   public PPLQueryRequest(String pplQuery, JSONObject jsonContent, String path) {
     this(pplQuery, jsonContent, path, "");
   }

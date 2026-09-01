@@ -29,6 +29,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
+import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.monitor.OpenSearchMemoryHealthy;
 import org.opensearch.sql.opensearch.monitor.OpenSearchResourceMonitor;
 import org.opensearch.sql.opensearch.planner.physical.ADOperator;
@@ -91,6 +92,13 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
   /** The cached mapping of alias type field to its original path. */
   private Map<String, String> aliasMapping = null;
 
+  /**
+   * The cached per-index field mappings, keyed by concrete index name. Populated as a by-product of
+   * resolving {@link #cachedFieldOpenSearchTypes}, since merging those types discards which index
+   * mapped a field which way.
+   */
+  private Map<String, IndexMapping> cachedIndexMappings = null;
+
   /** The cached max result window setting of index. */
   private Integer cachedMaxResultWindow = null;
 
@@ -137,10 +145,7 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
    */
   @Override
   public Map<String, ExprType> getFieldTypes() {
-    if (cachedFieldOpenSearchTypes == null) {
-      cachedFieldOpenSearchTypes =
-          new OpenSearchDescribeIndexRequest(client, indexName).getFieldTypes();
-    }
+    resolveFieldOpenSearchTypes();
     if (cachedFieldTypes == null) {
       cachedFieldTypes =
           OpenSearchDataType.traverseAndFlatten(cachedFieldOpenSearchTypes).entrySet().stream()
@@ -163,10 +168,7 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
   }
 
   public Map<String, String> getAliasMapping() {
-    if (cachedFieldOpenSearchTypes == null) {
-      cachedFieldOpenSearchTypes =
-          new OpenSearchDescribeIndexRequest(client, indexName).getFieldTypes();
-    }
+    resolveFieldOpenSearchTypes();
     if (aliasMapping == null) {
       aliasMapping =
           OpenSearchDataType.traverseAndFlatten(cachedFieldOpenSearchTypes).entrySet().stream()
@@ -184,11 +186,29 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
    * @return A complete map between field names and their types.
    */
   public Map<String, OpenSearchDataType> getFieldOpenSearchTypes() {
-    if (cachedFieldOpenSearchTypes == null) {
-      cachedFieldOpenSearchTypes =
-          new OpenSearchDescribeIndexRequest(client, indexName).getFieldTypes();
-    }
+    resolveFieldOpenSearchTypes();
     return cachedFieldOpenSearchTypes;
+  }
+
+  /**
+   * The per-index field mappings behind this index's merged types, keyed by concrete index name
+   * (the wildcard, if any, is already resolved). Needed by callers that must know which index
+   * mapped a field which way -- the merged view in {@link #getFieldOpenSearchTypes()} discards
+   * that. Shares the mapping fetch with the merged types, so this costs no extra round trip.
+   */
+  public Map<String, IndexMapping> getIndexMappings() {
+    resolveFieldOpenSearchTypes();
+    return cachedIndexMappings;
+  }
+
+  /** Fetch and cache the merged field types, retaining the per-index mappings behind them. */
+  private void resolveFieldOpenSearchTypes() {
+    if (cachedFieldOpenSearchTypes == null) {
+      OpenSearchDescribeIndexRequest request =
+          new OpenSearchDescribeIndexRequest(client, indexName);
+      cachedFieldOpenSearchTypes = request.getFieldTypes();
+      cachedIndexMappings = request.getLastIndexMappings();
+    }
   }
 
   /** Get the max result window setting of the table. */

@@ -194,6 +194,11 @@ public class TransportPPLQueryAction
     // in order to use PPL service, we need to convert TransportPPLQueryRequest to PPLQueryRequest
     PPLQueryRequest transformedRequest = transportRequest.toPPLQueryRequest();
     QueryContext.setProfile(transformedRequest.profile());
+    // Only the JSON shape carries warnings; gate partial results on it so CSV/RAW/VIZ never drop
+    // data silently.
+    QueryContext.setWarningsSupported(warningsSupported(transformedRequest));
+    // Per-request override (e.g. a Dashboards toggle); null defers to the cluster setting.
+    QueryContext.setPartialResultOverride(transformedRequest.partialResult());
 
     // Start root span with OTel DB semantic convention attributes
     Span rootSpan =
@@ -373,7 +378,11 @@ public class TransportPPLQueryAction
         String responseContent =
             formatter.format(
                 new QueryResult(
-                    response.getSchema(), response.getResults(), response.getCursor(), PPL_SPEC));
+                    response.getSchema(),
+                    response.getResults(),
+                    response.getCursor(),
+                    PPL_SPEC,
+                    response.getWarnings()));
         listener.onResponse(new TransportPPLQueryResponse(responseContent));
       }
 
@@ -395,6 +404,22 @@ public class TransportPPLQueryAction
     }
   }
 
+  /**
+   * Whether the requested response format carries a warnings channel. Only the JSON shape (built by
+   * {@code SimpleJsonResponseFormatter} -- the fallback for anything that is not CSV/RAW/VIZ) emits
+   * warnings; the others have no slot for them. Mirrors the format branching in {@link
+   * #createListener}. Explain requests are excluded up front: their {@code format} is an
+   * explain-only value (e.g. {@code json}/{@code yaml}) that {@link #format} cannot resolve, and an
+   * explain response never carries query warnings.
+   */
+  private boolean warningsSupported(PPLQueryRequest pplRequest) {
+    if (pplRequest.isExplainRequest()) {
+      return false;
+    }
+    Format format = format(pplRequest);
+    return !(format.equals(Format.CSV) || format.equals(Format.RAW) || format.equals(Format.VIZ));
+  }
+
   private ActionListener<TransportPPLQueryResponse> wrapWithProfilingClear(
       ActionListener<TransportPPLQueryResponse> delegate) {
     return new ActionListener<>() {
@@ -403,7 +428,7 @@ public class TransportPPLQueryAction
         try {
           delegate.onResponse(transportPPLQueryResponse);
         } finally {
-          QueryProfiling.clear();
+          clearRequestScopedState();
         }
       }
 
@@ -412,9 +437,21 @@ public class TransportPPLQueryAction
         try {
           delegate.onFailure(e);
         } finally {
-          QueryProfiling.clear();
+          clearRequestScopedState();
         }
       }
     };
+  }
+
+  /**
+   * Clear the per-request state carried in {@link QueryContext}'s thread-locals. Transport threads
+   * are pooled, so anything left behind is inherited by the next query to run on this thread -- a
+   * request that expressed no partial-result preference would otherwise pick up the previous
+   * request's override.
+   */
+  private static void clearRequestScopedState() {
+    QueryProfiling.clear();
+    QueryContext.setPartialResultOverride(null);
+    QueryContext.setWarningsSupported(false);
   }
 }
