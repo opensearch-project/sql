@@ -34,7 +34,8 @@ class PartialResultAggregatePushdownTest {
 
   @Test
   void resolveKeywordField() {
-    assertEquals("kw", resolveOne(Map.of("f", KEYWORD_TYPE)), "bare keyword resolves to kw");
+    assertEquals(
+        "t:keyword", resolveOne(Map.of("f", KEYWORD_TYPE)), "keyword resolves to its type token");
   }
 
   @Test
@@ -70,7 +71,7 @@ class PartialResultAggregatePushdownTest {
   void resolveMultiFieldSignatureIsPerFieldTokens() {
     Map<String, OpenSearchDataType> mapping = Map.of("a", KEYWORD_TYPE, "b", INT_TYPE);
     assertEquals(
-        "kw|t:integer",
+        "t:keyword|t:integer",
         PartialResultAggregatePushdown.resolveBucketSignature(mapping, List.of("a", "b")));
     // A text field anywhere in the key makes the whole index non-aggregatable.
     Map<String, OpenSearchDataType> withText =
@@ -172,7 +173,7 @@ class PartialResultAggregatePushdownTest {
   }
 
   @Test
-  void planExcludedIndicesAreSorted() {
+  void warningListsExcludedIndicesSorted() {
     Map<String, IndexMapping> mappings =
         ordered(
             "kw", keywordIndex(),
@@ -180,7 +181,8 @@ class PartialResultAggregatePushdownTest {
             "txt-a", bareTextIndex(),
             "txt-b", bareTextIndex());
     Plan plan = PartialResultAggregatePushdown.plan(List.of("f"), mappings);
-    assertEquals(List.of("txt-a", "txt-b", "txt-c"), plan.excludedIndices());
+    // The plan keeps insertion order; only the warning message sorts them for readability.
+    assertTrue(plan.warning().getDetail().contains("[txt-a, txt-b, txt-c]"));
   }
 
   // ---- formatIndexList ----

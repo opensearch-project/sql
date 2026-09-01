@@ -90,7 +90,6 @@ final class PartialResultAggregatePushdown {
     }
 
     List<String> keptIndices = aggregatableGroups.values().iterator().next();
-    excludedIndices.sort(null);
     return new Plan(
         keptIndices, excludedIndices, buildWarning(bucketNames, excludedIndices, mappings.size()));
   }
@@ -100,8 +99,8 @@ final class PartialResultAggregatePushdown {
    * {@code |}. Two indices with equal signatures map every group field to the same aggregatable
    * type and can be aggregated together. Returns {@code null} if any field is non-aggregatable
    * here: absent, or a text-family type. A {@code text} field is non-aggregatable even with a
-   * {@code .keyword} sub-field, because the type merge collapses it to bare {@code text}. Tokens:
-   * {@code kw} for keyword, {@code t:TYPE} for any other aggregatable type (e.g. {@code
+   * {@code .keyword} sub-field, because the type merge collapses it to bare {@code text}. Each
+   * aggregatable field contributes a {@code t:TYPE} token (e.g. {@code t:keyword}, {@code
    * t:integer}).
    */
   @Nullable
@@ -114,30 +113,30 @@ final class PartialResultAggregatePushdown {
         return null; // field absent here -> not aggregatable
       }
       MappingType mappingType = type.getMappingType();
-      if (mappingType == MappingType.Keyword) {
-        tokens.add("kw");
-      } else if (mappingType == MappingType.Text || mappingType == MappingType.MatchOnlyText) {
+      if (mappingType == MappingType.Text || mappingType == MappingType.MatchOnlyText) {
         return null; // text family (incl. text-with-.keyword) collapses to bare text on merge
-      } else {
-        tokens.add("t:" + mappingType); // other aggregatable type (numeric, date, boolean, ip)
       }
+      tokens.add("t:" + mappingType); // aggregatable type (keyword, numeric, date, boolean, ip)
     }
     return String.join("|", tokens);
   }
 
   private static Warning buildWarning(
       List<String> bucketNames, List<String> excludedIndices, int totalIndices) {
+    // Sort here (not in plan): ordering only matters for a stable, readable message.
+    List<String> sortedExcluded = new ArrayList<>(excludedIndices);
+    sortedExcluded.sort(null);
     String message =
         String.format(
             "Results exclude %d of %d indices due to a mapping conflict on %s.",
-            excludedIndices.size(), totalIndices, bucketNames);
+            sortedExcluded.size(), totalIndices, bucketNames);
     String detail =
         String.format(
             "%s is not aggregatable in every queried index (mapped as text or otherwise without doc"
                 + " values there), so these indices were excluded from the aggregation: %s. Map %s"
                 + " as an aggregatable type across all indices to include them.",
             bucketNames,
-            formatIndexList(excludedIndices, MAX_EXCLUDED_INDICES_IN_WARNING),
+            formatIndexList(sortedExcluded, MAX_EXCLUDED_INDICES_IN_WARNING),
             bucketNames);
     return new Warning(Warning.TYPE_PARTIAL_RESULT, message, detail);
   }
