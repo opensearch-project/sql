@@ -1120,22 +1120,42 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     verifyNumOfRows(actual, 8);
   }
 
+  // The maxout cap bounds how many subsearch rows are joined against, not which ones: the limit
+  // takes its collation from the subsearch, which is unsorted here, so the discarded row is
+  // whichever one the scan yields last. Here the right side is the whole index and only three of
+  // its rows match the join key, so a cap of two guarantees at most two matching rows survive and
+  // the join cannot exceed 5 x 2 rows -- a bound that holds whichever rows the cap keeps. A cap of
+  // five would not bound anything, since five already exceeds the three matching rows. The exact
+  // count under a cap is asserted in testJoinSubsearchMaxOutOnFilteredSubsearch.
   @Test
   public void testJoinSubsearchMaxOut() throws IOException {
-    setJoinSubsearchMaxOut(5);
-    JSONObject actual =
-        executeQuery(
-            String.format(
-                "source=%s | where country = 'Canada' | join type=inner max=0 country %s",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    verifyNumOfRows(actual, 10);
+    String query =
+        String.format(
+            "source=%s | where country = 'Canada' | join type=inner max=0 country %s",
+            TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION);
+    setJoinSubsearchMaxOut(2);
+    int cappedRows = executeQuery(query).getJSONArray("datarows").length();
+    assertTrue(
+        "A subsearch capped at 2 rows can join at most 5 x 2 = 10 rows, but got " + cappedRows,
+        cappedRows <= 10);
     resetJoinSubsearchMaxOut();
-    actual =
-        executeQuery(
-            String.format(
-                "source=%s | where country = 'Canada' | join type=inner max=0 country %s",
-                TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    verifyNumOfRows(actual, 15);
+    verifyNumOfRows(executeQuery(query), 15);
+  }
+
+  // Same cap, but with the subsearch filtered to the join key so every retained row joins
+  // identically. That makes the capped count exact rather than a bound: 5 left rows times
+  // min(cap, 3) retained rows, no matter which rows the cap keeps.
+  @Test
+  public void testJoinSubsearchMaxOutOnFilteredSubsearch() throws IOException {
+    String query =
+        String.format(
+            "source=%s | where country = 'Canada' | join type=inner max=0 country [ source=%s |"
+                + " where country = 'Canada' ]",
+            TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION);
+    setJoinSubsearchMaxOut(2);
+    verifyNumOfRows(executeQuery(query), 10);
+    resetJoinSubsearchMaxOut();
+    verifyNumOfRows(executeQuery(query), 15);
   }
 
   @Test
