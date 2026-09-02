@@ -10,9 +10,11 @@ import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_WORKER_THREAD_POOL_NAME;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.calcite.rel.RelNode;
@@ -40,6 +42,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.analytics.AnalyticsExecutionEngine;
@@ -347,25 +350,41 @@ public class RestUnifiedQueryAction {
   }
 
   /**
+   * Cluster settings forwarded into every {@link UnifiedQueryContext}, so the Analytics Engine
+   * plans against the same configuration as the default pipeline. A planning setting the AE path
+   * must honor belongs here; otherwise the value {@link UnifiedQueryContext.Builder} seeds silently
+   * wins and the configured cluster value is ignored.
+   *
+   * <p>The other settings the AE path reads are deliberately not forwarded; {@code
+   * RestUnifiedQueryActionTest#DELIBERATELY_NOT_FORWARDED} enumerates them with a reason each, and
+   * pins both lists.
+   */
+  @VisibleForTesting
+  static final List<Key> FORWARDED_CLUSTER_SETTINGS =
+      List.of(
+          Key.QUERY_SIZE_LIMIT,
+          Key.PPL_REX_MAX_MATCH_LIMIT,
+          Key.PPL_SYNTAX_LEGACY_PREFERRED,
+          Key.MAX_EXPRESSION_DEPTH,
+          Key.PATTERN_METHOD,
+          Key.PATTERN_MODE,
+          Key.PATTERN_MAX_SAMPLE_COUNT,
+          Key.PATTERN_BUFFER_LIMIT,
+          Key.PATTERN_SHOW_NUMBERED_TOKEN);
+
+  /**
    * Routes operator-configured cluster overrides into the builder via the existing {@code
    * setting(String, Object)} API, keeping {@link UnifiedQueryContext} decoupled from any specific
-   * {@link org.opensearch.sql.common.setting.Settings} implementation.
-   *
-   * <p>Add keys here if a future PR / IT depends on cluster-side fidelity for one of the other
-   * planning settings.
+   * {@link org.opensearch.sql.common.setting.Settings} implementation. The forwarded keys are
+   * {@link #FORWARDED_CLUSTER_SETTINGS}.
    */
-  private UnifiedQueryContext.Builder applyClusterOverrides(UnifiedQueryContext.Builder builder) {
-    forwardClusterSetting(
-        builder, org.opensearch.sql.common.setting.Settings.Key.PPL_REX_MAX_MATCH_LIMIT);
-    forwardClusterSetting(
-        builder, org.opensearch.sql.common.setting.Settings.Key.PPL_SYNTAX_LEGACY_PREFERRED);
-    forwardClusterSetting(
-        builder, org.opensearch.sql.common.setting.Settings.Key.MAX_EXPRESSION_DEPTH);
+  @VisibleForTesting
+  UnifiedQueryContext.Builder applyClusterOverrides(UnifiedQueryContext.Builder builder) {
+    FORWARDED_CLUSTER_SETTINGS.forEach(key -> forwardClusterSetting(builder, key));
     return builder;
   }
 
-  private void forwardClusterSetting(
-      UnifiedQueryContext.Builder builder, org.opensearch.sql.common.setting.Settings.Key key) {
+  private void forwardClusterSetting(UnifiedQueryContext.Builder builder, Key key) {
     Object value = pluginSettings.getSettingValue(key);
     if (value != null) {
       builder.setting(key.getKeyValue(), value);
