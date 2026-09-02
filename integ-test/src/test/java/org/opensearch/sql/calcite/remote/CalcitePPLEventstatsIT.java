@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.util.List;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
-import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
@@ -336,17 +335,16 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
 
   @Test
   public void testRankingWindowFunctionsUnsupportedInEventstats() {
-    // rank/dense_rank aren't in eventstats/streamstats' windowFunctionName grammar rule, so this
-    // is now a parse-time rejection rather than a semantic one.
     for (String func : List.of("rank", "dense_rank")) {
       Throwable e =
           assertThrowsWithReplace(
-              SyntaxCheckException.class,
+              UnsupportedOperationException.class,
               () ->
                   executeQuery(
                       String.format(
                           "source=%s | eventstats %s() by state", TEST_INDEX_STATE_COUNTRY, func)));
-      verifyErrorMessageContains(e, "is not a valid term at this part of the query");
+      verifyErrorMessageContains(
+          e, "Window function '" + func + "' is not supported in eventstats/streamstats");
     }
   }
 

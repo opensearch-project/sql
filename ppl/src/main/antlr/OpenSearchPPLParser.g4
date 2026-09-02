@@ -930,6 +930,8 @@ windowFunctionName
 
 scalarWindowFunctionName
    : ROW_NUMBER
+   | RANK
+   | DENSE_RANK
    | PERCENT_RANK
    | CUME_DIST
    | FIRST
