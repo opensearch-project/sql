@@ -11,6 +11,7 @@ import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
@@ -105,6 +106,10 @@ public class QueryPlan extends AbstractPlan {
 
   @Override
   public void execute() {
+    // Runs on the worker thread; carry warnings support from the request off the plan so the
+    // partial-result gate reads it without depending on Log4j ThreadContext (dropped under
+    // security).
+    CalcitePlanContext.setWarningsSupported(isWarningsSupported());
     if (pageSize.isPresent()) {
       queryService.execute(
           new Paginate(pageSize.get(), plan),

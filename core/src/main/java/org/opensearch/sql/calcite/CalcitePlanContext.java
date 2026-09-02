@@ -73,6 +73,15 @@ public class CalcitePlanContext {
   private static final ThreadLocal<List<Warning>> pendingWarnings =
       ThreadLocal.withInitial(ArrayList::new);
 
+  /**
+   * Whether the current query's response format can carry a warnings channel. Set on the worker
+   * thread from the plan (see {@code QueryPlan#execute}) rather than the transport thread, so the
+   * partial-result gate survives the transport→worker handoff — the security plugin's interceptor
+   * drops Log4j {@code ThreadContext}, which is where this used to live. Cleared per query.
+   */
+  private static final ThreadLocal<Boolean> warningsSupported =
+      ThreadLocal.withInitial(() -> false);
+
   /** Thread-local switch that tells whether the current query prefers legacy behavior. */
   private static final ThreadLocal<Boolean> legacyPreferredFlag =
       ThreadLocal.withInitial(() -> true);
@@ -261,11 +270,25 @@ public class CalcitePlanContext {
     timewrapSeries.set(null);
     executionPool.set(null);
     pendingWarnings.remove();
+    warningsSupported.set(false);
   }
 
   /** Records a non-fatal warning to be attached to the response for the current query. */
   public static void addWarning(Warning warning) {
     pendingWarnings.get().add(warning);
+  }
+
+  /** Records whether the current query's response format can surface warnings. */
+  public static void setWarningsSupported(boolean supported) {
+    warningsSupported.set(supported);
+  }
+
+  /**
+   * @return whether the current query's response format can surface warnings; false when unset, so
+   *     a caller that never declared support cannot get a silent partial result.
+   */
+  public static boolean isWarningsSupported() {
+    return warningsSupported.get();
   }
 
   /**
@@ -293,18 +316,21 @@ public class CalcitePlanContext {
     final String timewrapUnitName;
     final String timewrapSeries;
     final String executionPool;
+    final boolean warningsSupported;
 
     private ThreadLocalSnapshot(
         boolean skipEncoding,
         boolean stripNullColumns,
         String timewrapUnitName,
         String timewrapSeries,
-        String executionPool) {
+        String executionPool,
+        boolean warningsSupported) {
       this.skipEncoding = skipEncoding;
       this.stripNullColumns = stripNullColumns;
       this.timewrapUnitName = timewrapUnitName;
       this.timewrapSeries = timewrapSeries;
       this.executionPool = executionPool;
+      this.warningsSupported = warningsSupported;
     }
   }
 
@@ -315,7 +341,8 @@ public class CalcitePlanContext {
         stripNullColumns.get(),
         timewrapUnitName.get(),
         timewrapSeries.get(),
-        executionPool.get());
+        executionPool.get(),
+        warningsSupported.get());
   }
 
   /** Restore thread-local state from a snapshot. */
@@ -325,6 +352,7 @@ public class CalcitePlanContext {
     timewrapUnitName.set(snapshot.timewrapUnitName);
     timewrapSeries.set(snapshot.timewrapSeries);
     executionPool.set(snapshot.executionPool);
+    warningsSupported.set(snapshot.warningsSupported);
   }
 
   public void pushForeachBindings(

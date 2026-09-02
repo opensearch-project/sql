@@ -209,6 +209,8 @@ public class PPLService {
     log.info("[{}] Incoming request {}", QueryContext.getRequestId(), anonymized);
     anonymizedQuerySink.accept(anonymized);
 
-    return queryExecutionFactory.create(statement, queryListener, explainListener);
+    AbstractPlan plan = queryExecutionFactory.create(statement, queryListener, explainListener);
+    plan.setWarningsSupported(request.warningsSupported());
+    return plan;
   }
 }
