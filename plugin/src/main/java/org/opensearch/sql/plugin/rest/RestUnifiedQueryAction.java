@@ -351,29 +351,13 @@ public class RestUnifiedQueryAction {
 
   /**
    * Cluster settings forwarded into every {@link UnifiedQueryContext}, so the Analytics Engine
-   * plans against the same configuration as the default pipeline. Any planning setting the AE path
+   * plans against the same configuration as the default pipeline. A planning setting the AE path
    * must honor belongs here; otherwise the value {@link UnifiedQueryContext.Builder} seeds silently
    * wins and the configured cluster value is ignored.
    *
-   * <p>The AE path reads exactly five other settings, each deliberately left out:
-   *
-   * <ul>
-   *   <li>{@link Key#CALCITE_ENGINE_ENABLED} — the unified path is Calcite-based by definition and
-   *       must force it on.
-   *   <li>{@link Key#PPL_SUBSEARCH_MAXOUT}, {@link Key#PPL_JOIN_SUBSEARCH_MAXOUT} — seeded to
-   *       {@code 0} (unlimited) on purpose, to keep {@code LogicalSystemLimit} out of plans built
-   *       by external consumers of the unified query API. Overriding that in-cluster is a separate
-   *       behavioral decision (issue #5735).
-   *   <li>{@link Key#PPL_VALUES_MAX_LIMIT} — forwarding it breaks the route rather than fixing it:
-   *       the cap lowers {@code values()} to {@code array_agg(DISTINCT x, limit)}, a form the
-   *       backend cannot bind, so the query 500s where today it merely ignores the cap (issue
-   *       #5736).
-   *   <li>{@link Key#CALCITE_SUPPORT_ALL_JOIN_TYPES} — never seeded, so {@code
-   *       AstBuilder.validateJoinType} reads {@code null} and skips the high-cost-join guard
-   *       entirely. Restoring it is a user-visible tightening (issue #5734).
-   * </ul>
-   *
-   * <p>{@code RestUnifiedQueryActionTest} pins both this list and those exclusions.
+   * <p>The other settings the AE path reads are deliberately not forwarded; {@code
+   * RestUnifiedQueryActionTest#DELIBERATELY_NOT_FORWARDED} enumerates them with a reason each, and
+   * pins both lists.
    */
   @VisibleForTesting
   static final List<Key> FORWARDED_CLUSTER_SETTINGS =

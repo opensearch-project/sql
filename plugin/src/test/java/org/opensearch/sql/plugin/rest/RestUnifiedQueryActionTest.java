@@ -274,17 +274,20 @@ public class RestUnifiedQueryActionTest {
   /**
    * Every setting the AE path reads that {@link RestUnifiedQueryAction} deliberately does not
    * forward, with the reason it stays unforwarded. Derived from the call sites reachable from the
-   * unified context's {@code Settings}: {@code SysLimit.fromSettings}, {@code AstBuilder} /{@code
-   * AstExpressionBuilder} / {@code AstBuildGuard}, and {@code UnresolvedPlanHelper}.
+   * unified context's {@code Settings}: {@code SysLimit.fromSettings}, the {@code AstBuilder} /
+   * {@code AstExpressionBuilder} / {@code AstBuildGuard} behind its parser, and {@code
+   * UnresolvedPlanHelper}.
    *
    * <ul>
    *   <li>{@link Key#CALCITE_ENGINE_ENABLED} — the unified path is Calcite-based by definition.
    *   <li>{@link Key#PPL_SUBSEARCH_MAXOUT} / {@link Key#PPL_JOIN_SUBSEARCH_MAXOUT} — seeded to
-   *       {@code 0} (unlimited) on purpose, for external consumers of the unified query API (issue
-   *       #5735).
-   *   <li>{@link Key#PPL_VALUES_MAX_LIMIT} — forwarding it 500s the route (issue #5736).
-   *   <li>{@link Key#CALCITE_SUPPORT_ALL_JOIN_TYPES} — never seeded; restoring the guard is a
-   *       user-visible tightening (issue #5734).
+   *       {@code 0} (unlimited) on purpose, for external consumers of the unified query API.
+   *   <li>{@link Key#PPL_VALUES_MAX_LIMIT} — forwarding it lowers {@code values()} to {@code
+   *       array_agg(DISTINCT x, limit)}, which the backend cannot bind, so the query fails outright
+   *       where today it merely ignores the cap.
+   *   <li>{@link Key#CALCITE_SUPPORT_ALL_JOIN_TYPES} — never seeded, so {@code
+   *       AstBuilder.validateJoinType} reads {@code null} and skips the high-cost-join guard.
+   *       Restoring it is a user-visible tightening.
    * </ul>
    */
   private static final List<Key> DELIBERATELY_NOT_FORWARDED =
