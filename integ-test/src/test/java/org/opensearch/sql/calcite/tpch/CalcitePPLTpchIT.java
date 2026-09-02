@@ -223,7 +223,10 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
         schema("c_phone", "string"),
         schema("c_comment", "string"));
     verifyNumOfRows(actual, 20);
-    actual = executeQuery(ppl + "| head 1");
+    // `sort - revenue` alone does not fully order the result because `revenue` is an aggregated
+    // double, so two customers could tie and `head 1` would then pick either one. Add `c_custkey`
+    // as a unique tiebreaker to pin the selected row on any shard layout.
+    actual = executeQuery(ppl + "| sort - revenue, c_custkey | head 1");
     // `revenue` is a floating-point SUM whose accumulation order depends on how documents are
     // partitioned across shards, so a multi-shard run yields the same value up to a tiny rounding
     // difference (282635.1719 vs 282635.17189999996). Use closeTo to compare numerics within
