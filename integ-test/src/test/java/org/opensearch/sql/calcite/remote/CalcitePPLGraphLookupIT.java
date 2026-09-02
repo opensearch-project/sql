@@ -130,6 +130,16 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
       }
       return true;
     }
+    // A container on exactly one side is a genuine type mismatch. Without this guard the
+    // fall-through to scalarEquals compares toString() forms, so a JSONArray/JSONObject whose
+    // compact serialization equals a scalar string (e.g. the array ["BOS","JFK"] vs the string
+    // "[\"BOS\",\"JFK\"]") would falsely match. Reject one-sided containers explicitly.
+    if (a instanceof JSONArray || b instanceof JSONArray) {
+      return false;
+    }
+    if (a instanceof JSONObject || b instanceof JSONObject) {
+      return false;
+    }
     return scalarEquals(a, b);
   }
 
@@ -190,6 +200,28 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
     // 3. A missing value inside the nested array (different cardinality) must NOT match.
     JSONArray missingNested = new JSONArray(List.of("Jeff", List.of("BOS", "JFK")));
     assertFalse("missing nested element must not match", matcher.matches(missingNested));
+
+    // 4. A container versus a differently-shaped container (array vs object) must NOT match.
+    JSONArray arrCell = new JSONArray(List.of("BOS"));
+    JSONObject objCell = new JSONObject(Map.of("0", "BOS"));
+    assertFalse(
+        "array vs object must not match",
+        rowsUnordered((Object) arrCell).matches(new JSONArray(List.of(objCell))));
+
+    // 5. A JSONArray versus a scalar string with identical serialized text must NOT match. Guards
+    // against the scalarEquals toString() fall-through producing a false positive.
+    JSONArray arrExpected = new JSONArray(List.of("BOS", "JFK"));
+    assertFalse(
+        "array vs identically-serialized string must not match",
+        rowsUnordered((Object) arrExpected)
+            .matches(new JSONArray(List.of(arrExpected.toString()))));
+
+    // 6. A JSONObject versus a scalar string with identical serialized text must NOT match.
+    JSONObject objExpected = new JSONObject(Map.of("code", "BOS"));
+    assertFalse(
+        "object vs identically-serialized string must not match",
+        rowsUnordered((Object) objExpected)
+            .matches(new JSONArray(List.of(objExpected.toString()))));
   }
 
   // ==================== Employee Hierarchy Tests ====================
