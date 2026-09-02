@@ -350,32 +350,30 @@ public class RestUnifiedQueryAction {
   }
 
   /**
-   * Cluster settings whose live values are forwarded into every {@link UnifiedQueryContext} so the
-   * Analytics Engine plans against the same configuration as the default pipeline. This list is the
-   * single source of truth for cluster fidelity on the unified path: any planning setting the AE
-   * path must honor belongs here, otherwise {@link UnifiedQueryContext.Builder}'s hardcoded default
-   * silently wins and the configured cluster value is ignored.
+   * Cluster settings forwarded into every {@link UnifiedQueryContext}, so the Analytics Engine
+   * plans against the same configuration as the default pipeline. Any planning setting the AE path
+   * must honor belongs here; otherwise the value {@link UnifiedQueryContext.Builder} seeds silently
+   * wins and the configured cluster value is ignored.
    *
-   * <p>{@link Key#CALCITE_ENGINE_ENABLED} is deliberately excluded — the unified path is
-   * Calcite-based by definition and forces it {@code true} regardless of the cluster value. {@link
-   * Key#PPL_SUBSEARCH_MAXOUT} and {@link Key#PPL_JOIN_SUBSEARCH_MAXOUT} are excluded too: the
-   * builder seeds them to {@code 0} (unlimited) on purpose, to keep {@code LogicalSystemLimit} out
-   * of plans built by external consumers of the unified query API, and overriding that on the
-   * in-cluster path is a separate behavioral decision tracked by
-   * https://github.com/opensearch-project/sql/issues/5735.
+   * <p>The AE path reads exactly five other settings, each deliberately left out:
    *
-   * <p>{@link Key#PPL_VALUES_MAX_LIMIT} is excluded for a different reason: forwarding it makes
-   * things worse rather than better. The cap is applied by attaching a {@code limit} argument to
-   * the {@code values()} aggregate, which lowers to {@code array_agg(DISTINCT x, limit)} — a
-   * two-argument form the analytics-engine backend has no binding for. Verified against a live
-   * composite/parquet cluster: with the setting forwarded, {@code stats values(f)} fails with
-   * {@code UnsupportedOperationException: Unable to find binding for call array_agg(DISTINCT $0,
-   * $1)} (HTTP 500), where today it merely ignores the cap. Honoring the cap on this route needs
-   * backend support first — see {@code Capability.VALUES_LIMIT_NOT_HONORED}.
+   * <ul>
+   *   <li>{@link Key#CALCITE_ENGINE_ENABLED} — the unified path is Calcite-based by definition and
+   *       must force it on.
+   *   <li>{@link Key#PPL_SUBSEARCH_MAXOUT}, {@link Key#PPL_JOIN_SUBSEARCH_MAXOUT} — seeded to
+   *       {@code 0} (unlimited) on purpose, to keep {@code LogicalSystemLimit} out of plans built
+   *       by external consumers of the unified query API. Overriding that in-cluster is a separate
+   *       behavioral decision (issue #5735).
+   *   <li>{@link Key#PPL_VALUES_MAX_LIMIT} — forwarding it breaks the route rather than fixing it:
+   *       the cap lowers {@code values()} to {@code array_agg(DISTINCT x, limit)}, a form the
+   *       backend cannot bind, so the query 500s where today it merely ignores the cap (issue
+   *       #5736).
+   *   <li>{@link Key#CALCITE_SUPPORT_ALL_JOIN_TYPES} — never seeded, so {@code
+   *       AstBuilder.validateJoinType} reads {@code null} and skips the high-cost-join guard
+   *       entirely. Restoring it is a user-visible tightening (issue #5734).
+   * </ul>
    *
-   * <p>{@code RestUnifiedQueryActionTest#everySeededPlanningSettingIsClassified} pins the seeded
-   * exclusions, so a key added to the builder's seed map cannot silently regress to its hardcoded
-   * default without failing a test.
+   * <p>{@code RestUnifiedQueryActionTest} pins both this list and those exclusions.
    */
   @VisibleForTesting
   static final List<Key> FORWARDED_CLUSTER_SETTINGS =

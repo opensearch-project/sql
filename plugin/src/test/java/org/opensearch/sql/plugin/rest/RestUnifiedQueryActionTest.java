@@ -7,7 +7,7 @@ package org.opensearch.sql.plugin.rest;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -272,19 +272,28 @@ public class RestUnifiedQueryActionTest {
   }
 
   /**
-   * Planning settings {@link UnifiedQueryContext.Builder} seeds that the REST handler deliberately
-   * does not forward, each with the reason it stays hardcoded on the unified path.
+   * Every setting the AE path reads that {@link RestUnifiedQueryAction} deliberately does not
+   * forward, with the reason it stays unforwarded. Derived from the call sites reachable from the
+   * unified context's {@code Settings}: {@code SysLimit.fromSettings}, {@code AstBuilder} /{@code
+   * AstExpressionBuilder} / {@code AstBuildGuard}, and {@code UnresolvedPlanHelper}.
    *
    * <ul>
    *   <li>{@link Key#CALCITE_ENGINE_ENABLED} — the unified path is Calcite-based by definition.
    *   <li>{@link Key#PPL_SUBSEARCH_MAXOUT} / {@link Key#PPL_JOIN_SUBSEARCH_MAXOUT} — seeded to
-   *       {@code 0} (unlimited) on purpose, to keep {@code LogicalSystemLimit} out of plans built
-   *       by external consumers of the unified query API. Whether the in-cluster path should
-   *       override that is tracked by https://github.com/opensearch-project/sql/issues/5735.
+   *       {@code 0} (unlimited) on purpose, for external consumers of the unified query API (issue
+   *       #5735).
+   *   <li>{@link Key#PPL_VALUES_MAX_LIMIT} — forwarding it 500s the route (issue #5736).
+   *   <li>{@link Key#CALCITE_SUPPORT_ALL_JOIN_TYPES} — never seeded; restoring the guard is a
+   *       user-visible tightening (issue #5734).
    * </ul>
    */
   private static final List<Key> DELIBERATELY_NOT_FORWARDED =
-      List.of(Key.CALCITE_ENGINE_ENABLED, Key.PPL_SUBSEARCH_MAXOUT, Key.PPL_JOIN_SUBSEARCH_MAXOUT);
+      List.of(
+          Key.CALCITE_ENGINE_ENABLED,
+          Key.PPL_SUBSEARCH_MAXOUT,
+          Key.PPL_JOIN_SUBSEARCH_MAXOUT,
+          Key.PPL_VALUES_MAX_LIMIT,
+          Key.CALCITE_SUPPORT_ALL_JOIN_TYPES);
 
   /**
    * Drift guard for the defect class this forwarding exists to prevent: the builder's seed map and
@@ -331,16 +340,27 @@ public class RestUnifiedQueryActionTest {
   }
 
   @Test
-  public void valuesMaxLimitIsNotForwarded() {
-    // Forwarding PPL_VALUES_MAX_LIMIT would attach a `limit` argument to values(), lowering to
-    // array_agg(DISTINCT x, limit) — a form the analytics-engine backend cannot bind, turning a
-    // silently-ignored cap into a 500. Verified against a live composite/parquet cluster.
-    when(pluginSettings.getSettingValue(Key.PPL_VALUES_MAX_LIMIT)).thenReturn(100);
+  public void documentedExclusionsAreNotForwarded() {
+    // Pins the exclusion list in RestUnifiedQueryAction's javadoc: each of these is a conscious
+    // decision, not an oversight, so a well-meaning "just forward everything" change fails here.
+    // PPL_VALUES_MAX_LIMIT in particular must stay out: forwarding it lowers values() to
+    // array_agg(DISTINCT x, limit), which the AE backend cannot bind, turning a silently-ignored
+    // cap into a 500 (verified on a live composite/parquet cluster).
+    DELIBERATELY_NOT_FORWARDED.forEach(
+        key -> when(pluginSettings.getSettingValue(key)).thenReturn(SENTINEL));
 
-    assertNull(
-        "Forwarding values.max.limit breaks values() on the AE route; it must stay unset",
-        buildAnalyticsContext().getSettings().getSettingValue(Key.PPL_VALUES_MAX_LIMIT));
+    org.opensearch.sql.common.setting.Settings forwarded = buildAnalyticsContext().getSettings();
+
+    for (Key key : DELIBERATELY_NOT_FORWARDED) {
+      assertNotEquals(
+          key.getKeyValue() + " must not be forwarded to the Analytics Engine context",
+          SENTINEL,
+          forwarded.getSettingValue(key));
+    }
   }
+
+  /** Value no seeded default uses, so "forwarded" is distinguishable from "seeded" or "absent". */
+  private static final Integer SENTINEL = -12345;
 
   /** Builds the context the AE path plans against, with the mocked cluster settings applied. */
   private UnifiedQueryContext buildAnalyticsContext() {
