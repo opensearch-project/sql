@@ -504,8 +504,8 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
    * On a text/keyword mapping conflict, narrow the scan to the index subset where the group field
    * is aggregatable, push the aggregation over just that subset, and record a warning naming the
    * excluded indices. Only runs behind the opt-in setting and only when the response format can
-   * carry the warning ({@link QueryContext#isWarningsSupported}); returns {@code null} otherwise.
-   * {@code partitionFields} are the scan fields the group keys resolve to (see {@link
+   * carry the warning ({@link CalcitePlanContext#isWarningsSupported}); returns {@code null}
+   * otherwise. {@code partitionFields} are the scan fields the group keys resolve to (see {@link
    * #resolvePartitionFields}). Partitioning lives in {@link PartialResultAggregatePushdown}.
    */
   private AbstractRelNode tryPartialResultAggregate(
@@ -514,7 +514,7 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
       return null;
     }
     // A format with no warnings channel (CSV/RAW/VIZ) must not silently drop indices.
-    if (!QueryContext.isWarningsSupported()) {
+    if (!CalcitePlanContext.isWarningsSupported()) {
       return null;
     }
     try {

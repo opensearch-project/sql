@@ -195,8 +195,9 @@ public class TransportPPLQueryAction
     PPLQueryRequest transformedRequest = transportRequest.toPPLQueryRequest();
     QueryContext.setProfile(transformedRequest.profile());
     // Only the JSON shape carries warnings; gate partial results on it so CSV/RAW/VIZ never drop
-    // data silently.
-    QueryContext.setWarningsSupported(warningsSupported(transformedRequest));
+    // data silently. Carried on the request (not Log4j ThreadContext) so it survives the
+    // transport→worker handoff, which the security plugin's interceptor does not preserve.
+    transformedRequest.warningsSupported(warningsSupported(transformedRequest));
     // Per-request override (e.g. a Dashboards toggle); null defers to the cluster setting.
     QueryContext.setPartialResultOverride(transformedRequest.partialResult());
 
@@ -452,6 +453,5 @@ public class TransportPPLQueryAction
   private static void clearRequestScopedState() {
     QueryProfiling.clear();
     QueryContext.setPartialResultOverride(null);
-    QueryContext.setWarningsSupported(false);
   }
 }

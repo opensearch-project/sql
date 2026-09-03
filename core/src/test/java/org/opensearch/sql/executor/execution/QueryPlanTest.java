@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.executor.execution;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -16,6 +17,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.lang3.NotImplementedException;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -25,6 +27,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.DefaultExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine;
@@ -56,6 +59,53 @@ class QueryPlanTest {
     query.execute();
 
     verify(queryService, times(1)).execute(any(), any(), any(), anyBoolean(), any());
+  }
+
+  @Test
+  public void warnings_supported_flag_reaches_execution_thread() throws InterruptedException {
+    QueryPlan query = new QueryPlan(queryId, queryType, plan, queryService, queryListener);
+    query.setWarningsSupported(true);
+
+    // Configure the plan here but run execute() on another thread, mirroring the transport->worker
+    // handoff. The flag must ride the plan object, not a thread-local the handoff can drop.
+    AtomicBoolean defaultedBeforeExecute = new AtomicBoolean(true);
+    AtomicBoolean seenOnWorker = new AtomicBoolean(false);
+    Thread worker =
+        new Thread(
+            () -> {
+              defaultedBeforeExecute.set(CalcitePlanContext.isWarningsSupported());
+              query.execute();
+              seenOnWorker.set(CalcitePlanContext.isWarningsSupported());
+            });
+    worker.start();
+    worker.join();
+
+    assertFalse(
+        defaultedBeforeExecute.get(), "worker thread should default to no warnings support");
+    assertTrue(seenOnWorker.get(), "execute() must carry warningsSupported onto the worker thread");
+    verify(queryService, times(1)).execute(any(), any(), any(), anyBoolean(), any());
+  }
+
+  @Test
+  public void warnings_unsupported_plan_resets_flag_on_reused_worker_thread()
+      throws InterruptedException {
+    // Plan defaults to warningsSupported=false.
+    QueryPlan query = new QueryPlan(queryId, queryType, plan, queryService, queryListener);
+
+    AtomicBoolean seenOnWorker = new AtomicBoolean(true);
+    Thread worker =
+        new Thread(
+            () -> {
+              // Simulate a pooled worker left "supported" by a prior query.
+              CalcitePlanContext.setWarningsSupported(true);
+              query.execute();
+              seenOnWorker.set(CalcitePlanContext.isWarningsSupported());
+            });
+    worker.start();
+    worker.join();
+
+    assertFalse(
+        seenOnWorker.get(), "a warnings-unsupported plan must reset the flag on a reused thread");
   }
 
   @Test

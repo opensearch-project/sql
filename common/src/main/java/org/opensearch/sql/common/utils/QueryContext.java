@@ -23,8 +23,6 @@ public class QueryContext {
 
   private static final String PROFILE_KEY = "profile";
 
-  private static final String WARNINGS_SUPPORTED_KEY = "warnings_supported";
-
   private static final String PARTIAL_RESULT_OVERRIDE_KEY = "partial_result_override";
 
   /**
@@ -88,26 +86,6 @@ public class QueryContext {
    */
   public static boolean isProfileEnabled() {
     return Boolean.parseBoolean(ThreadContext.get(PROFILE_KEY));
-  }
-
-  /**
-   * Record whether the requested response format can surface non-fatal warnings. Features that
-   * return a knowingly-partial result gate on this so they never silently drop data into a format
-   * (CSV/RAW) that has no warning channel.
-   *
-   * @param supported whether the response format carries a warnings channel
-   */
-  public static void setWarningsSupported(boolean supported) {
-    ThreadContext.put(WARNINGS_SUPPORTED_KEY, Boolean.toString(supported));
-  }
-
-  /**
-   * @return true if the response format for the current request can surface warnings. Defaults to
-   *     false when unset, so a caller that never declared support cannot get a silent partial
-   *     result.
-   */
-  public static boolean isWarningsSupported() {
-    return Boolean.parseBoolean(ThreadContext.get(WARNINGS_SUPPORTED_KEY));
   }
 
   /**
