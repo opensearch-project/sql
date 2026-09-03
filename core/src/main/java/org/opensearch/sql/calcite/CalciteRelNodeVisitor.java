@@ -3156,7 +3156,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     for (RelNode input : unifiedInputs) {
       context.relBuilder.push(input);
     }
-    context.relBuilder.union(true, unifiedInputs.size()); // true = UNION ALL
+    context.relBuilder.union(!node.isDistinct(), unifiedInputs.size()); // all = !distinct
 
     if (node.getMaxout() != null) {
       context.relBuilder.push(

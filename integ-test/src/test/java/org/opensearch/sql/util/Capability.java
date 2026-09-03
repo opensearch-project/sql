@@ -8,9 +8,10 @@ package org.opensearch.sql.util;
 /**
  * Backend-agnostic registry of execution capabilities a test may require. Each constant names a
  * behavior (nested fields, document mutation, stable head ordering, ...) and carries the reason it
- * is unavailable on a backend that lacks it — currently the analytics-engine route. Tests declare
- * the capability they need via {@code BackendCapabilities.requireCapability(...)} or the {@link
- * RequiresCapability} annotation rather than naming a backend.
+ * is unavailable on a backend that lacks it. Which backend lacks which capability lives in {@link
+ * Backend}. Tests declare the capability they need via {@code
+ * BackendCapabilities.requireCapability(...)} or the {@link RequiresCapability} annotation rather
+ * than naming a backend.
  *
  * <p>Keeping every reason here makes the full set of route gaps greppable in one place — both for
  * humans tracking what still needs fixing and as a single block of context to hand an agent for
@@ -582,7 +583,10 @@ public enum Capability {
   /** BACKEND: FILTER(WHERE) on aggregates can't be executed via Substrait streaming. */
   FILTERED_AGGREGATE(
       "FILTER(WHERE) on aggregates can't be executed on the analytics-engine route: the Substrait"
-          + " streaming path doesn't support filtered aggregates.");
+          + " streaming path doesn't support filtered aggregates."),
+
+  /** Combining the result rows of two or more queries with a SQL set operator. */
+  SET_OPERATION("SQL set operations are unsupported.");
 
   private final String reason;
 
