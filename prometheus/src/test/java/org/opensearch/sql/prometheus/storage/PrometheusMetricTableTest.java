@@ -10,6 +10,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -31,6 +35,7 @@ import static org.opensearch.sql.prometheus.utils.LogicalPlanUtils.indexScanAgg;
 import static org.opensearch.sql.prometheus.utils.LogicalPlanUtils.testLogicalPlanNode;
 
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -41,11 +46,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.schema.TranslatableTable;
+import org.apache.calcite.sql.type.SqlTypeName;
+import org.json.JSONObject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
@@ -1052,5 +1063,126 @@ class PrometheusMetricTableTest {
         new PrometheusMetricTable(client, TestConstants.METRIC_NAME);
     TableScanBuilder tableScanBuilder = prometheusMetricTable.createScanBuilder();
     Assertions.assertNull(tableScanBuilder);
+  }
+
+  // ---- Calcite ScannableTable tests ----
+
+  @Test
+  void testImplementsTranslatableTable() {
+    PrometheusMetricTable prometheusMetricTable =
+        new PrometheusMetricTable(client, TestConstants.METRIC_NAME);
+    assertTrue(prometheusMetricTable instanceof TranslatableTable);
+    assertTrue(prometheusMetricTable instanceof org.apache.calcite.schema.Table);
+  }
+
+  @Test
+  @SneakyThrows
+  void testGetRowTypeFromMetric() {
+    when(client.getLabels(TestConstants.METRIC_NAME)).thenReturn(List.of("job", "instance"));
+    PrometheusMetricTable prometheusMetricTable =
+        new PrometheusMetricTable(client, TestConstants.METRIC_NAME);
+
+    RelDataType rowType =
+        prometheusMetricTable.getRowType(OpenSearchTypeFactory.TYPE_FACTORY);
+
+    assertNotNull(rowType);
+    List<RelDataTypeField> fields = rowType.getFieldList();
+    assertTrue(fields.size() >= 2, "Should have at least @timestamp and @value fields");
+
+    // Verify @timestamp and @value fields exist
+    boolean hasTimestamp = fields.stream().anyMatch(f -> f.getName().equals("@timestamp"));
+    boolean hasValue = fields.stream().anyMatch(f -> f.getName().equals("@value"));
+    assertTrue(hasTimestamp, "Should have @timestamp field");
+    assertTrue(hasValue, "Should have @value field");
+  }
+
+  @Test
+  @SneakyThrows
+  void testGetRowTypeFromQueryRequest() {
+    PrometheusMetricTable prometheusMetricTable =
+        new PrometheusMetricTable(client, new PrometheusQueryRequest());
+
+    RelDataType rowType =
+        prometheusMetricTable.getRowType(OpenSearchTypeFactory.TYPE_FACTORY);
+
+    assertNotNull(rowType);
+    List<RelDataTypeField> fields = rowType.getFieldList();
+    // query_range returns @timestamp, @value, and @labels
+    assertTrue(fields.size() >= 3, "Should have @timestamp, @value, and @labels fields");
+  }
+
+  @Test
+  @SneakyThrows
+  void testMetricNameAccessible() {
+    PrometheusMetricTable prometheusMetricTable =
+        new PrometheusMetricTable(client, "test_metric");
+
+    assertEquals("test_metric", prometheusMetricTable.getMetricName());
+    assertEquals(client, prometheusMetricTable.getPrometheusClient());
+    assertNull(prometheusMetricTable.getPrometheusQueryRequest());
+  }
+
+  @Test
+  @SneakyThrows
+  void testQueryRequestAccessible() {
+    PrometheusQueryRequest request = new PrometheusQueryRequest();
+    request.setPromQl("up");
+    request.setStartTime(1435781400L);
+    request.setEndTime(1435785000L);
+    request.setStep("14");
+
+    PrometheusMetricTable prometheusMetricTable = new PrometheusMetricTable(client, request);
+
+    assertEquals(request, prometheusMetricTable.getPrometheusQueryRequest());
+    assertEquals(client, prometheusMetricTable.getPrometheusClient());
+    assertNull(prometheusMetricTable.getMetricName());
+  }
+
+  @Test
+  @SneakyThrows
+  void testGetRowTypeHasExpectedFields() {
+    when(client.getLabels("empty_metric")).thenReturn(List.of("job"));
+
+    PrometheusMetricTable prometheusMetricTable =
+        new PrometheusMetricTable(client, "empty_metric");
+    RelDataType rowType =
+        prometheusMetricTable.getRowType(OpenSearchTypeFactory.TYPE_FACTORY);
+
+    assertNotNull(rowType);
+    List<String> fieldNames = rowType.getFieldNames();
+    assertTrue(fieldNames.contains("@timestamp"), "Should have @timestamp field");
+    assertTrue(fieldNames.contains("@value"), "Should have @value field");
+    assertTrue(fieldNames.contains("job"), "Should have job label field");
+  }
+
+  @Test
+  @SneakyThrows
+  void testToRelReturnsLogicalPrometheusScan() {
+    PrometheusMetricTable prometheusMetricTable =
+        new PrometheusMetricTable(client, "test_metric");
+
+    // Verify the table is a TranslatableTable
+    assertTrue(prometheusMetricTable instanceof TranslatableTable);
+
+    // Create a minimal Calcite context to invoke toRel()
+    org.apache.calcite.plan.RelOptCluster cluster =
+        org.apache.calcite.plan.RelOptCluster.create(
+            new org.apache.calcite.plan.volcano.VolcanoPlanner(),
+            new org.apache.calcite.rex.RexBuilder(
+                org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY));
+
+    org.apache.calcite.plan.RelOptTable relOptTable =
+        org.mockito.Mockito.mock(org.apache.calcite.plan.RelOptTable.class);
+    org.apache.calcite.plan.RelOptTable.ToRelContext toRelContext =
+        org.mockito.Mockito.mock(org.apache.calcite.plan.RelOptTable.ToRelContext.class);
+    when(toRelContext.getCluster()).thenReturn(cluster);
+
+    org.apache.calcite.rel.RelNode result = prometheusMetricTable.toRel(toRelContext, relOptTable);
+
+    assertNotNull(result);
+    assertTrue(
+        result
+            instanceof
+            org.opensearch.sql.prometheus.storage.scan.CalciteLogicalPrometheusScan);
   }
 }
