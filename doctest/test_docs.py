@@ -60,6 +60,10 @@ TEST_DATA = {
     'time_test': 'time_test.json',
     'mvcombine_data': 'mvcombine.json',
     'timewrap_test': 'timewrap_test.json',
+    'multikv_text': 'multikv_text.json',
+    'multikv_report': 'multikv_report.json',
+    'multikv_lines': 'multikv_lines.json',
+    'multikv_struct': 'multikv_struct.json',
 }
 
 DEBUG_MODE = os.environ.get('DOCTEST_DEBUG', 'false').lower() == 'true'

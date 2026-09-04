@@ -143,6 +143,7 @@ import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Lookup.OutputStrategy;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.MakeResults;
+import org.opensearch.sql.ast.tree.Multikv;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.MvExpand;
@@ -201,6 +202,7 @@ import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
+import org.opensearch.sql.expression.function.multikv.MultikvParser;
 import org.opensearch.sql.expression.parse.RegexCommonUtils;
 import org.opensearch.sql.utils.ParseUtils;
 import org.opensearch.sql.utils.WildcardRenameUtils;
@@ -4658,6 +4660,182 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     buildExpandRelNode(arrayFieldRex, fieldName, fieldName, mvExpand.getLimit(), context);
 
+    return relBuilder.peek();
+  }
+
+  /**
+   * multikv (fixed-schema): rewrite to an equivalent pipeline using existing operators.
+   *
+   * <pre>
+   *   eval __multikv_record__ = MULTIKV_SPLIT(inField, forceHeader, noHeader, filter)  // array&lt;varchar&gt;
+   *   | mvexpand __multikv_record__                                                     // 1 -&gt; N rows
+   *   | eval &lt;col&gt; = MULTIKV_EXTRACT(__multikv_record__, '&lt;col&gt;')  for each declared field
+   *   | fields &lt;col1&gt;, &lt;col2&gt;, ...                                                      // declared output schema
+   * </pre>
+   *
+   * The output column names come from the declared {@code fields} list and are therefore known at
+   * plan time. When no {@code fields} clause is declared, the output schema is not determinable at
+   * plan time and is rejected with guidance to add a {@code fields} clause.
+   *
+   * <p>When the input field is an object or an array of objects instead of text, the command
+   * dispatches to a native rewrite: {@code mvexpand} an array (a single object needs no explosion),
+   * then read each declared column from the object with {@code ITEM}. The extracted columns are
+   * typed {@code ANY}: object and nested fields collapse to ANY-valued containers in the type
+   * layer, so the mapped scalar type is not recovered (cast downstream). Shares the {@code fields}
+   * contract.
+   */
+  @Override
+  public RelNode visitMultikv(Multikv node, CalcitePlanContext context) {
+    List<Field> fields = node.getFields();
+    boolean noFields = (fields == null || fields.isEmpty());
+
+    // Fixed-schema: output columns must come from the fields clause. The only supported no-fields
+    // form is positional noheader (row-explosion, no named columns). Any other no-fields form
+    // (bare auto-header, or forceheader without fields) has no plan-time schema and is rejected.
+    if (noFields && !node.isNoHeader()) {
+      throw ErrorReport.wrap(
+              new SemanticCheckException(
+                  "multikv has no declared output columns. Add an explicit fields clause, for"
+                      + " example: multikv fields <col1> <col2>"))
+          .code(ErrorCode.FIELD_NOT_FOUND)
+          .location("while resolving the output schema for multikv")
+          .context("command", "multikv")
+          .build();
+    }
+
+    // Dispatch on the input field's type. The child is built once here and both branches lower
+    // directly onto that build. A structured (array of objects, or a single object) input is
+    // exploded with mvexpand and each declared column is read with ITEM (typed ANY, since element
+    // types are erased upstream). A text input runs the split pipeline below on the same build.
+    RelNode probe = node.getChild().get(0).accept(this, context);
+    RelDataTypeField probeField = probe.getRowType().getField(node.getInField(), true, false);
+    boolean structuredArray =
+        probeField != null
+            && (SqlTypeUtil.isArray(probeField.getType())
+                || SqlTypeUtil.isMultiset(probeField.getType()));
+    boolean structuredMap = probeField != null && SqlTypeUtil.isMap(probeField.getType());
+    if (structuredArray || structuredMap) {
+      RelBuilder relBuilder = context.relBuilder;
+      if (structuredArray) {
+        // Array of objects: one row per element. A single object (map) needs no explosion.
+        buildExpandRelNode(
+            relBuilder.field(node.getInField()),
+            node.getInField(),
+            node.getInField(),
+            null,
+            context);
+      }
+      if (noFields) {
+        return relBuilder.peek();
+      }
+      List<ExprCoreType> fieldTypes = node.getFieldTypes();
+      List<RexNode> projected = new ArrayList<>();
+      List<String> names = new ArrayList<>();
+      for (int i = 0; i < fields.size(); i++) {
+        Field f = fields.get(i);
+        String col = f.getField().toString();
+        RexNode item =
+            PPLFuncImpTable.INSTANCE.resolve(
+                context.rexBuilder,
+                BuiltinFunctionName.INTERNAL_ITEM,
+                relBuilder.field(node.getInField()),
+                context.rexBuilder.makeLiteral(
+                    col,
+                    context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
+                    true));
+        ExprCoreType declared = fieldTypes == null ? null : fieldTypes.get(i);
+        if (declared != null) {
+          item =
+              context.rexBuilder.makeCast(
+                  OpenSearchTypeFactory.convertExprTypeToRelDataType(declared), item, true, true);
+        }
+        projected.add(item);
+        names.add(col);
+      }
+      relBuilder.project(projected, names);
+      context.setProjectVisited(true);
+      return relBuilder.peek();
+    }
+    // Reject input types multikv cannot read. The structured branch above handles array/object
+    // fields and text mode splits string values, so a scalar numeric/boolean/date field has no
+    // table text to parse; reject it at plan time instead of silently treating it as text. An
+    // untyped ANY field is allowed, since its runtime value may be text.
+    if (probeField != null) {
+      SqlTypeName inputTypeName = probeField.getType().getSqlTypeName();
+      boolean textLike = inputTypeName == SqlTypeName.VARCHAR || inputTypeName == SqlTypeName.CHAR;
+      boolean untyped = inputTypeName == SqlTypeName.ANY || inputTypeName == SqlTypeName.NULL;
+      if (!textLike && !untyped) {
+        throw new SemanticCheckException(
+            "multikv input field '"
+                + node.getInField()
+                + "' has type "
+                + inputTypeName
+                + "; multikv reads table-formatted text or an array/object field. Cast it to a"
+                + " string first, for example: eval "
+                + node.getInField()
+                + " = cast("
+                + node.getInField()
+                + " as string).");
+      }
+    }
+    // Text input: lower the split pipeline directly onto the probe build above, so the child is
+    // visited exactly once. eval __multikv_record__ = MULTIKV_SPLIT(inField, ...), explode it with
+    // mvexpand (one row per table data row), then read the declared columns with MULTIKV_EXTRACT.
+    RelBuilder relBuilder = context.relBuilder;
+    final String lineField = "__multikv_record__";
+    final int forceHeader = node.getForceHeader() == null ? -1 : node.getForceHeader();
+    final String filterJoined =
+        (node.getFilterTerms() == null || node.getFilterTerms().isEmpty())
+            ? ""
+            : String.join(MultikvParser.FS, node.getFilterTerms());
+
+    RexNode split =
+        PPLFuncImpTable.INSTANCE.resolve(
+            context.rexBuilder,
+            BuiltinFunctionName.MULTIKV_SPLIT,
+            relBuilder.field(node.getInField()),
+            relBuilder.literal(forceHeader),
+            relBuilder.literal(node.isNoHeader()),
+            context.rexBuilder.makeLiteral(
+                filterJoined,
+                context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
+                true));
+    relBuilder.projectPlus(relBuilder.alias(split, lineField));
+
+    // mvexpand the record column: 1 -> N rows. Mirrors visitMvExpand (alias == field name).
+    buildExpandRelNode(relBuilder.field(lineField), lineField, lineField, null, context);
+
+    if (noFields) {
+      // Positional noheader, no named columns: row-explosion only. The helper record column is
+      // retained (downstream typically only counts rows). Naming positional columns is deferred.
+      return relBuilder.peek();
+    }
+
+    List<ExprCoreType> fieldTypes = node.getFieldTypes();
+    List<RexNode> projected = new ArrayList<>();
+    List<String> names = new ArrayList<>();
+    for (int i = 0; i < fields.size(); i++) {
+      String col = fields.get(i).getField().toString();
+      RexNode extract =
+          PPLFuncImpTable.INSTANCE.resolve(
+              context.rexBuilder,
+              BuiltinFunctionName.MULTIKV_EXTRACT,
+              relBuilder.field(lineField),
+              context.rexBuilder.makeLiteral(
+                  col,
+                  context.rexBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR),
+                  true));
+      ExprCoreType declared = fieldTypes == null ? null : fieldTypes.get(i);
+      if (declared != null) {
+        extract =
+            context.rexBuilder.makeCast(
+                OpenSearchTypeFactory.convertExprTypeToRelDataType(declared), extract, true, true);
+      }
+      projected.add(extract);
+      names.add(col);
+    }
+    relBuilder.project(projected, names);
+    context.setProjectVisited(true);
     return relBuilder.peek();
   }
 
