@@ -7,7 +7,6 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.Capability.COALESCE_ALL_NULL_OPERANDS;
-import static org.opensearch.sql.util.Capability.HEAD_WITHOUT_STABLE_SORT;
 import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
@@ -39,7 +38,6 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
   }
 
   @Test
-  @RequiresCapability(HEAD_WITHOUT_STABLE_SORT)
   public void testCoalesceBasic() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -55,7 +53,6 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
   }
 
   @Test
-  @RequiresCapability(HEAD_WITHOUT_STABLE_SORT)
   public void testCoalesceWithMixedTypes() throws IOException {
     JSONObject actual =
         executeQuery(
