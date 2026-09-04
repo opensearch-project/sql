@@ -647,6 +647,7 @@ public class PPLFuncImpTable {
     try {
       for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
         if (implement.getKey().match(functionName.getName(), argTypes)) {
+          args = narrowBigintArgs(builder, functionName, implement.getKey(), args);
           return implement.getValue().resolve(builder, args);
         }
       }
@@ -732,6 +733,83 @@ public class PPLFuncImpTable {
     }
     return false;
   }
+
+  /**
+   * Narrows BIGINT arguments to INTEGER for function parameters that specifically require INTEGER.
+   *
+   * <p>PPL's integer arithmetic widening (#5603) makes all integer expressions produce BIGINT.
+   * However, many Calcite runtime methods ({@code SqlFunctions.arrayItemOptional}, {@code left},
+   * {@code right}, {@code round}, {@code truncate}, etc.) require Java {@code int} parameters.
+   * Since {@code SqlTypeFamily.INTEGER} contains BIGINT, the type checker accepts BIGINT arguments
+   * but code generation fails when the JVM cannot auto-narrow {@code long} to {@code int}.
+   *
+   * <p>This method inspects the matched signature's expected parameter types. If a parameter
+   * position expects only INTEGER (not BIGINT), and the actual argument is BIGINT, it wraps the
+   * argument in a CAST to INTEGER. This is safe because the type checker has already validated the
+   * argument is in the INTEGER family.
+   *
+   * <p>Arithmetic and comparison operators are excluded because they intentionally use BIGINT for
+   * overflow safety and their implementations accept {@code long}.
+   */
+  private static RexNode[] narrowBigintArgs(
+      RexBuilder builder,
+      BuiltinFunctionName functionName,
+      CalciteFuncSignature signature,
+      RexNode... args) {
+    // Only narrow the int-domain control positions of functions known to require Java int params.
+    int[] intPositions = INT_PARAM_POSITIONS.get(functionName);
+    if (intPositions == null) {
+      return args;
+    }
+    RexNode[] narrowed = null;
+    for (int pos : intPositions) {
+      if (pos < args.length && args[pos].getType().getSqlTypeName() == SqlTypeName.BIGINT) {
+        if (narrowed == null) {
+          narrowed = args.clone();
+        }
+        RelDataType intType =
+            TYPE_FACTORY.createTypeWithNullability(
+                TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER), args[pos].getType().isNullable());
+        narrowed[pos] = builder.makeCast(intType, args[pos]);
+      }
+    }
+    return narrowed != null ? narrowed : args;
+  }
+
+  /**
+   * Maps functions whose Calcite runtime implementations have Java {@code int} parameters to the
+   * specific argument positions that are int-domain "control" parameters (indices, lengths,
+   * precision, radix, bit-length, mode).
+   *
+   * <p>PPL's integer arithmetic widening (#5603) makes integer expressions produce BIGINT. Since
+   * {@code SqlTypeFamily.INTEGER} contains BIGINT, calls pass type checking but fail at code
+   * generation because the JVM cannot auto-narrow {@code long} to {@code int}. We narrow only the
+   * listed positions, never value/data positions (e.g. {@code ROUND}'s first operand may itself be
+   * a legitimate BIGINT to round, so only the precision at position 1 is narrowed).
+   */
+  private static final java.util.Map<BuiltinFunctionName, int[]> INT_PARAM_POSITIONS =
+      java.util.Map.ofEntries(
+          // ITEM(array, index)
+          java.util.Map.entry(BuiltinFunctionName.INTERNAL_ITEM, new int[] {1}),
+          // ARRAY_SLICE(array, start, length)
+          java.util.Map.entry(BuiltinFunctionName.ARRAY_SLICE, new int[] {1, 2}),
+          // LEFT(string, length) / RIGHT(string, length)
+          java.util.Map.entry(BuiltinFunctionName.LEFT, new int[] {1}),
+          java.util.Map.entry(BuiltinFunctionName.RIGHT, new int[] {1}),
+          // ROUND(numeric, precision) / TRUNCATE(numeric, precision) — narrow precision only
+          java.util.Map.entry(BuiltinFunctionName.ROUND, new int[] {1}),
+          java.util.Map.entry(BuiltinFunctionName.TRUNCATE, new int[] {1}),
+          // SUBSTR(string, start, length) / SUBSTRING(string, start, length)
+          java.util.Map.entry(BuiltinFunctionName.SUBSTR, new int[] {1, 2}),
+          java.util.Map.entry(BuiltinFunctionName.SUBSTRING, new int[] {1, 2}),
+          // RAND(seed)
+          java.util.Map.entry(BuiltinFunctionName.RAND, new int[] {0}),
+          // CONV(string, fromBase, toBase) — narrow the two radix args
+          java.util.Map.entry(BuiltinFunctionName.CONV, new int[] {1, 2}),
+          // SHA2(string, bitLength)
+          java.util.Map.entry(BuiltinFunctionName.SHA2, new int[] {1}),
+          // WEEK(date, mode)
+          java.util.Map.entry(BuiltinFunctionName.WEEK, new int[] {1}));
 
   /**
    * Ad-hoc coercion for some functions that require specific casting of arguments. Now it only
