@@ -5,11 +5,15 @@
 
 package org.opensearch.sql.opensearch.client;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.opensearch.action.search.CreatePitRequest;
 import org.opensearch.action.search.DeletePitRequest;
+import org.opensearch.index.IndexNotFoundException;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
@@ -44,6 +48,8 @@ public interface OpenSearchClient {
    *
    * @param indexExpression index expression
    * @return index mapping(s) from index name to its mapping
+   * @throws ErrorReport with {@link ErrorCode#INDEX_NOT_FOUND} if no index matched or the pattern
+   *     returned an empty mapping response
    */
   Map<String, IndexMapping> getIndexMappings(String... indexExpression);
 
@@ -114,4 +120,50 @@ public interface OpenSearchClient {
    * @param deletePitRequest Delete Point In Time request
    */
   void deletePit(DeletePitRequest deletePitRequest);
+
+  /**
+   * Build a structured {@link ErrorReport} for the case where {@code getIndexMappings} receives an
+   * empty response. When the expression contains pattern syntax (wildcards, date-math, exclusions,
+   * etc.) the message guides the user to check mapping compatibility; otherwise it reports a plain
+   * "not found" for the named index.
+   *
+   * @param indexExpression the expressions passed to {@code getIndexMappings}
+   * @return an {@link ErrorReport} with {@link ErrorCode#INDEX_NOT_FOUND}
+   */
+  static ErrorReport emptyMappingException(String... indexExpression) {
+    String[] exprs = indexExpression != null ? indexExpression : new String[0];
+    String joined = String.join(",", exprs);
+    if (joined.isEmpty()) {
+      return ErrorReport.wrap(new IndexNotFoundException("(none)"))
+          .code(ErrorCode.INDEX_NOT_FOUND)
+          .location("while fetching index mappings")
+          .context("index_pattern", "(none)")
+          .details("No index expression was provided.")
+          .build();
+    }
+    boolean isPattern =
+        exprs.length > 1
+            || Arrays.stream(exprs)
+                .filter(e -> e != null)
+                .anyMatch(
+                    e ->
+                        e.contains("*")
+                            || e.contains("?")
+                            || e.startsWith("<")
+                            || e.startsWith("-")
+                            || e.equals("_all"));
+    String details =
+        isPattern
+            ? String.format(
+                "No indices matched '%s', or the matching indices have incompatible mappings."
+                    + " Ensure all indices matching the pattern share a compatible mapping.",
+                joined)
+            : String.format("No index found for '%s'.", joined);
+    return ErrorReport.wrap(new IndexNotFoundException(joined))
+        .code(ErrorCode.INDEX_NOT_FOUND)
+        .location("while fetching index mappings")
+        .context("index_pattern", joined)
+        .details(details)
+        .build();
+  }
 }
