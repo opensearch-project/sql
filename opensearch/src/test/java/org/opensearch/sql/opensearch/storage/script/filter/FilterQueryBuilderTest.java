@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.storage.script.filter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -53,6 +54,7 @@ import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.serde.ExpressionSerializer;
 
@@ -156,6 +158,110 @@ class FilterQueryBuilderTest {
                     + "  }\n"
                     + "}",
                 buildQuery(expr)));
+  }
+
+  @Test
+  void should_push_down_range_query_when_date_field_wrapped_by_redundant_date_cast() {
+    // Wrapping an already date-typed field in timestamp()/CAST(... AS TIMESTAMP) is redundant and
+    // range-preserving, so `timestamp(<date field>) >= <literal>` must push down to a native range
+    // query rather than fall back to a per-document script.
+    OpenSearchDateType dateType = OpenSearchDateType.of(TIMESTAMP);
+    Expression[] predicates = {
+      DSL.gte(
+          DSL.timestamp(ref("datetime", dateType)),
+          DSL.castTimestamp(literal("2021-11-08 17:00:00"))),
+      DSL.gte(
+          DSL.castTimestamp(ref("datetime", dateType)),
+          DSL.castTimestamp(literal("2021-11-08 17:00:00")))
+    };
+    for (Expression predicate : predicates) {
+      String query = buildQuery(predicate);
+      assertTrue(query.contains("\"range\""), query);
+      assertTrue(query.contains("datetime"), query);
+      assertFalse(query.contains("script"), query);
+    }
+  }
+
+  @Test
+  void should_push_down_range_query_when_bound_wrapped_by_timestamp_builtin() {
+    // `field >= timestamp('...')` is the shape clients emit for a time-range bound (e.g. the
+    // Grafana OpenSearch data source's PPL time filter). PPL coerces the string argument first, so
+    // the operand arrives as timestamp(cast_to_timestamp('...')). Both forms must push down to a
+    // native range rather than falling back to a per-document script.
+    OpenSearchDateType dateType = OpenSearchDateType.of(TIMESTAMP);
+    Expression[] predicates = {
+      DSL.gte(ref("datetime", dateType), DSL.timestamp(literal("2021-11-08 17:00:00"))),
+      DSL.gte(
+          ref("datetime", dateType),
+          DSL.timestamp(DSL.castTimestamp(literal("2021-11-08 17:00:00"))))
+    };
+    for (Expression predicate : predicates) {
+      String query = buildQuery(predicate);
+      assertTrue(query.contains("\"range\""), query);
+      assertTrue(query.contains("datetime"), query);
+      assertFalse(query.contains("script"), query);
+    }
+  }
+
+  @Test
+  void should_not_push_down_when_bound_conversion_changes_the_date_type() {
+    // date(cast_to_timestamp(...)) truncates, so the outer conversion is not a no-op over the inner
+    // cast and the bound is not resolved up front.
+    mockToStringSerializer();
+    String query =
+        buildQuery(
+            DSL.gte(
+                ref("datetime", OpenSearchDateType.of(TIMESTAMP)),
+                DSL.date(DSL.castTimestamp(literal("2021-11-08 17:00:00")))));
+    assertTrue(query.contains("script"), query);
+    assertFalse(query.contains("\"range\""), query);
+  }
+
+  @Test
+  void should_not_resolve_bound_conversion_of_a_different_type_than_the_field() {
+    // A timestamp() bound against a DATE field is not a no-op: resolving it would re-format the
+    // bound into the field's date-only format and drop the time component, changing which documents
+    // match. Such a bound stays on the script path.
+    mockToStringSerializer();
+    String query =
+        buildQuery(
+            DSL.gte(
+                ref("datefield", OpenSearchDateType.of(DATE)),
+                DSL.timestamp(literal("2021-11-08 17:00:00"))));
+    assertTrue(query.contains("script"), query);
+    assertFalse(query.contains("\"range\""), query);
+  }
+
+  @Test
+  void should_not_push_down_when_date_cast_changes_the_date_type() {
+    // date()/time() over a timestamp field are real conversions, not no-ops: date() truncates the
+    // time component and time() extracts the time of day (not monotonic in the timestamp), so they
+    // must keep using the script path rather than being folded to the bare field.
+    mockToStringSerializer();
+    OpenSearchDateType dateType = OpenSearchDateType.of(TIMESTAMP);
+    Expression[] predicates = {
+      DSL.lte(DSL.date(ref("datetime", dateType)), DSL.castDate(literal("2021-11-08"))),
+      DSL.gte(DSL.time(ref("datetime", dateType)), DSL.castTime(literal("17:00:00")))
+    };
+    for (Expression predicate : predicates) {
+      String query = buildQuery(predicate);
+      assertTrue(query.contains("script"), query);
+      assertFalse(query.contains("\"range\""), query);
+    }
+  }
+
+  @Test
+  void should_not_push_down_when_date_cast_wraps_non_date_field() {
+    // Casting a non-date field to a timestamp is a real, not necessarily order-preserving,
+    // conversion, so it must stay on the script path (the fold only applies to date-typed fields).
+    mockToStringSerializer();
+    String query =
+        buildQuery(
+            DSL.gte(
+                DSL.castTimestamp(ref("string_value", STRING)),
+                DSL.castTimestamp(literal("2021-11-08 17:00:00"))));
+    assertTrue(query.contains("script"), query);
+    assertFalse(query.contains("\"range\""), query);
   }
 
   @Test
