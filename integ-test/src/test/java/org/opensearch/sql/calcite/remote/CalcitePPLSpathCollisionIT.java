@@ -200,4 +200,34 @@ public class CalcitePPLSpathCollisionIT extends PPLIntegTestCase {
                 COLLISION_INDEX));
     verifyDataRows(result, rows("replaced", 7));
   }
+
+  @Test
+  public void testFunctionBuiltContainerOverridePreservesLiteralDottedColumn()
+      throws IOException {
+    // Reviewer's case (a) on PR #5726: `arr` here is a function-built ARRAY, not a mapped
+    // parent — it cannot have stale flattened leaves, so overriding it must not touch the
+    // user-created literal column `arr.x`.
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array(1,2) | eval `arr.x` = 5 | eval arr = array(3,4) |"
+                    + " fields arr, `arr.x`",
+                COLLISION_INDEX));
+    verifyDataRows(result, rows(new org.json.JSONArray(java.util.List.of(3, 4)), 5));
+  }
+
+  @Test
+  public void testRepeatedSpathPreservesInterveningLiteralDottedColumn() throws IOException {
+    // Reviewer's case (b) on PR #5726: the second spath overrides `data`, which at that point
+    // is the extraction MAP from the first spath (function-built, no stale mapped leaves).
+    // The literal column `data.custom` created in between must survive.
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | spath input=body output=data | eval `data.custom` = 'kept' | spath"
+                    + " input=body output=data | fields data, `data.custom`",
+                COLLISION_INDEX));
+    verifyDataRows(
+        result, rows(ImmutableMap.of("level", "ERROR", "msg", "from json"), "kept"));
+  }
 }

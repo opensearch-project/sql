@@ -1427,12 +1427,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     Set<String> originalFieldNameSet = new HashSet<>(originalRowType.getFieldNames());
     List<String> overriddenNames =
         newNames.stream().filter(originalFieldNameSet::contains).toList();
-    // Which overridden columns were container-typed (object/nested parent) — captured before
-    // the replacement, this gates the stale-leaf pruning in step 6 (issue #5718).
-    Set<String> overriddenContainerParents =
-        overriddenNames.stream()
-            .filter(name -> isContainerType(originalRowType.getField(name, true, false).getType()))
-            .collect(Collectors.toSet());
+    // Issue #5718: an override replacing a mapping-derived parent sheds the stale flattened
+    // leaves the scan exposed alongside it. Runs before any new columns are added, so the
+    // prefix match only ever sees pre-existing columns — never the incoming newNames.
+    for (String overridden : overriddenNames) {
+      if (isMappingDerivedContainerType(
+          originalRowType.getField(overridden, true, false).getType())) {
+        dropStructChildrenFor(overridden, context);
+      }
+    }
     List<RexNode> toOverrideList =
         overriddenNames.stream().map(a -> (RexNode) context.relBuilder.field(a)).toList();
     // 1. add the new fields, For example "age0, country0"
@@ -1461,32 +1464,38 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // column, so overriddenNames is empty and the struct-parent `agent` survives untouched.
     // It also keeps issue #5185 safe — spath introduces a MAP root and subsequent eval assigns
     // to brand-new dotted paths that were not already in the row schema.
-    //
-    // The mirror direction (issue #5718): when the replaced column was itself an object/nested
-    // parent, its stale flattened leaves are pruned in dropStructChildrenFor so the new value
-    // shadows the whole subtree.
     for (String overridden : overriddenNames) {
       dropStructParentsFor(overridden, context);
-      if (overriddenContainerParents.contains(overridden)) {
-        dropStructChildrenFor(overridden, context);
-      }
     }
   }
 
-  /** An OpenSearch object parent surfaces as MAP in the row schema, a nested parent as ARRAY. */
-  private static boolean isContainerType(RelDataType type) {
-    return type.isStruct()
-        || type.getSqlTypeName() == SqlTypeName.MAP
-        || type.getSqlTypeName() == SqlTypeName.ARRAY;
+  /**
+   * Whether this is the type shape {@code OpenSearchTypeFactory.convertExprTypeToRelDataType}
+   * produces for a mapping-derived parent: an object parent surfaces as {@code MAP(VARCHAR, ANY)},
+   * a nested parent as {@code ARRAY(ANY)}. Function-built containers carry concrete value/element
+   * types (e.g. {@code json_extract_all} returns {@code MAP(VARCHAR, VARCHAR)}, {@code array(1,2)}
+   * an {@code ARRAY(INTEGER)}) and are deliberately excluded.
+   */
+  private static boolean isMappingDerivedContainerType(RelDataType type) {
+    if (type.getSqlTypeName() == SqlTypeName.MAP) {
+      RelDataType valueType = type.getValueType();
+      return valueType != null && valueType.getSqlTypeName() == SqlTypeName.ANY;
+    }
+    if (type.getSqlTypeName() == SqlTypeName.ARRAY) {
+      RelDataType componentType = type.getComponentType();
+      return componentType != null && componentType.getSqlTypeName() == SqlTypeName.ANY;
+    }
+    return false;
   }
 
   /**
    * Mirror of {@link #dropStructParentsFor(String, CalcitePlanContext)} for issue #5718: when an
-   * override replaced an object/nested parent column (e.g. {@code spath input=body output=log} with
-   * mapped {@code log.*} subfields), drop the stale flattened leaf columns so the replacement
-   * shadows the entire subtree. Only invoked when the replaced column was container-typed, which
-   * keeps user-created literal dotted columns under a scalar prefix untouched. No-op when no such
-   * child columns exist.
+   * override replaces a mapping-derived parent column (e.g. {@code spath input=body output=log}
+   * with mapped {@code log.*} subfields), drop the stale flattened leaf columns so the replacement
+   * shadows the entire subtree. Only invoked when the replaced column passes {@link
+   * #isMappingDerivedContainerType(RelDataType)}, which keeps user-created literal dotted columns
+   * under function-built containers or scalar prefixes untouched. No-op when no such child columns
+   * exist.
    */
   private void dropStructChildrenFor(String parentName, CalcitePlanContext context) {
     String prefix = parentName + ".";
