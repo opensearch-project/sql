@@ -9,6 +9,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_GRAPH_AIRPORTS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_GRAPH_EMPLOYEES;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_GRAPH_MULTI;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_GRAPH_TRAVELERS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -27,6 +28,7 @@ import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
@@ -59,6 +61,7 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
     loadIndex(Index.GRAPH_EMPLOYEES);
     loadIndex(Index.GRAPH_TRAVELERS);
     loadIndex(Index.GRAPH_AIRPORTS);
+    loadIndex(Index.GRAPH_MULTI);
   }
 
   /** Null-safe map helper since {@code Map.of()} rejects null values. */
@@ -438,14 +441,19 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("airport", "string"),
         schema("connects", "string"),
         schema("reachableAirports", "array"));
+    // Depth 0 reaches JFK; depth 1 reaches both BOS and ORD (every airport that JFK connects to).
+    // ORD is surfaced even though its only connection (JFK) is already visited: all-reached
+    // semantics emit every matched document, not only those with unvisited onward edges. BOS and
+    // ORD share depth 1, so their order in the collected array is shard-dependent.
     verifyDataRows(
         result,
-        rows(
+        rowsUnordered(
             "JFK",
             List.of("BOS", "ORD"),
             List.of(
                 Map.of("airport", "JFK", "connects", List.of("BOS", "ORD")),
-                Map.of("airport", "BOS", "connects", List.of("JFK", "PWM")))));
+                Map.of("airport", "BOS", "connects", List.of("JFK", "PWM")),
+                Map.of("airport", "ORD", "connects", List.of("JFK")))));
   }
 
   /** Test 7: Find airports with default depth(=0) and start value of list */
@@ -469,11 +477,12 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("reachableAirports", "array"));
     verifyDataRows(
         result,
-        rows(
+        rowsUnordered(
             "JFK",
             List.of("BOS", "ORD"),
             List.of(
-                mapOf("airport", "BOS", "connects", List.of("JFK", "PWM"), "numConnections", 0))));
+                mapOf("airport", "BOS", "connects", List.of("JFK", "PWM"), "numConnections", 0),
+                mapOf("airport", "ORD", "connects", List.of("JFK"), "numConnections", 0))));
   }
 
   /**
@@ -594,9 +603,12 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("reportsTo", "string"),
         schema("id", "int"),
         schema("connections", "array"));
+    // Bidirectional depth-0 match against Andrew reaches Andrew itself plus everyone reporting to
+    // Andrew (Ron and Dan). All three share depth 0, so the collected array order is
+    // shard-dependent; only the set and cardinality are asserted.
     verifyDataRows(
         result,
-        rows(
+        rowsUnordered(
             "Ron",
             "Andrew",
             3,
@@ -607,8 +619,10 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
   }
 
   /**
-   * Test 12: Bidirectional airport connections for ORD. Note: Currently returns empty
-   * allConnections array because the connects field is an array type.
+   * Test 12: Bidirectional airport connections for ORD. Starting from ORD.connects=[JFK], the
+   * depth-0 bidirectional match against JFK reaches JFK itself (airport=JFK), plus every airport
+   * that lists JFK among its connections (BOS and ORD). All three are returned; the collected array
+   * order is shard-dependent, so only the set and cardinality are asserted.
    */
   @Test
   public void testBidirectionalAirportConnections() throws IOException {
@@ -630,12 +644,13 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
         schema("allConnections", "array"));
     verifyDataRows(
         result,
-        rows(
+        rowsUnordered(
             "ORD",
             List.of("JFK"),
             List.of(
                 Map.of("airport", "JFK", "connects", List.of("BOS", "ORD")),
-                Map.of("airport", "BOS", "connects", List.of("JFK", "PWM")))));
+                Map.of("airport", "BOS", "connects", List.of("JFK", "PWM")),
+                Map.of("airport", "ORD", "connects", List.of("JFK")))));
   }
 
   // ==================== Filter Tests ====================
@@ -871,7 +886,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
 
     verifySchema(result, schema("reportsTo", "array"), schema("reportingHierarchy", "array"));
-    // Batch mode returns a single row; the source-rows array and the hierarchy array both come
+    // Batch mode returns a single row. Start values {Eliot, Ron} are both matched at depth 0, so
+    // Eliot is emitted even though its only manager (Ron) is itself a start value already visited;
+    // Ron then reaches Andrew at depth 1. The source-rows array and the hierarchy array both come
     // back in a shard-dependent order, so compare them as unordered multisets.
     verifyDataRows(
         result,
@@ -880,6 +897,7 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 Map.of("name", "Dev", "reportsTo", "Eliot", "id", 1),
                 Map.of("name", "Asya", "reportsTo", "Ron", "id", 5)),
             List.of(
+                mapOf("name", "Eliot", "reportsTo", "Ron", "id", 2, "depth", 0),
                 mapOf("name", "Ron", "reportsTo", "Andrew", "id", 3, "depth", 0),
                 mapOf("name", "Andrew", "reportsTo", null, "id", 4, "depth", 1))));
   }
@@ -906,9 +924,11 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 TEST_INDEX_GRAPH_TRAVELERS, TEST_INDEX_GRAPH_AIRPORTS));
 
     verifySchema(result, schema("nearestAirport", "array"), schema("reachableAirports", "array"));
-    // Batch mode returns single row with:
+    // Batch mode returns a single row with:
     // - sourceRows: [{Dev, JFK}, {Eliot, JFK}, {Jeff, BOS}]
-    // - lookupResults: airports reachable from JFK and BOS within maxDepth=1
+    // - lookupResults: every airport reachable from {JFK, BOS} within maxDepth=3. JFK and BOS are
+    //   depth 0; ORD and PWM are depth 1; LHR is depth 2. ORD and LHR are surfaced even though
+    //   their onward connections were already visited (all-reached semantics).
     verifyDataRows(
         result,
         rowsUnordered(
@@ -919,7 +939,9 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
             List.of(
                 mapOf("airport", "JFK", "connects", List.of("BOS", "ORD"), "depth", 0),
                 mapOf("airport", "BOS", "connects", List.of("JFK", "PWM"), "depth", 0),
-                mapOf("airport", "PWM", "connects", List.of("BOS", "LHR"), "depth", 1))));
+                mapOf("airport", "ORD", "connects", List.of("JFK"), "depth", 1),
+                mapOf("airport", "PWM", "connects", List.of("BOS", "LHR"), "depth", 1),
+                mapOf("airport", "LHR", "connects", List.of("PWM"), "depth", 2))));
   }
 
   /**
@@ -943,17 +965,21 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
                 TEST_INDEX_GRAPH_EMPLOYEES, TEST_INDEX_GRAPH_EMPLOYEES));
 
     verifySchema(result, schema("reportsTo", "array"), schema("connections", "array"));
-    // Batch mode returns single row with bidirectional traversal results
-    // Start from {Eliot, Andrew}, find connections in both directions
+    // Batch mode returns a single row with bidirectional traversal results. Starting from
+    // {Eliot, Andrew}, depth 0 matches Eliot (reportsTo=Ron), Dev (reports to Eliot), Andrew, and
+    // Andrew's direct reports Ron and Dan; depth 1 adds Asya (reports to Ron). Both the source-rows
+    // array and the collected connections array come back in a shard-dependent order, so compare
+    // them as unordered multisets.
     verifyDataRows(
         result,
-        rows(
+        rowsUnordered(
             List.of(
                 Map.of("name", "Dev", "reportsTo", "Eliot", "id", 1),
                 Map.of("name", "Dan", "reportsTo", "Andrew", "id", 6)),
             List.of(
                 mapOf("name", "Dev", "reportsTo", "Eliot", "id", 1, "depth", 0),
                 mapOf("name", "Eliot", "reportsTo", "Ron", "id", 2, "depth", 0),
+                mapOf("name", "Ron", "reportsTo", "Andrew", "id", 3, "depth", 0),
                 mapOf("name", "Andrew", "reportsTo", null, "id", 4, "depth", 0),
                 mapOf("name", "Dan", "reportsTo", "Andrew", "id", 6, "depth", 0),
                 mapOf("name", "Asya", "reportsTo", "Ron", "id", 5, "depth", 1))));
@@ -1010,16 +1036,18 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
 
     verifySchema(result, schema("reportingHierarchy", "array"));
     // Combined BFS from {Eliot, Andrew}:
-    // Depth 0: name IN (Eliot, Andrew) → finds Eliot (reportsTo=Ron) and Andrew (reportsTo=null)
-    // Depth 1: name IN (Ron) AND reportsTo NOT IN (Eliot, Andrew, Ron) → Ron excluded
-    //   because Ron.reportsTo=Andrew is in visited set
+    // Depth 0: name IN (Eliot, Andrew) -> Eliot (reportsTo=Ron) and Andrew (reportsTo=null).
+    // Depth 1: name IN (Ron) -> Ron (reportsTo=Andrew). Ron is emitted even though its manager
+    //   Andrew was already visited at depth 0: all-reached semantics surface every matched node,
+    //   and Andrew being visited only stops further traversal, not Ron's emission.
     verifyDataRows(
         result,
         rowsUnordered(
             (Object)
                 List.of(
                     Map.of("name", "Eliot", "reportsTo", "Ron", "id", 2),
-                    mapOf("name", "Andrew", "reportsTo", null, "id", 4))));
+                    mapOf("name", "Andrew", "reportsTo", null, "id", 4),
+                    Map.of("name", "Ron", "reportsTo", "Andrew", "id", 3))));
   }
 
   /** Test 22: Top-level graphLookup with maxDepth. */
@@ -1080,5 +1108,208 @@ public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
 
     verifySchema(result, schema("reportingHierarchy", "array"));
     verifyDataRows(result, rows((Object) Collections.emptyList()));
+  }
+
+  // ==================== Adversarial / Order-Independence Tests ====================
+
+  /**
+   * Adversarial (converging paths): two start nodes whose reporting chains converge on the same
+   * manager. Eliot and Asya both report to Ron, so Ron is reached from two distinct depth-0 nodes
+   * in the same level. Ron must be emitted exactly once, at the shallowest depth, independent of
+   * the order rows are returned by the shard(s).
+   */
+  @Test
+  public void testConvergingPathsEmitSharedNodeOnce() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "graphLookup %s"
+                    + " start='Eliot', 'Asya'"
+                    + " edge=reportsTo-->name"
+                    + " depthField=level"
+                    + " maxDepth=5"
+                    + " as reportingHierarchy",
+                TEST_INDEX_GRAPH_EMPLOYEES));
+
+    verifySchema(result, schema("reportingHierarchy", "array"));
+    verifyDataRows(
+        result,
+        rowsUnordered(
+            (Object)
+                List.of(
+                    mapOf("name", "Eliot", "reportsTo", "Ron", "id", 2, "level", 0),
+                    mapOf("name", "Asya", "reportsTo", "Ron", "id", 5, "level", 0),
+                    mapOf("name", "Ron", "reportsTo", "Andrew", "id", 3, "level", 1),
+                    mapOf("name", "Andrew", "reportsTo", null, "id", 4, "level", 2))));
+  }
+
+  /**
+   * Adversarial (cycles / duplicate inbound edges): the airport graph is cyclic
+   * (JFK-&gt;BOS-&gt;JFK, JFK-&gt;ORD-&gt;JFK, BOS-&gt;PWM-&gt;BOS, ...) and multiple airports list
+   * JFK as a connection (duplicate inbound edges). The visited-node set guarantees the BFS
+   * terminates, visits each node once, and assigns the shallowest depth. Under all-reached
+   * semantics every reachable airport is surfaced exactly once at its minimum depth, including ORD
+   * (depth 1) and LHR (depth 3) whose only onward connections point back to already-visited nodes.
+   * The result set and per-node depths are fully deterministic across shard counts; only the order
+   * within the collected array varies.
+   */
+  @Test
+  public void testCyclicAirportTraversalTerminates() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "graphLookup %s"
+                    + " start='JFK'"
+                    + " edge=connects-->airport"
+                    + " supportArray=true"
+                    + " depthField=depth"
+                    + " maxDepth=5"
+                    + " as reachable",
+                TEST_INDEX_GRAPH_AIRPORTS));
+
+    verifySchema(result, schema("reachable", "array"));
+    verifyDataRows(
+        result,
+        rowsUnordered(
+            (Object)
+                List.of(
+                    mapOf("airport", "JFK", "connects", List.of("BOS", "ORD"), "depth", 0),
+                    mapOf("airport", "BOS", "connects", List.of("JFK", "PWM"), "depth", 1),
+                    mapOf("airport", "ORD", "connects", List.of("JFK"), "depth", 1),
+                    mapOf("airport", "PWM", "connects", List.of("BOS", "LHR"), "depth", 2),
+                    mapOf("airport", "LHR", "connects", List.of("PWM"), "depth", 3))));
+  }
+
+  // ==================== Document-Identity Regression Tests ====================
+
+  /**
+   * Decisive (document identity vs traversal key): two distinct documents (id 1 and id 2) share the
+   * same connectTo value {@code name=X} but differ in {@code tag}. Both must be emitted. Keying the
+   * result set on the connectTo value alone would collapse them into one; deduplicating by document
+   * content keeps them separate. The shared manager {@code top} is reached once at depth 1.
+   */
+  @Test
+  public void testDistinctDocsSharingConnectToValueBothEmitted() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "graphLookup %s"
+                    + " start='X'"
+                    + " edge=mgr-->name"
+                    + " maxDepth=5"
+                    + " as reachable",
+                TEST_INDEX_GRAPH_MULTI));
+
+    verifySchema(result, schema("reachable", "array"));
+    verifyDataRows(
+        result,
+        rowsUnordered(
+            (Object)
+                List.of(
+                    mapOf("name", "X", "mgr", "top", "tag", "a"),
+                    mapOf("name", "X", "mgr", "top", "tag", "b"),
+                    mapOf("name", "top", "mgr", null, "tag", "c"))));
+  }
+
+  /**
+   * Decisive (all-reached): a node whose only onward neighbor was visited in a strictly earlier
+   * level must still be emitted. Starting from JFK, ORD is reached at depth 1 but its single
+   * connection (JFK) was already visited at depth 0. ORD must appear; emission depends only on the
+   * node being matched, never on whether it has an unvisited onward edge.
+   */
+  @Test
+  public void testReachedNodeWithOnlyVisitedOnwardStillEmitted() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "graphLookup %s"
+                    + " start='JFK'"
+                    + " edge=connects-->airport"
+                    + " supportArray=true"
+                    + " depthField=depth"
+                    + " maxDepth=1"
+                    + " as reachable",
+                TEST_INDEX_GRAPH_AIRPORTS));
+
+    verifySchema(result, schema("reachable", "array"));
+    verifyDataRows(
+        result,
+        rowsUnordered(
+            (Object)
+                List.of(
+                    mapOf("airport", "JFK", "connects", List.of("BOS", "ORD"), "depth", 0),
+                    mapOf("airport", "BOS", "connects", List.of("JFK", "PWM"), "depth", 1),
+                    mapOf("airport", "ORD", "connects", List.of("JFK"), "depth", 1))));
+  }
+
+  /**
+   * Decisive (minimum depth on rediscovery): Q is reachable from S both directly (S-&gt;Q, length
+   * 1) and through A (S-&gt;A-&gt;Q, length 2). Q must be emitted exactly once, at its shallowest
+   * depth (1), regardless of the order the shard(s) surface the two paths. The direct edge puts Q
+   * in the depth-0 frontier, so it is matched at depth 1 and never re-emitted at depth 2.
+   */
+  @Test
+  public void testRediscoveredNodeEmittedOnceAtMinDepth() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "graphLookup %s"
+                    + " start='S'"
+                    + " edge=mgr-->name"
+                    + " supportArray=true"
+                    + " depthField=level"
+                    + " maxDepth=5"
+                    + " as reachable",
+                TEST_INDEX_GRAPH_MULTI));
+
+    verifySchema(result, schema("reachable", "array"));
+    verifyDataRows(
+        result,
+        rowsUnordered(
+            (Object)
+                List.of(
+                    mapOf("name", "S", "mgr", List.of("A", "Q"), "tag", null, "level", 0),
+                    mapOf("name", "A", "mgr", List.of("Q"), "tag", null, "level", 1),
+                    mapOf("name", "Q", "mgr", null, "tag", "q", "level", 1))));
+  }
+
+  /**
+   * Escape-hatch regression (currently failing by design): two documents (id 4 and id 5) are
+   * byte-for-byte identical in every projected column but are distinct OpenSearch documents
+   * (different {@code _id}). MongoDB $graphLookup would emit both, deduplicated by {@code _id}.
+   *
+   * <p>The current implementation deduplicates by a structural key over the projected columns, so
+   * these two collapse to a single result. Fully honoring document identity requires projecting the
+   * OpenSearch {@code _id} into the internal lookup scan and stripping it from the user-visible
+   * output — a cross-layer change spanning {@code GraphLookup#deriveRowType} (core rel), {@code
+   * EnumerableGraphLookupRule} (planner rule, to force {@code _id} into the projection so it is not
+   * suppressed by a project push-down), and the enumerator (read {@code _id}, dedup on it, drop the
+   * column before emitting). This test is retained, ignored, as the executable specification of
+   * that fix; remove {@code @Ignore} once {@code _id} projection lands.
+   */
+  @Ignore(
+      "Requires projecting OpenSearch _id as document identity; structural full-row key collapses"
+          + " byte-identical duplicate documents. Tracked as the _id-projection follow-up.")
+  @Test
+  public void testIdenticalDuplicateDocsRequireIdIdentity() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "graphLookup %s"
+                    + " start='Y'"
+                    + " edge=mgr-->name"
+                    + " maxDepth=5"
+                    + " as reachable",
+                TEST_INDEX_GRAPH_MULTI));
+
+    verifySchema(result, schema("reachable", "array"));
+    // Both identical documents must be present: two entries, not one.
+    verifyDataRows(
+        result,
+        rowsUnordered(
+            (Object)
+                List.of(
+                    mapOf("name", "Y", "mgr", null, "tag", "z"),
+                    mapOf("name", "Y", "mgr", null, "tag", "z"))));
   }
 }
