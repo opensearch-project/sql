@@ -132,8 +132,13 @@ public class NestedIT extends SQLIntegTestCase {
 
   @Test
   public void nested_all_function_with_limit_test() {
+    // Add a strict, unique total order before LIMIT so the 3 returned rows are deterministic
+    // across shard counts. (message.info, myNum) is unique over the dataset and yields the same
+    // first three docs the test already asserts. The nested projection itself is unchanged.
     String query =
-        "SELECT nested(message.*) FROM " + TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS + " LIMIT 3";
+        "SELECT nested(message.*) FROM "
+            + TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS
+            + " ORDER BY nested(message.info, message), myNum LIMIT 3";
     JSONObject result = executeJdbcRequest(query);
     verifyDataRows(result, rows("e", 1, "a"), rows("f", 2, "b"), rows("g", 1, "c"));
   }

@@ -7,7 +7,6 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.Capability.COALESCE_ALL_NULL_OPERANDS;
-import static org.opensearch.sql.util.Capability.HEAD_WITHOUT_STABLE_SORT;
 import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
@@ -39,13 +38,12 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
   }
 
   @Test
-  @RequiresCapability(HEAD_WITHOUT_STABLE_SORT)
   public void testCoalesceBasic() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval result = coalesce(name, age, 0) | fields name, age, result |"
-                    + " head 3",
+                "source=%s | eval result = coalesce(name, age, 0) | sort - age | fields name, age,"
+                    + " result | head 3",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchema(
@@ -55,13 +53,12 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
   }
 
   @Test
-  @RequiresCapability(HEAD_WITHOUT_STABLE_SORT)
   public void testCoalesceWithMixedTypes() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
                 "source=%s | eval result = coalesce(name, age, 'fallback') |"
-                    + " fields name, age, result | head 3",
+                    + " sort - age | fields name, age, result | head 3",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchema(
@@ -170,8 +167,8 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval result = coalesce(field1, field2, field3) | fields name, result |"
-                    + " head 1",
+                "source=%s | eval result = coalesce(field1, field2, field3) | sort - age | fields"
+                    + " name, result | head 1",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     // When every COALESCE operand is missing/null, the result has no known type (see #5175).

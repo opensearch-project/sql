@@ -46,7 +46,7 @@ public class CalciteComplexPoolIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | parse address '(?<number>\\\\d+) (?<street>.*)'"
-                    + " | fields number, street | head 1",
+                    + " | sort account_number | fields number, street | head 1",
                 TEST_INDEX_BANK));
 
     verifyDataRows(result, rows("880", "Holmes Lane"));

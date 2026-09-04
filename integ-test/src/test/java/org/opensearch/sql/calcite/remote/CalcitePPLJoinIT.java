@@ -15,6 +15,7 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsSome;
 import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
@@ -898,13 +899,20 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | join type=inner max=1 name,year,month %s | fields name, country",
                 TEST_INDEX_STATE_COUNTRY, TEST_INDEX_OCCUPATION));
-    verifyDataRows(
+    // max=1 keeps a single OCCUPATION match per left row, and the co-named country column resolves
+    // to the OCCUPATION (right) side (see Jake -> England). David has two OCCUPATION rows that are
+    // identical on the join field list (name=David, year=2023, month=4) and differ only in the
+    // projected country (USA from the Doctor row, Canada from the Unemployed row), so which one
+    // survives max=1 is undefined and cannot be disambiguated by any ordering. Assert the four
+    // deterministic rows and that max=1 collapses David's two matches to a single row (total of 5,
+    // not 6); do not pin David's undefined country.
+    verifyNumOfRows(actual2, 5);
+    verifyDataRowsSome(
         actual2,
         rows("Jake", "England"),
         rows("Jane", "Canada"),
         rows("John", "Canada"),
-        rows("Hello", "USA"),
-        rows("David", "USA"));
+        rows("Hello", "USA"));
   }
 
   @Test
@@ -946,13 +954,20 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
           } catch (IOException e) {
             fail();
           }
-          verifyDataRows(
+          // max=1 keeps a single OCCUPATION match per left row, and the co-named country column
+          // resolves to the OCCUPATION (right) side. David has two OCCUPATION rows identical on the
+          // join field list (name=David, year=2023, month=4) that differ only in the projected
+          // country (USA/Canada), so which one survives max=1 is undefined and cannot be
+          // disambiguated by any ordering. Assert the four deterministic rows and that max=1
+          // collapses David's two matches to a single row (total of 5, not 6); do not pin David's
+          // undefined country.
+          verifyNumOfRows(actual2, 5);
+          verifyDataRowsSome(
               actual2,
               rows("Jake", "England"),
               rows("Jane", "Canada"),
               rows("John", "Canada"),
-              rows("Hello", "USA"),
-              rows("David", "USA"));
+              rows("Hello", "USA"));
         });
   }
 

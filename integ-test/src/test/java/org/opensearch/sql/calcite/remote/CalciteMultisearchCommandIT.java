@@ -129,9 +129,10 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "| multisearch [search source=%s | where gender = \\\"M\\\" | fields"
-                    + " firstname, lastname, balance] [search source=%s | where gender = \\\"F\\\""
-                    + " | fields firstname, lastname, balance] | head 5",
+                "| multisearch [search source=%s | where gender = \\\"M\\\" and account_number in"
+                    + " (1, 6, 18) | fields firstname, lastname, balance] [search source=%s | where"
+                    + " gender = \\\"F\\\" and account_number in (13, 25) | fields firstname,"
+                    + " lastname, balance]",
                 TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT));
 
     verifySchema(
@@ -145,8 +146,8 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
         rows("Amber", "Duke", 39225L),
         rows("Hattie", "Bond", 5686L),
         rows("Dale", "Adams", 4180L),
-        rows("Elinor", "Ratliff", 16418L),
-        rows("Mcgee", "Mooney", 18612L));
+        rows("Nanette", "Bates", 32838L),
+        rows("Virginia", "Ayala", 40540L));
   }
 
   @Test
