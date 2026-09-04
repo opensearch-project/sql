@@ -834,11 +834,22 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   @Test
   @RequiresCapability(DOC_MUTATION)
   public void testStreamstatsResetWithNullBucket() throws IOException {
+    // See testStreamstatsResetWithNull: reset_before/reset_after streamstats builds a
+    // self-correlated plan whose segment id and sliding window frame are both defined over a global
+    // ROW_NUMBER() sequence. That sequence follows the raw scan (encounter) order, which is
+    // non-deterministic across shards, and the reset plan cannot be combined with an upstream
+    // `sort` (planner IndexOutOfBounds), so the seq-sort trick used by the other WithNull tests is
+    // unavailable here. Driving the single-shard fixture makes the encounter order the insertion
+    // order on any run, reproducing the original single-shard behavior. Jay is PUT as the last
+    // document (docId 7), matching the original trailing-encounter position. Expected rows are
+    // unchanged.
     final int docId = 7;
     Request insertRequest =
         new Request(
             "PUT",
-            String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY_WITH_NULL, docId));
+            String.format(
+                "/%s/_doc/%d?refresh=true",
+                TEST_INDEX_STATE_COUNTRY_WITH_NULL_SINGLE_SHARD, docId));
     insertRequest.setJsonEntity(
         "{\"name\": \"Jay\",\"age\": 28,\"state\":"
             + " \"Quebec\",\"country\": \"USA\",\"year\": 2023,\"month\":"
@@ -851,7 +862,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
                   "source=%s | streamstats bucket_nullable=true window=2 reset_before=age>29"
                       + " avg(age) as avg by state | fields name, country, state, month, year,"
                       + " age, avg",
-                  TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+                  TEST_INDEX_STATE_COUNTRY_WITH_NULL_SINGLE_SHARD));
 
       verifyDataRows(
           actual,
@@ -869,7 +880,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
                   "source=%s | streamstats bucket_nullable=false window=2 reset_after=age>22"
                       + " avg(age) as avg by state | fields name, country, state, month, year,"
                       + " age, avg",
-                  TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+                  TEST_INDEX_STATE_COUNTRY_WITH_NULL_SINGLE_SHARD));
 
       verifyDataRows(
           actual2,
@@ -884,7 +895,9 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
       Request deleteRequest =
           new Request(
               "DELETE",
-              String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY_WITH_NULL, docId));
+              String.format(
+                  "/%s/_doc/%d?refresh=true",
+                  TEST_INDEX_STATE_COUNTRY_WITH_NULL_SINGLE_SHARD, docId));
       client().performRequest(deleteRequest);
     }
   }
