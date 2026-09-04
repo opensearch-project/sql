@@ -6,7 +6,7 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY_SINGLE_SHARD;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TIME_DATA;
 import static org.opensearch.sql.util.Capability.WILDCARD_COLUMN_ORDER;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -31,8 +31,20 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
     loadIndex(Index.BANK);
     loadIndex(Index.TIME_TEST_DATA);
     loadIndex(Index.STATE_COUNTRY);
+    loadIndex(Index.STATE_COUNTRY_SINGLE_SHARD);
     loadIndex(Index.EVENTS);
   }
+
+  // See CalciteStreamstatsCommandIT: streamstats runs over the input stream in encounter order,
+  // which is non-deterministic on a multi-shard index. A deterministic in-memory makeresults
+  // stream (mirroring STATE_COUNTRY in the column order the index presents) keeps the streamstats
+  // values -- and therefore reverse's behavior over them -- stable across shard layouts.
+  private static final String SC =
+      "name:string,country:string,state:string,month:int,year:int,age:int\\n"
+          + "Jake,USA,California,4,2023,70\\n"
+          + "Hello,USA,New York,4,2023,30\\n"
+          + "John,Canada,Ontario,4,2023,25\\n"
+          + "Jane,Canada,Quebec,4,2023,20";
 
   @Test
   public void testReverse() throws IOException {
@@ -182,15 +194,18 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testReverseIgnoredWithoutSortOrTimestamp() throws IOException {
-    // Test that reverse is ignored when there's no explicit sort and no @timestamp field
-    // BANK index doesn't have @timestamp, so reverse should be ignored
+    // Purpose: reverse is a plan-level no-op when there is no explicit sort and no @timestamp
+    // field. This is value/plan semantics, not index-route behavior, and a real index makes
+    // `head 3` without a sort non-deterministic across shards. A coordinator-only makeresults
+    // stream has no @timestamp and no sort, so reverse is ignored and the rows stay in stream
+    // (insertion) order, exercising the same reverse-elimination path deterministically.
     JSONObject result =
         executeQuery(
-            String.format("source=%s | fields account_number | reverse | head 3", TEST_INDEX_BANK));
-    verifySchema(result, schema("account_number", "bigint"));
-    // Without sort or @timestamp, reverse is ignored, so data comes in natural order
-    // The first 3 documents in natural order (ascending by account_number)
-    verifyDataRowsInOrder(result, rows(1), rows(6), rows(13));
+            String.format("makeresults format=csv data='%s' | fields age | reverse | head 3", SC));
+    verifySchema(result, schema("age", "int"));
+    // Without sort or @timestamp, reverse is ignored, so the rows stay in natural (stream) order:
+    // the first 3 rows of the stream. If reverse were honored, this would be 20, 25, 30.
+    verifyDataRowsInOrder(result, rows(70), rows(30), rows(25));
   }
 
   @Test
@@ -240,12 +255,16 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
   public void testStreamstatsWithReverse() throws IOException {
     // Test that reverse is ignored when used directly after streamstats
     // streamstats maintains order via __stream_seq__, but this field is projected out
-    // and doesn't create a detectable collation, so reverse is ignored (no-op)
+    // and doesn't create a detectable collation, so reverse is ignored (no-op).
+    // The no-op depends on there being NO upstream sort, so we cannot use `sort seq` to make the
+    // encounter order deterministic here (a sort would change the behavior under test). Instead the
+    // fixture pins number_of_shards=1, so the encounter order is the deterministic insertion order
+    // on the index route without adding a sort. Values are unchanged from the shared fixture.
     JSONObject result =
         executeQuery(
             String.format(
                 "source=%s | streamstats count() as cnt, avg(age) as avg | reverse",
-                TEST_INDEX_STATE_COUNTRY));
+                TEST_INDEX_STATE_COUNTRY_SINGLE_SHARD));
     verifySchema(
         result,
         schema("name", "string"),
@@ -272,12 +291,14 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
           "streamstats carries all source columns through; the AE route returns them in a different"
               + " order (WILDCARD_COLUMN_ORDER).")
   public void testStreamstatsWindowWithReverse() throws IOException {
-    // Test that reverse is ignored after streamstats with window
+    // Test that reverse is ignored after streamstats with window.
+    // Same rationale as testStreamstatsWithReverse: the no-op precludes an upstream sort, so the
+    // fixture pins number_of_shards=1 to get a deterministic encounter order on the index route.
     JSONObject result =
         executeQuery(
             String.format(
                 "source=%s | streamstats window=2 avg(age) as avg | reverse",
-                TEST_INDEX_STATE_COUNTRY));
+                TEST_INDEX_STATE_COUNTRY_SINGLE_SHARD));
     verifySchema(
         result,
         schema("name", "string"),
@@ -309,8 +330,9 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | streamstats count() as cnt, avg(age) as avg by country | reverse",
-                TEST_INDEX_STATE_COUNTRY));
+                "makeresults format=csv data='%s' | streamstats count() as cnt, avg(age) as avg by"
+                    + " country | reverse",
+                SC));
     verifySchema(
         result,
         schema("name", "string"),
@@ -342,8 +364,9 @@ public class CalciteReverseCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | streamstats count() as cnt | sort age | reverse | head 3",
-                TEST_INDEX_STATE_COUNTRY));
+                "makeresults format=csv data='%s' | streamstats count() as cnt | sort age | reverse"
+                    + " | head 3",
+                SC));
     verifySchema(
         result,
         schema("name", "string"),
