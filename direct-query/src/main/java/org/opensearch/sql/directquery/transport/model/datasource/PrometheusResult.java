@@ -7,7 +7,6 @@ package org.opensearch.sql.directquery.transport.model.datasource;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonTypeName;
 import java.util.List;
 import java.util.Map;
 import lombok.Getter;
@@ -21,7 +20,6 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-@JsonTypeName("prometheus")
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PrometheusResult implements DataSourceResult {
 
