@@ -142,6 +142,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
       case NULL:
         return rexBuilder.makeNullLiteral(typeFactory.createSqlType(SqlTypeName.NULL));
       case STRING:
+        // saffron.properties sets calcite.default.charset=UTF-8 so non-ASCII characters
+        // (e.g. Chinese, Arabic) are accepted and literal types stay compatible with column types.
         RexNode foreachTemplate = foreachTemplateLiteral(value.toString(), context);
         if (foreachTemplate != null) {
           return foreachTemplate;
