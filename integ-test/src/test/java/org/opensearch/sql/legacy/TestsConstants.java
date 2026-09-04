@@ -113,6 +113,7 @@ public class TestsConstants {
   public static final String TEST_INDEX_GRAPH_EMPLOYEES = TEST_INDEX + "_graph_employees";
   public static final String TEST_INDEX_GRAPH_TRAVELERS = TEST_INDEX + "_graph_travelers";
   public static final String TEST_INDEX_GRAPH_AIRPORTS = TEST_INDEX + "_graph_airports";
+  public static final String TEST_INDEX_GRAPH_MULTI = TEST_INDEX + "_graph_multi";
   public static final String TEST_INDEX_MERGE_TEST_1 = TEST_INDEX + "_merge_test_1";
   public static final String TEST_INDEX_MERGE_TEST_2 = TEST_INDEX + "_merge_test_2";
   public static final String TEST_INDEX_MERGE_TEST_WILDCARD = TEST_INDEX + "_merge_test_*";

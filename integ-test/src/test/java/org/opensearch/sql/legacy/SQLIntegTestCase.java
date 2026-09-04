@@ -918,6 +918,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "graph_airports",
         getGraphAirportsIndexMapping(),
         "src/test/resources/graph_airports.json"),
+    GRAPH_MULTI(
+        TestsConstants.TEST_INDEX_GRAPH_MULTI,
+        "graph_multi",
+        getGraphMultiIndexMapping(),
+        "src/test/resources/graph_multi.json"),
     TPCH_ORDERS(
         "orders",
         "tpch",
