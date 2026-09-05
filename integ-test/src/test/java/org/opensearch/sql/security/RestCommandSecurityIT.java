@@ -13,6 +13,7 @@ import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.legacy.TestUtils;
+import org.opensearch.sql.util.ClusterPlugins;
 
 /**
  * Integration tests that the rest command is subject to the security plugin fine grained access
@@ -32,6 +33,10 @@ public class RestCommandSecurityIT extends SecurityTestBase {
 
   @Override
   protected void init() throws Exception {
+    ClusterPlugins.requirePluginOrAssume(
+        client(),
+        ClusterPlugins.SECURITY_PLUGIN,
+        "opensearch-security plugin not installed on test cluster; skipping FGAC tests");
     super.init();
     setupRolesAndUsers();
     enableCalcite();

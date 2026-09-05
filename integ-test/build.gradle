@@ -691,6 +691,13 @@ task integTestWithSecurity(type: RestIntegTestTask) {
     useCluster testClusters.integTestWithSecurity
     useCluster testClusters.remoteIntegTestWithSecurity
 
+    // This task provisions the security plugin and a remote cluster, so their absence is a real
+    // breakage: mark both required so the security and cross-cluster ITs fail loudly instead of
+    // skipping. These properties are scoped to this task's test JVM and are intentionally NOT set
+    // on integTestRemote.
+    systemProperty 'tests.required.plugins', 'opensearch-security'
+    systemProperty 'tests.required.remote.cluster', 'true'
+
     systemProperty "cluster.names",
         getClusters().stream().map(cluster -> cluster.getName()).collect(Collectors.joining(","))
 
@@ -755,6 +762,12 @@ yamlRestTest {
 // Run PPL ITs and new, legacy and comparison SQL ITs with new SQL engine enabled
 integTest {
     useCluster testClusters.remoteCluster
+
+    // This task's cluster bundles the geospatial plugin (see testClusters.integTest above), so a
+    // missing geospatial plugin here is a real breakage, not an environment gap: mark it required
+    // so GeoIpFunctionsIT fails loudly instead of silently skipping. NOT set on integTestRemote,
+    // whose external cluster legitimately may not bundle geospatial.
+    systemProperty 'tests.required.plugins', 'opensearch-geospatial'
 
     // Set properties for connection to clusters and between clusters
     doFirst {
@@ -903,6 +916,11 @@ task tracingIntegTest(type: RestIntegTestTask) {
     useCluster testClusters.tracingIntegTest
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
     dependsOn downloadTelemetryOtel
+
+    // This task's cluster bundles telemetry-otel (see testClusters.tracingIntegTest above), so a
+    // missing plugin is a real breakage: mark it required so PPLTracingIT fails loudly instead of
+    // skipping. NOT set on integTestRemote.
+    systemProperty 'tests.required.plugins', 'telemetry-otel'
 
     systemProperty 'tests.security.manager', 'false'
     systemProperty 'project.root', project.projectDir.absolutePath
