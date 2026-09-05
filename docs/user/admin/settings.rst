@@ -1024,8 +1024,35 @@ You can enable Calcite as new query optimizer and execution engine to all coming
 3. This setting is node scope.
 4. This setting can be updated dynamically.
 
-Check `introduce v3 engine <../../../dev/intro-v3-engine.md>`_ for more details.
-Check `join doc <../../ppl/cmd/join.rst>`_ for example.
+Check `introduce v3 engine <../../dev/intro-v3-engine.md>`_ for more details.
+Check `join doc <../ppl/cmd/join.md>`_ for example.
+
+Example
+-------
+
+You can update the setting with a new value like this.
+
+SQL query::
+
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	  "transient" : {
+	    "plugins.calcite.enabled" : "true"
+	  }
+	}'
+
+Result set::
+
+	{
+	  "acknowledged" : true,
+	  "persistent" : { },
+	  "transient" : {
+	    "plugins" : {
+	      "calcite" : {
+	        "enabled" : "true"
+	      }
+	    }
+	  }
+	}
 
 plugins.calcite.fallback.allowed
 ================================
@@ -1043,6 +1070,35 @@ If Calcite is enabled, you can use this setting to decide whether to allow fallb
 2. This setting is node scope.
 3. This setting can be updated dynamically.
 
+Example
+-------
+
+You can update the setting with a new value like this.
+
+SQL query::
+
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	  "transient" : {
+	    "plugins.calcite.fallback.allowed" : "true"
+	  }
+	}'
+
+Result set::
+
+	{
+	  "acknowledged" : true,
+	  "persistent" : { },
+	  "transient" : {
+	    "plugins" : {
+	      "calcite" : {
+	        "fallback" : {
+	          "allowed" : "true"
+	        }
+	      }
+	    }
+	  }
+	}
+
 plugins.calcite.pushdown.enabled
 ================================
 
@@ -1058,6 +1114,35 @@ If Calcite is enabled, you can use this setting to decide whether to enable the 
 1. The default value is true since 3.0.0.
 2. This setting is node scope.
 3. This setting can be updated dynamically.
+
+Example
+-------
+
+You can update the setting with a new value like this.
+
+SQL query::
+
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	  "transient" : {
+	    "plugins.calcite.pushdown.enabled" : "false"
+	  }
+	}'
+
+Result set::
+
+	{
+	  "acknowledged" : true,
+	  "persistent" : { },
+	  "transient" : {
+	    "plugins" : {
+	      "calcite" : {
+	        "pushdown" : {
+	          "enabled" : "false"
+	        }
+	      }
+	    }
+	  }
+	}
 
 plugins.calcite.pushdown.rowcount.estimation.factor
 ===================================================
@@ -1075,6 +1160,39 @@ If Calcite pushdown optimization is enabled, this setting is used to estimate th
 2. This setting is node scope.
 3. This setting can be updated dynamically.
 
+Example
+-------
+
+You can update the setting with a new value like this.
+
+SQL query::
+
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	  "transient" : {
+	    "plugins.calcite.pushdown.rowcount.estimation.factor" : "0.5"
+	  }
+	}'
+
+Result set::
+
+	{
+	  "acknowledged" : true,
+	  "persistent" : { },
+	  "transient" : {
+	    "plugins" : {
+	      "calcite" : {
+	        "pushdown" : {
+	          "rowcount" : {
+	            "estimation" : {
+	              "factor" : "0.5"
+	            }
+	          }
+	        }
+	      }
+	    }
+	  }
+	}
+
 plugins.calcite.all_join_types.allowed
 ======================================
 
@@ -1090,3 +1208,32 @@ Join types ``inner``, ``left``, ``outer`` (alias of ``left``), ``semi`` and ``an
 1. The default value is false since 3.3.0.
 2. This setting is node scope.
 3. This setting can be updated dynamically.
+
+Example
+-------
+
+You can update the setting with a new value like this.
+
+SQL query::
+
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	  "transient" : {
+	    "plugins.calcite.all_join_types.allowed" : "true"
+	  }
+	}'
+
+Result set::
+
+	{
+	  "acknowledged" : true,
+	  "persistent" : { },
+	  "transient" : {
+	    "plugins" : {
+	      "calcite" : {
+	        "all_join_types" : {
+	          "allowed" : "true"
+	        }
+	      }
+	    }
+	  }
+	}
