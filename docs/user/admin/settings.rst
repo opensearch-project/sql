@@ -214,9 +214,14 @@ Version
 Description
 -----------
 
-Prunes a wildcard index expression down to the concrete indices that can hold data in the query's ``@timestamp`` range, so fewer indices and shards are touched. The primary use currently is to avoid exhausting the open point-in-time (PIT) context limit when a query would otherwise open a reader context over many indices. Enabled by default.
+Prunes a wildcard index expression down to the concrete indices that can hold data in the query's time range, so fewer indices and shards are touched. The primary use currently is to avoid exhausting the open point-in-time (PIT) context limit when a query would otherwise open a reader context over many indices. Enabled by default.
 
-Pruning only applies to a wildcard expression whose query filters on a ``@timestamp`` range; anything else is left untouched, and any failure while probing the cluster falls back to querying the full expression. Weigh these limitations before turning it off:
+There are two ways the range can reach the pruner:
+
+1. From the filter pushed down to the search, which must be a range on ``@timestamp``. This runs when the search request is built, after the index expression has been resolved, so it reduces the shards read and the PIT but not the mapping merge.
+2. From the ``start_time``/``end_time`` request parameters (see below), which run while the table is still being resolved, before the expression is expanded. This reduces the mapping merge as well, so a field the out-of-range indices map differently no longer contributes a conflict. Specific to the Calcite engine; the parameters are accepted and ignored otherwise.
+
+Anything else is left untouched, and any failure while probing the cluster falls back to querying the full expression. Weigh these limitations before turning it off:
 
 1. An index whose shards are all unavailable is pruned rather than reported, because ``_field_caps`` does not surface per-index failures. Such a query returns fewer rows instead of an error.
 2. Pruning fixes the list of index names, so an index created or deleted between pruning and PIT creation, by a rollover or retention policy for instance, is missed or fails the query. The interval between the two is short, so this is unlikely in practice.
@@ -224,6 +229,22 @@ Pruning only applies to a wildcard expression whose query filters on a ``@timest
 4. Pruning probes the cluster with the ``indices:admin/resolve/index`` and ``indices:data/read/field_caps*`` actions, both granted by the ``ppl_full_access`` role of the security plugin since 3.9. A principal lacking either permission falls back to querying the full expression silently, so pruning simply never takes effect.
 
 Pruning is also skipped when it would not reduce the read, that is when no index is excluded. The query then uses the original wildcard expression and reads exactly the same indices.
+
+Request-level time bounds
+-------------------------
+
+``start_time`` and ``end_time`` declare the window the request is asking about, so the engine has it before it resolves the queried index expression. They are inclusive, and accept OpenSearch date math (``now-7d``) and absolute timestamps alike; the bounds are handed to the probe as sent, so the index's own date parser reads them and there is no second interpretation that could exclude an index the caller wanted. ``time_field`` names the field they constrain, defaulting to ``@timestamp`` -- a caller whose index pattern is configured on another field has to say so, or nothing is pruned. Bounds that cannot be used are ignored rather than failing the query.
+
+Their scope is the whole request: every source the query reads is narrowed, subsearches included, as with Splunk's time range picker and OpenSearch SQL's own PPL ``earliest``/``latest`` at request level. They do not filter -- any predicate the caller wants belongs in the query text -- so a request is answered identically whether or not the engine acts on them. A source whose ``time_field`` is not a date excludes itself, since the probe reports the field's type.
+
+Request body::
+
+    {
+      "query" : "source=logs-* | stats count() by span(@timestamp, 1h)",
+      "time_field" : "@timestamp",
+      "start_time" : "now-7d",
+      "end_time" : "now"
+    }
 
 Disable it with::
 

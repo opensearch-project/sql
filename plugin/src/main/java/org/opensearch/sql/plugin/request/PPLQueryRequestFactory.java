@@ -34,6 +34,7 @@ public class PPLQueryRequestFactory {
   private static final String QUERY_PARAMS_FETCH_SIZE = "fetch_size";
   private static final String QUERY_PARAMS_INCLUDE_METADATA = "include_metadata";
   private static final String QUERY_PARAMS_PARTIAL_RESULT = "partial_result";
+  private static final String[] QUERY_PARAMS_TIME_BOUNDS = {"start_time", "end_time", "time_field"};
 
   /**
    * Build {@link PPLQueryRequest} from {@link RestRequest}.
@@ -101,6 +102,13 @@ public class PPLQueryRequestFactory {
         } catch (NumberFormatException e) {
           throw new IllegalArgumentException(
               "Invalid fetch_size parameter: must be a valid integer", e);
+        }
+      }
+      // Support the time-bound parameters as URL parameters if not already in the JSON body, so a
+      // GET-shaped caller can declare them too. Values are opaque here; the engine parses them.
+      for (String param : QUERY_PARAMS_TIME_BOUNDS) {
+        if (!jsonContent.has(param) && restRequest.params().containsKey(param)) {
+          jsonContent.put(param, restRequest.params().get(param));
         }
       }
       // Support include_metadata as a URL parameter if not already in the JSON body

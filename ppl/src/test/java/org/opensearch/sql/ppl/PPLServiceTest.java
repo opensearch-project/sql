@@ -102,12 +102,12 @@ public class PPLServiceTest {
   public void testExecuteShouldPass() {
     doAnswer(
             invocation -> {
-              ResponseListener<QueryResponse> listener = invocation.getArgument(4);
+              ResponseListener<QueryResponse> listener = invocation.getArgument(5);
               listener.onResponse(new QueryResponse(schema, Collections.emptyList(), Cursor.None));
               return null;
             })
         .when(queryService)
-        .execute(any(), any(), any(), anyBoolean(), any());
+        .execute(any(), any(), any(), anyBoolean(), any(), any());
 
     pplService.execute(
         new PPLQueryRequest("search source=t a=1", null, QUERY),
@@ -119,12 +119,12 @@ public class PPLServiceTest {
   public void testExecuteCsvFormatShouldPass() {
     doAnswer(
             invocation -> {
-              ResponseListener<QueryResponse> listener = invocation.getArgument(4);
+              ResponseListener<QueryResponse> listener = invocation.getArgument(5);
               listener.onResponse(new QueryResponse(schema, Collections.emptyList(), Cursor.None));
               return null;
             })
         .when(queryService)
-        .execute(any(), any(), any(), anyBoolean(), any());
+        .execute(any(), any(), any(), anyBoolean(), any(), any());
 
     pplService.execute(
         new PPLQueryRequest("search source=t a=1", null, QUERY, "csv"),
@@ -164,12 +164,12 @@ public class PPLServiceTest {
   public void testPrometheusQuery() {
     doAnswer(
             invocation -> {
-              ResponseListener<QueryResponse> listener = invocation.getArgument(4);
+              ResponseListener<QueryResponse> listener = invocation.getArgument(5);
               listener.onResponse(new QueryResponse(schema, Collections.emptyList(), Cursor.None));
               return null;
             })
         .when(queryService)
-        .execute(any(), any(), any(), anyBoolean(), any());
+        .execute(any(), any(), any(), anyBoolean(), any(), any());
 
     pplService.execute(
         new PPLQueryRequest("source = prometheus.http_requests_total", null, QUERY),

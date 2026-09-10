@@ -117,9 +117,11 @@ public class QueryPlan extends AbstractPlan {
           getQueryType(),
           highlightConfig,
           includeMetadata,
+          getTimeBounds(),
           listener);
     } else {
-      queryService.execute(plan, getQueryType(), highlightConfig, includeMetadata, listener);
+      queryService.execute(
+          plan, getQueryType(), highlightConfig, includeMetadata, getTimeBounds(), listener);
     }
   }
 
@@ -137,8 +139,17 @@ public class QueryPlan extends AbstractPlan {
           new NotImplementedException(
               "`explain` feature for paginated requests is not implemented yet."));
     } else {
+      // Explaining resolves the same tables as executing, so the bounds have to be in place here
+      // too or an explain would describe the unpruned index expression.
       queryService.explain(
-          plan, getQueryType(), highlightConfig, includeMetadata, listener, mode, format);
+          plan,
+          getQueryType(),
+          highlightConfig,
+          includeMetadata,
+          getTimeBounds(),
+          listener,
+          mode,
+          format);
     }
   }
 }

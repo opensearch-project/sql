@@ -212,6 +212,7 @@ public class PPLService {
     AbstractPlan plan = queryExecutionFactory.create(statement, queryListener, explainListener);
     plan.setWarningsSupported(request.warningsSupported());
     plan.setPartialResultOverride(request.partialResult());
+    plan.setTimeBounds(request.getTimeBounds());
     return plan;
   }
 }

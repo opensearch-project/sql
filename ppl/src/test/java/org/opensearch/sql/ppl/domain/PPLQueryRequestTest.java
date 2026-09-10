@@ -17,6 +17,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.opensearch.sql.ast.tree.HighlightConfig;
+import org.opensearch.sql.executor.TimeBounds;
 import org.opensearch.sql.protocol.response.format.Format;
 
 public class PPLQueryRequestTest {
@@ -281,5 +282,54 @@ public class PPLQueryRequestTest {
     IllegalArgumentException e =
         assertThrows(IllegalArgumentException.class, request::getHighlightConfig);
     assertTrue(e.getMessage().contains("pre_tags count exceeds maximum"));
+  }
+
+  @Test
+  public void getTimeBoundsShouldReadTheDeclaredWindow() {
+    PPLQueryRequest request =
+        pplRequest(
+            "{\"query\": \"source=t\", \"time_field\": \"ts\", \"start_time\": \"now-7d\","
+                + " \"end_time\": \"now\"}");
+
+    TimeBounds bounds = request.getTimeBounds();
+    assertEquals(
+        "ts|now-7d|now", bounds.getTimeField() + "|" + bounds.getStart() + "|" + bounds.getEnd());
+  }
+
+  /** Pruning has always assumed @timestamp, so a request that names no field keeps that. */
+  @Test
+  public void getTimeBoundsShouldDefaultTheTimeField() {
+    PPLQueryRequest request =
+        pplRequest("{\"query\": \"source=t\", \"start_time\": \"now-7d\", \"end_time\": \"now\"}");
+
+    assertEquals("@timestamp", request.getTimeBounds().getTimeField());
+  }
+
+  @Test
+  public void getTimeBoundsShouldBeNullWhenNotBothEndsAreGiven() {
+    assertNull(pplRequest("{\"query\": \"source=t\"}").getTimeBounds());
+    assertNull(pplRequest("{\"query\": \"source=t\", \"start_time\": \"now-7d\"}").getTimeBounds());
+    assertNull(pplRequest("{\"query\": \"source=t\", \"end_time\": \"now\"}").getTimeBounds());
+    assertNull(new PPLQueryRequest("source=t", null, "/_plugins/_ppl").getTimeBounds());
+  }
+
+  /**
+   * Bounds only decide which indices are read -- the query text carries any filter -- so an
+   * unusable pair is dropped rather than failing a query that does not need it.
+   */
+  @Test
+  public void getTimeBoundsShouldDropAnUnusablePairRatherThanThrow() {
+    assertNull(
+        pplRequest(
+                "{\"query\": \"source=t\", \"time_field\": \"\", \"start_time\":"
+                    + " \"now-7d\", \"end_time\": \"now\"}")
+            .getTimeBounds());
+    assertNull(
+        pplRequest("{\"query\": \"source=t\", \"start_time\": \"  \", \"end_time\": \"now\"}")
+            .getTimeBounds());
+  }
+
+  private static PPLQueryRequest pplRequest(String body) {
+    return new PPLQueryRequest("source=t", new JSONObject(body), "/_plugins/_ppl");
   }
 }

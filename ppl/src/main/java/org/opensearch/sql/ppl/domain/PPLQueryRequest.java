@@ -14,19 +14,30 @@ import java.util.Optional;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.ast.tree.HighlightConfig;
+import org.opensearch.sql.executor.TimeBounds;
 import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 
 public class PPLQueryRequest {
 
+  /** Default time field, matching what index pruning has always assumed. */
+  private static final String IMPLICIT_FIELD_TIMESTAMP = "@timestamp";
+
+  private static final Logger LOG = LogManager.getLogger(PPLQueryRequest.class);
+
   private static final String DEFAULT_PPL_PATH = "/_plugins/_ppl";
   private static final String FETCH_SIZE_FIELD = "fetch_size";
   private static final String HIGHLIGHT_FIELD = "highlight";
   private static final String INCLUDE_METADATA_FIELD = "include_metadata";
+  private static final String START_TIME_FIELD = "start_time";
+  private static final String END_TIME_FIELD = "end_time";
+  private static final String TIME_FIELD_FIELD = "time_field";
   private static final int MAX_HIGHLIGHT_FIELDS = 100;
   private static final int MAX_TAG_ENTRIES = 10;
 
@@ -173,6 +184,39 @@ public class PPLQueryRequest {
       return false;
     }
     return jsonContent.optBoolean(INCLUDE_METADATA_FIELD, false);
+  }
+
+  /**
+   * Request-level time bounds: the window the caller is asking about, declared out of band so the
+   * engine has it before it resolves the queried index expression and merges the mapping of every
+   * index that expression matches.
+   *
+   * <p>{@code start_time} and {@code end_time} accept OpenSearch date math and absolute timestamps
+   * alike, and are handed to the probe as sent. {@code time_field} names the field they constrain,
+   * defaulting to {@code @timestamp}; a caller whose index pattern is configured on another field
+   * has to say so, or nothing is pruned.
+   *
+   * <p>Unusable input is dropped rather than rejected. These bounds only decide which indices are
+   * read -- any filtering the caller wants is in the query text -- so failing a query over a
+   * parameter it does not need would be the worse outcome.
+   *
+   * @return the bounds, or null if the request sent none or sent a pair that cannot be used
+   */
+  public TimeBounds getTimeBounds() {
+    if (jsonContent == null
+        || !jsonContent.has(START_TIME_FIELD)
+        || !jsonContent.has(END_TIME_FIELD)) {
+      return null;
+    }
+    try {
+      return new TimeBounds(
+          jsonContent.optString(TIME_FIELD_FIELD, IMPLICIT_FIELD_TIMESTAMP),
+          jsonContent.optString(START_TIME_FIELD, null),
+          jsonContent.optString(END_TIME_FIELD, null));
+    } catch (RuntimeException e) {
+      LOG.warn("Ignoring unusable time bounds: {}", e.getMessage());
+      return null;
+    }
   }
 
   /**

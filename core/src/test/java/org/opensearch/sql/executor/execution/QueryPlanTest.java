@@ -58,7 +58,7 @@ class QueryPlanTest {
     QueryPlan query = new QueryPlan(queryId, queryType, plan, queryService, queryListener);
     query.execute();
 
-    verify(queryService, times(1)).execute(any(), any(), any(), anyBoolean(), any());
+    verify(queryService, times(1)).execute(any(), any(), any(), anyBoolean(), any(), any());
   }
 
   @Test
@@ -83,7 +83,7 @@ class QueryPlanTest {
     assertFalse(
         defaultedBeforeExecute.get(), "worker thread should default to no warnings support");
     assertTrue(seenOnWorker.get(), "execute() must carry warningsSupported onto the worker thread");
-    verify(queryService, times(1)).execute(any(), any(), any(), anyBoolean(), any());
+    verify(queryService, times(1)).execute(any(), any(), any(), anyBoolean(), any(), any());
   }
 
   @Test
@@ -119,6 +119,7 @@ class QueryPlanTest {
             eq(queryType),
             isNull(),
             anyBoolean(),
+            isNull(),
             eq(explainListener),
             eq(mode),
             isNull());

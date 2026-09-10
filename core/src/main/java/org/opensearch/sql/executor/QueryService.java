@@ -158,8 +158,19 @@ public class QueryService {
       HighlightConfig highlightConfig,
       boolean includeMetadata,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
+    execute(plan, queryType, highlightConfig, includeMetadata, null, listener);
+  }
+
+  /** Execute with request-level time bounds the queried indices are narrowed to. */
+  public void execute(
+      UnresolvedPlan plan,
+      QueryType queryType,
+      HighlightConfig highlightConfig,
+      boolean includeMetadata,
+      @Nullable TimeBounds timeBounds,
+      ResponseListener<ExecutionEngine.QueryResponse> listener) {
     if (shouldUseCalcite(queryType)) {
-      executeWithCalcite(plan, queryType, highlightConfig, includeMetadata, listener);
+      executeWithCalcite(plan, queryType, highlightConfig, includeMetadata, timeBounds, listener);
     } else {
       // The V2 engine has no notion of metadata fields, so includeMetadata is ignored there.
       executeWithLegacy(plan, queryType, listener, Optional.empty());
@@ -194,8 +205,22 @@ public class QueryService {
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
       ExplainMode mode,
       Format format) {
+    explain(plan, queryType, highlightConfig, includeMetadata, null, listener, mode, format);
+  }
+
+  /** Explain with request-level time bounds the queried indices are narrowed to. */
+  public void explain(
+      UnresolvedPlan plan,
+      QueryType queryType,
+      HighlightConfig highlightConfig,
+      boolean includeMetadata,
+      @Nullable TimeBounds timeBounds,
+      ResponseListener<ExecutionEngine.ExplainResponse> listener,
+      ExplainMode mode,
+      Format format) {
     if (shouldUseCalcite(queryType)) {
-      explainWithCalcite(plan, queryType, highlightConfig, includeMetadata, listener, mode, format);
+      explainWithCalcite(
+          plan, queryType, highlightConfig, includeMetadata, timeBounds, listener, mode, format);
     } else {
       // The V2 engine has no notion of metadata fields, so includeMetadata is ignored there.
       explainWithLegacy(plan, queryType, listener, mode, Optional.empty());
@@ -207,7 +232,7 @@ public class QueryService {
       QueryType queryType,
       HighlightConfig highlightConfig,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
-    executeWithCalcite(plan, queryType, highlightConfig, false, listener);
+    executeWithCalcite(plan, queryType, highlightConfig, false, null, listener);
   }
 
   public void executeWithCalcite(
@@ -215,6 +240,7 @@ public class QueryService {
       QueryType queryType,
       HighlightConfig highlightConfig,
       boolean includeMetadata,
+      @Nullable TimeBounds timeBounds,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
     CalcitePlanContext.run(
         () -> {
@@ -227,7 +253,7 @@ public class QueryService {
                   try (ProfileScope analyzePhase = ProfileScope.open(MetricName.ANALYZE)) {
                     context =
                         CalcitePlanContext.create(
-                            buildFrameworkConfig(),
+                            buildFrameworkConfig(timeBounds),
                             SysLimit.fromSettings(settings),
                             queryType,
                             includeMetadata);
@@ -294,7 +320,7 @@ public class QueryService {
       HighlightConfig highlightConfig,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
       ExplainMode mode) {
-    explainWithCalcite(plan, queryType, highlightConfig, false, listener, mode, null);
+    explainWithCalcite(plan, queryType, highlightConfig, false, null, listener, mode, null);
   }
 
   public void explainWithCalcite(
@@ -302,6 +328,7 @@ public class QueryService {
       QueryType queryType,
       HighlightConfig highlightConfig,
       boolean includeMetadata,
+      @Nullable TimeBounds timeBounds,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
       ExplainMode mode,
       Format format) {
@@ -313,7 +340,7 @@ public class QueryService {
                 () -> {
                   CalcitePlanContext context =
                       CalcitePlanContext.create(
-                          buildFrameworkConfig(),
+                          buildFrameworkConfig(timeBounds),
                           SysLimit.fromSettings(settings),
                           queryType,
                           includeMetadata);
@@ -722,11 +749,22 @@ public class QueryService {
   }
 
   private FrameworkConfig buildFrameworkConfig() {
+    return buildFrameworkConfig(null);
+  }
+
+  /**
+   * @param timeBounds request-level bounds every table resolved through this schema is narrowed to,
+   *     or null when the request declared none. Seeded here because this is the last point before
+   *     planning resolves a table, and resolving one merges the mapping of every index its name
+   *     matches -- the cost the bounds are meant to avoid.
+   */
+  private FrameworkConfig buildFrameworkConfig(@Nullable TimeBounds timeBounds) {
     // Use simple calcite schema since we don't compute tables in advance of the query.
     final SchemaPlus rootSchema = CalciteSchema.createRootSchema(true, false).plus();
     final SchemaPlus opensearchSchema =
         rootSchema.add(
-            OpenSearchSchema.OPEN_SEARCH_SCHEMA_NAME, new OpenSearchSchema(dataSourceService));
+            OpenSearchSchema.OPEN_SEARCH_SCHEMA_NAME,
+            new OpenSearchSchema(dataSourceService, timeBounds));
     Frameworks.ConfigBuilder configBuilder =
         Frameworks.newConfigBuilder()
             .parserConfig(SqlParser.Config.DEFAULT) // TODO check

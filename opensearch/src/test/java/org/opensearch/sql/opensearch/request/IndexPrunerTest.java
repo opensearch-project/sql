@@ -24,6 +24,7 @@ import static org.opensearch.index.query.QueryBuilders.rangeQuery;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -35,12 +36,15 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.action.admin.indices.resolve.ResolveIndexAction;
+import org.opensearch.action.fieldcaps.FieldCapabilities;
 import org.opensearch.action.fieldcaps.FieldCapabilitiesRequest;
 import org.opensearch.action.fieldcaps.FieldCapabilitiesResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.index.query.RangeQueryBuilder;
+import org.opensearch.sql.executor.TimeBounds;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest.IndexName;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -193,8 +197,94 @@ class IndexPrunerTest {
     }
   }
 
+  @Nested
+  class HintDrivenPruning {
+
+    @Test
+    void shouldPruneOnTheHintsOwnRangeWithNoPushedDownFilter() {
+      givenIndexExpression(indices("logs-*", 3), hint("@timestamp"))
+          .whenMatching("logs-a")
+          .shouldPruneTo("logs-a");
+    }
+
+    /** The picker's field is the index pattern's, which is not always {@code @timestamp}. */
+    @Test
+    void shouldProbeTheHintsOwnTimeField() {
+      ArgumentCaptor<FieldCapabilitiesRequest> captor =
+          ArgumentCaptor.forClass(FieldCapabilitiesRequest.class);
+      givenIndexExpression(indices("logs-*", 3), hint("event_time"))
+          .whenMatching("logs-a")
+          .shouldPruneTo("logs-a");
+      verify(node).fieldCaps(captor.capture());
+
+      assertArrayEquals(new String[] {"event_time"}, captor.getValue().fields());
+    }
+
+    /** As sent: the index's own date parser reads them, so date math survives to the probe. */
+    @Test
+    void shouldProbeWithTheBoundsExactlyAsSent() {
+      ArgumentCaptor<FieldCapabilitiesRequest> captor =
+          ArgumentCaptor.forClass(FieldCapabilitiesRequest.class);
+      givenIndexExpression(indices("logs-*", 3), hint("@timestamp"))
+          .whenMatching("logs-a")
+          .shouldPruneTo("logs-a");
+      verify(node).fieldCaps(captor.capture());
+
+      RangeQueryBuilder range = (RangeQueryBuilder) captor.getValue().indexFilter();
+      assertEquals(
+          "@timestamp|now-15m|now|true|true",
+          String.join(
+              "|",
+              range.fieldName(),
+              String.valueOf(range.from()),
+              String.valueOf(range.to()),
+              String.valueOf(range.includeLower()),
+              String.valueOf(range.includeUpper())));
+    }
+
+    @Test
+    void shouldNotPruneAConcreteExpression() {
+      givenIndexExpression("logs-2024", hint("@timestamp")).shouldNotPrune().shouldNotProbe();
+    }
+
+    @Test
+    void shouldNotPruneAnAlias() {
+      givenIndexExpression(alias("logs-*"), hint("@timestamp"))
+          .shouldNotPrune()
+          .shouldNotProbeForMatches();
+    }
+
+    @Test
+    void shouldNotPruneADataStream() {
+      givenIndexExpression(ds("logs-*"), hint("@timestamp"))
+          .shouldNotPrune()
+          .shouldNotProbeForMatches();
+    }
+
+    @Test
+    void shouldNotPruneWhenTheProbeFails() {
+      givenIndexExpression(indices("logs-*", 3), hint("@timestamp"))
+          .whenMatchProbeFails()
+          .shouldNotPrune();
+    }
+  }
+
+  /** A probe response reporting the time field as a date, which is what lets pruning proceed. */
+  private static Map<String, Map<String, FieldCapabilities>> dateFieldCaps() {
+    FieldCapabilities caps = mock(FieldCapabilities.class);
+    return Map.of(
+        "@timestamp", Map.of("date", caps),
+        "event_time", Map.of("date", caps),
+        "no_such_field", Map.of());
+  }
+
   private static QueryBuilder timeRange() {
     return rangeQuery("@timestamp").gte("now-1d");
+  }
+
+  /** Date math, to show the probe carries the bounds as sent rather than re-interpreting them. */
+  private static TimeBounds hint(String field) {
+    return new TimeBounds(field, "now-15m", "now");
   }
 
   /** What the resolve probe reports for an expression. */
@@ -225,7 +315,11 @@ class IndexPrunerTest {
 
   /** An expression the gates reject, so nothing is ever resolved. */
   private Fixture givenIndexExpression(String expression, QueryBuilder filter) {
-    return new Fixture(expression, filter);
+    return new Fixture(expression, filter, null);
+  }
+
+  private Fixture givenIndexExpression(String expression, TimeBounds hint) {
+    return new Fixture(expression, null, hint);
   }
 
   /**
@@ -262,7 +356,12 @@ class IndexPrunerTest {
                     resolution.indexCount(), mock(ResolveIndexAction.ResolvedIndex.class)));
       }
     }
-    return new Fixture(resolution.expression(), filter);
+    return new Fixture(resolution.expression(), filter, null);
+  }
+
+  private Fixture givenIndexExpression(Resolution resolution, TimeBounds hint) {
+    givenIndexExpression(resolution, (QueryBuilder) null);
+    return new Fixture(resolution.expression(), null, hint);
   }
 
   private void whenResolved() {
@@ -273,17 +372,19 @@ class IndexPrunerTest {
 
     private final IndexName original;
     private final QueryBuilder filter;
+    private final TimeBounds hint;
     private IndexName result;
 
-    Fixture(String expression, QueryBuilder filter) {
+    Fixture(String expression, QueryBuilder filter, TimeBounds hint) {
       this.original = new IndexName(expression);
       this.filter = filter;
+      this.hint = hint;
     }
 
     Fixture whenMatching(String... matching) {
       when(node.fieldCaps(any())).thenReturn(matchFuture);
       when(matchFuture.actionGet(any(TimeValue.class)))
-          .thenReturn(new FieldCapabilitiesResponse(matching, Collections.emptyMap()));
+          .thenReturn(new FieldCapabilitiesResponse(matching, dateFieldCaps()));
       return this;
     }
 
@@ -320,7 +421,10 @@ class IndexPrunerTest {
     /** Runs the pruner once, on the first assertion, so stubbing reads before acting. */
     private IndexName pruned() {
       if (result == null) {
-        result = new IndexPruner(node).prune(original, filter);
+        result =
+            hint == null
+                ? new IndexPruner(node).prune(original, filter)
+                : new IndexPruner(node).prune(original, hint);
       }
       return result;
     }
