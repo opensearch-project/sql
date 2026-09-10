@@ -11,6 +11,7 @@ import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -28,7 +29,11 @@ import org.opensearch.common.inject.Guice;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.inject.Injector;
 import org.opensearch.common.inject.ModulesBuilder;
+import org.opensearch.common.settings.Setting;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.action.NotifyOnceListener;
+import org.opensearch.core.tasks.resourcetracker.TaskResourceUsage;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
@@ -50,6 +55,7 @@ import org.opensearch.sql.plugin.rest.AnalyticsEngineFormatSupport;
 import org.opensearch.sql.plugin.rest.AnalyticsExecutorHolder;
 import org.opensearch.sql.plugin.rest.RestUnifiedQueryAction;
 import org.opensearch.sql.ppl.PPLService;
+import org.opensearch.sql.ppl.QueryInsightsMetadata;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.CsvResponseFormatter;
@@ -61,6 +67,7 @@ import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.VisualizationResponseFormatter;
 import org.opensearch.sql.protocol.response.format.YamlResponseFormatter;
 import org.opensearch.tasks.Task;
+import org.opensearch.tasks.TaskResourceTrackingService;
 import org.opensearch.telemetry.tracing.Span;
 import org.opensearch.telemetry.tracing.SpanCreationContext;
 import org.opensearch.telemetry.tracing.SpanScope;
@@ -88,6 +95,7 @@ public class TransportPPLQueryAction
   private final NodeClient clientRef;
   private final ClusterService clusterServiceRef;
   private final org.opensearch.sql.common.setting.Settings pluginSettingsRef;
+  private final TransportService transportServiceRef;
 
   @Inject
   public TransportPPLQueryAction(
@@ -102,6 +110,7 @@ public class TransportPPLQueryAction
     super(PPLQueryAction.NAME, transportService, actionFilters, TransportPPLQueryRequest::new);
     this.clientRef = client;
     this.clusterServiceRef = clusterService;
+    this.transportServiceRef = transportService;
 
     ModulesBuilder modules = new ModulesBuilder();
     modules.add(new OpenSearchPluginModule(extensionsHolder.engines(), tracer));
@@ -160,6 +169,126 @@ public class TransportPPLQueryAction
     }
   }
 
+  /** Stamp the parent marker so child DSL searches carry it back to this PPL query. */
+  private void stampQueryInsightsParentHeader(PPLQueryTask pplQueryTask) {
+    try {
+      ThreadContext threadContext = clientRef.threadPool().getThreadContext();
+      String value =
+          QueryInsightsMarker.value(
+              "PPL", clusterServiceRef.localNode().getId(), pplQueryTask.getId());
+      if (threadContext.getHeader(QueryInsightsMarker.PARENT_HEADER) == null) {
+        threadContext.putHeader(QueryInsightsMarker.PARENT_HEADER, value);
+      }
+      // Capture the user here; the report listener runs on a thread without the transient.
+      pplQueryTask.setQueryInsightsUserInfo(
+          threadContext.getTransient(SECURITY_USER_INFO_TRANSIENT));
+    } catch (Exception e) {
+      LOG.warn("Failed to stamp Query Insights parent header for query association", e);
+    }
+  }
+
+  /** Security plugin's authenticated-user transient ({@code name|backendroles|roles|...}). */
+  private static final String SECURITY_USER_INFO_TRANSIENT = "_opendistro_security_user_info";
+
+  /**
+   * Toggle for recording PPL queries into Query Insights. Registered by the Query Insights plugin
+   * ({@code QueryInsightsSettings.TOP_N_PPL_QUERIES_ENABLED}, default false).
+   */
+  static final String QUERY_INSIGHTS_PPL_ENABLED_KEY = "search.insights.top_queries.ppl.enabled";
+
+  /** True when Query Insights is installed and the toggle is on; disabled on any failure. */
+  private boolean isQueryInsightsRecordingEnabled() {
+    try {
+      Setting<?> setting =
+          clusterServiceRef.getClusterSettings().get(QUERY_INSIGHTS_PPL_ENABLED_KEY);
+      if (setting == null) {
+        return false;
+      }
+      Object value = clusterServiceRef.getClusterSettings().get(setting);
+      return Boolean.TRUE.equals(value);
+    } catch (Exception e) {
+      LOG.debug("Failed to evaluate Query Insights PPL recording gate; defaulting to disabled", e);
+      return false;
+    }
+  }
+
+  /**
+   * Mirrors core's {@code task_resource_tracking.enabled} gate so PPL resource tracking is not
+   * enabled when an operator has disabled task resource tracking cluster-wide. Defaults to the core
+   * setting's own default ({@code true}) if the value can't be read.
+   */
+  private boolean isTaskResourceTrackingEnabled() {
+    try {
+      return clusterServiceRef
+          .getClusterSettings()
+          .get(TaskResourceTrackingService.TASK_RESOURCE_TRACKING_ENABLED);
+    } catch (Exception e) {
+      LOG.debug("Failed to read task_resource_tracking.enabled; defaulting to enabled", e);
+      return true;
+    }
+  }
+
+  /** Report the finished PPL query once its resource tracking completes (stats are final). */
+  private void registerQueryInsightsReport(PPLQueryTask pplQueryTask) {
+    try {
+      boolean registered =
+          pplQueryTask.addResourceTrackingCompletionListener(
+              new NotifyOnceListener<>() {
+                @Override
+                protected void innerOnResponse(Task task) {
+                  writeQueryInsightsRecord((PPLQueryTask) task);
+                }
+
+                @Override
+                protected void innerOnFailure(Exception e) {}
+              });
+      if (registered == false) {
+        LOG.debug(
+            "Query Insights report listener not registered; resource tracking already complete");
+      }
+    } catch (Exception e) {
+      LOG.warn("Failed to register Query Insights report listener", e);
+    }
+  }
+
+  /** Serialize a completed PPL query and send it to Query Insights; errors are ignored. */
+  private void writeQueryInsightsRecord(PPLQueryTask pplQueryTask) {
+    try {
+      String nodeId = clusterServiceRef.localNode().getId();
+      String queryText = pplQueryTask.getQueryInsightsAnonymizedQuery();
+
+      TaskResourceUsage usage = pplQueryTask.getTotalResourceStats();
+      long cpuNanos = usage == null ? 0L : usage.getCpuTimeInNanos();
+      long memoryBytes = usage == null ? 0L : usage.getMemoryInBytes();
+
+      // Wall-clock latency (monotonic); the profile total collapses to ~0 across the finish thread.
+      long latencyMillis =
+          Math.max(0L, (System.nanoTime() - pplQueryTask.getStartTimeNanos()) / 1_000_000L);
+
+      // Same marker stamped on child DSL tasks, so their cpu/memory rolls up into this parent.
+      String parentMarker = QueryInsightsMarker.value("PPL", nodeId, pplQueryTask.getId());
+
+      List<String> indices = pplQueryTask.getQueryInsightsIndices();
+      String userInfo = pplQueryTask.getQueryInsightsUserInfo();
+
+      QueryInsightsReporter.report(
+          transportServiceRef,
+          clusterServiceRef.localNode(),
+          "PPL",
+          parentMarker,
+          nodeId,
+          queryText,
+          System.currentTimeMillis(),
+          latencyMillis,
+          cpuNanos,
+          memoryBytes,
+          indices,
+          userInfo);
+    } catch (Exception e) {
+      LOG.debug("Failed to write PPL query to Query Insights", e);
+    }
+  }
+
   /**
    * {@inheritDoc} Transform the request and call super.doExecute() to support call from other
    * plugins.
@@ -183,8 +312,17 @@ public class TransportPPLQueryAction
       return;
     }
 
-    if (task instanceof PPLQueryTask pplQueryTask) {
+    final PPLQueryTask pplQueryTask = task instanceof PPLQueryTask ? (PPLQueryTask) task : null;
+    if (pplQueryTask != null) {
       OpenSearchQueryManager.setCancellableTask(pplQueryTask);
+      if (isQueryInsightsRecordingEnabled()) {
+        // Only track resource usage when Query Insights recording and core's task resource tracking
+        // are both on, so a disabled feature adds no ThreadMXBean overhead and we don't populate
+        // _tasks resource_stats behind the operator's back.
+        pplQueryTask.setResourceTrackingEnabled(isTaskResourceTrackingEnabled());
+        stampQueryInsightsParentHeader(pplQueryTask);
+        registerQueryInsightsReport(pplQueryTask);
+      }
     }
     Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_TOTAL).increment();
     Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_COUNT_TOTAL).increment();
@@ -250,30 +388,39 @@ public class TransportPPLQueryAction
         return;
       }
 
-      Consumer<String> anonymizedQuerySink =
-          anonymized -> rootSpan.addAttribute("db.query.text", anonymized);
+      final PPLQueryTask metadataTarget = pplQueryTask;
+      Consumer<QueryInsightsMetadata> queryInsightsSink =
+          metadata -> {
+            rootSpan.addAttribute("db.query.text", metadata.anonymizedQuery());
+            if (metadataTarget != null) {
+              metadataTarget.setQueryInsightsAnonymizedQuery(metadata.anonymizedQuery());
+              metadataTarget.setQueryInsightsIndices(metadata.indices());
+            }
+          };
       PPLService pplService = injector.getInstance(PPLService.class);
       if (transformedRequest.isExplainRequest()) {
         pplService.explain(
             transformedRequest,
             createExplainResponseListener(transformedRequest, clearingListener),
-            anonymizedQuerySink);
+            queryInsightsSink);
       } else if (transformedRequest.analyze()) {
         pplService.analyze(
             transformedRequest,
             createAnalyzeResponseListener(transformedRequest, clearingListener),
-            anonymizedQuerySink);
+            queryInsightsSink);
       } else {
         pplService.execute(
             transformedRequest,
             createListener(transformedRequest, clearingListener),
             createExplainResponseListener(transformedRequest, clearingListener),
-            anonymizedQuerySink);
+            queryInsightsSink);
       }
     } catch (Exception e) {
       clearingListener.onFailure(e);
     } finally {
       spanScope.close();
+      // Clear the task in case an early return/throw skipped submit() and left it on this thread.
+      OpenSearchQueryManager.clearCancellableTask();
     }
   }
 

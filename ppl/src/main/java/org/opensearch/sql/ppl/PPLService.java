@@ -8,9 +8,11 @@ package org.opensearch.sql.ppl;
 import static org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import static org.opensearch.sql.executor.execution.QueryPlanFactory.NO_CONSUMER_RESPONSE_LISTENER;
 
+import java.util.List;
 import java.util.function.Consumer;
 import lombok.extern.log4j.Log4j2;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
@@ -29,13 +31,14 @@ import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.ppl.parser.AstBuilder;
 import org.opensearch.sql.ppl.parser.AstStatementBuilder;
 import org.opensearch.sql.ppl.utils.PPLQueryDataAnonymizer;
+import org.opensearch.sql.ppl.utils.PPLQueryIndexExtractor;
 
 /** PPLService. */
 @Log4j2
 public class PPLService {
 
-  /** Callers that don't care about the anonymized query pass this. */
-  public static final Consumer<String> NO_ANONYMIZED_QUERY_SINK = s -> {};
+  /** Callers that don't need the query-insights metadata pass this. */
+  public static final Consumer<QueryInsightsMetadata> NO_QUERY_INSIGHTS_SINK = m -> {};
 
   private final PPLSyntaxParser parser;
 
@@ -72,17 +75,17 @@ public class PPLService {
       PPLQueryRequest request,
       ResponseListener<QueryResponse> queryListener,
       ResponseListener<ExplainResponse> explainListener) {
-    execute(request, queryListener, explainListener, NO_ANONYMIZED_QUERY_SINK);
+    execute(request, queryListener, explainListener, NO_QUERY_INSIGHTS_SINK);
   }
 
-  /** Variant that hands the anonymized query text to {@code anonymizedQuerySink}. */
+  /** Variant that hands query-insights metadata (anonymized query + indices) to {@code sink}. */
   public void execute(
       PPLQueryRequest request,
       ResponseListener<QueryResponse> queryListener,
       ResponseListener<ExplainResponse> explainListener,
-      Consumer<String> anonymizedQuerySink) {
+      Consumer<QueryInsightsMetadata> sink) {
     try {
-      queryManager.submit(plan(request, queryListener, explainListener, anonymizedQuerySink));
+      queryManager.submit(plan(request, queryListener, explainListener, sink));
     } catch (Exception e) {
       queryListener.onFailure(e);
     }
@@ -96,17 +99,16 @@ public class PPLService {
    * @param listener {@link ResponseListener} for explain response
    */
   public void explain(PPLQueryRequest request, ResponseListener<ExplainResponse> listener) {
-    explain(request, listener, NO_ANONYMIZED_QUERY_SINK);
+    explain(request, listener, NO_QUERY_INSIGHTS_SINK);
   }
 
-  /** Variant that hands the anonymized query text to {@code anonymizedQuerySink}. */
+  /** Variant that hands query-insights metadata (anonymized query + indices) to {@code sink}. */
   public void explain(
       PPLQueryRequest request,
       ResponseListener<ExplainResponse> listener,
-      Consumer<String> anonymizedQuerySink) {
+      Consumer<QueryInsightsMetadata> sink) {
     try {
-      queryManager.submit(
-          plan(request, NO_CONSUMER_RESPONSE_LISTENER, listener, anonymizedQuerySink));
+      queryManager.submit(plan(request, NO_CONSUMER_RESPONSE_LISTENER, listener, sink));
     } catch (Exception e) {
       listener.onFailure(e);
     }
@@ -119,24 +121,23 @@ public class PPLService {
    * @param listener {@link ResponseListener} for analyze response
    */
   public void analyze(PPLQueryRequest request, ResponseListener<AnalyzeResponse> listener) {
-    analyze(request, listener, NO_ANONYMIZED_QUERY_SINK);
+    analyze(request, listener, NO_QUERY_INSIGHTS_SINK);
   }
 
-  /** Variant that hands the anonymized query text to {@code anonymizedQuerySink}. */
+  /** Variant that hands query-insights metadata (anonymized query + indices) to {@code sink}. */
   public void analyze(
       PPLQueryRequest request,
       ResponseListener<AnalyzeResponse> listener,
-      Consumer<String> anonymizedQuerySink) {
+      Consumer<QueryInsightsMetadata> sink) {
     try {
       String queryText = request.getRequest();
-      ParseTree cst;
       Statement statement;
       String anonymized;
       // Transport-thread work — parse, AST build, anonymize. Trace-only: QueryProfiling isn't
       // active yet on this thread. Cold-start ANTLR grammar init dominates this region.
       try (ProfileScope preparePhase = ProfileScope.openTraceOnly("prepare")) {
         try {
-          cst = parser.parse(queryText);
+          ParseTree cst = parser.parse(queryText);
           statement =
               cst.accept(
                   new AstStatementBuilder(
@@ -159,9 +160,9 @@ public class PPLService {
         }
       }
       log.info("[{}] Incoming request {}", QueryContext.getRequestId(), anonymized);
-      anonymizedQuerySink.accept(anonymized);
 
       UnresolvedPlan unresolvedPlan = ((Query) statement).getPlan();
+      sink.accept(new QueryInsightsMetadata(anonymized, extractIndexNames(statement)));
       AbstractPlan analyzePlan =
           queryExecutionFactory.createAnalyzePlan(unresolvedPlan, PPL_QUERY, listener);
       queryManager.submit(analyzePlan);
@@ -174,7 +175,7 @@ public class PPLService {
       PPLQueryRequest request,
       ResponseListener<QueryResponse> queryListener,
       ResponseListener<ExplainResponse> explainListener,
-      Consumer<String> anonymizedQuerySink) {
+      Consumer<QueryInsightsMetadata> sink) {
     Statement statement;
     String anonymized;
     // Transport-thread work — parse, AST build, anonymize. Trace-only: QueryProfiling isn't
@@ -208,9 +209,30 @@ public class PPLService {
       }
     }
     log.info("[{}] Incoming request {}", QueryContext.getRequestId(), anonymized);
-    anonymizedQuerySink.accept(anonymized);
+
+    // Extract indices from the same AST that will execute, so recorded metadata matches the
+    // executed query and the query is parsed only once.
+    sink.accept(new QueryInsightsMetadata(anonymized, extractIndexNames(statement)));
 
     AbstractPlan plan = queryExecutionFactory.create(statement, queryListener, explainListener);
     return plan;
+  }
+
+  /**
+   * Best-effort source index names from an already-parsed statement (unwrapping an {@code explain}
+   * to its inner query); empty on any failure.
+   */
+  private static List<String> extractIndexNames(Statement statement) {
+    try {
+      Statement inner =
+          statement instanceof Explain ? ((Explain) statement).getStatement() : statement;
+      if (inner instanceof Query query) {
+        return PPLQueryIndexExtractor.extractIndexNames(query.getPlan());
+      }
+      return List.of();
+    } catch (Exception e) {
+      log.debug("[{}] Failed to extract PPL index names", QueryContext.getRequestId(), e);
+      return List.of();
+    }
   }
 }
