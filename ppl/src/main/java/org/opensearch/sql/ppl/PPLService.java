@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl;
 import static org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import static org.opensearch.sql.executor.execution.QueryPlanFactory.NO_CONSUMER_RESPONSE_LISTENER;
 
+import java.util.List;
 import java.util.function.Consumer;
 import lombok.extern.log4j.Log4j2;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -29,6 +30,7 @@ import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.ppl.parser.AstBuilder;
 import org.opensearch.sql.ppl.parser.AstStatementBuilder;
 import org.opensearch.sql.ppl.utils.PPLQueryDataAnonymizer;
+import org.opensearch.sql.ppl.utils.PPLQueryIndexExtractor;
 
 /** PPLService. */
 @Log4j2
@@ -166,6 +168,27 @@ public class PPLService {
           queryExecutionFactory.createAnalyzePlan(unresolvedPlan, PPL_QUERY, listener));
     } catch (Exception e) {
       listener.onFailure(e);
+    }
+  }
+
+  /**
+   * Parse the query and return the source index name(s) from its AST {@code Relation} nodes
+   * (covering multi-index and join/lookup sources). Empty on no source or parse failure;
+   * best-effort metadata only (e.g. Query Insights), never for execution.
+   */
+  public List<String> resolveIndexNames(PPLQueryRequest request) {
+    try {
+      ParseTree cst = parser.parse(request.getRequest());
+      Statement statement =
+          cst.accept(
+              new AstStatementBuilder(
+                  new AstBuilder(request.getRequest(), settings),
+                  AstStatementBuilder.StatementBuilderContext.builder().build()));
+      UnresolvedPlan unresolvedPlan = ((Query) statement).getPlan();
+      return PPLQueryIndexExtractor.extractIndexNames(unresolvedPlan);
+    } catch (Exception e) {
+      log.debug("[{}] Failed to resolve PPL index names", QueryContext.getRequestId(), e);
+      return List.of();
     }
   }
 

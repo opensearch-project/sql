@@ -119,6 +119,7 @@ import org.opensearch.sql.plugin.rest.RestPPLStatsAction;
 import org.opensearch.sql.plugin.rest.RestQuerySettingsAction;
 import org.opensearch.sql.plugin.rest.RestUnifiedQueryAction;
 import org.opensearch.sql.plugin.transport.PPLQueryAction;
+import org.opensearch.sql.plugin.transport.QueryInsightsMarker;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.prometheus.storage.PrometheusStorageFactory;
@@ -322,6 +323,16 @@ public class SQLPlugin extends Plugin
       }
       return true;
     };
+  }
+
+  /**
+   * Register the Query Insights parent-marker header so OpenSearch copies it from a SQL/PPL query's
+   * thread context into the child DSL search tasks it spawns (including on remote data nodes). This
+   * lets Query Insights classify each child's source and associate it with the originating query.
+   */
+  @Override
+  public Collection<String> getTaskHeaders() {
+    return List.of(QueryInsightsMarker.PARENT_HEADER);
   }
 
   /** Register action and handler so that transportClient can find proxy for action. */

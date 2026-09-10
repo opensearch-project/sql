@@ -473,3 +473,31 @@ Expected output:
 }
 ```
   
+
+## search.insights.top_queries.ppl.enabled
+
+### Version
+
+3.9
+
+### Description
+
+This setting controls whether completed PPL queries are recorded into Query Insights Top N. When enabled, the PPL plugin reports each finished PPL query (with its resolved indices, latency, CPU, memory, and — on a security-enabled cluster — the requesting user) to the Query Insights plugin, and tags the child DSL searches a PPL query spawns so they appear as sub-queries.
+
+1. The default value is false (opt-in).
+2. This setting is node scope.
+3. This setting can be updated dynamically.
+
+Note: This setting is **registered by the Query Insights plugin** (it belongs to the `search.insights.top_queries.*` family), not by the PPL plugin. The PPL plugin reads its value to decide whether to report. It therefore only takes effect when the Query Insights plugin is installed; when Query Insights is absent the setting is unregistered and PPL reporting is a no-op.
+
+### Example
+
+With the Query Insights plugin installed, you can enable PPL recording like this:
+
+```shell
+curl -sS -H 'Content-Type: application/json' \
+-X PUT localhost:9200/_cluster/settings \
+-d '{"persistent" : {"search.insights.top_queries.ppl.enabled" : "true"}}'
+```
+
+This example is not executed as part of the documentation tests because the setting is registered by the Query Insights plugin, which is not installed in the PPL documentation test cluster.

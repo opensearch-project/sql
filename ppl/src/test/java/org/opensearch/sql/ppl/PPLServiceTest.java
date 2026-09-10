@@ -11,6 +11,7 @@ import static org.mockito.Mockito.doAnswer;
 
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -113,6 +114,43 @@ public class PPLServiceTest {
         new PPLQueryRequest("search source=t a=1", null, QUERY),
         getQueryListener(false),
         getExplainListener(false));
+  }
+
+  @Test
+  public void testExecutePassesAnonymizedQueryToSink() {
+    doAnswer(
+            invocation -> {
+              ResponseListener<QueryResponse> listener = invocation.getArgument(4);
+              listener.onResponse(new QueryResponse(schema, Collections.emptyList(), Cursor.None));
+              return null;
+            })
+        .when(queryService)
+        .execute(any(), any(), any(), anyBoolean(), any());
+
+    AtomicReference<String> anonymized = new AtomicReference<>();
+    pplService.execute(
+        new PPLQueryRequest("search source=t a=42", null, QUERY),
+        getQueryListener(false),
+        getExplainListener(false),
+        anonymized::set);
+
+    // The sink receives the anonymized query (literal masked), never the raw value.
+    Assert.assertNotNull(anonymized.get());
+    Assert.assertTrue(anonymized.get().contains("***"));
+    Assert.assertFalse(anonymized.get().contains("42"));
+  }
+
+  @Test
+  public void testExplainPassesAnonymizedQueryToSink() {
+    AtomicReference<String> anonymized = new AtomicReference<>();
+    pplService.explain(
+        new PPLQueryRequest("search source=t a=42", null, EXPLAIN),
+        getExplainListener(false),
+        anonymized::set);
+
+    Assert.assertNotNull(anonymized.get());
+    Assert.assertTrue(anonymized.get().contains("***"));
+    Assert.assertFalse(anonymized.get().contains("42"));
   }
 
   @Test
