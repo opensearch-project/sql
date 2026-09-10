@@ -51,7 +51,6 @@ import org.opensearch.sql.calcite.plan.HighlightPushDown;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLHintUtils;
 import org.opensearch.sql.common.setting.Settings;
-import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.HighlightExpression;
@@ -510,7 +509,17 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
    */
   private AbstractRelNode tryPartialResultAggregate(
       Aggregate aggregate, @Nullable Project project, List<String> partitionFields) {
-    if (!QueryContext.isPartialResultEnabled(osIndex.getSettings())) {
+    // The per-request override wins when present; otherwise the cluster setting decides. Both the
+    // override and warnings-support are read from CalcitePlanContext (carried onto the plan), not
+    // Log4j ThreadContext, so they survive the security transport→worker handoff.
+    Boolean override = CalcitePlanContext.getPartialResultOverride();
+    boolean partialResultEnabled =
+        override != null
+            ? override
+            : osIndex
+                .getSettings()
+                .getSettingValue(Settings.Key.PARTIAL_RESULT_ON_MAPPING_CONFLICT);
+    if (!partialResultEnabled) {
       return null;
     }
     // A format with no warnings channel (CSV/RAW/VIZ) must not silently drop indices.

@@ -106,10 +106,11 @@ public class QueryPlan extends AbstractPlan {
 
   @Override
   public void execute() {
-    // Runs on the worker thread; carry warnings support from the request off the plan so the
-    // partial-result gate reads it without depending on Log4j ThreadContext (dropped under
-    // security).
+    // Runs on the worker thread; carry warnings support and the per-request partial-result override
+    // from the request off the plan so the partial-result gate reads them without depending on
+    // Log4j ThreadContext (dropped under security on the transport→worker handoff).
     CalcitePlanContext.setWarningsSupported(isWarningsSupported());
+    CalcitePlanContext.setPartialResultOverride(getPartialResultOverride());
     if (pageSize.isPresent()) {
       queryService.execute(
           new Paginate(pageSize.get(), plan),

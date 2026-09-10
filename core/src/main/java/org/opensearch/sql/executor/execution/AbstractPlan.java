@@ -32,6 +32,14 @@ public abstract class AbstractPlan {
    */
   @Getter @Setter private boolean warningsSupported = false;
 
+  /**
+   * Per-request partial-result override, carried from the request the same way as {@link
+   * #warningsSupported}. {@code null} defers to the cluster setting; {@code true}/{@code false}
+   * force partial mode on/off. Set on the transport thread, applied on the worker (see {@code
+   * QueryPlan#execute}) so it survives the security transport→worker handoff.
+   */
+  @Getter @Setter private Boolean partialResultOverride = null;
+
   /** Start query execution. */
   public abstract void execute();
 

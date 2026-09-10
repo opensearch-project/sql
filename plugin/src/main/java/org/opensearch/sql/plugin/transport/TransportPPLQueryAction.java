@@ -198,8 +198,9 @@ public class TransportPPLQueryAction
     // data silently. Carried on the request (not Log4j ThreadContext) so it survives the
     // transport→worker handoff, which the security plugin's interceptor does not preserve.
     transformedRequest.warningsSupported(warningsSupported(transformedRequest));
-    // Per-request override (e.g. a Dashboards toggle); null defers to the cluster setting.
-    QueryContext.setPartialResultOverride(transformedRequest.partialResult());
+    // The per-request partial-result override (e.g. a Dashboards toggle) rides on the request →
+    // plan → worker thread (see PPLService/QueryPlan), not Log4j ThreadContext, for the same
+    // handoff-survival reason as warningsSupported. null defers to the cluster setting.
 
     // Start root span with OTel DB semantic convention attributes
     Span rootSpan =
@@ -446,12 +447,11 @@ public class TransportPPLQueryAction
 
   /**
    * Clear the per-request state carried in {@link QueryContext}'s thread-locals. Transport threads
-   * are pooled, so anything left behind is inherited by the next query to run on this thread -- a
-   * request that expressed no partial-result preference would otherwise pick up the previous
-   * request's override.
+   * are pooled, so anything left behind is inherited by the next query to run on this thread. (The
+   * partial-result override no longer lives here -- it rides on the plan to the worker thread and
+   * is reset per query in {@code CalcitePlanContext}.)
    */
   private static void clearRequestScopedState() {
     QueryProfiling.clear();
-    QueryContext.setPartialResultOverride(null);
   }
 }

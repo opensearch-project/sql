@@ -82,6 +82,15 @@ public class CalcitePlanContext {
   private static final ThreadLocal<Boolean> warningsSupported =
       ThreadLocal.withInitial(() -> false);
 
+  /**
+   * Per-request partial-result override, carried off Log4j {@code ThreadContext} onto the plan (see
+   * {@code QueryPlan#execute}) for the same reason as {@link #warningsSupported}: the security
+   * plugin's interceptor drops {@code ThreadContext} on the transport→worker handoff. {@code null}
+   * defers to the cluster setting; {@code true}/{@code false} force partial mode on/off for this
+   * query. Cleared per query.
+   */
+  private static final ThreadLocal<Boolean> partialResultOverride = new ThreadLocal<>();
+
   /** Thread-local switch that tells whether the current query prefers legacy behavior. */
   private static final ThreadLocal<Boolean> legacyPreferredFlag =
       ThreadLocal.withInitial(() -> true);
@@ -271,6 +280,7 @@ public class CalcitePlanContext {
     executionPool.set(null);
     pendingWarnings.remove();
     warningsSupported.set(false);
+    partialResultOverride.remove();
   }
 
   /** Records a non-fatal warning to be attached to the response for the current query. */
@@ -289,6 +299,22 @@ public class CalcitePlanContext {
    */
   public static boolean isWarningsSupported() {
     return warningsSupported.get();
+  }
+
+  /**
+   * Records the per-request partial-result override for the current query. {@code null} defers to
+   * the cluster setting; {@code true}/{@code false} force partial mode on/off.
+   */
+  public static void setPartialResultOverride(Boolean override) {
+    partialResultOverride.set(override);
+  }
+
+  /**
+   * @return the per-request partial-result override, or {@code null} to defer to the cluster
+   *     setting.
+   */
+  public static Boolean getPartialResultOverride() {
+    return partialResultOverride.get();
   }
 
   /**
@@ -317,6 +343,7 @@ public class CalcitePlanContext {
     final String timewrapSeries;
     final String executionPool;
     final boolean warningsSupported;
+    final Boolean partialResultOverride;
 
     private ThreadLocalSnapshot(
         boolean skipEncoding,
@@ -324,13 +351,15 @@ public class CalcitePlanContext {
         String timewrapUnitName,
         String timewrapSeries,
         String executionPool,
-        boolean warningsSupported) {
+        boolean warningsSupported,
+        Boolean partialResultOverride) {
       this.skipEncoding = skipEncoding;
       this.stripNullColumns = stripNullColumns;
       this.timewrapUnitName = timewrapUnitName;
       this.timewrapSeries = timewrapSeries;
       this.executionPool = executionPool;
       this.warningsSupported = warningsSupported;
+      this.partialResultOverride = partialResultOverride;
     }
   }
 
@@ -342,7 +371,8 @@ public class CalcitePlanContext {
         timewrapUnitName.get(),
         timewrapSeries.get(),
         executionPool.get(),
-        warningsSupported.get());
+        warningsSupported.get(),
+        partialResultOverride.get());
   }
 
   /** Restore thread-local state from a snapshot. */
@@ -353,6 +383,7 @@ public class CalcitePlanContext {
     timewrapSeries.set(snapshot.timewrapSeries);
     executionPool.set(snapshot.executionPool);
     warningsSupported.set(snapshot.warningsSupported);
+    partialResultOverride.set(snapshot.partialResultOverride);
   }
 
   public void pushForeachBindings(
