@@ -91,6 +91,9 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
                     ThreadPool.Names.GENERIC);
             Cancellable cancelPoller = scheduleCancellationPoller(cancellableTask, executionThread);
             Hook.Closeable hookHandle = null;
+            boolean trackResources = false;
+            long trackedThreadId = -1L;
+            boolean trackingStarted = false;
             try {
               // Restore state from caller thread
               ThreadContext.putAll(ctx);
@@ -106,6 +109,14 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
                 hookHandle =
                     Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(currentTime));
               }
+              // Script plans do their real work on this thread, so bracket tracking here.
+              trackResources =
+                  cancellableTask != null && cancellableTask.supportsResourceTracking();
+              trackedThreadId = Thread.currentThread().getId();
+              trackingStarted =
+                  trackResources
+                      && OpenSearchQueryManager.startThreadResourceTracking(
+                          cancellableTask, trackedThreadId);
               task.run();
             } catch (Exception e) {
               LOG.error("Exception during task execution on complex pool", e);
@@ -118,6 +129,9 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
               Thread.interrupted();
               if (hookHandle != null) {
                 hookHandle.close();
+              }
+              if (trackingStarted) {
+                OpenSearchQueryManager.stopThreadResourceTracking(cancellableTask, trackedThreadId);
               }
               OpenSearchQueryManager.clearCancellableTask();
               RelMetadataQueryBase.THREAD_PROVIDERS.remove();
