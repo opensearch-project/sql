@@ -291,6 +291,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLambda;
@@ -1365,6 +1366,37 @@ public class PPLFuncImpTable {
                   OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.INTEGER)
                       .or(OperandTypes.family(SqlTypeFamily.MAP, SqlTypeFamily.ANY)),
               false));
+      // A `nested` mapping is exposed as ARRAY<ROW<...>>, so `events.name` becomes
+      // ITEM(<array-of-rows>, 'name'). By default, Calcite types this as the whole ROW because it
+      // never looks at the field name — so a later `events.count > 4` fails with
+      // "Unsupported conversion for Relational Data type: ROW".
+      // Fix: look 'name' up in the ROW and type the result as that field. Must be registered before
+      // the (IGNORE, CHARACTER) catch-all in the next registration below — that fallback would
+      // otherwise match ITEM(<array-of-rows>, 'name') first and re-apply the stock whole-ROW
+      // typing.
+      register(
+          INTERNAL_ITEM,
+          (FunctionImp2)
+              (builder, array, key) -> {
+                RelDataType arrayType = array.getType();
+                RelDataType component = arrayType.getComponentType();
+                if (component != null
+                    && component.isStruct()
+                    && key instanceof RexLiteral literal
+                    && SqlTypeFamily.CHARACTER.contains(literal.getType())) {
+                  String fieldName = literal.getValueAs(String.class);
+                  RelDataTypeField field = component.getField(fieldName, true, false);
+                  if (field != null) {
+                    // Nullable: an empty array yields NULL, independent of field nullability.
+                    RelDataType fieldType =
+                        builder.getTypeFactory().createTypeWithNullability(field.getType(), true);
+                    return builder.makeCall(
+                        fieldType, SqlStdOperatorTable.ITEM, List.of(array, key));
+                  }
+                }
+                return builder.makeCall(SqlStdOperatorTable.ITEM, array, key);
+              },
+          PPLTypeChecker.family(SqlTypeFamily.ARRAY, SqlTypeFamily.CHARACTER));
       registerOperator(
           INTERNAL_ITEM,
           SqlStdOperatorTable.ITEM,
