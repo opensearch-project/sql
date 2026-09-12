@@ -214,22 +214,22 @@ Version
 Description
 -----------
 
-Prunes a wildcard index expression down to the concrete indices that can hold data in the query's ``@timestamp`` range, so fewer indices and shards are touched. The primary use currently is to avoid exhausting the open point-in-time (PIT) context limit when a query would otherwise open a reader context over many indices.
+Prunes a wildcard index expression down to the concrete indices that can hold data in the query's ``@timestamp`` range, so fewer indices and shards are touched. The primary use currently is to avoid exhausting the open point-in-time (PIT) context limit when a query would otherwise open a reader context over many indices. Enabled by default.
 
-Pruning only applies to a wildcard expression whose query filters on a ``@timestamp`` range; anything else is left untouched, and any failure while probing the cluster falls back to querying the full expression. Weigh these limitations before enabling it:
+Pruning only applies to a wildcard expression whose query filters on a ``@timestamp`` range; anything else is left untouched, and any failure while probing the cluster falls back to querying the full expression. Weigh these limitations before turning it off:
 
 1. An index whose shards are all unavailable is pruned rather than reported, because ``_field_caps`` does not surface per-index failures. Such a query returns fewer rows instead of an error.
 2. Pruning fixes the list of index names, so an index created or deleted between pruning and PIT creation, by a rollover or retention policy for instance, is missed or fails the query. The interval between the two is short, so this is unlikely in practice.
 3. An expression that matches an alias or a data stream is never pruned, because a filtered alias contributes a filter and routing that are resolved from the expression itself and so would be silently dropped.
-4. Pruning probes the cluster with the ``indices:admin/resolve/index`` and ``indices:data/read/field_caps`` actions. A principal lacking either permission falls back to querying the full expression silently, so pruning simply never takes effect.
+4. Pruning probes the cluster with the ``indices:admin/resolve/index`` and ``indices:data/read/field_caps*`` actions, both granted by the ``ppl_full_access`` role of the security plugin since 3.9. A principal lacking either permission falls back to querying the full expression silently, so pruning simply never takes effect.
 
 Pruning is also skipped when it would not reduce the read, that is when no index is excluded. The query then uses the original wildcard expression and reads exactly the same indices.
 
-Enable it with::
+Disable it with::
 
 	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
 	  "transient" : {
-	    "plugins.query.pruning.enabled" : true
+	    "plugins.query.pruning.enabled" : false
 	  }
 	}'
 
@@ -242,7 +242,7 @@ Result set::
         "plugins" : {
           "query" : {
             "pruning" : {
-              "enabled" : "true"
+              "enabled" : "false"
             }
           }
         }
@@ -251,7 +251,7 @@ Result set::
 
 Settings:
 
-1. The default value is false.
+1. The default value is true.
 2. This setting is node scope.
 3. This setting can be updated dynamically.
 

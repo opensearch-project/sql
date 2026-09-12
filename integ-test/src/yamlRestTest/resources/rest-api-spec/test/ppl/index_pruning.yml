@@ -21,7 +21,6 @@ setup:
             plugins.calcite.enabled: true
             # Without this a Calcite failure is silently answered by the v2 engine, which never prunes.
             plugins.calcite.fallback.allowed: false
-            plugins.query.pruning.enabled: true
   - do:
       indices.put_index_template:
         name: pruning-it

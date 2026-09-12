@@ -126,6 +126,18 @@ class OpenSearchSettingsTest {
   }
 
   @Test
+  void testQueryPruningEnabledSetting() {
+    when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
+    when(clusterSettings.get(not((eq(ClusterName.CLUSTER_NAME_SETTING))))).thenReturn(null);
+    OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
+
+    assertEquals(true, settings.getSettingValue(Settings.Key.QUERY_PRUNING_ENABLED));
+
+    settings.new Updater(Settings.Key.QUERY_PRUNING_ENABLED).accept(false);
+    assertEquals(false, settings.getSettingValue(Settings.Key.QUERY_PRUNING_ENABLED));
+  }
+
+  @Test
   void testDeserializationStructuralLimitSettings() {
     when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
     when(clusterSettings.get(not((eq(ClusterName.CLUSTER_NAME_SETTING))))).thenReturn(null);

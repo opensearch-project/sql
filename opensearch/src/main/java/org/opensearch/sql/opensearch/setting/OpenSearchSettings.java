@@ -220,7 +220,7 @@ public class OpenSearchSettings extends Settings {
   public static final Setting<?> QUERY_PRUNING_ENABLED_SETTING =
       Setting.boolSetting(
           Key.QUERY_PRUNING_ENABLED.getKeyValue(),
-          false,
+          true,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
