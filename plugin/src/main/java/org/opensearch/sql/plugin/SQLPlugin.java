@@ -118,7 +118,12 @@ import org.opensearch.sql.plugin.rest.RestPPLQueryAction;
 import org.opensearch.sql.plugin.rest.RestPPLStatsAction;
 import org.opensearch.sql.plugin.rest.RestQuerySettingsAction;
 import org.opensearch.sql.plugin.rest.RestUnifiedQueryAction;
+import org.opensearch.sql.plugin.transport.PPLAsyncQueryDeleteAction;
+import org.opensearch.sql.plugin.transport.PPLAsyncQueryJobService;
+import org.opensearch.sql.plugin.transport.PPLAsyncQueryResultAction;
 import org.opensearch.sql.plugin.transport.PPLQueryAction;
+import org.opensearch.sql.plugin.transport.TransportPPLAsyncQueryDeleteAction;
+import org.opensearch.sql.plugin.transport.TransportPPLAsyncQueryResultAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.prometheus.storage.PrometheusStorageFactory;
@@ -332,6 +337,12 @@ public class SQLPlugin extends Plugin
             new ActionType<>(PPLQueryAction.NAME, TransportPPLQueryResponse::new),
             TransportPPLQueryAction.class),
         new ActionHandler<>(
+            new ActionType<>(PPLAsyncQueryResultAction.NAME, TransportPPLQueryResponse::new),
+            TransportPPLAsyncQueryResultAction.class),
+        new ActionHandler<>(
+            new ActionType<>(PPLAsyncQueryDeleteAction.NAME, TransportPPLQueryResponse::new),
+            TransportPPLAsyncQueryDeleteAction.class),
+        new ActionHandler<>(
             new ActionType<>(
                 TransportCreateDataSourceAction.NAME, CreateDataSourceActionResponse::new),
             TransportCreateDataSourceAction.class),
@@ -440,6 +451,12 @@ public class SQLPlugin extends Plugin
         .loadJobResource(client, clusterService, threadPool, asyncQueryExecutorService);
 
     EngineExtensionsHolder extensionsHolder = new EngineExtensionsHolder(executionEngineExtensions);
+    PPLAsyncQueryJobService pplAsyncQueryJobService =
+        new PPLAsyncQueryJobService(this.client::getLocalNodeId, threadPool);
+    threadPool.scheduleWithFixedDelay(
+        pplAsyncQueryJobService::reapExpired,
+        org.opensearch.common.unit.TimeValue.timeValueMinutes(1),
+        ThreadPool.Names.GENERIC);
 
     return ImmutableList.of(
         dataSourceService,
@@ -447,7 +464,8 @@ public class SQLPlugin extends Plugin
         clusterManagerEventListener,
         pluginSettings,
         directQueryExecutorService,
-        extensionsHolder);
+        extensionsHolder,
+        pplAsyncQueryJobService);
   }
 
   @Override

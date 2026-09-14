@@ -12,6 +12,7 @@ import static org.opensearch.sql.opensearch.request.OpenSearchRequest.DEFAULT_QU
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import lombok.SneakyThrows;
@@ -30,11 +31,19 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
+import org.opensearch.search.aggregations.AggregationBuilders;
+import org.opensearch.search.aggregations.Aggregations;
+import org.opensearch.search.aggregations.bucket.composite.CompositeAggregationBuilder;
+import org.opensearch.search.aggregations.bucket.composite.InternalComposite;
+import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder;
 import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
+import org.opensearch.sql.opensearch.response.agg.CountAsTotalHitsParser;
+import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
+import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 
@@ -164,6 +173,69 @@ public class OpenSearchQueryRequestTest {
     OpenSearchResponse response = request.search(searchAction, scrollAction);
     assertFalse(response.isEmpty());
     verify(searchAction, times(1)).apply(any());
+  }
+
+  @Test
+  void aggregation_advances_composite_pagination_from_final_search_response() {
+    SearchSourceBuilder source =
+        new SearchSourceBuilder()
+            .size(0)
+            .aggregation(
+                new CompositeAggregationBuilder(
+                    "composite", List.of(new TermsValuesSourceBuilder("age").field("age"))));
+    OpenSearchQueryRequest request = OpenSearchQueryRequest.of("test", source, factory, List.of());
+    InternalComposite finalComposite = mock(InternalComposite.class);
+    SearchResponse finalSearchResponse = aggregationResponse(finalComposite);
+    Map<String, Object> finalAfterKey = Map.of("age", 30);
+    when(finalComposite.afterKey()).thenReturn(finalAfterKey);
+
+    request.search(searchRequest -> finalSearchResponse, scrollAction);
+
+    assertEquals(finalAfterKey, request.getAfterKey());
+  }
+
+  @Test
+  void aggregation_snapshots_support_no_bucket_metrics() {
+    SearchSourceBuilder source =
+        new SearchSourceBuilder().size(0).aggregation(AggregationBuilders.max("max").field("age"));
+    when(factory.getParser()).thenReturn(new NoBucketAggregationParser(List.of()));
+
+    OpenSearchQueryRequest request = OpenSearchQueryRequest.of("test", source, factory, List.of());
+
+    assertTrue(request.supportsAggregationSnapshots());
+  }
+
+  @Test
+  void aggregation_snapshots_support_count_from_total_hits() {
+    SearchSourceBuilder source = new SearchSourceBuilder().size(0).trackTotalHits(true);
+    when(factory.getParser()).thenReturn(new CountAsTotalHitsParser(List.of("count")));
+
+    OpenSearchQueryRequest request = OpenSearchQueryRequest.of("test", source, factory, List.of());
+
+    assertTrue(request.supportsAggregationSnapshots());
+  }
+
+  @Test
+  void aggregation_snapshots_reject_bucket_and_unknown_parsers() {
+    SearchSourceBuilder source =
+        new SearchSourceBuilder().size(0).aggregation(AggregationBuilders.max("max").field("age"));
+    when(factory.getParser()).thenReturn(mock(OpenSearchAggregationResponseParser.class));
+    OpenSearchQueryRequest unknownParserRequest =
+        OpenSearchQueryRequest.of("test", source, factory, List.of());
+
+    assertFalse(unknownParserRequest.supportsAggregationSnapshots());
+
+    SearchSourceBuilder compositeSource =
+        new SearchSourceBuilder()
+            .size(0)
+            .aggregation(
+                new CompositeAggregationBuilder(
+                    "composite", List.of(new TermsValuesSourceBuilder("age").field("age"))));
+    when(factory.getParser()).thenReturn(new NoBucketAggregationParser(List.of()));
+    OpenSearchQueryRequest compositeRequest =
+        OpenSearchQueryRequest.of("test", compositeSource, factory, List.of());
+
+    assertFalse(compositeRequest.supportsAggregationSnapshots());
   }
 
   @Test
@@ -462,5 +534,12 @@ public class OpenSearchQueryRequestTest {
               .getMock();
         };
     request.search(querySearch, searchScrollRequest -> null);
+  }
+
+  private static SearchResponse aggregationResponse(InternalComposite composite) {
+    SearchResponse response = mock(SearchResponse.class);
+    when(response.getHits()).thenReturn(SearchHits.empty());
+    when(response.getAggregations()).thenReturn(new Aggregations(List.of(composite)));
+    return response;
   }
 }

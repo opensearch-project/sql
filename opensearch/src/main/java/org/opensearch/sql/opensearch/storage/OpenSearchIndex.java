@@ -102,6 +102,9 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
   /** The cached max result window setting of index. */
   private Integer cachedMaxResultWindow = null;
 
+  /** Cached live primary-document count used only as a source-progress estimate. */
+  private Long cachedDocumentCount = null;
+
   /** Constructor. */
   public OpenSearchIndex(OpenSearchClient client, Settings settings, String indexName) {
     this.client = client;
@@ -218,6 +221,14 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
           new OpenSearchDescribeIndexRequest(client, indexName).getMaxResultWindow();
     }
     return cachedMaxResultWindow;
+  }
+
+  /** Return a low-cost source-size estimate, or {@code -1} when unavailable. */
+  public long getDocumentCountEstimate() {
+    if (cachedDocumentCount == null) {
+      cachedDocumentCount = client.getIndexDocumentCount(indexName.toString());
+    }
+    return cachedDocumentCount;
   }
 
   public Integer getQueryBucketSize() {

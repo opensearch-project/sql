@@ -19,6 +19,7 @@ import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
+import org.opensearch.sql.opensearch.executor.ProgressiveQueryContext;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.tasks.CancellableTask;
 
@@ -60,6 +61,8 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
 
   private CancellableTask cancellableTask;
 
+  private final ProgressiveQueryContext.Captured progressiveQueryContext;
+
   public OpenSearchIndexEnumerator(
       OpenSearchClient client,
       List<String> fields,
@@ -83,6 +86,7 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
     this.maxResponseSize = maxResponseSize;
     this.monitor = monitor;
     this.client = client;
+    this.progressiveQueryContext = ProgressiveQueryContext.capture();
     this.bgScanner = new BackgroundSearchScanner(client, maxResultWindow, queryBucketSize);
     this.bgScanner.startScanning(request);
     this.cancellableTask = OpenSearchQueryManager.getCancellableTask();
@@ -115,6 +119,7 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   @Override
   public boolean moveNext() {
     if (queryCount >= maxResponseSize) {
+      completeProgressiveSource();
       return false;
     }
 
@@ -144,6 +149,7 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
       queryCount++;
       return true;
     } else {
+      completeProgressiveSource();
       return false;
     }
   }
@@ -157,6 +163,7 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
 
   @Override
   public void close() {
+    completeProgressiveSource();
     iterator = Collections.emptyIterator();
     queryCount = 0;
     bgScanner.close();
@@ -164,5 +171,14 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
       client.forceCleanup(request);
       request = null;
     }
+  }
+
+  private void completeProgressiveSource() {
+    ProgressiveQueryContext.withContext(
+        progressiveQueryContext,
+        () -> {
+          ProgressiveQueryContext.completeSource();
+          return null;
+        });
   }
 }

@@ -26,10 +26,14 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -40,6 +44,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.data.model.ExprLongValue;
+import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionContext;
 import org.opensearch.sql.executor.ExecutionEngine;
@@ -50,7 +56,10 @@ import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.executor.protector.OpenSearchExecutionProtector;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
+import org.opensearch.sql.opensearch.storage.scan.CalciteEnumerableIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
+import org.opensearch.sql.opensearch.storage.scan.context.AggSpec;
+import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
 import org.opensearch.sql.planner.SerializablePlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.TableScanOperator;
@@ -302,6 +311,58 @@ class OpenSearchExecutionEngineTest {
         };
 
     assertFalse(OpenSearchExecutionEngine.isPitContextLimitReached(selfReferential));
+  }
+
+  @Test
+  void disables_partial_rows_for_pushed_down_composite_aggregation() {
+    CalciteEnumerableIndexScan scan = mock(CalciteEnumerableIndexScan.class);
+    PushDownContext pushDownContext = mock(PushDownContext.class);
+    AggSpec aggSpec = mock(AggSpec.class);
+    when(scan.getPushDownContext()).thenReturn(pushDownContext);
+    when(pushDownContext.getAggSpec()).thenReturn(aggSpec);
+
+    assertEquals(0, OpenSearchExecutionEngine.stablePrefixBatchSize(scan));
+  }
+
+  @Test
+  void enables_preview_for_plain_index_scan() {
+    CalciteEnumerableIndexScan scan = mock(CalciteEnumerableIndexScan.class);
+    PushDownContext pushDownContext = mock(PushDownContext.class);
+    when(scan.getPushDownContext()).thenReturn(pushDownContext);
+
+    assertEquals(200, OpenSearchExecutionEngine.stablePrefixBatchSize(scan));
+  }
+
+  @Test
+  void disables_preview_for_non_composite_aggregation_scan() {
+    CalciteEnumerableIndexScan scan = mock(CalciteEnumerableIndexScan.class);
+    PushDownContext pushDownContext = mock(PushDownContext.class);
+    AggSpec aggSpec = mock(AggSpec.class);
+    when(scan.getPushDownContext()).thenReturn(pushDownContext);
+    when(pushDownContext.getAggSpec()).thenReturn(aggSpec);
+    assertEquals(0, OpenSearchExecutionEngine.stablePrefixBatchSize(scan));
+  }
+
+  @Test
+  void orders_aggregation_snapshot_values_by_physical_row_type() {
+    RelDataType rowType = mock(RelDataType.class);
+    RelDataTypeField sumField = mock(RelDataTypeField.class);
+    RelDataTypeField avgField = mock(RelDataTypeField.class);
+    when(sumField.getName()).thenReturn("sum_value");
+    when(avgField.getName()).thenReturn("avg_value");
+    when(rowType.getFieldList()).thenReturn(List.of(sumField, avgField));
+
+    Map<String, ExprValue> reduceOrder = new LinkedHashMap<>();
+    reduceOrder.put("avg_value", new ExprLongValue(2));
+    reduceOrder.put("sum_value", new ExprLongValue(1));
+    ExprValue unordered = ExprTupleValue.fromExprValueMap(reduceOrder);
+
+    ExprValue ordered =
+        OpenSearchExecutionEngine.orderAggregationRows(rowType, List.of(unordered)).getFirst();
+
+    assertEquals(List.of("sum_value", "avg_value"), new ArrayList<>(ordered.tupleValue().keySet()));
+    assertEquals(1L, ordered.tupleValue().get("sum_value").longValue());
+    assertEquals(2L, ordered.tupleValue().get("avg_value").longValue());
   }
 
   @RequiredArgsConstructor

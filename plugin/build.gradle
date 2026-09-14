@@ -55,7 +55,10 @@ opensearchplugin {
     name 'opensearch-sql'
     description 'OpenSearch SQL'
     classname 'org.opensearch.sql.plugin.SQLPlugin'
-    extendedPlugins = ['opensearch-job-scheduler', 'analytics-engine;optional=true']
+    extendedPlugins = [
+        'opensearch-job-scheduler',
+        'analytics-engine;optional=true'
+    ]
     licenseFile rootProject.file("LICENSE.txt")
     noticeFile rootProject.file("NOTICE")
 }
@@ -134,6 +137,16 @@ compileTestJava {
     options.compilerArgs.addAll(["-processor", 'lombok.launch.AnnotationProcessorHider$AnnotationProcessor'])
 }
 
+// These libraries are provided by the OpenSearch distribution. Snapshot build-tools and archive
+// artifacts can briefly resolve different patch versions; bundling either copy causes plugin
+// installation to fail with jar hell. Keep only SQL-owned Jackson databind dependencies in the zip.
+bundlePlugin {
+    exclude 'jackson-core-*.jar'
+    exclude 'jackson-dataformat-yaml-*.jar'
+    exclude 'jackson-dataformat-cbor-*.jar'
+    exclude 'snakeyaml-*.jar'
+}
+
 spotless {
     java {
         target fileTree('.') {
@@ -154,6 +167,7 @@ spotless {
 
 dependencies {
     compileOnly "org.opensearch:opensearch-job-scheduler-spi:${opensearch_build}"
+    implementation "org.opensearch:common-utils:${opensearch_build}"
 
     api "tools.jackson.core:jackson-core:${versions.jackson3}"
     api "tools.jackson.core:jackson-databind:${versions.jackson3_databind}"

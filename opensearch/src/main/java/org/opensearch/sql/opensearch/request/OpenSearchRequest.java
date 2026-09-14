@@ -6,9 +6,11 @@
 package org.opensearch.sql.opensearch.request;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import lombok.EqualsAndHashCode;
+import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
@@ -16,6 +18,8 @@ import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.common.io.stream.Writeable;
+import org.opensearch.search.aggregations.InternalAggregations;
+import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
@@ -52,6 +56,21 @@ public interface OpenSearchRequest extends Writeable {
    * @return OpenSearchExprValueFactory.
    */
   OpenSearchExprValueFactory getExprValueFactory();
+
+  /** Whether this request can convert incremental reduce results into PPL aggregation rows. */
+  default boolean supportsAggregationSnapshots() {
+    return false;
+  }
+
+  /**
+   * Converts one incremental reduce result into PPL rows.
+   *
+   * <p>The default is empty because document scans do not expose aggregation snapshots.
+   */
+  default List<ExprValue> parseAggregationSnapshot(
+      TotalHits totalHits, InternalAggregations aggregations) {
+    return List.of();
+  }
 
   /**
    * Check if there is more data to get from OpenSearch.

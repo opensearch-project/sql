@@ -22,6 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.executor.ProgressiveQueryContext;
 import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
@@ -130,6 +131,28 @@ class BackgroundSearchScannerTest {
     scanner.reset(request);
 
     assertFalse(scanner.isScanDone());
+  }
+
+  @Test
+  void propagates_progressive_query_context_to_background_search() {
+    ProgressiveQueryContext.Observer observer = mock(ProgressiveQueryContext.Observer.class);
+    try (ProgressiveQueryContext.Scope ignored = ProgressiveQueryContext.open(observer)) {
+      scanner = new BackgroundSearchScanner(client, 10, 10);
+    }
+    assertFalse(ProgressiveQueryContext.isActive());
+
+    OpenSearchResponse response = mockResponse(false, true, 1);
+    when(client.search(request))
+        .thenAnswer(
+            invocation -> {
+              assertTrue(ProgressiveQueryContext.isActive());
+              return response;
+            });
+
+    scanner.startScanning(request);
+    scanner.fetchNextBatch(request);
+
+    assertFalse(ProgressiveQueryContext.isActive());
   }
 
   private OpenSearchResponse mockResponse(boolean isEmpty, boolean isAggregation, int numResults) {

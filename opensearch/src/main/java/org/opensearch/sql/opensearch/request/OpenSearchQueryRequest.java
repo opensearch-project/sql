@@ -10,6 +10,7 @@ import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,7 @@ import lombok.Getter;
 import lombok.ToString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.search.TotalHits;
 import org.jetbrains.annotations.TestOnly;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
@@ -34,6 +36,7 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.SearchModule;
+import org.opensearch.search.aggregations.InternalAggregations;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.composite.InternalComposite;
 import org.opensearch.search.builder.PointInTimeBuilder;
@@ -41,8 +44,12 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.FieldSortBuilder;
 import org.opensearch.search.sort.ShardDocSortBuilder;
 import org.opensearch.search.sort.SortBuilders;
+import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
+import org.opensearch.sql.opensearch.response.agg.CountAsTotalHitsParser;
+import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
+import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 
@@ -148,6 +155,53 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
         && sourceBuilder.size() == 0
         && sourceBuilder.trackTotalHitsUpTo() != null // only set in v3
         && sourceBuilder.trackTotalHitsUpTo() == Integer.MAX_VALUE;
+  }
+
+  @Override
+  public boolean supportsAggregationSnapshots() {
+    OpenSearchAggregationResponseParser parser = exprValueFactory.getParser();
+    if (searchDone || parser == null) {
+      return false;
+    }
+    if (isCountAggRequest()) {
+      return parser instanceof CountAsTotalHitsParser;
+    }
+    if (!(parser instanceof NoBucketAggregationParser)) {
+      return false;
+    }
+    return sourceBuilder.aggregations() != null
+        && sourceBuilder.aggregations().getAggregatorFactories().stream()
+            .noneMatch(CompositeAggregationBuilder.class::isInstance);
+  }
+
+  @Override
+  public List<ExprValue> parseAggregationSnapshot(
+      TotalHits totalHits, InternalAggregations aggregations) {
+    if (!supportsAggregationSnapshots()) {
+      return List.of();
+    }
+
+    OpenSearchResponse response;
+    if (isCountAggRequest()) {
+      if (totalHits == null) {
+        return List.of();
+      }
+      response =
+          new OpenSearchResponse(
+              new SearchHits(SearchHits.EMPTY, totalHits, Float.NaN),
+              exprValueFactory,
+              includes,
+              true);
+    } else {
+      if (aggregations == null || aggregations.asList().isEmpty()) {
+        return List.of();
+      }
+      response = new OpenSearchResponse(aggregations, exprValueFactory, includes);
+    }
+
+    List<ExprValue> rows = new ArrayList<>();
+    response.forEach(rows::add);
+    return List.copyOf(rows);
   }
 
   /**

@@ -37,6 +37,7 @@ public abstract class Settings {
     PPL_SUBSEARCH_MAXOUT("plugins.ppl.subsearch.maxout"),
     PPL_JOIN_SUBSEARCH_MAXOUT("plugins.ppl.join.subsearch_maxout"),
     PPL_REST_ALLOWED_ENDPOINTS("plugins.ppl.rest.allowed_endpoints"),
+    PPL_ASYNC_MAX_PAGE_SIZE("plugins.ppl.async.max_page_size"),
 
     /** Enable Calcite as execution engine */
     CALCITE_ENGINE_ENABLED("plugins.calcite.enabled"),

@@ -16,6 +16,7 @@ import static org.mockito.Answers.RETURNS_DEEP_STUBS;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.opensearch.client.OpenSearchClient.META_CLUSTER_NAME;
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.lucene.search.TotalHits;
@@ -65,15 +67,19 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
+import org.opensearch.search.aggregations.InternalAggregations;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.executor.ProgressiveQueryResponseListener.QueryProgress;
 import org.opensearch.sql.opensearch.data.type.OpenSearchAliasType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
+import org.opensearch.sql.opensearch.executor.ProgressiveQueryContext;
+import org.opensearch.sql.opensearch.executor.ProgressiveQueryContext.SearchMode;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
@@ -341,6 +347,113 @@ class OpenSearchNodeClientTest {
     request.setScrollId("scroll123");
     OpenSearchResponse response2 = client.search(request);
     assertTrue(response2.isEmpty());
+  }
+
+  @Test
+  void search_progress_reports_shards_without_claiming_query_completion() {
+    AtomicReference<QueryProgress> latest = new AtomicReference<>();
+    ProgressiveQueryContext.Observer observer =
+        new ProgressiveQueryContext.Observer() {
+          @Override
+          public void onProgress(QueryProgress progress) {
+            latest.set(progress);
+          }
+
+          @Override
+          public void onSearchTaskStarted(long operationId, Runnable cancelAction) {}
+
+          @Override
+          public void onSearchTaskFinished(long operationId) {}
+        };
+
+    try (ProgressiveQueryContext.Scope ignored = ProgressiveQueryContext.open(observer)) {
+      OpenSearchNodeClient.SearchProgressTracker tracker =
+          new OpenSearchNodeClient.SearchProgressTracker(
+              ProgressiveQueryContext.startSearch(SearchMode.SINGLE_REQUEST),
+              mock(OpenSearchRequest.class),
+              10_000);
+      tracker.onListShards(
+          List.of(mock(SearchShard.class)), List.of(), SearchResponse.Clusters.EMPTY, false);
+      assertEquals(new QueryProgress(0D), latest.get());
+
+      tracker.onQueryResult(0);
+      assertEquals(new QueryProgress(1D), latest.get());
+    }
+  }
+
+  @Test
+  void pit_search_publishes_in_flight_page_progress() {
+    AtomicReference<QueryProgress> latest = new AtomicReference<>();
+    ProgressiveQueryContext.Observer observer =
+        new ProgressiveQueryContext.Observer() {
+          @Override
+          public void onProgress(QueryProgress progress) {
+            latest.set(progress);
+          }
+
+          @Override
+          public void onSourcePageProgress(
+              long sourceId, QueryProgress pageProgress, long expectedPageUnits) {
+            latest.set(pageProgress);
+            assertEquals(10_000L, expectedPageUnits);
+          }
+
+          @Override
+          public void onSearchTaskStarted(long operationId, Runnable cancelAction) {}
+
+          @Override
+          public void onSearchTaskFinished(long operationId) {}
+        };
+
+    try (ProgressiveQueryContext.Scope ignored = ProgressiveQueryContext.open(observer)) {
+      OpenSearchNodeClient.SearchProgressTracker tracker =
+          new OpenSearchNodeClient.SearchProgressTracker(
+              ProgressiveQueryContext.startSearch(SearchMode.PIT_HITS),
+              mock(OpenSearchRequest.class),
+              10_000);
+      tracker.onListShards(
+          List.of(mock(SearchShard.class)), List.of(), SearchResponse.Clusters.EMPTY, false);
+      tracker.onQueryResult(0);
+    }
+
+    assertEquals(new QueryProgress(1D), latest.get());
+  }
+
+  @Test
+  void search_progress_publishes_and_throttles_non_empty_aggregation_snapshots() {
+    AtomicReference<List<ExprValue>> latest = new AtomicReference<>();
+    ProgressiveQueryContext.Observer observer =
+        new ProgressiveQueryContext.Observer() {
+          @Override
+          public void onProgress(QueryProgress progress) {}
+
+          @Override
+          public void onAggregationSnapshot(List<ExprValue> rows) {
+            latest.set(rows);
+          }
+
+          @Override
+          public void onSearchTaskStarted(long operationId, Runnable cancelAction) {}
+
+          @Override
+          public void onSearchTaskFinished(long operationId) {}
+        };
+    OpenSearchRequest request = mock(OpenSearchRequest.class);
+    when(request.supportsAggregationSnapshots()).thenReturn(true);
+    when(request.parseAggregationSnapshot(any(), any())).thenReturn(List.of(exprTupleValue));
+
+    try (ProgressiveQueryContext.Scope ignored = ProgressiveQueryContext.open(observer)) {
+      OpenSearchNodeClient.SearchProgressTracker tracker =
+          new OpenSearchNodeClient.SearchProgressTracker(
+              ProgressiveQueryContext.startSearch(SearchMode.SINGLE_REQUEST), request, 10_000);
+      tracker.onPartialReduce(
+          List.of(), new TotalHits(1, TotalHits.Relation.EQUAL_TO), InternalAggregations.EMPTY, 1);
+      tracker.onPartialReduce(
+          List.of(), new TotalHits(2, TotalHits.Relation.EQUAL_TO), InternalAggregations.EMPTY, 2);
+    }
+
+    assertEquals(List.of(exprTupleValue), latest.get());
+    verify(request, times(1)).parseAggregationSnapshot(any(), any());
   }
 
   @Test

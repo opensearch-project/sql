@@ -442,6 +442,16 @@ testClusters {
         // Only /_cluster/health is registered; pin the allow-list to it for the rest ITs.
         setting 'plugins.ppl.rest.allowed_endpoints', '/_cluster/health'
     }
+    pplAsyncLargeDataDemo {
+        testDistribution = 'archive'
+        numberOfNodes = 3
+        jvmArgs '-Xms16g', '-Xmx16g'
+        plugin(getJobSchedulerPlugin())
+        plugin ":opensearch-sql-plugin"
+        setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
+        setting "plugins.query.size_limit", "1000000"
+        setting "plugins.query.buckets", "10000"
+    }
     tracingIntegTest {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
@@ -493,6 +503,26 @@ testClusters {
         plugin ":opensearch-sql-plugin"
         // Composite-default cluster: PPL queries route to the analytics engine unless excluded.
         setting 'cluster.pluggable.dataformat', 'composite'
+    }
+}
+
+task pplAsyncLargeDataDemo(type: RestIntegTestTask) {
+    useCluster testClusters.pplAsyncLargeDataDemo
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+    maxHeapSize = '16g'
+    systemProperty 'tests.security.manager', 'false'
+    systemProperty 'project.root', project.projectDir.absolutePath
+    systemProperty 'defaultQuerySizeLimit', '1000000'
+
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+    afterTest { desc, result ->
+        logger.quiet "${desc.className}.${desc.name}: ${result.resultType} ${(result.getEndTime() - result.getStartTime())/1000}s"
+    }
+
+    filter {
+        includeTestsMatching 'org.opensearch.sql.calcite.remote.CalcitePPLAsyncLargeDataDemoIT'
     }
 }
 

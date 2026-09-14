@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONObject;
 import org.opensearch.OpenSearchException;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
@@ -31,6 +32,8 @@ import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.opensearch.response.error.ErrorMessageFactory;
 import org.opensearch.sql.plugin.request.PPLQueryRequestFactory;
+import org.opensearch.sql.plugin.transport.PPLAsyncQueryDeleteAction;
+import org.opensearch.sql.plugin.transport.PPLAsyncQueryResultAction;
 import org.opensearch.sql.plugin.transport.PPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryRequest;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
@@ -39,6 +42,7 @@ import org.opensearch.transport.client.node.NodeClient;
 public class RestPPLQueryAction extends BaseRestHandler {
   public static final String QUERY_API_ENDPOINT = "/_plugins/_ppl";
   public static final String EXPLAIN_API_ENDPOINT = "/_plugins/_ppl/_explain";
+  public static final String ASYNC_JOB_API_ENDPOINT = "/_plugins/_ppl/jobs/{id}";
 
   private static final Logger LOG = LogManager.getLogger();
 
@@ -94,7 +98,9 @@ public class RestPPLQueryAction extends BaseRestHandler {
   public List<Route> routes() {
     return ImmutableList.of(
         new Route(RestRequest.Method.POST, QUERY_API_ENDPOINT),
-        new Route(RestRequest.Method.POST, EXPLAIN_API_ENDPOINT));
+        new Route(RestRequest.Method.POST, EXPLAIN_API_ENDPOINT),
+        new Route(RestRequest.Method.GET, ASYNC_JOB_API_ENDPOINT),
+        new Route(RestRequest.Method.DELETE, ASYNC_JOB_API_ENDPOINT));
   }
 
   @Override
@@ -112,21 +118,23 @@ public class RestPPLQueryAction extends BaseRestHandler {
 
   @Override
   protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient nodeClient) {
-    TransportPPLQueryRequest transportPPLQueryRequest =
-        new TransportPPLQueryRequest(PPLQueryRequestFactory.getPPLRequest(request));
+    TransportPPLQueryRequest transportPPLQueryRequest = buildTransportRequest(request);
+    boolean asyncLifecycleRequest = isAsynchronousLifecycleRequest(request);
 
     // RestCancellableNodeClient cancels the PPLQueryTask on client disconnect, which cascades to
-    // the analytics query + fragments.
+    // the analytics query + fragments. Asynchronous PPL jobs are deliberately detached from the
+    // submit HTTP channel and are cancelled through their job lifecycle instead.
     return channel -> {
-      RestCancellableNodeClient cancellableClient =
-          new RestCancellableNodeClient(nodeClient, request.getHttpChannel());
-      cancellableClient.execute(
-          PPLQueryAction.INSTANCE,
-          transportPPLQueryRequest,
+      ActionListener<TransportPPLQueryResponse> listener =
           new ActionListener<>() {
             @Override
             public void onResponse(TransportPPLQueryResponse response) {
-              sendResponse(channel, OK, response.getContentType(), response.getResult());
+              sendResponse(
+                  channel,
+                  OK,
+                  response.getContentType(),
+                  response.getResult(),
+                  asyncLifecycleRequest);
             }
 
             @Override
@@ -137,20 +145,79 @@ public class RestPPLQueryAction extends BaseRestHandler {
               } else {
                 LOG.error("Error happened during query handling (status {})", status, e);
               }
-              reportError(channel, e, status);
+              reportError(channel, e, status, asyncLifecycleRequest);
             }
-          });
+          };
+      if (asyncLifecycleRequest) {
+        if (request.method() == RestRequest.Method.GET) {
+          nodeClient.execute(
+              PPLAsyncQueryResultAction.INSTANCE, transportPPLQueryRequest, listener);
+        } else if (request.method() == RestRequest.Method.DELETE) {
+          nodeClient.execute(
+              PPLAsyncQueryDeleteAction.INSTANCE, transportPPLQueryRequest, listener);
+        } else {
+          nodeClient.execute(PPLQueryAction.INSTANCE, transportPPLQueryRequest, listener);
+        }
+      } else {
+        new RestCancellableNodeClient(nodeClient, request.getHttpChannel())
+            .execute(PPLQueryAction.INSTANCE, transportPPLQueryRequest, listener);
+      }
     };
   }
 
-  private void sendResponse(
-      RestChannel channel, RestStatus status, String contentType, String content) {
-    channel.sendResponse(new BytesRestResponse(status, contentType, content));
+  private static TransportPPLQueryRequest buildTransportRequest(RestRequest request) {
+    if (request.method() == RestRequest.Method.POST) {
+      return new TransportPPLQueryRequest(PPLQueryRequestFactory.getPPLRequest(request));
+    }
+
+    JSONObject lifecycleRequest =
+        new JSONObject().put("id", request.param("id")).put("operation", request.method().name());
+    copyParameter(request, lifecycleRequest, "keep_alive");
+    copyParameter(request, lifecycleRequest, "offset");
+    copyParameter(request, lifecycleRequest, "count");
+    return new TransportPPLQueryRequest("", lifecycleRequest, request.path());
   }
 
-  private void reportError(final RestChannel channel, final Exception e, final RestStatus status) {
-    channel.sendResponse(
+  private static void copyParameter(RestRequest request, JSONObject target, String parameterName) {
+    if (request.hasParam(parameterName)) {
+      target.put(parameterName, request.param(parameterName));
+    }
+  }
+
+  static boolean isAsynchronousLifecycleRequest(RestRequest request) {
+    if (request.method() == RestRequest.Method.GET
+        || request.method() == RestRequest.Method.DELETE) {
+      return true;
+    }
+    if (request.method() != RestRequest.Method.POST || request.content().length() == 0) {
+      return false;
+    }
+    JSONObject json = new JSONObject(request.content().utf8ToString());
+    if ((request.rawPath() != null && request.rawPath().endsWith("/_explain"))
+        || json.optBoolean("analyze")
+        || json.optBoolean("profile")) {
+      return false;
+    }
+    return json.has("wait_for_completion_timeout") || json.has("keep_alive");
+  }
+
+  private void sendResponse(
+      RestChannel channel, RestStatus status, String contentType, String content, boolean noStore) {
+    BytesRestResponse response = new BytesRestResponse(status, contentType, content);
+    if (noStore) {
+      response.addHeader("Cache-Control", "no-store");
+    }
+    channel.sendResponse(response);
+  }
+
+  private void reportError(
+      final RestChannel channel, final Exception e, final RestStatus status, boolean noStore) {
+    BytesRestResponse response =
         new BytesRestResponse(
-            status, ErrorMessageFactory.createErrorMessage(e, status.getStatus()).toString()));
+            status, ErrorMessageFactory.createErrorMessage(e, status.getStatus()).toString());
+    if (noStore) {
+      response.addHeader("Cache-Control", "no-store");
+    }
+    channel.sendResponse(response);
   }
 }

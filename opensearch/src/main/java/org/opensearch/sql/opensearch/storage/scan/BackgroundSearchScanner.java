@@ -21,6 +21,7 @@ import org.opensearch.sql.exception.NonFallbackCalciteException;
 import org.opensearch.sql.monitor.profile.ProfileContext;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.executor.ProgressiveQueryContext;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
@@ -70,12 +71,14 @@ public class BackgroundSearchScanner {
   private boolean stopIteration = false;
   private final int maxResultWindow;
   private final int queryBucketSize;
+  private final ProgressiveQueryContext.Captured progressiveQueryContext;
 
   public BackgroundSearchScanner(
       OpenSearchClient client, int maxResultWindow, int queryBucketSize) {
     this.client = client;
     this.maxResultWindow = maxResultWindow;
     this.queryBucketSize = queryBucketSize;
+    this.progressiveQueryContext = ProgressiveQueryContext.capture();
     // We can only actually do the background operation if we have the ability to access the thread
     // pool. Otherwise, fallback to synchronous fetch.
     if (client.getNodeClient().isPresent()) {
@@ -108,7 +111,10 @@ public class BackgroundSearchScanner {
       ProfileContext ctx = QueryProfiling.current();
       nextBatchFuture =
           CompletableFuture.supplyAsync(
-              () -> QueryProfiling.withCurrentContext(ctx, () -> client.search(request)),
+              () ->
+                  ProgressiveQueryContext.withContext(
+                      progressiveQueryContext,
+                      () -> QueryProfiling.withCurrentContext(ctx, () -> client.search(request))),
               backgroundExecutor);
     }
   }
@@ -177,7 +183,11 @@ public class BackgroundSearchScanner {
       // Pre-fetch next batch if needed
       if (!stopIteration && isAsync()) {
         nextBatchFuture =
-            CompletableFuture.supplyAsync(() -> client.search(request), backgroundExecutor);
+            CompletableFuture.supplyAsync(
+                () ->
+                    ProgressiveQueryContext.withContext(
+                        progressiveQueryContext, () -> client.search(request)),
+                backgroundExecutor);
       }
     } else {
       iterator = Collections.emptyIterator();

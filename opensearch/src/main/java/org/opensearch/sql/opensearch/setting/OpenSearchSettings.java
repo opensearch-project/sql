@@ -86,6 +86,14 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<Integer> PPL_ASYNC_MAX_PAGE_SIZE_SETTING =
+      Setting.intSetting(
+          Key.PPL_ASYNC_MAX_PAGE_SIZE.getKeyValue(),
+          10_000,
+          1,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   public static final Setting<?> PPL_SYNTAX_LEGACY_PREFERRED_SETTING =
       Setting.boolSetting(
           Key.PPL_SYNTAX_LEGACY_PREFERRED.getKeyValue(),
@@ -447,6 +455,12 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.PPL_ASYNC_MAX_PAGE_SIZE,
+        PPL_ASYNC_MAX_PAGE_SIZE_SETTING,
+        new Updater(Key.PPL_ASYNC_MAX_PAGE_SIZE));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.PPL_SYNTAX_LEGACY_PREFERRED,
         PPL_SYNTAX_LEGACY_PREFERRED_SETTING,
         new Updater(Key.PPL_SYNTAX_LEGACY_PREFERRED));
@@ -767,6 +781,7 @@ public class OpenSearchSettings extends Settings {
         .add(DESERIALIZATION_MAX_BYTES_SETTING)
         .add(PPL_ENABLED_SETTING)
         .add(PPL_QUERY_TIMEOUT_SETTING)
+        .add(PPL_ASYNC_MAX_PAGE_SIZE_SETTING)
         .add(PPL_SYNTAX_LEGACY_PREFERRED_SETTING)
         .add(CALCITE_ENGINE_ENABLED_SETTING)
         .add(CALCITE_FALLBACK_ALLOWED_SETTING)

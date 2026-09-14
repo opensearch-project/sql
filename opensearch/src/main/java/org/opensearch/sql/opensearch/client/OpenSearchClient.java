@@ -56,6 +56,16 @@ public interface OpenSearchClient {
   Map<String, Integer> getIndexMaxResultWindows(String... indexExpression);
 
   /**
+   * Return the number of live primary documents for an index expression, or {@code -1} when this
+   * low-cost estimate is unavailable.
+   *
+   * <p>The value estimates source size; it is not query-filter cardinality.
+   */
+  default long getIndexDocumentCount(String... indexExpression) {
+    return -1L;
+  }
+
+  /**
    * Perform search query in the search request.
    *
    * @param request search request

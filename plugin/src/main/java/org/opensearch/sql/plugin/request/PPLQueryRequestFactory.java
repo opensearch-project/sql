@@ -87,6 +87,10 @@ public class PPLQueryRequestFactory {
       boolean profileRequested = jsonContent.optBoolean(QUERY_PARAMS_PROFILE, false);
       boolean analyzeRequested = jsonContent.optBoolean(QUERY_PARAMS_ANALYZE, false);
       String queryString = jsonContent.optString(PPL_FIELD_NAME, "");
+      boolean hasQuery = jsonContent.has(PPL_FIELD_NAME);
+      if (!hasQuery) {
+        throw new IllegalArgumentException("Request payload must contain [query]");
+      }
       // if both profile and analyze are requested, profile overrides analyze
       boolean profileSupported = isProfileSupported(restRequest.path(), format, queryString);
       boolean enableProfile = profileRequested && profileSupported;
@@ -112,7 +116,7 @@ public class PPLQueryRequestFactory {
       }
       PPLQueryRequest pplRequest =
           new PPLQueryRequest(
-              jsonContent.getString(PPL_FIELD_NAME),
+              queryString,
               jsonContent,
               restRequest.path(),
               format.getFormatName(),

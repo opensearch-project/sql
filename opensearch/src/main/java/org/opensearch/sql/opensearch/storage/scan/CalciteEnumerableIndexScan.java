@@ -29,6 +29,7 @@ import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.plan.Scannable;
 import org.opensearch.sql.calcite.plan.rule.OpenSearchRules;
+import org.opensearch.sql.opensearch.executor.ProgressiveQueryContext;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
@@ -38,6 +39,7 @@ import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
 public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
     implements Scannable, EnumerableRel {
   private static final Logger LOG = LogManager.getLogger(CalciteEnumerableIndexScan.class);
+  private volatile long progressiveSourceId;
 
   /**
    * Creates an CalciteOpenSearchIndexScan.
@@ -66,14 +68,24 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
       OpenSearchIndex osIndex,
       RelDataType schema,
       PushDownContext pushDownContext) {
-    return new CalciteEnumerableIndexScan(
-        cluster, traitSet, hints, table, osIndex, schema, pushDownContext);
+    CalciteEnumerableIndexScan copy =
+        new CalciteEnumerableIndexScan(
+            cluster, traitSet, hints, table, osIndex, schema, pushDownContext);
+    copy.progressiveSourceId = progressiveSourceId;
+    return copy;
   }
 
   @Override
   public AbstractCalciteIndexScan copy() {
-    return new CalciteEnumerableIndexScan(
-        getCluster(), traitSet, hints, table, osIndex, schema, pushDownContext.clone());
+    CalciteEnumerableIndexScan copy =
+        new CalciteEnumerableIndexScan(
+            getCluster(), traitSet, hints, table, osIndex, schema, pushDownContext.clone());
+    copy.progressiveSourceId = progressiveSourceId;
+    return copy;
+  }
+
+  public void setProgressiveSource(long progressiveSourceId) {
+    this.progressiveSourceId = progressiveSourceId;
   }
 
   @Override
@@ -118,15 +130,20 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
     return new AbstractEnumerable<>() {
       @Override
       public Enumerator<Object> enumerator() {
-        OpenSearchRequestBuilder requestBuilder = pushDownContext.createRequestBuilder();
-        return new OpenSearchIndexEnumerator(
-            osIndex.getClient(),
-            getRowType().getFieldNames(),
-            requestBuilder.getMaxResponseSize(),
-            requestBuilder.getMaxResultWindow(),
-            osIndex.getQueryBucketSize(),
-            osIndex.buildRequest(requestBuilder),
-            osIndex.createOpenSearchResourceMonitor());
+        return ProgressiveQueryContext.withSource(
+            progressiveSourceId,
+            CalciteEnumerableIndexScan.this,
+            () -> {
+              OpenSearchRequestBuilder requestBuilder = pushDownContext.createRequestBuilder();
+              return new OpenSearchIndexEnumerator(
+                  osIndex.getClient(),
+                  getRowType().getFieldNames(),
+                  requestBuilder.getMaxResponseSize(),
+                  requestBuilder.getMaxResultWindow(),
+                  osIndex.getQueryBucketSize(),
+                  osIndex.buildRequest(requestBuilder),
+                  osIndex.createOpenSearchResourceMonitor());
+            });
       }
     };
   }

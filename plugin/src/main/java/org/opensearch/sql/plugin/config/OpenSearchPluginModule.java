@@ -6,7 +6,6 @@
 package org.opensearch.sql.plugin.config;
 
 import java.util.List;
-import lombok.RequiredArgsConstructor;
 import org.opensearch.common.inject.AbstractModule;
 import org.opensearch.common.inject.Provides;
 import org.opensearch.common.inject.Singleton;
@@ -44,15 +43,28 @@ import org.opensearch.telemetry.tracing.Tracer;
 import org.opensearch.telemetry.tracing.noop.NoopTracer;
 import org.opensearch.transport.client.node.NodeClient;
 
-@RequiredArgsConstructor
 public class OpenSearchPluginModule extends AbstractModule {
 
   private final List<ExecutionEngine> executionEngineExtensions;
   private final Tracer tracer;
+  private final OpenSearchClient clientOverride;
+
+  public OpenSearchPluginModule(List<ExecutionEngine> executionEngineExtensions, Tracer tracer) {
+    this(executionEngineExtensions, tracer, null);
+  }
+
+  public OpenSearchPluginModule(
+      List<ExecutionEngine> executionEngineExtensions,
+      Tracer tracer,
+      OpenSearchClient clientOverride) {
+    this.executionEngineExtensions = executionEngineExtensions;
+    this.tracer = tracer;
+    this.clientOverride = clientOverride;
+  }
 
   /** Default constructor for when no engines are available. */
   public OpenSearchPluginModule() {
-    this(List.of(), NoopTracer.INSTANCE);
+    this(List.of(), NoopTracer.INSTANCE, null);
   }
 
   private final BuiltinFunctionRepository functionRepository =
@@ -62,7 +74,11 @@ public class OpenSearchPluginModule extends AbstractModule {
   protected void configure() {}
 
   @Provides
+  @Singleton
   public OpenSearchClient openSearchClient(NodeClient nodeClient) {
+    if (clientOverride != null) {
+      return clientOverride;
+    }
     return new OpenSearchNodeClient(nodeClient);
   }
 

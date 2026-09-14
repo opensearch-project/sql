@@ -102,6 +102,18 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
     this.isCountAgg = isCountAgg;
   }
 
+  /** Constructor for an incremental aggregation reduce snapshot. */
+  public OpenSearchResponse(
+      Aggregations aggregations,
+      OpenSearchExprValueFactory exprValueFactory,
+      List<String> includes) {
+    this.hits = SearchHits.empty();
+    this.aggregations = aggregations;
+    this.exprValueFactory = exprValueFactory;
+    this.includes = includes;
+    this.isCountAgg = false;
+  }
+
   /**
    * Is response empty. As OpenSearch doc says, "Each call to the scroll API returns the next batch
    * of results until there are no more results left to return, ie the hits array is empty."

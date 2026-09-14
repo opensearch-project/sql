@@ -138,6 +138,18 @@ class OpenSearchSettingsTest {
   }
 
   @Test
+  void pplAsyncMaxPageSizeIsDynamicAndRegistered() {
+    assertEquals(
+        10_000,
+        OpenSearchSettings.PPL_ASYNC_MAX_PAGE_SIZE_SETTING.get(
+            org.opensearch.common.settings.Settings.EMPTY));
+    assertTrue(OpenSearchSettings.PPL_ASYNC_MAX_PAGE_SIZE_SETTING.isDynamic());
+    assertTrue(
+        OpenSearchSettings.pluginSettings()
+            .contains(OpenSearchSettings.PPL_ASYNC_MAX_PAGE_SIZE_SETTING));
+  }
+
+  @Test
   void testDeserializationStructuralLimitSettings() {
     when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
     when(clusterSettings.get(not((eq(ClusterName.CLUSTER_NAME_SETTING))))).thenReturn(null);
