@@ -21,6 +21,7 @@ import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.util.ClusterPlugins;
 
 /**
  * Runs the partial-result-on-mapping-conflict path with the security plugin installed. Regression
@@ -45,6 +46,10 @@ public class PartialResultSecurityIT extends SecurityTestBase {
 
   @Override
   protected void init() throws Exception {
+    ClusterPlugins.requirePluginOrAssume(
+        client(),
+        ClusterPlugins.SECURITY_PLUGIN,
+        "opensearch-security plugin not installed on test cluster; skipping FGAC tests");
     super.init();
     enableCalcite();
     if (!initialized) {
