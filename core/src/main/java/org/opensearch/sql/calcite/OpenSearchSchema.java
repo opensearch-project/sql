@@ -60,10 +60,7 @@ public class OpenSearchSchema extends AbstractSchema {
     tableMap.put(qualifiedName.toString(), (org.apache.calcite.schema.Table) table);
   }
 
-  /**
-   * Applied to every table the query resolves, a subsearch's source included -- the request-level
-   * scope Splunk's time range picker and ES|QL's request {@code filter} have.
-   */
+  /** Applied to every table the query resolves, a subsearch's source included. */
   private org.opensearch.sql.storage.Table resolve(
       StorageEngine engine,
       DataSourceSchemaName schemaName,

@@ -37,12 +37,7 @@ public class IndexPruner {
   /** Bounds each probe. Generous because a fallback can fail the query, not merely slow it. */
   private static final TimeValue PROBE_TIMEOUT = TimeValue.timeValueSeconds(10);
 
-  /**
-   * Formats a bound may be spelled in. Replaces the field's own, so a field with a custom format
-   * prunes only on these; anything else fails to parse and pruning declines. Date math is resolved
-   * before they apply. The third is what a client writing the same literal into the query text
-   * produces.
-   */
+  /** Formats a bound may be spelled in. Replaces the field's own; date math applies before them. */
   private static final String BOUND_FORMATS =
       "strict_date_optional_time||epoch_millis||yyyy-MM-dd HH:mm:ss.SSS||yyyy-MM-dd HH:mm:ss";
 
@@ -63,14 +58,12 @@ public class IndexPruner {
   }
 
   /**
-   * Returns the index expression to read, narrowed to the indices that can hold data in {@code
-   * bounds}. Needs no pushed-down filter, so unlike {@link #prune(IndexName, QueryBuilder)} it can
-   * run while the table is still being resolved -- before the mapping merge.
+   * As {@link #prune(IndexName, QueryBuilder)}, but from request-level bounds rather than a
+   * pushed-down filter, so it can run before the mapping merge.
    *
    * @return expression to read, never null
    */
   public IndexName prune(IndexName indexName, TimeBounds bounds) {
-    // As sent: re-interpreting could narrow the window and drop an index that can match.
     QueryBuilder range =
         new RangeQueryBuilder(bounds.getTimeField())
             .gte(bounds.getStart())

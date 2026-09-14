@@ -765,10 +765,6 @@ public class QueryService {
     return buildFrameworkConfig(null);
   }
 
-  /**
-   * @param timeBounds seeded here: the last point before planning resolves a table, and resolving
-   *     one merges every matched index's mapping
-   */
   private FrameworkConfig buildFrameworkConfig(@Nullable TimeBounds timeBounds) {
     // Use simple calcite schema since we don't compute tables in advance of the query.
     final SchemaPlus rootSchema = CalciteSchema.createRootSchema(true, false).plus();

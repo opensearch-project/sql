@@ -9,12 +9,8 @@ import java.util.Locale;
 import lombok.Value;
 
 /**
- * A request-level time range, declared out of band from the query text and applying to every source
- * the query reads.
- *
- * <p>Bounds are kept as sent. OpenSearch date math and absolute timestamps are both accepted; which
- * formats an absolute bound may take is fixed by the probe, not the field's mapping. See {@code
- * IndexPruner}.
+ * A request-level time range, applying to every source the query reads. Bounds are kept as sent;
+ * see {@code IndexPruner} for the formats accepted.
  */
 @Value
 public class TimeBounds {

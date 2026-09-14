@@ -55,9 +55,8 @@ public class OpenSearchStorageEngine implements StorageEngine, SupportsIndexPrun
   /**
    * {@inheritDoc}
    *
-   * <p>Narrowed as the table is built, not after: a table's schema is the merge of every index its
-   * name resolves to, so once one exists the merge is paid. Only an index expression can be
-   * narrowed; a catalog or REST source has nothing to skip.
+   * <p>Narrowed as the table is built, since its schema is the merge of what its name resolves to.
+   * Only an index expression can be narrowed.
    */
   @Override
   public Table getTable(
@@ -71,10 +70,7 @@ public class OpenSearchStorageEngine implements StorageEngine, SupportsIndexPrun
     }
   }
 
-  /**
-   * {@code name} narrowed to what can hold data in {@code bounds}, or unchanged when pruning is
-   * off, declined, or has no node client to probe with.
-   */
+  /** {@code name} narrowed to {@code bounds}, or unchanged when pruning is off or declines. */
   private String prune(String name, @Nullable TimeBounds bounds) {
     if (bounds == null
         || !Boolean.TRUE.equals(settings.getSettingValue(Settings.Key.QUERY_PRUNING_ENABLED))) {

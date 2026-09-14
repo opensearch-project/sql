@@ -371,8 +371,6 @@ class IndexPrunerTest {
     }
 
     Fixture whenMatching(String... matching) {
-      // Two field-caps calls now: an unfiltered mapping probe that gates on the field's type, then
-      // the filtered one that reports which indices can match.
       when(node.fieldCaps(any())).thenReturn(matchFuture);
       when(matchFuture.actionGet(any(TimeValue.class)))
           .thenReturn(new FieldCapabilitiesResponse(matching, Collections.emptyMap()));

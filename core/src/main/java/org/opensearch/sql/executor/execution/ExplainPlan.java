@@ -48,7 +48,6 @@ public class ExplainPlan extends AbstractPlan {
 
   @Override
   public void execute() {
-    // Bounds land on this outer plan; the inner one resolves the tables.
     plan.setTimeBounds(getTimeBounds());
     plan.explain(explainListener, mode, format);
   }

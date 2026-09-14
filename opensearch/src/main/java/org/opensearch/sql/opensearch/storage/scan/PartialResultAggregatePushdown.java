@@ -69,8 +69,6 @@ final class PartialResultAggregatePushdown {
     // that index (text family or absent) -- always excludable.
     Map<String, List<String>> aggregatableGroups = new LinkedHashMap<>();
     List<String> excludedIndices = new ArrayList<>();
-    // Only the fields non-aggregatable somewhere: naming the rest is both wrong and made the
-    // message depend on the planner's group-key order.
     Set<String> conflictingFields = new LinkedHashSet<>();
     for (Map.Entry<String, IndexMapping> entry : mappings.entrySet()) {
       // Flatten so a nested object field (mapping tree resource -> attributes -> applicationid) is
@@ -156,8 +154,6 @@ final class PartialResultAggregatePushdown {
     // Sort here (not in plan): ordering only matters for a stable, readable message.
     List<String> sortedExcluded = new ArrayList<>(excludedIndices);
     sortedExcluded.sort(null);
-    // Sorted too: the planner raises this once per plan alternative, and identical findings must
-    // read identically to de-duplicate.
     List<String> fields = new ArrayList<>(conflictingFields);
     fields.sort(null);
     String message =

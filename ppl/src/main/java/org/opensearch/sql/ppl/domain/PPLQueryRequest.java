@@ -189,9 +189,6 @@ public class PPLQueryRequest {
    * Request-level time bounds from {@code start_time} / {@code end_time} / {@code time_field}, the
    * last defaulting to {@code @timestamp}.
    *
-   * <p>Unusable input is dropped, not rejected: these only decide which indices are read, so a
-   * request is never failed over them.
-   *
    * @return the bounds, or null if absent or unusable
    */
   public TimeBounds getTimeBounds() {
@@ -201,7 +198,6 @@ public class PPLQueryRequest {
     boolean hasStart = jsonContent.has(START_TIME_FIELD);
     boolean hasEnd = jsonContent.has(END_TIME_FIELD);
     if (!hasStart || !hasEnd) {
-      // Almost always a typo in the other key; silence leaves no trace of why nothing pruned.
       if (hasStart || hasEnd) {
         LOG.warn(
             "Ignoring time bounds: both {} and {} are required", START_TIME_FIELD, END_TIME_FIELD);

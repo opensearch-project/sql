@@ -23,12 +23,7 @@ import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-/**
- * The {@code start_time}/{@code end_time} request parameters.
- *
- * <p>Observed through the resolved schema, not timings: a field only the out-of-range index maps
- * stops resolving once that index is gone.
- */
+/** The {@code start_time}/{@code end_time} parameters, observed through the resolved schema. */
 public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
 
   private static final String OLD_INDEX = "prune_range_000001";
@@ -139,7 +134,6 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
     verifyDataRows(
         executeWithBounds(IN_RANGE + " | stats count()", "ts", "Invalid date", TO), rows(2));
     verifyDataRows(executeWithBounds(IN_RANGE + " | stats count()", "", FROM, TO), rows(2));
-    // Inverted: a client mistake, not a range.
     verifyDataRows(executeWithBounds(IN_RANGE + " | stats count()", "ts", TO, FROM), rows(2));
   }
 
@@ -150,10 +144,7 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
         executeWithBounds(IN_RANGE + " | stats count()", "no_such_field", FROM, TO), rows(2));
   }
 
-  /**
-   * Request-level scope: the bounds reach a join's other side too, even when it reads a wildcard
-   * the outer query never names. #5766 review (@penghuo).
-   */
+  /** The bounds reach a join's other side, even a wildcard the outer query never names. */
   @Test
   public void shouldApplyTheBoundsToAJoinsOtherSide() throws IOException {
     String ref = "prune_range_join_ref";
@@ -171,9 +162,7 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
               + "-* | stats count() as ref_rows by k ]"
               + " | fields ref_rows | head 1";
 
-      // Both reference indices contribute.
       verifyDataRows(executeQuery(query), rows(2));
-      // The out-of-window one is pruned from the join's own source, so only one does.
       verifyDataRows(executeWithBounds(query, "ts", FROM, TO), rows(1));
     } finally {
       client().performRequest(new Request("DELETE", "/" + refOld + "," + refNew));
@@ -204,16 +193,11 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
             + " | stats count() as out_of_range_rows by k ]"
             + " | fields out_of_range_rows | head 1";
 
-    // Without bounds the subsearch finds its row in the older index.
     verifyDataRows(executeQuery(query), rows(1));
-    // With them the older index is not read, so the join drops the row.
     assertEquals(0, executeWithBounds(query, "ts", FROM, TO).getInt("total"));
   }
 
-  /**
-   * A document with no time value is in no window, so its index is pruned -- as {@code
-   * index_pruning.yml} asserts for the filter path. Deliberate, and documented.
-   */
+  /** A document with no time value is in no window, so its index is pruned. */
   @Test
   public void shouldPruneAnIndexThatDoesNotMapTheTimeField() throws IOException {
     String noTimeField = PATTERN.replace("*", "notime");
@@ -228,9 +212,7 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
     }
     try {
       String query = "source=" + PATTERN + " | where isnotnull(other) | stats count() as total";
-      // The row, and the only mapping of `other`, live in that index.
       verifyDataRows(executeQuery(query), rows(1));
-      // Excluded, so `other` stops resolving too.
       ResponseException e =
           assertThrows(ResponseException.class, () -> executeWithBounds(query, "ts", FROM, TO));
       assertTrue(e.getMessage(), e.getMessage().contains("Field [other] not found."));
@@ -266,10 +248,7 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
             Boolean.toString(enabled)));
   }
 
-  /**
-   * Clears the override rather than pinning it false: pruning is on by default since #5759, so
-   * leaving a false behind would silently disable it for every later class sharing this cluster.
-   */
+  /** Clears rather than pins false: on by default since #5759, so a false would leak. */
   private void resetPruningToDefault() throws IOException {
     updateClusterSettings(
         new ClusterSetting("persistent", Settings.Key.QUERY_PRUNING_ENABLED.getKeyValue(), null));

@@ -30,7 +30,6 @@ class TimeBoundsTest {
     return Stream.of(
         arguments("date math", "now-7d", "now"),
         arguments("date math with rounding", "now-1d/d", "now/d"),
-        // What Dashboards sends.
         arguments("dashboards format", "2026-09-09 22:00:00.000", "2026-09-09 22:30:00.000"),
         arguments("space, no millis", "2026-09-09 22:00:00", "2026-09-09 22:30:00"),
         arguments("date only", "2026-09-09", "2026-09-10"),

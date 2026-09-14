@@ -313,10 +313,6 @@ public class PPLQueryRequestTest {
     assertNull(new PPLQueryRequest("source=t", null, "/_plugins/_ppl").getTimeBounds());
   }
 
-  /**
-   * Bounds only decide which indices are read -- the query text carries any filter -- so an
-   * unusable pair is dropped rather than failing a query that does not need it.
-   */
   @Test
   public void getTimeBoundsShouldDropAnUnusablePairRatherThanThrow() {
     assertNull(

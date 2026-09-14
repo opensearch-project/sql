@@ -23,23 +23,9 @@ import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.setting.Settings;
 
 /**
- * Runs the request-level time bounds with the security plugin installed.
- *
- * <p>Two things only a security-enabled cluster can check. The bounds ride from the transport
- * thread to the worker on the plan rather than in Log4j {@code ThreadContext}, because the security
- * plugin's interceptor drops {@code ThreadContext} on that handoff -- the bug #5739 and #5758 each
- * had to fix for a different per-request signal. And pruning probes with {@code
- * indices:admin/resolve/index} and {@code indices:data/read/field_caps*}, which a restricted
- * principal may not hold; lacking either, the probe is denied, the failure is swallowed, and
- * pruning declines. Both failures are silent: the query still returns the right rows, just over
- * every index the wildcard matches.
- *
- * <p>Whether the bounds arrived is therefore observed through the <em>resolved schema</em>: {@code
- * legacy_only} exists in the out-of-range index and not the in-range one, so whether it resolves
- * says exactly which indices the mapping merge saw. An earlier version of this test used an
- * object-versus-keyword mapping conflict and a charting command, but which side of that conflict
- * wins the merge depends on hash iteration order and varies from one JVM to the next, so the
- * assertions held only some of the time.
+ * Request-level time bounds with the security plugin installed: the bounds must survive the
+ * transport-to-worker handoff, which drops Log4j {@code ThreadContext}, and the probes must be
+ * permitted. Both failures are silent, so this observes the resolved schema.
  */
 public class TimeBoundsPruningSecurityIT extends SecurityTestBase {
 
@@ -102,10 +88,7 @@ public class TimeBoundsPruningSecurityIT extends SecurityTestBase {
     }
   }
 
-  /**
-   * The bounds crossed the handoff and the probes were permitted, so the merge saw only the
-   * in-range index and the field the other one carries is gone.
-   */
+  /** The merge saw only the in-range index, so the other's field is gone. */
   @Test
   public void boundsSurviveSecurityHandoffAndNarrowTheResolvedSchema() {
     ResponseException e =
