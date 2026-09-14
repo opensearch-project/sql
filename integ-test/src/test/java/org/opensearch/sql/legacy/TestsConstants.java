@@ -16,6 +16,13 @@ public class TestsConstants {
   public static final String TEST_INDEX_ONLINE = TEST_INDEX + "_online";
   public static final String TEST_INDEX_ACCOUNT = TEST_INDEX + "_account";
   public static final String TEST_INDEX_ACCOUNT_EXTENDED = TEST_INDEX_ACCOUNT + "_extended";
+  // Single-shard (number_of_shards=1) variant of the accounts fixture. Used by the stats
+  // sort-on-measure tests: ordering a terms aggregation by a sub-aggregation is approximate on
+  // multi-shard indices because each shard returns only its local top-N (shard_size) buckets, so
+  // a bucket whose partial sums are spread across shards can be pruned where it is large and
+  // survive where it is small, yielding a wrong coordinator total. A single shard makes the
+  // aggregation exact so the tests assert true totals.
+  public static final String TEST_INDEX_ACCOUNT_SINGLE_SHARD = TEST_INDEX_ACCOUNT + "_single_shard";
   public static final String TEST_INDEX_PHRASE = TEST_INDEX + "_phrase";
   public static final String TEST_INDEX_DOG = TEST_INDEX + "_dog";
   public static final String TEST_INDEX_DOG2 = TEST_INDEX + "_dog2";

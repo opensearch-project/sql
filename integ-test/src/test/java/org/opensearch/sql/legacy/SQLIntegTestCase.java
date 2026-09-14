@@ -549,6 +549,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "account",
         getAccountIndexMapping(),
         "src/test/resources/accounts.json"),
+    ACCOUNT_SINGLE_SHARD(
+        TestsConstants.TEST_INDEX_ACCOUNT_SINGLE_SHARD,
+        "account_single_shard",
+        getMappingFile("account_single_shard_index_mapping.json"), // 1 shard: exact aggregations
+        "src/test/resources/accounts.json"),
     ACCOUNT_EXTENDED(
         TestsConstants.TEST_INDEX_ACCOUNT_EXTENDED,
         "account_extended",
