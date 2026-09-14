@@ -11,7 +11,6 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -25,7 +24,6 @@ import static org.opensearch.index.query.QueryBuilders.rangeQuery;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -37,7 +35,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.action.admin.indices.resolve.ResolveIndexAction;
-import org.opensearch.action.fieldcaps.FieldCapabilities;
 import org.opensearch.action.fieldcaps.FieldCapabilitiesRequest;
 import org.opensearch.action.fieldcaps.FieldCapabilitiesResponse;
 import org.opensearch.action.search.SearchRequest;
@@ -175,9 +172,9 @@ class IndexPrunerTest {
       givenIndexExpression(indices("logs-*", 3), filter)
           .whenMatching("logs-a")
           .shouldPruneTo("logs-a");
-      verify(node, atLeastOnce()).fieldCaps(captor.capture());
+      verify(node).fieldCaps(captor.capture());
 
-      FieldCapabilitiesRequest probe = matchingProbe(captor);
+      FieldCapabilitiesRequest probe = captor.getValue();
       assertSame(filter, probe.indexFilter());
       assertArrayEquals(new String[] {"logs-*"}, probe.indices());
       assertEquals(
@@ -192,9 +189,9 @@ class IndexPrunerTest {
       givenIndexExpression(indices("logs-a-*,logs-b-*", 3), timeRange())
           .whenMatching("logs-a-1")
           .shouldPruneTo("logs-a-1");
-      verify(node, atLeastOnce()).fieldCaps(captor.capture());
+      verify(node).fieldCaps(captor.capture());
 
-      assertArrayEquals(new String[] {"logs-a-*", "logs-b-*"}, matchingProbe(captor).indices());
+      assertArrayEquals(new String[] {"logs-a-*", "logs-b-*"}, captor.getValue().indices());
     }
   }
 
@@ -216,9 +213,9 @@ class IndexPrunerTest {
       givenIndexExpression(indices("logs-*", 3), bounds("event_time"))
           .whenMatching("logs-a")
           .shouldPruneTo("logs-a");
-      verify(node, atLeastOnce()).fieldCaps(captor.capture());
+      verify(node).fieldCaps(captor.capture());
 
-      assertArrayEquals(new String[] {"event_time"}, matchingProbe(captor).fields());
+      assertArrayEquals(new String[] {"event_time"}, captor.getValue().fields());
     }
 
     /** As sent: the index's own date parser reads them, so date math survives to the probe. */
@@ -229,9 +226,9 @@ class IndexPrunerTest {
       givenIndexExpression(indices("logs-*", 3), bounds("@timestamp"))
           .whenMatching("logs-a")
           .shouldPruneTo("logs-a");
-      verify(node, atLeastOnce()).fieldCaps(captor.capture());
+      verify(node).fieldCaps(captor.capture());
 
-      RangeQueryBuilder range = (RangeQueryBuilder) matchingProbe(captor).indexFilter();
+      RangeQueryBuilder range = (RangeQueryBuilder) captor.getValue().indexFilter();
       assertEquals(
           "@timestamp|now-15m|now|true|true",
           String.join(
@@ -262,80 +259,12 @@ class IndexPrunerTest {
           .shouldNotProbeForMatches();
     }
 
-    /**
-     * An index that does not map the field is reported as not-matching, exactly like one whose
-     * values fall outside the window -- so pruning on that would drop it and its rows. #5766
-     * review.
-     */
-    /**
-     * An index that does not map the field is reported as not-matching, exactly like one outside
-     * the range, so it is added back rather than dropped -- while the ones that are genuinely out
-     * of range still go. #5766 review.
-     */
-    @Test
-    void shouldRetainAnIndexThatDoesNotMapTheFieldWhileStillPruning() {
-      FieldCapabilities dated = mock(FieldCapabilities.class);
-      FieldCapabilities unmapped = mock(FieldCapabilities.class);
-      when(unmapped.indices()).thenReturn(new String[] {"logs-c"});
-      givenIndexExpression(indices("logs-*", 3), bounds("@timestamp"))
-          .whenMappingThenMatching(
-              Map.of("@timestamp", Map.of("date", dated, "unmapped", unmapped)), "logs-a")
-          .shouldPruneTo("logs-a,logs-c");
-    }
-
-    /** Without the index list there is no way to know what to keep, so nothing is pruned. */
-    @Test
-    void shouldNotPruneWhenTheProbeDoesNotNameTheUnmappedIndices() {
-      FieldCapabilities dated = mock(FieldCapabilities.class);
-      FieldCapabilities unmapped = mock(FieldCapabilities.class);
-      when(unmapped.indices()).thenReturn(null);
-      givenIndexExpression(indices("logs-*", 3), bounds("@timestamp"))
-          .whenFieldMappedAs(Map.of("@timestamp", Map.of("date", dated, "unmapped", unmapped)))
-          .shouldNotPrune();
-    }
-
-    @Test
-    void shouldNotPruneWhenTheFieldIsNotADate() {
-      FieldCapabilities caps = mock(FieldCapabilities.class);
-      givenIndexExpression(indices("logs-*", 3), bounds("@timestamp"))
-          .whenFieldMappedAs(Map.of("@timestamp", Map.of("keyword", caps)))
-          .shouldNotPrune();
-    }
-
-    @Test
-    void shouldNotPruneWhenNoIndexMapsTheField() {
-      givenIndexExpression(indices("logs-*", 3), bounds("@timestamp"))
-          .whenFieldMappedAs(Map.of())
-          .shouldNotPrune();
-    }
-
     @Test
     void shouldNotPruneWhenTheProbeFails() {
       givenIndexExpression(indices("logs-*", 3), bounds("@timestamp"))
           .whenMatchProbeFails()
           .shouldNotPrune();
     }
-  }
-
-  /** A probe response reporting the time field as a date, which is what lets pruning proceed. */
-  private static Map<String, Map<String, FieldCapabilities>> dateFieldCaps() {
-    FieldCapabilities caps = mock(FieldCapabilities.class);
-    return Map.of(
-        "@timestamp", Map.of("date", caps),
-        "event_time", Map.of("date", caps),
-        "no_such_field", Map.of());
-  }
-
-  /**
-   * The matching probe, told apart from the unfiltered mapping probe that precedes it by carrying
-   * the index filter.
-   */
-  private static FieldCapabilitiesRequest matchingProbe(
-      ArgumentCaptor<FieldCapabilitiesRequest> captor) {
-    return captor.getAllValues().stream()
-        .filter(r -> r.indexFilter() != null)
-        .reduce((first, second) -> second)
-        .orElseThrow(() -> new AssertionError("no filtered probe was issued"));
   }
 
   private static QueryBuilder timeRange() {
@@ -446,29 +375,7 @@ class IndexPrunerTest {
       // the filtered one that reports which indices can match.
       when(node.fieldCaps(any())).thenReturn(matchFuture);
       when(matchFuture.actionGet(any(TimeValue.class)))
-          .thenReturn(new FieldCapabilitiesResponse(matching, dateFieldCaps()));
-      return this;
-    }
-
-    /** The mapping probe's answer for the field. */
-    Fixture whenFieldMappedAs(Map<String, Map<String, FieldCapabilities>> caps) {
-      when(node.fieldCaps(any())).thenReturn(matchFuture);
-      when(matchFuture.actionGet(any(TimeValue.class)))
-          .thenReturn(new FieldCapabilitiesResponse(new String[] {"logs-a"}, caps));
-      return this;
-    }
-
-    /**
-     * Answers both probes in order: the mapping probe with {@code caps}, then the filtered probe
-     * with {@code matching}. One call, because two separate stubbings of the same mock replace each
-     * other.
-     */
-    Fixture whenMappingThenMatching(
-        Map<String, Map<String, FieldCapabilities>> caps, String... matching) {
-      when(node.fieldCaps(any())).thenReturn(matchFuture);
-      when(matchFuture.actionGet(any(TimeValue.class)))
-          .thenReturn(new FieldCapabilitiesResponse(new String[] {"logs-a"}, caps))
-          .thenReturn(new FieldCapabilitiesResponse(matching, dateFieldCaps()));
+          .thenReturn(new FieldCapabilitiesResponse(matching, Collections.emptyMap()));
       return this;
     }
 

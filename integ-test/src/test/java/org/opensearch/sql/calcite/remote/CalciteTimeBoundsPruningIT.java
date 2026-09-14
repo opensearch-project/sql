@@ -182,13 +182,14 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
   }
 
   /**
-   * An index that does not map the time field is reported as not-matching by the probe, exactly
-   * like one whose values fall outside the window -- the two are indistinguishable in the response.
-   * Pruning on that would drop the index and every row in it, so nothing is pruned at all.
-   * Regression guard for the #5766 review.
+   * An index that does not map the time field is pruned like any other that cannot match: under a
+   * request-level time range a document with no time value is in no window, which is what the
+   * pushed-down-filter path does too (see {@code index_pruning.yml}). The consequence is deliberate
+   * and documented -- bounds sent without an equivalent predicate in the query text drop those
+   * rows.
    */
   @Test
-  public void shouldNotPruneWhenAnIndexDoesNotMapTheTimeField() throws IOException {
+  public void shouldPruneAnIndexThatDoesNotMapTheTimeField() throws IOException {
     String noTimeField = PATTERN.replace("*", "notime");
     if (!isIndexExist(client(), noTimeField)) {
       createIndexByRestClient(
@@ -200,11 +201,13 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
       performRequest(client(), bulk);
     }
     try {
-      // The row lives in an index with no `ts` at all, so only leaving the expression alone keeps
-      // it.
-      String query = "source=" + PATTERN + " | where isnotnull(other) | stats count()";
+      String query = "source=" + PATTERN + " | where isnotnull(other) | stats count() as total";
+      // The row, and the only mapping of `other`, live in the index with no time field.
       verifyDataRows(executeQuery(query), rows(1));
-      verifyDataRows(executeWithBounds(query, "ts", FROM, TO), rows(1));
+      // Bounds exclude that index, so its rows go and `other` stops resolving with them.
+      ResponseException e =
+          assertThrows(ResponseException.class, () -> executeWithBounds(query, "ts", FROM, TO));
+      assertTrue(e.getMessage(), e.getMessage().contains("Field [other] not found."));
     } finally {
       client().performRequest(new Request("DELETE", "/" + noTimeField));
     }

@@ -236,7 +236,7 @@ Their scope is the whole request: every source the query reads is narrowed, subs
 
 They are not a filter, and they are not free of effect either. Pruning drops whole indices, so a query whose text already constrains the same field to the same window returns exactly the same rows -- that is the intended use, and how a client appending its own ``where`` should send them. A query whose text does not carry that constraint returns fewer rows: documents outside the window still count inside a retained index, while an index wholly outside it contributes nothing. Send bounds only for a window the query itself already restricts.
 
-A source is left alone when ``time_field`` is not a date in it, or is not mapped by every queried index -- an index that does not map the field cannot be told apart from one whose values fall outside the window, so nothing is pruned rather than risk dropping it.
+An index that does not map ``time_field`` holds nothing in any window, so it is pruned like one whose values fall outside the range. That is consistent with the pushed-down-filter path, and with the request-level range these parameters describe, but it is part of why they belong only on a query whose text already constrains the same field: such an index's rows go with it.
 
 Planning-time pruning is specific to the Calcite engine's own query path. The unified query path does not read these parameters; they are accepted and ignored there.
 
