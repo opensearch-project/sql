@@ -6,12 +6,9 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import javax.annotation.Nullable;
 import org.opensearch.sql.executor.Warning;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
@@ -69,7 +66,6 @@ final class PartialResultAggregatePushdown {
     // that index (text family or absent) -- always excludable.
     Map<String, List<String>> aggregatableGroups = new LinkedHashMap<>();
     List<String> excludedIndices = new ArrayList<>();
-    Set<String> conflictingFields = new LinkedHashSet<>();
     for (Map.Entry<String, IndexMapping> entry : mappings.entrySet()) {
       // Flatten so a nested object field (mapping tree resource -> attributes -> applicationid) is
       // keyed by its dotted path, matching the bucket field name Calcite resolved.
@@ -78,7 +74,6 @@ final class PartialResultAggregatePushdown {
       String signature = resolveBucketSignature(flatMapping, bucketNames);
       if (signature == null) {
         excludedIndices.add(entry.getKey());
-        conflictingFields.addAll(nonAggregatableFields(flatMapping, bucketNames));
       } else {
         aggregatableGroups.computeIfAbsent(signature, k -> new ArrayList<>()).add(entry.getKey());
       }
@@ -96,9 +91,7 @@ final class PartialResultAggregatePushdown {
 
     List<String> keptIndices = aggregatableGroups.values().iterator().next();
     return new Plan(
-        keptIndices,
-        excludedIndices,
-        buildWarning(conflictingFields, excludedIndices, mappings.size()));
+        keptIndices, excludedIndices, buildWarning(bucketNames, excludedIndices, mappings.size()));
   }
 
   /**
@@ -128,44 +121,23 @@ final class PartialResultAggregatePushdown {
     return String.join("|", tokens);
   }
 
-  /**
-   * The group fields this index cannot aggregate on: absent, or text-family. Per-field version of
-   * {@link #resolveBucketSignature}, which stops at the first.
-   */
-  private static List<String> nonAggregatableFields(
-      Map<String, OpenSearchDataType> flatMapping, List<String> bucketNames) {
-    List<String> offenders = new ArrayList<>();
-    for (String field : bucketNames) {
-      OpenSearchDataType type = flatMapping.get(field);
-      if (type == null) {
-        offenders.add(field);
-        continue;
-      }
-      MappingType mappingType = type.getMappingType();
-      if (mappingType == MappingType.Text || mappingType == MappingType.MatchOnlyText) {
-        offenders.add(field);
-      }
-    }
-    return offenders;
-  }
-
   private static Warning buildWarning(
-      Collection<String> conflictingFields, List<String> excludedIndices, int totalIndices) {
+      List<String> bucketNames, List<String> excludedIndices, int totalIndices) {
     // Sort here (not in plan): ordering only matters for a stable, readable message.
     List<String> sortedExcluded = new ArrayList<>(excludedIndices);
     sortedExcluded.sort(null);
-    List<String> fields = new ArrayList<>(conflictingFields);
-    fields.sort(null);
     String message =
         String.format(
             "Results exclude %d of %d indices due to a mapping conflict on %s.",
-            sortedExcluded.size(), totalIndices, fields);
+            sortedExcluded.size(), totalIndices, bucketNames);
     String detail =
         String.format(
             "%s is not aggregatable in every queried index (mapped as text or otherwise without doc"
                 + " values there), so these indices were excluded from the aggregation: %s. Map %s"
                 + " as an aggregatable type across all indices to include them.",
-            fields, formatIndexList(sortedExcluded, MAX_EXCLUDED_INDICES_IN_WARNING), fields);
+            bucketNames,
+            formatIndexList(sortedExcluded, MAX_EXCLUDED_INDICES_IN_WARNING),
+            bucketNames);
     return new Warning(Warning.TYPE_PARTIAL_RESULT, message, detail);
   }
 
