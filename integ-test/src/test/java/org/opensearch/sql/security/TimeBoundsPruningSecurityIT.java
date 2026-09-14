@@ -25,14 +25,21 @@ import org.opensearch.sql.common.setting.Settings;
 /**
  * Runs the request-level time bounds with the security plugin installed.
  *
- * <p>The bounds ride from the transport thread to the worker on the plan, not in Log4j {@code
- * ThreadContext}, because the security plugin's transport interceptor drops {@code ThreadContext}
- * on that handoff -- the bug #5739 and #5758 each had to fix for a different per-request signal. A
- * Bounds lost that way are silent: the query still returns the right rows, just over every index
- * the wildcard matches, so nothing but a test that observes the resolved schema can tell.
+ * <p>Two things only a security-enabled cluster can check. The bounds ride from the transport
+ * thread to the worker on the plan rather than in Log4j {@code ThreadContext}, because the security
+ * plugin's interceptor drops {@code ThreadContext} on that handoff -- the bug #5739 and #5758 each
+ * had to fix for a different per-request signal. And pruning probes with {@code
+ * indices:admin/resolve/index} and {@code indices:data/read/field_caps*}, which a restricted
+ * principal may not hold; lacking either, the probe is denied, the failure is swallowed, and
+ * pruning declines. Both failures are silent: the query still returns the right rows, just over
+ * every index the wildcard matches.
  *
- * <p>These cases use a mapping that conflicts only across the range boundary, so whether the bounds
- * arrived is visible in the response rather than only in timings.
+ * <p>Whether the bounds arrived is therefore observed through the <em>resolved schema</em>: {@code
+ * legacy_only} exists in the out-of-range index and not the in-range one, so whether it resolves
+ * says exactly which indices the mapping merge saw. An earlier version of this test used an
+ * object-versus-keyword mapping conflict and a charting command, but which side of that conflict
+ * wins the merge depends on hash iteration order and varies from one JVM to the next, so the
+ * assertions held only some of the time.
  */
 public class TimeBoundsPruningSecurityIT extends SecurityTestBase {
 
@@ -48,14 +55,8 @@ public class TimeBoundsPruningSecurityIT extends SecurityTestBase {
 
   private static final String TO = "2026-09-10 23:59:59.999";
 
-  private static final String QUERY =
-      "source="
-          + PATTERN
-          + " | where `ts` >= '"
-          + FROM
-          + "' AND `ts` <= '"
-          + TO
-          + "' | chart count() over ts by attributes.cluster";
+  private static final String IN_RANGE =
+      "source=" + PATTERN + " | where `ts` >= '" + FROM + "' AND `ts` <= '" + TO + "'";
 
   private boolean initialized = false;
 
@@ -77,61 +78,55 @@ public class TimeBoundsPruningSecurityIT extends SecurityTestBase {
     resetPruningToDefault();
   }
 
-  /**
-   * A rollover that changed the shape of a field: {@code attributes.cluster} was an object holding
-   * {@code name}, and is a plain keyword after the roll. Merged, the object wins and charting by it
-   * fails; pruned to the newer index alone, it is the keyword the query can pivot on.
-   */
+  /** A rollover that dropped a field: {@code legacy_only} exists only in the older index. */
   private void createRolloverIndices() throws IOException {
     if (!isIndexExist(client(), OLD_INDEX)) {
       createIndexByRestClient(
           client(),
           OLD_INDEX,
-          "{\"mappings\":{\"properties\":{"
-              + "\"ts\":{\"type\":\"date\"},"
-              + "\"attributes\":{\"properties\":{\"cluster\":{\"properties\":{"
-              + "\"name\":{\"type\":\"keyword\"}}}}}}}}");
+          "{\"mappings\":{\"properties\":{\"ts\":{\"type\":\"date\"},"
+              + "\"legacy_only\":{\"type\":\"keyword\"}}}}");
       Request bulk = new Request("POST", "/" + OLD_INDEX + "/_bulk?refresh=true");
       bulk.setJsonEntity(
-          "{\"index\":{}}\n"
-              + "{\"ts\":\"2026-06-01T10:00:00Z\",\"attributes\":{\"cluster\":{\"name\":\"alpha\"}}}\n");
+          "{\"index\":{}}\n{\"ts\":\"2026-06-01T10:00:00Z\",\"legacy_only\":\"pre-rollover\"}\n");
       performRequest(client(), bulk);
     }
     if (!isIndexExist(client(), NEW_INDEX)) {
       createIndexByRestClient(
-          client(),
-          NEW_INDEX,
-          "{\"mappings\":{\"properties\":{"
-              + "\"ts\":{\"type\":\"date\"},"
-              + "\"attributes\":{\"properties\":{\"cluster\":{\"type\":\"keyword\"}}}}}}");
+          client(), NEW_INDEX, "{\"mappings\":{\"properties\":{\"ts\":{\"type\":\"date\"}}}}");
       Request bulk = new Request("POST", "/" + NEW_INDEX + "/_bulk?refresh=true");
       bulk.setJsonEntity(
-          "{\"index\":{}}\n"
-              + "{\"ts\":\"2026-09-10T10:00:00Z\",\"attributes\":{\"cluster\":\"gamma\"}}\n"
-              + "{\"index\":{}}\n"
-              + "{\"ts\":\"2026-09-10T11:00:00Z\",\"attributes\":{\"cluster\":\"delta\"}}\n");
+          "{\"index\":{}}\n{\"ts\":\"2026-09-10T10:00:00Z\"}\n"
+              + "{\"index\":{}}\n{\"ts\":\"2026-09-10T11:00:00Z\"}\n");
       performRequest(client(), bulk);
     }
   }
 
+  /**
+   * The bounds crossed the handoff and the probes were permitted, so the merge saw only the
+   * in-range index and the field the other one carries is gone.
+   */
   @Test
-  public void boundsSurviveSecurityHandoffAndNarrowTheResolvedSchema() throws IOException {
-    JSONObject result = executeQueryAsUserWithBounds(QUERY, USER, "ts", FROM, TO);
-
-    verifyDataRows(
-        result, rows("2026-09-10 10:00:00", "gamma", 1), rows("2026-09-10 11:00:00", "delta", 1));
-  }
-
-  /** Without bounds the merge still sees the older index, so this is the failure it prevents. */
-  @Test
-  public void sameQueryWithoutBoundsStillSeesTheConflictingMapping() throws IOException {
+  public void boundsSurviveSecurityHandoffAndNarrowTheResolvedSchema() {
     ResponseException e =
-        assertThrows(ResponseException.class, () -> executeQueryAsUser(QUERY, USER));
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executeQueryAsUserWithBounds(
+                    IN_RANGE + " | fields legacy_only", USER, "ts", FROM, TO));
 
     assertEquals(400, e.getResponse().getStatusLine().getStatusCode());
     assertTrue(
-        "should fail on the merged object mapping the bounds would have pruned away",
-        e.getMessage().contains("Cannot chart by [attributes.cluster] because it is an object."));
+        "legacy_only lives only in the out-of-range index, so pruning must remove it: "
+            + e.getMessage(),
+        e.getMessage().contains("Field [legacy_only] not found."));
+  }
+
+  /** Without bounds the merge still sees the older index, so the field resolves. */
+  @Test
+  public void sameQueryWithoutBoundsStillResolvesTheWholePattern() throws IOException {
+    verifyDataRows(
+        executeQueryAsUser(IN_RANGE + " | fields legacy_only | head 1", USER), rows((Object) null));
   }
 
   /** The bounds must do nothing unless the cluster opted in. */
@@ -139,33 +134,42 @@ public class TimeBoundsPruningSecurityIT extends SecurityTestBase {
   public void boundsAreIgnoredWhenPruningIsDisabled() throws IOException {
     setPruning(false);
 
-    ResponseException e =
-        assertThrows(
-            ResponseException.class,
-            () -> executeQueryAsUserWithBounds(QUERY, USER, "ts", FROM, TO));
+    verifyDataRows(
+        executeQueryAsUserWithBounds(
+            IN_RANGE + " | fields legacy_only | head 1", USER, "ts", FROM, TO),
+        rows((Object) null));
+  }
 
-    assertEquals(400, e.getResponse().getStatusLine().getStatusCode());
+  /** Pruning decides which indices are read, never which rows come back. */
+  @Test
+  public void boundsDoNotChangeTheRowsReturned() throws IOException {
+    verifyDataRows(executeQueryAsUser(IN_RANGE + " | stats count()", USER), rows(2));
+    verifyDataRows(
+        executeQueryAsUserWithBounds(IN_RANGE + " | stats count()", USER, "ts", FROM, TO), rows(2));
   }
 
   /** A range spanning both indices must leave the expression alone rather than drop either. */
   @Test
   public void boundsCoveringEveryIndexPruneNothing() throws IOException {
+    String from = "2026-01-01 00:00:00.000";
+    String to = "2026-12-31 23:59:59.999";
     String wide =
         "source="
             + PATTERN
-            + " | where `ts` >= '2026-01-01 00:00:00.000' AND `ts` <= '2026-12-31 23:59:59.999'"
+            + " | where `ts` >= '"
+            + from
+            + "' AND `ts` <= '"
+            + to
+            + "'"
             + " | stats count()";
 
-    JSONObject result =
-        executeQueryAsUserWithBounds(
-            wide, USER, "ts", "2026-01-01 00:00:00.000", "2026-12-31 23:59:59.999");
-
-    verifyDataRows(result, rows(3));
+    verifyDataRows(executeQueryAsUserWithBounds(wide, USER, "ts", from, to), rows(3));
   }
 
   /** Like {@link #executeQueryAsUser}, but also sends the per-request time bounds. */
   private JSONObject executeQueryAsUserWithBounds(
-      String query, String username, String field, String from, String to) throws IOException {
+      String query, String username, String timeField, String start, String end)
+      throws IOException {
     Request request = new Request("POST", "/_plugins/_ppl");
     request.setJsonEntity(
         String.format(
@@ -173,9 +177,9 @@ public class TimeBoundsPruningSecurityIT extends SecurityTestBase {
             "{ \"query\": \"%s\", \"time_field\": \"%s\", \"start_time\": \"%s\","
                 + " \"end_time\": \"%s\" }",
             query,
-            field,
-            from,
-            to));
+            timeField,
+            start,
+            end));
     RequestOptions.Builder options = RequestOptions.DEFAULT.toBuilder();
     options.addHeader("Content-Type", "application/json");
     options.addHeader("Authorization", createBasicAuthHeader(username, STRONG_PASSWORD));
