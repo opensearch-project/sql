@@ -193,6 +193,7 @@ public class TransportPPLQueryAction
 
     // in order to use PPL service, we need to convert TransportPPLQueryRequest to PPLQueryRequest
     PPLQueryRequest transformedRequest = transportRequest.toPPLQueryRequest();
+
     QueryContext.setProfile(transformedRequest.profile());
     // Only the JSON shape carries warnings; gate partial results on it so CSV/RAW/VIZ never drop
     // data silently. Carried on the request (not Log4j ThreadContext) so it survives the
