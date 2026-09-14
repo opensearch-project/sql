@@ -235,7 +235,26 @@ Request-level time bounds
 
 ``start_time`` and ``end_time`` declare the window a request is asking about. Both are required, and both are inclusive. ``time_field`` names the field they constrain and defaults to ``@timestamp``; a caller querying an index pattern whose time field is named something else has to give it, or nothing is pruned.
 
-Accepted values are OpenSearch date math (``now-7d``), an ISO-8601 timestamp, epoch milliseconds, or ``yyyy-MM-dd HH:mm:ss.SSS``. A field mapped with some other custom date format is not pruned on. Values that cannot be used are ignored, never an error: these parameters only affect which indices are read, so a request is never rejected on their account.
+Both accept these literals, whatever format the field itself is mapped with:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 34 66
+
+   * - Literal
+     - Example
+   * - OpenSearch date math
+     - ``now``, ``now-7d``, ``now-1d/d``
+   * - ISO-8601 date and time, zone optional
+     - ``2026-09-14T12:00:00.000Z``, ``2026-09-14T12:00:00+08:00``, ``2026-09-14T12:00:00``
+   * - ISO-8601 date only
+     - ``2026-09-14``
+   * - Epoch **milliseconds**
+     - ``1789329600000``
+   * - Date and time separated by a space
+     - ``2026-09-14 12:00:00.000``, ``2026-09-14 12:00:00``
+
+Epoch seconds are not accepted -- a ten-digit number is read as milliseconds, so ``1789329600`` means January 1970. Anything else, including a malformed value, is ignored: these parameters only affect which indices are read, so a request is never rejected on their account, and nothing is pruned.
 
 Send them only alongside an equivalent filter in the query -- a ``where`` clause on the same field and range. The result is then identical to the query without them. They are not themselves a filter: they exclude whole indices, so a window the query does not also restrict returns fewer rows, and an index not mapping ``time_field`` is excluded from every window.
 

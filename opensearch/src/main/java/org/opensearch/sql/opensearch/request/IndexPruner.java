@@ -44,7 +44,7 @@ public class IndexPruner {
    * produces.
    */
   private static final String BOUND_FORMATS =
-      "strict_date_optional_time||epoch_millis||yyyy-MM-dd HH:mm:ss.SSS";
+      "strict_date_optional_time||epoch_millis||yyyy-MM-dd HH:mm:ss.SSS||yyyy-MM-dd HH:mm:ss";
 
   /** Both probes are transport actions, so only the node client can issue them. */
   private final NodeClient node;
