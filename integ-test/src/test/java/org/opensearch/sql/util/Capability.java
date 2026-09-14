@@ -585,6 +585,16 @@ public enum Capability {
       "FILTER(WHERE) on aggregates can't be executed on the analytics-engine route: the Substrait"
           + " streaming path doesn't support filtered aggregates."),
 
+  /**
+   * BACKEND: the {@code graphLookup} command's plan node is not implemented by the analytics-engine
+   * planner — {@code OpenSearchSortRule} fails with {@code Sort rule encountered unmarked child
+   * [LogicalGraphLookup]}, surfacing as HTTP 500 on any graphLookup query.
+   */
+  GRAPH_LOOKUP_COMMAND(
+      "The graphLookup command's plan node is not implemented by the analytics-engine planner"
+          + " (Sort rule encountered unmarked child [LogicalGraphLookup]), so any graphLookup query"
+          + " fails with an internal error on the analytics-engine route."),
+
   /** Combining the result rows of two or more queries with a SQL set operator. */
   SET_OPERATION("SQL set operations are unsupported.");
 
