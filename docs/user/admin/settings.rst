@@ -237,7 +237,7 @@ Request-level time bounds
 
 Accepted values are OpenSearch date math (``now-7d``), an ISO-8601 timestamp, epoch milliseconds, or ``yyyy-MM-dd HH:mm:ss.SSS``. A field mapped with some other custom date format is not pruned on. Values that cannot be used are ignored, never an error: these parameters only affect which indices are read, so a request is never rejected on their account.
 
-They apply to every source the query reads, subsearches included, as does Splunk's time range picker.
+They apply to every source the query reads, as does Splunk's time range picker -- including the sources of a ``join`` or a subsearch, not only the one the query starts from. A ``join`` whose other side reads a wildcard matching both in- and out-of-window indices therefore sees only the in-window ones, which changes what it contributes. Give every source in such a query the same window the bounds describe, or leave the bounds off.
 
 **They are not a filter.** Send them only for a window the query itself already restricts, for example alongside a ``where`` clause on the same field and range -- then the result is exactly what the query alone would return. Send them for a window the query does not restrict and the result has fewer rows, because an index holding nothing in the window is not read at all while documents outside it are still counted in the indices that are. An index that does not map ``time_field`` holds nothing in any window, so it is not read either.
 

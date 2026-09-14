@@ -40,6 +40,9 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
 
   private static final String TO = "2026-09-10 23:59:59.999";
 
+  /** An instant inside {@link #FROM}..{@link #TO}. */
+  private static final String IN_RANGE_INSTANT = "2026-09-10T10:30:00Z";
+
   private static final String IN_RANGE =
       "source=" + PATTERN + " | where `ts` >= '" + FROM + "' AND `ts` <= '" + TO + "'";
 
@@ -145,6 +148,48 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
   public void shouldIgnoreBoundsOnAnUnmappedField() throws IOException {
     verifyDataRows(
         executeWithBounds(IN_RANGE + " | stats count()", "no_such_field", FROM, TO), rows(2));
+  }
+
+  /**
+   * Request-level scope: the bounds reach a join's other side too, even when it reads a wildcard
+   * the outer query never names. #5766 review (@penghuo).
+   */
+  @Test
+  public void shouldApplyTheBoundsToAJoinsOtherSide() throws IOException {
+    String ref = "prune_range_join_ref";
+    String refOld = ref + "-old";
+    String refNew = ref + "-new";
+    seedJoinRef(refOld, "2026-06-01T12:00:00Z");
+    seedJoinRef(refNew, IN_RANGE_INSTANT);
+    try {
+      String query =
+          "source="
+              + NEW_INDEX
+              + " | head 1 | eval k = 1 | join left=l right=r on l.k = r.k"
+              + " [ source="
+              + ref
+              + "-* | stats count() as ref_rows by k ]"
+              + " | fields ref_rows | head 1";
+
+      // Both reference indices contribute.
+      verifyDataRows(executeQuery(query), rows(2));
+      // The out-of-window one is pruned from the join's own source, so only one does.
+      verifyDataRows(executeWithBounds(query, "ts", FROM, TO), rows(1));
+    } finally {
+      client().performRequest(new Request("DELETE", "/" + refOld + "," + refNew));
+    }
+  }
+
+  private void seedJoinRef(String index, String instant) throws IOException {
+    if (!isIndexExist(client(), index)) {
+      createIndexByRestClient(
+          client(),
+          index,
+          "{\"mappings\":{\"properties\":{\"ts\":{\"type\":\"date\"},\"k\":{\"type\":\"integer\"}}}}");
+      Request bulk = new Request("POST", "/" + index + "/_bulk?refresh=true");
+      bulk.setJsonEntity("{\"index\":{}}\n{\"ts\":\"" + instant + "\",\"k\":1}\n");
+      performRequest(client(), bulk);
+    }
   }
 
   /** Request-level scope: the bounds reach a subsearch's source too. */
