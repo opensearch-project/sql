@@ -34,13 +34,18 @@ public class GeoPointFormatsIT extends PPLIntegTestCase {
         executeQuery(
             String.format("search source=%s | head 5 | fields point ", TEST_INDEX_GEOPOINT));
     verifySchema(result, schema("point", null, "geo_point"));
-    verifyDataRows(
-        result,
-        rows(Map.of("lon", 74, "lat", 40.71)),
-        rows(Map.of("lon", 74, "lat", 40.71)),
-        rows(Map.of("lon", 74, "lat", 40.71)),
-        rows(Map.of("lon", 74, "lat", 40.71)),
-        rows(Map.of("lon", 74, "lat", 40.71)));
+    // geo_point values are stored with Lucene's lossy 32-bit lat/lon encoding, so the decoded
+    // coordinates differ from the source (40.71, 74) by a sub-meter epsilon (e.g. 40.70999996736646
+    // / 73.99999994784594). Assert each returned point within tolerance instead of exact equality.
+    // The five source documents all describe the same point in different formats, so any five rows
+    // selected by `head` satisfy this regardless of shard scan order.
+    JSONArray dataRows = result.getJSONArray("datarows");
+    assertEquals(5, dataRows.length());
+    for (int i = 0; i < dataRows.length(); i++) {
+      JSONObject point = ((JSONArray) dataRows.get(i)).getJSONObject(0);
+      assertEquals(40.71, point.getDouble("lat"), GeopointFormatsIT.TOLERANCE);
+      assertEquals(74, point.getDouble("lon"), GeopointFormatsIT.TOLERANCE);
+    }
   }
 
   @Test

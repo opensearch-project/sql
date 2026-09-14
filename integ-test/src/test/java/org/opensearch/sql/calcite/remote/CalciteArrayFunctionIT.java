@@ -955,8 +955,8 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval arr = array(1, 2, 3), result = mvmap(arr, arr * age) | head 1 |"
-                    + " fields age, result",
+                "source=%s | eval arr = array(1, 2, 3), result = mvmap(arr, arr * age) | sort"
+                    + " account_number | head 1 | fields age, result",
                 TEST_INDEX_BANK));
 
     verifySchema(actual, schema("age", "int"), schema("result", "array"));

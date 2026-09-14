@@ -736,7 +736,8 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | eval f = sum(age, 5) + avg(10, 20) | fields f | head 5",
+                "source=%s | sort account_number | eval f = sum(age, 5) + avg(10, 20) | fields f |"
+                    + " head 5",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "double"));
     // sum(age, 5) + avg(10, 20) = (age + 5) + 15.0
@@ -760,7 +761,8 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | eval f = sum(age, age, 10) | fields f | head 5", TEST_INDEX_BANK));
+                "source=%s | sort account_number | eval f = sum(age, age, 10) | fields f | head 5",
+                TEST_INDEX_BANK));
     if (isCalciteEnabled()) {
       verifySchema(result, schema("f", null, "bigint"));
     } else {
@@ -775,7 +777,8 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | eval f = avg(age * 2, 10) | fields f | head 5", TEST_INDEX_BANK));
+                "source=%s | sort account_number | eval f = avg(age * 2, 10) | fields f | head 5",
+                TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "double"));
     // avg(age * 2, 10) = (age * 2 + 10) / 2 = age + 5
     verifyDataRows(result, rows(37.0), rows(41.0), rows(33.0), rows(38.0), rows(41.0));

@@ -72,7 +72,8 @@ public class UnifiedQueryOpenSearchIT extends PPLIntegTestCase implements Result
   public void testSimplePPLQueryExecution() throws Exception {
     String pplQuery =
         String.format(
-            "source = opensearch.%s | fields firstname, age | where age > 30 | head 3",
+            "source = opensearch.%s | where age > 30 and account_number in (1, 6, 18) | fields"
+                + " firstname, age",
             TEST_INDEX_ACCOUNT);
 
     RelNode logicalPlan = planner.plan(pplQuery);
