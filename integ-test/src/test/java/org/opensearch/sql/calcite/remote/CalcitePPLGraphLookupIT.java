@@ -11,6 +11,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_GRAPH_AIRPORTS
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_GRAPH_EMPLOYEES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_GRAPH_MULTI;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_GRAPH_TRAVELERS;
+import static org.opensearch.sql.util.Capability.GRAPH_LOOKUP_COMMAND;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -31,6 +32,7 @@ import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * Integration tests for graphLookup command. Test cases are inspired by MongoDB's $graphLookup
@@ -48,6 +50,12 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
  *     href="https://www.mongodb.com/docs/manual/reference/operator/aggregation/graphLookup/">MongoDB
  *     $graphLookup</a>
  */
+@RequiresCapability(
+    value = GRAPH_LOOKUP_COMMAND,
+    note =
+        "graphLookup's plan node is not implemented by the analytics-engine planner"
+            + " (GRAPH_LOOKUP_COMMAND); its fixtures also carry multi-value keyword arrays the"
+            + " parquet store rejects at bulk load (MULTI_VALUE_FIELD_LOAD).")
 public class CalcitePPLGraphLookupIT extends PPLIntegTestCase {
 
   @Override
