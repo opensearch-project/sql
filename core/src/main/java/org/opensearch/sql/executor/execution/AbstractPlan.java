@@ -41,11 +41,7 @@ public abstract class AbstractPlan {
    */
   @Getter @Setter private Boolean partialResultOverride = null;
 
-  /**
-   * Request-level time bounds, carried from the request so {@code QueryService} can seed them into
-   * the per-query schema before planning resolves any table. {@code null} when the request declared
-   * none.
-   */
+  /** Carried to {@code QueryService}, which seeds them into the per-query schema. */
   @Getter @Setter private TimeBounds timeBounds = null;
 
   /** Start query execution. */

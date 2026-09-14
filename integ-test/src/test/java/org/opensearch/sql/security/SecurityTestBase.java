@@ -42,9 +42,8 @@ public abstract class SecurityTestBase extends PPLIntegTestCase {
           "indices:monitor/settings/get",
           "indices:data/read/point_in_time/create",
           "indices:data/read/point_in_time/delete",
-          // Index pruning probes with these two; a principal lacking either falls back to the full
-          // expression silently, so a test asserting a pruned read would fail with no clue why.
-          // ppl_full_access grants both since 3.9.
+          // Index pruning probes with these; without them it declines silently. Granted by
+          // ppl_full_access since 3.9.
           "indices:admin/resolve/index",
           "indices:data/read/field_caps*"
         });

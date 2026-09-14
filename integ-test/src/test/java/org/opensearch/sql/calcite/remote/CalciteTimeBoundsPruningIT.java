@@ -24,14 +24,10 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 /**
- * The {@code start_time}/{@code end_time} request parameters: bounds of a filter the query text
- * already carries, sent so the engine can drop indices that cannot hold data in the range
- * <em>before</em> it resolves the queried expression and merges every matched index's mapping.
+ * The {@code start_time}/{@code end_time} request parameters.
  *
- * <p>Pruning is observed through the resolved schema rather than through timings: a field that only
- * the out-of-range index maps stops resolving once that index is gone, which is both the cheapest
- * signal and the one that matters -- the merge is what a wildcard over months of rollovers actually
- * pays for.
+ * <p>Observed through the resolved schema, not timings: a field only the out-of-range index maps
+ * stops resolving once that index is gone.
  */
 public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
 
@@ -60,10 +56,7 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
     resetPruningToDefault();
   }
 
-  /**
-   * A rollover that dropped a field: {@code legacy_only} exists in the older index and not the
-   * newer, so whether it resolves says exactly which indices the merge saw.
-   */
+  /** {@code legacy_only} exists only in the older index, so its resolution names what merged. */
   private void createRolloverIndices() throws IOException {
     if (!isIndexExist(client(), OLD_INDEX)) {
       createIndexByRestClient(
@@ -104,7 +97,7 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
     verifyDataRows(executeQuery(IN_RANGE + " | fields legacy_only | head 1"), rows((Object) null));
   }
 
-  /** The filter still does the filtering, so pruning must not change a single row. */
+  /** Pruning must not change a single row. */
   @Test
   public void shouldReturnTheSameRowsWithAndWithoutBounds() throws IOException {
     verifyDataRows(executeQuery(IN_RANGE + " | stats count()"), rows(2));
@@ -137,32 +130,24 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
         rows((Object) null));
   }
 
-  /**
-   * The bounds only decides which indices are read, so an unusable pair is dropped rather than
-   * failing a query that does not need it.
-   */
+  /** Unusable bounds are dropped, not an error. */
   @Test
   public void shouldIgnoreUnusableBounds() throws IOException {
     verifyDataRows(
         executeWithBounds(IN_RANGE + " | stats count()", "ts", "Invalid date", TO), rows(2));
     verifyDataRows(executeWithBounds(IN_RANGE + " | stats count()", "", FROM, TO), rows(2));
-    // Inverted: nothing could match it, which is a sign the client got it wrong, not a range.
+    // Inverted: a client mistake, not a range.
     verifyDataRows(executeWithBounds(IN_RANGE + " | stats count()", "ts", TO, FROM), rows(2));
   }
 
-  /** Naming a field no index maps must leave the expression alone rather than prune it away. */
+  /** A field no index maps must leave the expression alone. */
   @Test
   public void shouldIgnoreBoundsOnAnUnmappedField() throws IOException {
     verifyDataRows(
         executeWithBounds(IN_RANGE + " | stats count()", "no_such_field", FROM, TO), rows(2));
   }
 
-  /**
-   * The bounds describe the window the caller is asking about, so they reach a subsearch's source
-   * too -- the same scope Splunk's time range picker and ES|QL's request-level filter have. Here
-   * the subsearch reads the out-of-range index directly, so global scope prunes it to nothing and
-   * it contributes no rows.
-   */
+  /** Request-level scope: the bounds reach a subsearch's source too. */
   @Test
   public void shouldApplyTheBoundsToASubsearchToo() throws IOException {
     String query =
@@ -174,19 +159,15 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
             + " | stats count() as out_of_range_rows by k ]"
             + " | fields out_of_range_rows | head 1";
 
-    // Without the bounds the subsearch would find its one row in the older index.
+    // Without bounds the subsearch finds its row in the older index.
     verifyDataRows(executeQuery(query), rows(1));
-    // With them, the older index is not read at all, so the subsearch aggregates nothing and the
-    // join drops the row.
+    // With them the older index is not read, so the join drops the row.
     assertEquals(0, executeWithBounds(query, "ts", FROM, TO).getInt("total"));
   }
 
   /**
-   * An index that does not map the time field is pruned like any other that cannot match: under a
-   * request-level time range a document with no time value is in no window, which is what the
-   * pushed-down-filter path does too (see {@code index_pruning.yml}). The consequence is deliberate
-   * and documented -- bounds sent without an equivalent predicate in the query text drop those
-   * rows.
+   * A document with no time value is in no window, so its index is pruned -- as {@code
+   * index_pruning.yml} asserts for the filter path. Deliberate, and documented.
    */
   @Test
   public void shouldPruneAnIndexThatDoesNotMapTheTimeField() throws IOException {
@@ -202,9 +183,9 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
     }
     try {
       String query = "source=" + PATTERN + " | where isnotnull(other) | stats count() as total";
-      // The row, and the only mapping of `other`, live in the index with no time field.
+      // The row, and the only mapping of `other`, live in that index.
       verifyDataRows(executeQuery(query), rows(1));
-      // Bounds exclude that index, so its rows go and `other` stops resolving with them.
+      // Excluded, so `other` stops resolving too.
       ResponseException e =
           assertThrows(ResponseException.class, () -> executeWithBounds(query, "ts", FROM, TO));
       assertTrue(e.getMessage(), e.getMessage().contains("Field [other] not found."));

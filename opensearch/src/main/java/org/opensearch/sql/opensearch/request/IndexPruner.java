@@ -38,16 +38,10 @@ public class IndexPruner {
   private static final TimeValue PROBE_TIMEOUT = TimeValue.timeValueSeconds(10);
 
   /**
-   * Date formats a bound is parsed with. The first two are OpenSearch's own defaults; the third is
-   * a UTC wall clock with no zone designator, which is what a client writing the same literal into
-   * the query text tends to produce -- PPL accepts it there, so refusing it here would mean bounds
-   * that cannot describe the filter beside them. Date math is resolved before any of these apply,
-   * so {@code now-7d} is unaffected.
-   *
-   * <p>This <em>replaces</em> the format the field declares, rather than adding to it. A field with
-   * a custom format therefore only prunes on a bound spelled one of these ways; a bound in the
-   * field's own exotic format fails to parse, the probe errors, and pruning declines -- costing the
-   * optimization but never a row, since declining reads the full expression.
+   * Formats a bound may be spelled in. Replaces the field's own, so a field with a custom format
+   * prunes only on these; anything else fails to parse and pruning declines. Date math is resolved
+   * before they apply. The third is what a client writing the same literal into the query text
+   * produces.
    */
   private static final String BOUND_FORMATS =
       "strict_date_optional_time||epoch_millis||yyyy-MM-dd HH:mm:ss.SSS";
@@ -70,21 +64,13 @@ public class IndexPruner {
 
   /**
    * Returns the index expression to read, narrowed to the indices that can hold data in {@code
-   * bounds}.
+   * bounds}. Needs no pushed-down filter, so unlike {@link #prune(IndexName, QueryBuilder)} it can
+   * run while the table is still being resolved -- before the mapping merge.
    *
-   * <p>Unlike {@link #prune(IndexName, QueryBuilder)} this needs no pushed-down filter to read a
-   * range out of, so it can run while the table is still being resolved -- before the expression is
-   * expanded and every matched index's mapping merged, which is the cost a wildcard over months of
-   * rollovers actually pays.
-   *
-   * @param indexName index expression the query named
-   * @param bounds request-level bounds
    * @return expression to read, never null
    */
   public IndexName prune(IndexName indexName, TimeBounds bounds) {
-    // The bounds go to the probe as the strings the request sent, so OpenSearch's own date parser
-    // reads them -- date math included. Re-interpreting them here could produce a narrower window
-    // than the caller meant and drop an index that can match.
+    // As sent: re-interpreting could narrow the window and drop an index that can match.
     QueryBuilder range =
         new RangeQueryBuilder(bounds.getTimeField())
             .gte(bounds.getStart())
@@ -119,8 +105,8 @@ public class IndexPruner {
   private static boolean isPrunable(IndexExpression expression, boolean hasTimeRange) {
     return expression.hasWildcard()
         && hasTimeRange
-        // Keep these last: unlike the gates above, they resolve the expression. An alias may carry
-        // a filter of its own, which substituting its concrete indices would silently drop.
+        // Last: these resolve the expression. An alias may carry a filter that substituting its
+        // concrete indices would drop.
         && !expression.hasAlias()
         && !expression.hasDataStream();
   }

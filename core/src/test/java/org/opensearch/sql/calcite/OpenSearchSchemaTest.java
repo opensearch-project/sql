@@ -46,10 +46,7 @@ class OpenSearchSchemaTest {
     when(dataSourceService.getDataSource(any())).thenReturn(dataSource);
   }
 
-  /**
-   * The bounds are a statement about the window the caller is asking about, so they hold for every
-   * source the query reads -- a subsearch's as much as the primary one.
-   */
+  /** Request-level scope: every source, not just the first. */
   @Test
   void shouldNarrowEveryTableItResolves() {
     OpenSearchSchema schema = givenPruningEngine(BOUNDS);
@@ -100,7 +97,7 @@ class OpenSearchSchemaTest {
     return new OpenSearchSchema(dataSourceService, bounds);
   }
 
-  /** A {@link StorageEngine} that can prune, recording what each resolution asked for. */
+  /** Records what each resolution asked for. */
   private final class PruningEngine implements StorageEngine, SupportsIndexPruning {
 
     @Override
@@ -117,7 +114,7 @@ class OpenSearchSchemaTest {
     }
   }
 
-  /** Never asked for: pruning replaces the unbounded resolution rather than following it. */
+  /** Pruning replaces the unbounded resolution, not follows it. */
   @Test
   void shouldNotAlsoResolveUnbounded() {
     StorageEngine engine = mock(PruningEngine.class);

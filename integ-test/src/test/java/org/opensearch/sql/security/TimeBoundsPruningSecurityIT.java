@@ -197,10 +197,7 @@ public class TimeBoundsPruningSecurityIT extends SecurityTestBase {
             Boolean.toString(enabled)));
   }
 
-  /**
-   * Clears the override rather than pinning it false: pruning is on by default since #5759, so
-   * leaving a false behind would silently disable it for every later class sharing this cluster.
-   */
+  /** Clears rather than pins false: on by default since #5759, so a false would leak. */
   private void resetPruningToDefault() throws IOException {
     updateClusterSettings(
         new ClusterSetting("persistent", Settings.Key.QUERY_PRUNING_ENABLED.getKeyValue(), null));

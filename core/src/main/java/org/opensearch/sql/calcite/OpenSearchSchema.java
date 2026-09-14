@@ -25,12 +25,7 @@ public class OpenSearchSchema extends AbstractSchema {
 
   private final DataSourceService dataSourceService;
 
-  /**
-   * Request-level bounds every table resolved through this schema is narrowed to, or null when the
-   * request declared none. Seeded once before planning starts, which is what makes this reachable
-   * at all: a table's schema is the merge of every index its name resolves to, so narrowing has to
-   * happen as the table is resolved rather than after.
-   */
+  /** Bounds every table resolved here is narrowed to, or null when the request declared none. */
   @Nullable private final TimeBounds timeBounds;
 
   private final Map<String, Table> tableMap =
@@ -66,14 +61,8 @@ public class OpenSearchSchema extends AbstractSchema {
   }
 
   /**
-   * Resolve the table, narrowed to the request's bounds when there are any and the engine can do
-   * it.
-   *
-   * <p>Applied to every table the query resolves, not just its first: the bounds are a statement
-   * about the window the caller is asking about, so they hold for a subsearch's source as much as
-   * the primary one. That matches Splunk's time range picker and ES|QL's request-level {@code
-   * filter}, both of which propagate into subsearches, and it is why the bounds can be a plain
-   * request parameter instead of something attributed to one relation.
+   * Applied to every table the query resolves, a subsearch's source included -- the request-level
+   * scope Splunk's time range picker and ES|QL's request {@code filter} have.
    */
   private org.opensearch.sql.storage.Table resolve(
       StorageEngine engine,

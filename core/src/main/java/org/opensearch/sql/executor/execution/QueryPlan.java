@@ -139,8 +139,7 @@ public class QueryPlan extends AbstractPlan {
           new NotImplementedException(
               "`explain` feature for paginated requests is not implemented yet."));
     } else {
-      // Explaining resolves the same tables as executing, so the bounds have to be in place here
-      // too or an explain would describe the unpruned index expression.
+      // Explain resolves the same tables, so it needs the bounds too.
       queryService.explain(
           plan,
           getQueryType(),

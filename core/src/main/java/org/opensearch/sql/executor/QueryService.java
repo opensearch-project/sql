@@ -766,10 +766,8 @@ public class QueryService {
   }
 
   /**
-   * @param timeBounds request-level bounds every table resolved through this schema is narrowed to,
-   *     or null when the request declared none. Seeded here because this is the last point before
-   *     planning resolves a table, and resolving one merges the mapping of every index its name
-   *     matches -- the cost the bounds are meant to avoid.
+   * @param timeBounds seeded here: the last point before planning resolves a table, and resolving
+   *     one merges every matched index's mapping
    */
   private FrameworkConfig buildFrameworkConfig(@Nullable TimeBounds timeBounds) {
     // Use simple calcite schema since we don't compute tables in advance of the query.

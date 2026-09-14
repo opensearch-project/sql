@@ -17,10 +17,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class TimeBoundsTest {
 
-  /**
-   * Bounds are kept as sent, not parsed: the index's own date parser reads them when the probe
-   * runs, so nothing here can produce a second reading that disagrees with the caller's.
-   */
+  /** Kept as sent, so nothing here can produce a second reading. */
   @ParameterizedTest(name = "{0}")
   @MethodSource("boundSpellings")
   void shouldKeepEveryAcceptedSpellingAsSent(String spelling, String start, String end) {
@@ -33,7 +30,7 @@ class TimeBoundsTest {
     return Stream.of(
         arguments("date math", "now-7d", "now"),
         arguments("date math with rounding", "now-1d/d", "now/d"),
-        // What Dashboards sends: the same literals it puts in the where clause it appended.
+        // What Dashboards sends.
         arguments("dashboards format", "2026-09-09 22:00:00.000", "2026-09-09 22:30:00.000"),
         arguments("ISO-8601 instant", "2026-09-09T22:00:00.000Z", "2026-09-09T22:30:00.000Z"),
         arguments("epoch millis", "1788991200000", "1788993000000"));

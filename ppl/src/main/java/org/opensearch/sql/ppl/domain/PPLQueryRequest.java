@@ -186,20 +186,13 @@ public class PPLQueryRequest {
   }
 
   /**
-   * Request-level time bounds: the window the caller is asking about, declared out of band so the
-   * engine has it before it resolves the queried index expression and merges the mapping of every
-   * index that expression matches.
+   * Request-level time bounds from {@code start_time} / {@code end_time} / {@code time_field}, the
+   * last defaulting to {@code @timestamp}.
    *
-   * <p>{@code start_time} and {@code end_time} accept OpenSearch date math and absolute timestamps
-   * alike, and are handed to the probe as sent. {@code time_field} names the field they constrain,
-   * defaulting to {@code @timestamp}; a caller whose index pattern is configured on another field
-   * has to say so, or nothing is pruned.
+   * <p>Unusable input is dropped, not rejected: these only decide which indices are read, so a
+   * request is never failed over them.
    *
-   * <p>Unusable input is dropped rather than rejected. These bounds only decide which indices are
-   * read -- any filtering the caller wants is in the query text -- so failing a query over a
-   * parameter it does not need would be the worse outcome.
-   *
-   * @return the bounds, or null if the request sent none or sent a pair that cannot be used
+   * @return the bounds, or null if absent or unusable
    */
   public TimeBounds getTimeBounds() {
     if (jsonContent == null) {
@@ -208,8 +201,7 @@ public class PPLQueryRequest {
     boolean hasStart = jsonContent.has(START_TIME_FIELD);
     boolean hasEnd = jsonContent.has(END_TIME_FIELD);
     if (!hasStart || !hasEnd) {
-      // Say so: a one-sided window is almost always a typo in the other key, and dropping it in
-      // silence leaves no trace of why nothing was pruned.
+      // Almost always a typo in the other key; silence leaves no trace of why nothing pruned.
       if (hasStart || hasEnd) {
         LOG.warn(
             "Ignoring time bounds: both {} and {} are required", START_TIME_FIELD, END_TIME_FIELD);

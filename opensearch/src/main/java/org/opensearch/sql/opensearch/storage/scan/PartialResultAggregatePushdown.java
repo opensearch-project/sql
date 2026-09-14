@@ -69,9 +69,8 @@ final class PartialResultAggregatePushdown {
     // that index (text family or absent) -- always excludable.
     Map<String, List<String>> aggregatableGroups = new LinkedHashMap<>();
     List<String> excludedIndices = new ArrayList<>();
-    // Only the fields that are actually non-aggregatable somewhere. A group key that is fine
-    // everywhere -- a date the query also groups by, say -- is not what the reader has to fix, and
-    // naming it made the warning depend on the planner's group-key order.
+    // Only the fields non-aggregatable somewhere: naming the rest is both wrong and made the
+    // message depend on the planner's group-key order.
     Set<String> conflictingFields = new LinkedHashSet<>();
     for (Map.Entry<String, IndexMapping> entry : mappings.entrySet()) {
       // Flatten so a nested object field (mapping tree resource -> attributes -> applicationid) is
@@ -132,9 +131,8 @@ final class PartialResultAggregatePushdown {
   }
 
   /**
-   * The group fields this index cannot aggregate on: absent, or text-family. Mirrors the per-field
-   * test in {@link #resolveBucketSignature}, which stops at the first such field because it only
-   * needs to know whether any exists.
+   * The group fields this index cannot aggregate on: absent, or text-family. Per-field version of
+   * {@link #resolveBucketSignature}, which stops at the first.
    */
   private static List<String> nonAggregatableFields(
       Map<String, OpenSearchDataType> flatMapping, List<String> bucketNames) {
@@ -158,8 +156,8 @@ final class PartialResultAggregatePushdown {
     // Sort here (not in plan): ordering only matters for a stable, readable message.
     List<String> sortedExcluded = new ArrayList<>(excludedIndices);
     sortedExcluded.sort(null);
-    // Sorted for the same reason: the planner can raise this warning once per equivalent plan
-    // alternative, and identical findings must produce identical text so they de-duplicate.
+    // Sorted too: the planner raises this once per plan alternative, and identical findings must
+    // read identically to de-duplicate.
     List<String> fields = new ArrayList<>(conflictingFields);
     fields.sort(null);
     String message =
