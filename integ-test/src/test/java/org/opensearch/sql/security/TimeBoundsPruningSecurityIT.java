@@ -25,13 +25,13 @@ import org.opensearch.sql.common.setting.Settings;
 /**
  * Runs the request-level time bounds with the security plugin installed.
  *
- * <p>The hint rides from the transport thread to the worker on the plan, not in Log4j {@code
+ * <p>The bounds ride from the transport thread to the worker on the plan, not in Log4j {@code
  * ThreadContext}, because the security plugin's transport interceptor drops {@code ThreadContext}
  * on that handoff -- the bug #5739 and #5758 each had to fix for a different per-request signal. A
- * hint lost that way is silent: the query still returns the right rows, just over every index the
- * wildcard matches, so nothing but a test that observes the resolved schema can tell.
+ * Bounds lost that way are silent: the query still returns the right rows, just over every index
+ * the wildcard matches, so nothing but a test that observes the resolved schema can tell.
  *
- * <p>These cases use a mapping that conflicts only across the range boundary, so whether the hint
+ * <p>These cases use a mapping that conflicts only across the range boundary, so whether the bounds
  * arrived is visible in the response rather than only in timings.
  */
 public class TimeBoundsPruningSecurityIT extends SecurityTestBase {
@@ -74,7 +74,7 @@ public class TimeBoundsPruningSecurityIT extends SecurityTestBase {
 
   @After
   public void resetPruning() throws IOException {
-    setPruning(false);
+    resetPruningToDefault();
   }
 
   /**
@@ -115,28 +115,28 @@ public class TimeBoundsPruningSecurityIT extends SecurityTestBase {
   }
 
   @Test
-  public void hintSurvivesSecurityHandoffAndNarrowsTheResolvedSchema() throws IOException {
+  public void boundsSurviveSecurityHandoffAndNarrowTheResolvedSchema() throws IOException {
     JSONObject result = executeQueryAsUserWithBounds(QUERY, USER, "ts", FROM, TO);
 
     verifyDataRows(
         result, rows("2026-09-10 10:00:00", "gamma", 1), rows("2026-09-10 11:00:00", "delta", 1));
   }
 
-  /** Without the hint the merge still sees the older index, so this is the failure it prevents. */
+  /** Without bounds the merge still sees the older index, so this is the failure it prevents. */
   @Test
-  public void sameQueryWithoutTheHintStillSeesTheConflictingMapping() throws IOException {
+  public void sameQueryWithoutBoundsStillSeesTheConflictingMapping() throws IOException {
     ResponseException e =
         assertThrows(ResponseException.class, () -> executeQueryAsUser(QUERY, USER));
 
     assertEquals(400, e.getResponse().getStatusLine().getStatusCode());
     assertTrue(
-        "should fail on the merged object mapping the hint would have pruned away",
+        "should fail on the merged object mapping the bounds would have pruned away",
         e.getMessage().contains("Cannot chart by [attributes.cluster] because it is an object."));
   }
 
-  /** The hint must do nothing unless the cluster opted in. */
+  /** The bounds must do nothing unless the cluster opted in. */
   @Test
-  public void hintIsIgnoredWhenPruningIsDisabled() throws IOException {
+  public void boundsAreIgnoredWhenPruningIsDisabled() throws IOException {
     setPruning(false);
 
     ResponseException e =
@@ -149,7 +149,7 @@ public class TimeBoundsPruningSecurityIT extends SecurityTestBase {
 
   /** A range spanning both indices must leave the expression alone rather than drop either. */
   @Test
-  public void aHintCoveringEveryIndexPrunesNothing() throws IOException {
+  public void boundsCoveringEveryIndexPruneNothing() throws IOException {
     String wide =
         "source="
             + PATTERN
@@ -191,5 +191,14 @@ public class TimeBoundsPruningSecurityIT extends SecurityTestBase {
             "persistent",
             Settings.Key.QUERY_PRUNING_ENABLED.getKeyValue(),
             Boolean.toString(enabled)));
+  }
+
+  /**
+   * Clears the override rather than pinning it false: pruning is on by default since #5759, so
+   * leaving a false behind would silently disable it for every later class sharing this cluster.
+   */
+  private void resetPruningToDefault() throws IOException {
+    updateClusterSettings(
+        new ClusterSetting("persistent", Settings.Key.QUERY_PRUNING_ENABLED.getKeyValue(), null));
   }
 }

@@ -19,20 +19,24 @@ import lombok.Value;
  * query text has been parsed. Nothing downstream of that resolution can narrow it.
  *
  * <p>Bounds are kept as the strings the request sent, not parsed here. OpenSearch date math ({@code
- * now-7d}) and absolute timestamps are both accepted, and both are evaluated by the same date
- * parser that reads the index's own mapping when the probe runs -- so there is no second
- * interpretation of a bound that could disagree with the first and silently exclude an index.
- *
- * @param timeField field the bounds constrain; the queried pattern's configured time field, which
- *     is not necessarily {@code @timestamp}
- * @param start inclusive lower bound
- * @param end inclusive upper bound
+ * now-7d}) and absolute timestamps are both accepted, and both are evaluated once, by OpenSearch,
+ * when the probe runs -- so a relative range cannot resolve to one instant here and another there.
+ * Which formats an absolute bound may take is fixed by the probe rather than by the field's own
+ * mapping; see {@code IndexPruner}.
  */
 @Value
 public class TimeBounds {
 
+  /**
+   * Field the bounds constrain: the queried pattern's configured time field, which is not
+   * necessarily {@code @timestamp}.
+   */
   String timeField;
+
+  /** Inclusive lower bound. */
   String start;
+
+  /** Inclusive upper bound. */
   String end;
 
   /**

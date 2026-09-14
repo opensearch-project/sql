@@ -230,12 +230,15 @@ Anything else is left untouched, and any failure while probing the cluster falls
 
 Pruning is also skipped when it would not reduce the read, that is when no index is excluded. The query then uses the original wildcard expression and reads exactly the same indices.
 
-Request-level time bounds
--------------------------
+**Request-level time bounds.** ``start_time`` and ``end_time`` declare the window the request is asking about, so the engine has it before it resolves the queried index expression. They are inclusive, and accept OpenSearch date math (``now-7d``) and absolute timestamps alike. The bounds are handed to the probe as sent rather than reinterpreted, so a relative range is resolved once, by OpenSearch. Absolute bounds are parsed as ``strict_date_optional_time``, epoch milliseconds, or ``yyyy-MM-dd HH:mm:ss.SSS``; a field declaring some other custom format is not pruned on, since the bound fails to parse and pruning then declines. ``time_field`` names the field they constrain, defaulting to ``@timestamp`` -- a caller whose index pattern is configured on another field has to say so, or nothing is pruned. Bounds that cannot be used are ignored rather than failing the query.
 
-``start_time`` and ``end_time`` declare the window the request is asking about, so the engine has it before it resolves the queried index expression. They are inclusive, and accept OpenSearch date math (``now-7d``) and absolute timestamps alike; the bounds are handed to the probe as sent, so the index's own date parser reads them and there is no second interpretation that could exclude an index the caller wanted. ``time_field`` names the field they constrain, defaulting to ``@timestamp`` -- a caller whose index pattern is configured on another field has to say so, or nothing is pruned. Bounds that cannot be used are ignored rather than failing the query.
+Their scope is the whole request: every source the query reads is narrowed, subsearches included, as with Splunk's time range picker and OpenSearch SQL's own PPL ``earliest``/``latest`` at request level.
 
-Their scope is the whole request: every source the query reads is narrowed, subsearches included, as with Splunk's time range picker and OpenSearch SQL's own PPL ``earliest``/``latest`` at request level. They do not filter -- any predicate the caller wants belongs in the query text -- so a request is answered identically whether or not the engine acts on them. A source whose ``time_field`` is not a date excludes itself, since the probe reports the field's type.
+They are not a filter, and they are not free of effect either. Pruning drops whole indices, so a query whose text already constrains the same field to the same window returns exactly the same rows -- that is the intended use, and how a client appending its own ``where`` should send them. A query whose text does not carry that constraint returns fewer rows: documents outside the window still count inside a retained index, while an index wholly outside it contributes nothing. Send bounds only for a window the query itself already restricts.
+
+A source is left alone when ``time_field`` is not a date in it, or is not mapped by every queried index -- an index that does not map the field cannot be told apart from one whose values fall outside the window, so nothing is pruned rather than risk dropping it.
+
+Planning-time pruning is specific to the Calcite engine's own query path. The unified query path does not read these parameters; they are accepted and ignored there.
 
 Request body::
 

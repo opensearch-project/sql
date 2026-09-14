@@ -14,6 +14,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.opensearch.index.query.QueryBuilders.boolQuery;
@@ -174,9 +175,9 @@ class IndexPrunerTest {
       givenIndexExpression(indices("logs-*", 3), filter)
           .whenMatching("logs-a")
           .shouldPruneTo("logs-a");
-      verify(node).fieldCaps(captor.capture());
+      verify(node, times(2)).fieldCaps(captor.capture());
 
-      FieldCapabilitiesRequest probe = captor.getValue();
+      FieldCapabilitiesRequest probe = matchingProbe(captor);
       assertSame(filter, probe.indexFilter());
       assertArrayEquals(new String[] {"logs-*"}, probe.indices());
       assertEquals(
@@ -191,33 +192,33 @@ class IndexPrunerTest {
       givenIndexExpression(indices("logs-a-*,logs-b-*", 3), timeRange())
           .whenMatching("logs-a-1")
           .shouldPruneTo("logs-a-1");
-      verify(node).fieldCaps(captor.capture());
+      verify(node, times(2)).fieldCaps(captor.capture());
 
-      assertArrayEquals(new String[] {"logs-a-*", "logs-b-*"}, captor.getValue().indices());
+      assertArrayEquals(new String[] {"logs-a-*", "logs-b-*"}, matchingProbe(captor).indices());
     }
   }
 
   @Nested
-  class HintDrivenPruning {
+  class BoundsDrivenPruning {
 
     @Test
-    void shouldPruneOnTheHintsOwnRangeWithNoPushedDownFilter() {
-      givenIndexExpression(indices("logs-*", 3), hint("@timestamp"))
+    void shouldPruneOnTheBoundsOwnRangeWithNoPushedDownFilter() {
+      givenIndexExpression(indices("logs-*", 3), bounds("@timestamp"))
           .whenMatching("logs-a")
           .shouldPruneTo("logs-a");
     }
 
     /** The picker's field is the index pattern's, which is not always {@code @timestamp}. */
     @Test
-    void shouldProbeTheHintsOwnTimeField() {
+    void shouldProbeTheBoundsOwnTimeField() {
       ArgumentCaptor<FieldCapabilitiesRequest> captor =
           ArgumentCaptor.forClass(FieldCapabilitiesRequest.class);
-      givenIndexExpression(indices("logs-*", 3), hint("event_time"))
+      givenIndexExpression(indices("logs-*", 3), bounds("event_time"))
           .whenMatching("logs-a")
           .shouldPruneTo("logs-a");
-      verify(node).fieldCaps(captor.capture());
+      verify(node, times(2)).fieldCaps(captor.capture());
 
-      assertArrayEquals(new String[] {"event_time"}, captor.getValue().fields());
+      assertArrayEquals(new String[] {"event_time"}, matchingProbe(captor).fields());
     }
 
     /** As sent: the index's own date parser reads them, so date math survives to the probe. */
@@ -225,12 +226,12 @@ class IndexPrunerTest {
     void shouldProbeWithTheBoundsExactlyAsSent() {
       ArgumentCaptor<FieldCapabilitiesRequest> captor =
           ArgumentCaptor.forClass(FieldCapabilitiesRequest.class);
-      givenIndexExpression(indices("logs-*", 3), hint("@timestamp"))
+      givenIndexExpression(indices("logs-*", 3), bounds("@timestamp"))
           .whenMatching("logs-a")
           .shouldPruneTo("logs-a");
-      verify(node).fieldCaps(captor.capture());
+      verify(node, times(2)).fieldCaps(captor.capture());
 
-      RangeQueryBuilder range = (RangeQueryBuilder) captor.getValue().indexFilter();
+      RangeQueryBuilder range = (RangeQueryBuilder) matchingProbe(captor).indexFilter();
       assertEquals(
           "@timestamp|now-15m|now|true|true",
           String.join(
@@ -244,26 +245,54 @@ class IndexPrunerTest {
 
     @Test
     void shouldNotPruneAConcreteExpression() {
-      givenIndexExpression("logs-2024", hint("@timestamp")).shouldNotPrune().shouldNotProbe();
+      givenIndexExpression("logs-2024", bounds("@timestamp")).shouldNotPrune().shouldNotProbe();
     }
 
     @Test
     void shouldNotPruneAnAlias() {
-      givenIndexExpression(alias("logs-*"), hint("@timestamp"))
+      givenIndexExpression(alias("logs-*"), bounds("@timestamp"))
           .shouldNotPrune()
           .shouldNotProbeForMatches();
     }
 
     @Test
     void shouldNotPruneADataStream() {
-      givenIndexExpression(ds("logs-*"), hint("@timestamp"))
+      givenIndexExpression(ds("logs-*"), bounds("@timestamp"))
           .shouldNotPrune()
           .shouldNotProbeForMatches();
     }
 
+    /**
+     * An index that does not map the field is reported as not-matching, exactly like one whose
+     * values fall outside the window -- so pruning on that would drop it and its rows. #5766
+     * review.
+     */
+    @Test
+    void shouldNotPruneWhenTheFieldIsNotMappedByEveryIndex() {
+      FieldCapabilities caps = mock(FieldCapabilities.class);
+      givenIndexExpression(indices("logs-*", 3), bounds("@timestamp"))
+          .whenFieldMappedAs(Map.of("@timestamp", Map.of("date", caps, "unmapped", caps)))
+          .shouldNotPrune();
+    }
+
+    @Test
+    void shouldNotPruneWhenTheFieldIsNotADate() {
+      FieldCapabilities caps = mock(FieldCapabilities.class);
+      givenIndexExpression(indices("logs-*", 3), bounds("@timestamp"))
+          .whenFieldMappedAs(Map.of("@timestamp", Map.of("keyword", caps)))
+          .shouldNotPrune();
+    }
+
+    @Test
+    void shouldNotPruneWhenNoIndexMapsTheField() {
+      givenIndexExpression(indices("logs-*", 3), bounds("@timestamp"))
+          .whenFieldMappedAs(Map.of())
+          .shouldNotPrune();
+    }
+
     @Test
     void shouldNotPruneWhenTheProbeFails() {
-      givenIndexExpression(indices("logs-*", 3), hint("@timestamp"))
+      givenIndexExpression(indices("logs-*", 3), bounds("@timestamp"))
           .whenMatchProbeFails()
           .shouldNotPrune();
     }
@@ -278,12 +307,24 @@ class IndexPrunerTest {
         "no_such_field", Map.of());
   }
 
+  /**
+   * The matching probe, told apart from the unfiltered mapping probe that precedes it by carrying
+   * the index filter.
+   */
+  private static FieldCapabilitiesRequest matchingProbe(
+      ArgumentCaptor<FieldCapabilitiesRequest> captor) {
+    return captor.getAllValues().stream()
+        .filter(r -> r.indexFilter() != null)
+        .reduce((first, second) -> second)
+        .orElseThrow(() -> new AssertionError("no filtered probe was issued"));
+  }
+
   private static QueryBuilder timeRange() {
     return rangeQuery("@timestamp").gte("now-1d");
   }
 
   /** Date math, to show the probe carries the bounds as sent rather than re-interpreting them. */
-  private static TimeBounds hint(String field) {
+  private static TimeBounds bounds(String field) {
     return new TimeBounds(field, "now-15m", "now");
   }
 
@@ -318,8 +359,8 @@ class IndexPrunerTest {
     return new Fixture(expression, filter, null);
   }
 
-  private Fixture givenIndexExpression(String expression, TimeBounds hint) {
-    return new Fixture(expression, null, hint);
+  private Fixture givenIndexExpression(String expression, TimeBounds bounds) {
+    return new Fixture(expression, null, bounds);
   }
 
   /**
@@ -359,9 +400,9 @@ class IndexPrunerTest {
     return new Fixture(resolution.expression(), filter, null);
   }
 
-  private Fixture givenIndexExpression(Resolution resolution, TimeBounds hint) {
+  private Fixture givenIndexExpression(Resolution resolution, TimeBounds bounds) {
     givenIndexExpression(resolution, (QueryBuilder) null);
-    return new Fixture(resolution.expression(), null, hint);
+    return new Fixture(resolution.expression(), null, bounds);
   }
 
   private void whenResolved() {
@@ -372,19 +413,29 @@ class IndexPrunerTest {
 
     private final IndexName original;
     private final QueryBuilder filter;
-    private final TimeBounds hint;
+    private final TimeBounds bounds;
     private IndexName result;
 
-    Fixture(String expression, QueryBuilder filter, TimeBounds hint) {
+    Fixture(String expression, QueryBuilder filter, TimeBounds bounds) {
       this.original = new IndexName(expression);
       this.filter = filter;
-      this.hint = hint;
+      this.bounds = bounds;
     }
 
     Fixture whenMatching(String... matching) {
+      // Two field-caps calls now: an unfiltered mapping probe that gates on the field's type, then
+      // the filtered one that reports which indices can match.
       when(node.fieldCaps(any())).thenReturn(matchFuture);
       when(matchFuture.actionGet(any(TimeValue.class)))
           .thenReturn(new FieldCapabilitiesResponse(matching, dateFieldCaps()));
+      return this;
+    }
+
+    /** The mapping probe reports the field as something a range cannot prune on. */
+    Fixture whenFieldMappedAs(Map<String, Map<String, FieldCapabilities>> caps) {
+      when(node.fieldCaps(any())).thenReturn(matchFuture);
+      when(matchFuture.actionGet(any(TimeValue.class)))
+          .thenReturn(new FieldCapabilitiesResponse(new String[] {"logs-a"}, caps));
       return this;
     }
 
@@ -422,9 +473,9 @@ class IndexPrunerTest {
     private IndexName pruned() {
       if (result == null) {
         result =
-            hint == null
+            bounds == null
                 ? new IndexPruner(node).prune(original, filter)
-                : new IndexPruner(node).prune(original, hint);
+                : new IndexPruner(node).prune(original, bounds);
       }
       return result;
     }

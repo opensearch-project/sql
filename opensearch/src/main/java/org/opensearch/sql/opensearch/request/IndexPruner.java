@@ -41,12 +41,16 @@ public class IndexPruner {
   private static final TimeValue PROBE_TIMEOUT = TimeValue.timeValueSeconds(10);
 
   /**
-   * Date formats the probe accepts for a bound, overriding whatever the field itself declares so
-   * that what the request may reasonably send parses regardless of the index's mapping. The first
-   * two are OpenSearch's own defaults; the third is a UTC wall clock with no zone designator, which
-   * is what a client writing the same literal into the query text tends to produce -- PPL accepts
-   * it there, so refusing it here would mean bounds that cannot describe the filter beside them.
-   * Date math is resolved before any of these apply, so {@code now-7d} is unaffected.
+   * Date formats a bound is parsed with. The first two are OpenSearch's own defaults; the third is
+   * a UTC wall clock with no zone designator, which is what a client writing the same literal into
+   * the query text tends to produce -- PPL accepts it there, so refusing it here would mean bounds
+   * that cannot describe the filter beside them. Date math is resolved before any of these apply,
+   * so {@code now-7d} is unaffected.
+   *
+   * <p>This <em>replaces</em> the format the field declares, rather than adding to it. A field with
+   * a custom format therefore only prunes on a bound spelled one of these ways; a bound in the
+   * field's own exotic format fails to parse, the probe errors, and pruning declines -- costing the
+   * optimization but never a row, since declining reads the full expression.
    */
   private static final String BOUND_FORMATS =
       "strict_date_optional_time||epoch_millis||yyyy-MM-dd HH:mm:ss.SSS";
@@ -104,12 +108,12 @@ public class IndexPruner {
         return indexName;
       }
 
-      FieldCapabilitiesResponse probe = indexExpr.probeMatching(filter, timeField);
-      if (!isDateField(probe, timeField)) {
-        log.info("Index pruning skipped: [{}] is not a date field", timeField);
+      String unprunable = indexExpr.reasonFieldCannotPrune(timeField);
+      if (unprunable != null) {
+        log.info("Index pruning skipped: {}", unprunable);
         return indexName;
       }
-      String[] candidates = probe.getIndices();
+      String[] candidates = indexExpr.probeMatching(filter, timeField).getIndices();
       if (0 < candidates.length && indexExpr.isPrunedBy(candidates)) {
         return new IndexName(String.join(",", candidates));
       }
@@ -133,16 +137,31 @@ public class IndexPruner {
   }
 
   /**
-   * Whether the probed field is a date in the indices that reported it. A range on a non-date field
-   * cannot prove an index disjoint, so a source whose time field is mapped as something else -- or
-   * not mapped at all -- excludes itself here rather than being pruned on a predicate that means
-   * nothing. The probe response already carries the type, so this costs no extra round trip.
+   * Why a range on {@code timeField} cannot decide which of {@code byType}'s indices to keep, or
+   * null when it can.
+   *
+   * <p>Two reasons, and the second is the one that matters. A range on a field an index does not
+   * map is <em>disjoint</em> for that index, not unknown, so {@code _field_caps} leaves it out of
+   * the matching list exactly as it leaves out an index whose values fall outside the window -- and
+   * the two are indistinguishable in the response. Pruning on that would drop every index that
+   * simply does not carry the field, taking its rows with it. Since an unmapped index can never be
+   * excluded on evidence, the whole expression is left alone.
    */
-  static boolean isDateField(FieldCapabilitiesResponse probe, String timeField) {
-    Map<String, FieldCapabilities> byType = probe.getField(timeField);
-    return byType != null
-        && !byType.isEmpty()
-        && byType.keySet().stream().allMatch(DATE_FIELD_TYPES::contains);
+  static String reasonFieldCannotPrune(Map<String, FieldCapabilities> byType, String timeField) {
+    if (byType == null || byType.isEmpty()) {
+      return String.format("[%s] is mapped by no queried index", timeField);
+    }
+    if (byType.containsKey("unmapped")) {
+      return String.format(
+          "[%s] is not mapped by every queried index, so an index without it cannot be told from"
+              + " one outside the range",
+          timeField);
+    }
+    if (!byType.keySet().stream().allMatch(DATE_FIELD_TYPES::contains)) {
+      return String.format(
+          "[%s] is not a date field in every queried index: %s", timeField, byType.keySet());
+    }
+    return null;
   }
 
   static boolean containsTimeRange(QueryBuilder query) {
@@ -186,6 +205,21 @@ public class IndexPruner {
 
     boolean isPrunedBy(String[] candidates) {
       return candidates.length < resolved().getIndices().size();
+    }
+
+    /**
+     * Runs the mapping probe -- unfiltered, since a filter would hide the very indices this has to
+     * see -- and reports why the field cannot be pruned on, or null when it can.
+     */
+    String reasonFieldCannotPrune(String timeField) {
+      FieldCapabilitiesRequest request =
+          new FieldCapabilitiesRequest()
+              .indices(indexName.getIndexNames())
+              .fields(timeField)
+              .includeUnmapped(true)
+              .indicesOptions(DEFAULT_INDICES_OPTIONS);
+      FieldCapabilitiesResponse probe = node.fieldCaps(request).actionGet(PROBE_TIMEOUT);
+      return IndexPruner.reasonFieldCannotPrune(probe.getField(timeField), timeField);
     }
 
     FieldCapabilitiesResponse probeMatching(QueryBuilder filter, String timeField) {

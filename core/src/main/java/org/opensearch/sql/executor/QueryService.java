@@ -377,6 +377,15 @@ public class QueryService {
 
   public void analyzeWithCalcite(
       UnresolvedPlan plan, QueryType queryType, ResponseListener<AnalyzeResponse> listener) {
+    analyzeWithCalcite(plan, queryType, null, listener);
+  }
+
+  /** Analyze with request-level time bounds the queried indices are narrowed to. */
+  public void analyzeWithCalcite(
+      UnresolvedPlan plan,
+      QueryType queryType,
+      @Nullable TimeBounds timeBounds,
+      ResponseListener<AnalyzeResponse> listener) {
     if (!shouldUseCalcite(queryType)) {
       listener.onFailure(
           new UnsupportedOperationException(
@@ -398,6 +407,8 @@ public class QueryService {
         plan,
         queryType,
         null,
+        false,
+        timeBounds,
         new ResponseListener<>() {
           @Override
           public void onResponse(ExecutionEngine.QueryResponse response) {
@@ -449,7 +460,9 @@ public class QueryService {
                 () -> {
                   CalcitePlanContext context =
                       CalcitePlanContext.create(
-                          buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
+                          buildFrameworkConfig(timeBounds),
+                          SysLimit.fromSettings(settings),
+                          queryType);
                   RelNode relNode = analyze(plan, context);
                   RelNode calcitePlan =
                       withCheckedArithmetic(convertToCalcitePlan(relNode, context), context);

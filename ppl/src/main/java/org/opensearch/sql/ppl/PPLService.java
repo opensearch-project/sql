@@ -162,8 +162,10 @@ public class PPLService {
       anonymizedQuerySink.accept(anonymized);
 
       UnresolvedPlan unresolvedPlan = ((Query) statement).getPlan();
-      queryManager.submit(
-          queryExecutionFactory.createAnalyzePlan(unresolvedPlan, PPL_QUERY, listener));
+      AbstractPlan analyzePlan =
+          queryExecutionFactory.createAnalyzePlan(unresolvedPlan, PPL_QUERY, listener);
+      analyzePlan.setTimeBounds(request.getTimeBounds());
+      queryManager.submit(analyzePlan);
     } catch (Exception e) {
       listener.onFailure(e);
     }

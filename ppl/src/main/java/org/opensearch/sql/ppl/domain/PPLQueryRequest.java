@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.ppl.domain;
 
+import static org.opensearch.sql.calcite.plan.OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -25,9 +27,6 @@ import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 
 public class PPLQueryRequest {
-
-  /** Default time field, matching what index pruning has always assumed. */
-  private static final String IMPLICIT_FIELD_TIMESTAMP = "@timestamp";
 
   private static final Logger LOG = LogManager.getLogger(PPLQueryRequest.class);
 
@@ -203,9 +202,18 @@ public class PPLQueryRequest {
    * @return the bounds, or null if the request sent none or sent a pair that cannot be used
    */
   public TimeBounds getTimeBounds() {
-    if (jsonContent == null
-        || !jsonContent.has(START_TIME_FIELD)
-        || !jsonContent.has(END_TIME_FIELD)) {
+    if (jsonContent == null) {
+      return null;
+    }
+    boolean hasStart = jsonContent.has(START_TIME_FIELD);
+    boolean hasEnd = jsonContent.has(END_TIME_FIELD);
+    if (!hasStart || !hasEnd) {
+      // Say so: a one-sided window is almost always a typo in the other key, and dropping it in
+      // silence leaves no trace of why nothing was pruned.
+      if (hasStart || hasEnd) {
+        LOG.warn(
+            "Ignoring time bounds: both {} and {} are required", START_TIME_FIELD, END_TIME_FIELD);
+      }
       return null;
     }
     try {

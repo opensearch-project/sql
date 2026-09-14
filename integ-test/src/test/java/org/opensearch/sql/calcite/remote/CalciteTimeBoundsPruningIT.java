@@ -24,9 +24,9 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 /**
- * The {@code time_range} request field: bounds of a filter the query text already carries, sent so
- * the engine can drop indices that cannot hold data in the range <em>before</em> it resolves the
- * queried expression and merges every matched index's mapping.
+ * The {@code start_time}/{@code end_time} request parameters: bounds of a filter the query text
+ * already carries, sent so the engine can drop indices that cannot hold data in the range
+ * <em>before</em> it resolves the queried expression and merges every matched index's mapping.
  *
  * <p>Pruning is observed through the resolved schema rather than through timings: a field that only
  * the out-of-range index maps stops resolving once that index is gone, which is both the cheapest
@@ -57,7 +57,7 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
 
   @After
   public void resetPruning() throws IOException {
-    setPruning(false);
+    resetPruningToDefault();
   }
 
   /**
@@ -100,13 +100,13 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void shouldResolveTheWholePatternWithoutAHint() throws IOException {
+  public void shouldResolveTheWholePatternWithoutBounds() throws IOException {
     verifyDataRows(executeQuery(IN_RANGE + " | fields legacy_only | head 1"), rows((Object) null));
   }
 
   /** The filter still does the filtering, so pruning must not change a single row. */
   @Test
-  public void shouldReturnTheSameRowsWithAndWithoutTheHint() throws IOException {
+  public void shouldReturnTheSameRowsWithAndWithoutBounds() throws IOException {
     verifyDataRows(executeQuery(IN_RANGE + " | stats count()"), rows(2));
     verifyDataRows(executeWithBounds(IN_RANGE + " | stats count()", "ts", FROM, TO), rows(2));
   }
@@ -129,7 +129,7 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void shouldIgnoreTheHintWhenPruningIsDisabled() throws IOException {
+  public void shouldIgnoreBoundsWhenPruningIsDisabled() throws IOException {
     setPruning(false);
 
     verifyDataRows(
@@ -138,11 +138,11 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
   }
 
   /**
-   * The hint only decides which indices are read, so an unusable one is dropped rather than failing
-   * a query that does not need it.
+   * The bounds only decides which indices are read, so an unusable pair is dropped rather than
+   * failing a query that does not need it.
    */
   @Test
-  public void shouldIgnoreAnUnusableHint() throws IOException {
+  public void shouldIgnoreUnusableBounds() throws IOException {
     verifyDataRows(
         executeWithBounds(IN_RANGE + " | stats count()", "ts", "Invalid date", TO), rows(2));
     verifyDataRows(executeWithBounds(IN_RANGE + " | stats count()", "", FROM, TO), rows(2));
@@ -152,7 +152,7 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
 
   /** Naming a field no index maps must leave the expression alone rather than prune it away. */
   @Test
-  public void shouldIgnoreAHintOnAnUnmappedField() throws IOException {
+  public void shouldIgnoreBoundsOnAnUnmappedField() throws IOException {
     verifyDataRows(
         executeWithBounds(IN_RANGE + " | stats count()", "no_such_field", FROM, TO), rows(2));
   }
@@ -181,6 +181,35 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
     assertEquals(0, executeWithBounds(query, "ts", FROM, TO).getInt("total"));
   }
 
+  /**
+   * An index that does not map the time field is reported as not-matching by the probe, exactly
+   * like one whose values fall outside the window -- the two are indistinguishable in the response.
+   * Pruning on that would drop the index and every row in it, so nothing is pruned at all.
+   * Regression guard for the #5766 review.
+   */
+  @Test
+  public void shouldNotPruneWhenAnIndexDoesNotMapTheTimeField() throws IOException {
+    String noTimeField = PATTERN.replace("*", "notime");
+    if (!isIndexExist(client(), noTimeField)) {
+      createIndexByRestClient(
+          client(),
+          noTimeField,
+          "{\"mappings\":{\"properties\":{\"other\":{\"type\":\"keyword\"}}}}");
+      Request bulk = new Request("POST", "/" + noTimeField + "/_bulk?refresh=true");
+      bulk.setJsonEntity("{\"index\":{}}\n{\"other\":\"keep-me\"}\n");
+      performRequest(client(), bulk);
+    }
+    try {
+      // The row lives in an index with no `ts` at all, so only leaving the expression alone keeps
+      // it.
+      String query = "source=" + PATTERN + " | where isnotnull(other) | stats count()";
+      verifyDataRows(executeQuery(query), rows(1));
+      verifyDataRows(executeWithBounds(query, "ts", FROM, TO), rows(1));
+    } finally {
+      client().performRequest(new Request("DELETE", "/" + noTimeField));
+    }
+  }
+
   private JSONObject executeWithBounds(String query, String field, String from, String to)
       throws IOException {
     Request request = new Request("POST", "/_plugins/_ppl");
@@ -206,5 +235,14 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
             "persistent",
             Settings.Key.QUERY_PRUNING_ENABLED.getKeyValue(),
             Boolean.toString(enabled)));
+  }
+
+  /**
+   * Clears the override rather than pinning it false: pruning is on by default since #5759, so
+   * leaving a false behind would silently disable it for every later class sharing this cluster.
+   */
+  private void resetPruningToDefault() throws IOException {
+    updateClusterSettings(
+        new ClusterSetting("persistent", Settings.Key.QUERY_PRUNING_ENABLED.getKeyValue(), null));
   }
 }
