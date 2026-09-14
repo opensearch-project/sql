@@ -99,6 +99,7 @@ import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.MakeResults;
 import org.opensearch.sql.ast.tree.MinSpanBin;
+import org.opensearch.sql.ast.tree.Multikv;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.MvExpand;
@@ -137,6 +138,7 @@ import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.AdCommandContext;
@@ -149,6 +151,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsByClauseCont
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
 import org.opensearch.sql.ppl.utils.MakeResultsDataParser;
+import org.opensearch.sql.ppl.utils.PplInlineTypeResolver;
 import org.opensearch.sql.ppl.utils.UnresolvedPlanHelper;
 import org.opensearch.sql.utils.SystemIndexUtils;
 
@@ -1105,6 +1108,56 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     }
 
     return new MvExpand(field, limit);
+  }
+
+  @Override
+  public UnresolvedPlan visitMultikvCommand(OpenSearchPPLParser.MultikvCommandContext ctx) {
+    List<Field> fields = null;
+    List<ExprCoreType> fieldTypes = null;
+    String inField = Multikv.DEFAULT_INPUT_FIELD;
+    Integer forceHeader = null;
+    boolean noHeader = false;
+    boolean rmOrig = true; // drop the original event fields unless keepOrig is set
+
+    for (OpenSearchPPLParser.MultikvParameterContext p : ctx.multikvParameter()) {
+      if (p.fields != null) {
+        fields = new ArrayList<>();
+        fieldTypes = new ArrayList<>();
+        boolean anyTyped = false;
+        for (OpenSearchPPLParser.MultikvFieldContext mf : p.fields.multikvField()) {
+          if (mf.CLUSTER() != null) {
+            // The lexer folds "col:" into one CLUSTER token; drop the trailing colon for the name.
+            String raw = mf.CLUSTER().getText();
+            String col = StringUtils.unquoteIdentifier(raw.substring(0, raw.length() - 1));
+            fields.add(new Field(new QualifiedName(col)));
+            fieldTypes.add(
+                PplInlineTypeResolver.resolve(
+                    mf.convertedDataType().typeName.getText(), "multikv"));
+            anyTyped = true;
+          } else {
+            fields.add((Field) expressionBuilder.visit(mf.fieldExpression()));
+            fieldTypes.add(null);
+          }
+        }
+        if (!anyTyped) {
+          fieldTypes = null;
+        }
+      } else if (p.inField != null) {
+        inField = p.inField.getText();
+      } else if (p.forceHeader != null) {
+        forceHeader = Integer.parseInt(p.forceHeader.getText());
+        if (forceHeader <= 0) {
+          throw new IllegalArgumentException(
+              "multikv forceheader must be a positive line number, got: " + forceHeader);
+        }
+      } else if (p.noHeader != null) {
+        noHeader = Boolean.parseBoolean(p.noHeader.getText());
+      } else if (p.rmOrig != null) {
+        rmOrig = Boolean.parseBoolean(p.rmOrig.getText());
+      }
+    }
+
+    return new Multikv(inField, fields, fieldTypes, null, forceHeader, noHeader, rmOrig);
   }
 
   @Override
