@@ -9,10 +9,12 @@ import static org.opensearch.action.search.SearchRequest.DEFAULT_INDICES_OPTIONS
 import static org.opensearch.sql.calcite.plan.OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP;
 
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.opensearch.action.admin.indices.resolve.ResolveIndexAction;
@@ -55,6 +57,9 @@ public class IndexPruner {
   private static final String BOUND_FORMATS =
       "strict_date_optional_time||epoch_millis||yyyy-MM-dd HH:mm:ss.SSS";
 
+  /** The bucket _field_caps uses for indices that do not map the requested field. */
+  private static final String UNMAPPED = "unmapped";
+
   /** Mapping types a range predicate can prune on. */
   private static final Set<String> DATE_FIELD_TYPES = Set.of("date", "date_nanos");
 
@@ -71,7 +76,7 @@ public class IndexPruner {
    * @return expression to read, never null
    */
   public IndexName prune(IndexName indexName, QueryBuilder filter) {
-    return prune(indexName, filter, containsTimeRange(filter), IMPLICIT_FIELD_TIMESTAMP);
+    return prune(indexName, filter, containsTimeRange(filter), IMPLICIT_FIELD_TIMESTAMP, false);
   }
 
   /**
@@ -96,11 +101,22 @@ public class IndexPruner {
             .gte(bounds.getStart())
             .lte(bounds.getEnd())
             .format(BOUND_FORMATS);
-    return prune(indexName, range, true, bounds.getTimeField());
+    return prune(indexName, range, true, bounds.getTimeField(), true);
   }
 
+  /**
+   * @param retainIndicesWithoutTimeField whether an index that does not map {@code timeField} has
+   *     to be kept. It does when the range came from a request parameter, since the query text need
+   *     not filter on the field at all and that index's rows are still wanted. It does not when the
+   *     range was read out of the query's own pushed-down filter: an index that cannot satisfy that
+   *     filter returns nothing regardless, so dropping it is lossless.
+   */
   private IndexName prune(
-      IndexName indexName, QueryBuilder filter, boolean hasTimeRange, String timeField) {
+      IndexName indexName,
+      QueryBuilder filter,
+      boolean hasTimeRange,
+      String timeField,
+      boolean retainIndicesWithoutTimeField) {
     try {
       IndexExpression indexExpr = new IndexExpression(indexName, node);
       if (!isPrunable(indexExpr, hasTimeRange)) {
@@ -108,18 +124,25 @@ public class IndexPruner {
         return indexName;
       }
 
-      String unprunable = indexExpr.reasonFieldCannotPrune(timeField);
-      if (unprunable != null) {
-        log.info("Index pruning skipped: {}", unprunable);
+      FieldMapping mapping =
+          retainIndicesWithoutTimeField ? indexExpr.probeMapping(timeField) : FieldMapping.ANY;
+      if (mapping.declineReason() != null) {
+        log.info("Index pruning skipped: {}", mapping.declineReason());
         return indexName;
       }
-      String[] candidates = indexExpr.probeMatching(filter, timeField).getIndices();
-      if (0 < candidates.length && indexExpr.isPrunedBy(candidates)) {
+
+      Set<String> candidates =
+          new LinkedHashSet<>(
+              Arrays.asList(indexExpr.probeMatching(filter, timeField).getIndices()));
+      // An index that does not map the field is reported as not-matching, exactly like one whose
+      // values fall outside the range -- so it has to be added back rather than inferred away.
+      candidates.addAll(mapping.indicesWithoutField());
+      if (!candidates.isEmpty() && indexExpr.isPrunedBy(candidates.size())) {
         return new IndexName(String.join(",", candidates));
       }
       log.info(
-          "Index pruning declined: {} of {} indices matched",
-          candidates.length,
+          "Index pruning declined: {} of {} indices retained",
+          candidates.size(),
           indexExpr.resolved.getIndices().size());
     } catch (Exception e) {
       log.warn("Index pruning failed; querying the full index expression", e);
@@ -137,31 +160,50 @@ public class IndexPruner {
   }
 
   /**
-   * Why a range on {@code timeField} cannot decide which of {@code byType}'s indices to keep, or
-   * null when it can.
+   * What the mapping probe says about the time field: either why a range on it cannot decide which
+   * indices to keep, or which indices do not map it at all and so must be retained regardless of
+   * the range.
    *
-   * <p>Two reasons, and the second is the one that matters. A range on a field an index does not
-   * map is <em>disjoint</em> for that index, not unknown, so {@code _field_caps} leaves it out of
-   * the matching list exactly as it leaves out an index whose values fall outside the window -- and
-   * the two are indistinguishable in the response. Pruning on that would drop every index that
-   * simply does not carry the field, taking its rows with it. Since an unmapped index can never be
-   * excluded on evidence, the whole expression is left alone.
+   * <p>The distinction matters because {@code _field_caps} reports an index that does not map the
+   * field as not-matching, indistinguishably from one whose values fall outside the range. Pruning
+   * on that alone would drop the index and every row in it.
    */
-  static String reasonFieldCannotPrune(Map<String, FieldCapabilities> byType, String timeField) {
+  record FieldMapping(@Nullable String declineReason, Set<String> indicesWithoutField) {
+
+    /** No mapping probe was run, so nothing is required to be kept. */
+    static final FieldMapping ANY = new FieldMapping(null, Set.of());
+
+    static FieldMapping decline(String reason) {
+      return new FieldMapping(reason, Set.of());
+    }
+  }
+
+  static FieldMapping readMapping(Map<String, FieldCapabilities> byType, String timeField) {
     if (byType == null || byType.isEmpty()) {
-      return String.format("[%s] is mapped by no queried index", timeField);
+      return FieldMapping.decline(String.format("[%s] is mapped by no queried index", timeField));
     }
-    if (byType.containsKey("unmapped")) {
-      return String.format(
-          "[%s] is not mapped by every queried index, so an index without it cannot be told from"
-              + " one outside the range",
-          timeField);
+    Set<String> withoutField = new LinkedHashSet<>();
+    for (Map.Entry<String, FieldCapabilities> entry : byType.entrySet()) {
+      if (UNMAPPED.equals(entry.getKey())) {
+        String[] indices = entry.getValue().indices();
+        if (indices == null) {
+          // Only null when the field is mapped uniformly, which contradicts an unmapped bucket
+          // existing; treat the unknown set as unprunable rather than guess.
+          return FieldMapping.decline(
+              String.format("[%s] is unmapped in indices the probe did not name", timeField));
+        }
+        withoutField.addAll(Arrays.asList(indices));
+      } else if (!DATE_FIELD_TYPES.contains(entry.getKey())) {
+        return FieldMapping.decline(
+            String.format(
+                "[%s] is mapped as %s somewhere, which a range cannot prune on",
+                timeField, entry.getKey()));
+      }
     }
-    if (!byType.keySet().stream().allMatch(DATE_FIELD_TYPES::contains)) {
-      return String.format(
-          "[%s] is not a date field in every queried index: %s", timeField, byType.keySet());
+    if (withoutField.size() == byType.size() && !byType.containsKey(UNMAPPED)) {
+      return FieldMapping.decline(String.format("[%s] is not a date anywhere", timeField));
     }
-    return null;
+    return new FieldMapping(null, withoutField);
   }
 
   static boolean containsTimeRange(QueryBuilder query) {
@@ -203,15 +245,15 @@ public class IndexPruner {
       return !resolved().getDataStreams().isEmpty();
     }
 
-    boolean isPrunedBy(String[] candidates) {
-      return candidates.length < resolved().getIndices().size();
+    boolean isPrunedBy(int candidateCount) {
+      return candidateCount < resolved().getIndices().size();
     }
 
     /**
      * Runs the mapping probe -- unfiltered, since a filter would hide the very indices this has to
-     * see -- and reports why the field cannot be pruned on, or null when it can.
+     * see -- and reports what it says about the field.
      */
-    String reasonFieldCannotPrune(String timeField) {
+    FieldMapping probeMapping(String timeField) {
       FieldCapabilitiesRequest request =
           new FieldCapabilitiesRequest()
               .indices(indexName.getIndexNames())
@@ -219,7 +261,7 @@ public class IndexPruner {
               .includeUnmapped(true)
               .indicesOptions(DEFAULT_INDICES_OPTIONS);
       FieldCapabilitiesResponse probe = node.fieldCaps(request).actionGet(PROBE_TIMEOUT);
-      return IndexPruner.reasonFieldCannotPrune(probe.getField(timeField), timeField);
+      return IndexPruner.readMapping(probe.getField(timeField), timeField);
     }
 
     FieldCapabilitiesResponse probeMatching(QueryBuilder filter, String timeField) {
