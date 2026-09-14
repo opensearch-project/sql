@@ -216,10 +216,10 @@ Description
 
 Prunes a wildcard index expression down to the concrete indices that can hold data in the query's time range, so fewer indices and shards are touched. The primary use currently is to avoid exhausting the open point-in-time (PIT) context limit when a query would otherwise open a reader context over many indices. Enabled by default.
 
-There are two ways the range can reach the pruner:
+Pruning needs a time range to prune on. It takes one from either of two places:
 
-1. From the filter pushed down to the search, which must be a range on ``@timestamp``. This runs when the search request is built, after the index expression has been resolved, so it reduces the shards read and the PIT but not the mapping merge.
-2. From the ``start_time``/``end_time`` request parameters (see below), which run while the table is still being resolved, before the expression is expanded. This reduces the mapping merge as well, so a field the out-of-range indices map differently no longer contributes a conflict. Specific to the Calcite engine; the parameters are accepted and ignored otherwise.
+1. A range on ``@timestamp`` in the query itself. Nothing to configure -- any query that filters on it is pruned.
+2. The ``start_time`` and ``end_time`` request parameters described below, for a query whose range is not on ``@timestamp``, or whose client would rather state the window than have it inferred.
 
 Anything else is left untouched, and any failure while probing the cluster falls back to querying the full expression. Weigh these limitations before turning it off:
 
@@ -230,24 +230,29 @@ Anything else is left untouched, and any failure while probing the cluster falls
 
 Pruning is also skipped when it would not reduce the read, that is when no index is excluded. The query then uses the original wildcard expression and reads exactly the same indices.
 
-**Request-level time bounds.** ``start_time`` and ``end_time`` declare the window the request is asking about, so the engine has it before it resolves the queried index expression. They are inclusive, and accept OpenSearch date math (``now-7d``) and absolute timestamps alike. The bounds are handed to the probe as sent rather than reinterpreted, so a relative range is resolved once, by OpenSearch. Absolute bounds are parsed as ``strict_date_optional_time``, epoch milliseconds, or ``yyyy-MM-dd HH:mm:ss.SSS``; a field declaring some other custom format is not pruned on, since the bound fails to parse and pruning then declines. ``time_field`` names the field they constrain, defaulting to ``@timestamp`` -- a caller whose index pattern is configured on another field has to say so, or nothing is pruned. Bounds that cannot be used are ignored rather than failing the query.
+Request-level time bounds
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Their scope is the whole request: every source the query reads is narrowed, subsearches included, as with Splunk's time range picker and OpenSearch SQL's own PPL ``earliest``/``latest`` at request level.
+``start_time`` and ``end_time`` declare the window a request is asking about. Both are required, and both are inclusive. ``time_field`` names the field they constrain and defaults to ``@timestamp``; a caller querying an index pattern whose time field is named something else has to give it, or nothing is pruned.
 
-They are not a filter, and they are not free of effect either. Pruning drops whole indices, so a query whose text already constrains the same field to the same window returns exactly the same rows -- that is the intended use, and how a client appending its own ``where`` should send them. A query whose text does not carry that constraint returns fewer rows: documents outside the window still count inside a retained index, while an index wholly outside it contributes nothing. Send bounds only for a window the query itself already restricts.
+Accepted values are OpenSearch date math (``now-7d``), an ISO-8601 timestamp, epoch milliseconds, or ``yyyy-MM-dd HH:mm:ss.SSS``. A field mapped with some other custom date format is not pruned on. Values that cannot be used are ignored, never an error: these parameters only affect which indices are read, so a request is never rejected on their account.
 
-An index that does not map ``time_field`` holds nothing in any window, so it is pruned like one whose values fall outside the range. That is consistent with the pushed-down-filter path, and with the request-level range these parameters describe, but it is part of why they belong only on a query whose text already constrains the same field: such an index's rows go with it.
+They apply to every source the query reads, subsearches included, as does Splunk's time range picker.
 
-Planning-time pruning is specific to the Calcite engine's own query path. The unified query path does not read these parameters; they are accepted and ignored there.
+**They are not a filter.** Send them only for a window the query itself already restricts, for example alongside a ``where`` clause on the same field and range -- then the result is exactly what the query alone would return. Send them for a window the query does not restrict and the result has fewer rows, because an index holding nothing in the window is not read at all while documents outside it are still counted in the indices that are. An index that does not map ``time_field`` holds nothing in any window, so it is not read either.
+
+Supported on the Calcite engine. Other engines accept the parameters and ignore them.
 
 Request body::
 
     {
-      "query" : "source=logs-* | stats count() by span(@timestamp, 1h)",
-      "time_field" : "@timestamp",
-      "start_time" : "now-7d",
-      "end_time" : "now"
+      "query" : "source=logs-* | where `event_time` >= '2026-09-07 00:00:00.000' and `event_time` <= '2026-09-14 00:00:00.000' | stats count() by span(event_time, 1h)",
+      "time_field" : "event_time",
+      "start_time" : "2026-09-07 00:00:00.000",
+      "end_time" : "2026-09-14 00:00:00.000"
     }
+
+The bounds repeat the window the ``where`` clause already restricts, and name the field it filters on. That is the shape to copy.
 
 Disable it with::
 
