@@ -237,9 +237,9 @@ Request-level time bounds
 
 Accepted values are OpenSearch date math (``now-7d``), an ISO-8601 timestamp, epoch milliseconds, or ``yyyy-MM-dd HH:mm:ss.SSS``. A field mapped with some other custom date format is not pruned on. Values that cannot be used are ignored, never an error: these parameters only affect which indices are read, so a request is never rejected on their account.
 
-They apply to every source the query reads, as does Splunk's time range picker -- including the sources of a ``join`` or a subsearch, not only the one the query starts from. A ``join`` whose other side reads a wildcard matching both in- and out-of-window indices therefore sees only the in-window ones, which changes what it contributes. Give every source in such a query the same window the bounds describe, or leave the bounds off.
+Send them only alongside an equivalent filter in the query -- a ``where`` clause on the same field and range. The result is then identical to the query without them. They are not themselves a filter: they exclude whole indices, so a window the query does not also restrict returns fewer rows, and an index not mapping ``time_field`` is excluded from every window.
 
-**They are not a filter.** Send them only for a window the query itself already restricts, for example alongside a ``where`` clause on the same field and range -- then the result is exactly what the query alone would return. Send them for a window the query does not restrict and the result has fewer rows, because an index holding nothing in the window is not read at all while documents outside it are still counted in the indices that are. An index that does not map ``time_field`` holds nothing in any window, so it is not read either.
+Every source the query reads is narrowed, as with Splunk's time range picker: a ``join``'s other side and a subsearch's too, not only the source the query starts from. Filter each of them to the same window, or leave the bounds off.
 
 Supported on the Calcite engine. Other engines accept the parameters and ignore them.
 
