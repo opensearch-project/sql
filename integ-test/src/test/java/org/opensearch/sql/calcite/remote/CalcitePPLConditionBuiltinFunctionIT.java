@@ -19,6 +19,7 @@ import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 import org.opensearch.sql.util.RequiresCapability;
 
@@ -39,14 +40,12 @@ public class CalcitePPLConditionBuiltinFunctionIT extends PPLIntegTestCase {
     loadIndex(Index.NESTED_SIMPLE);
     loadIndex(Index.BIG5);
     if (!stateCountryWithNullExisted) {
-      Request request1 =
-          new Request("PUT", "/" + TEST_INDEX_STATE_COUNTRY_WITH_NULL + "/_doc/7?refresh=true");
+      Request request1 = TestUtils.seedDocRequest(TEST_INDEX_STATE_COUNTRY_WITH_NULL, "7");
       request1.setJsonEntity(
           "{\"name\":\"   "
               + " \",\"age\":27,\"state\":\"B.C\",\"country\":\"Canada\",\"year\":2023,\"month\":4}");
       client().performRequest(request1);
-      Request request2 =
-          new Request("PUT", "/" + TEST_INDEX_STATE_COUNTRY_WITH_NULL + "/_doc/8?refresh=true");
+      Request request2 = TestUtils.seedDocRequest(TEST_INDEX_STATE_COUNTRY_WITH_NULL, "8");
       request2.setJsonEntity(
           "{\"name\":\"\",\"age\":57,\"state\":\"B.C\",\"country\":\"Canada\",\"year\":2023,\"month\":4}");
       client().performRequest(request2);

@@ -56,7 +56,7 @@ public class CalcitePPLSpathCollisionIT extends PPLIntegTestCase {
 
     if (!TestUtils.isIndexExist(client(), COLLISION_INDEX)) {
       TestUtils.createIndexByRestClient(client(), COLLISION_INDEX, COLLISION_MAPPING);
-      Request doc = new Request("PUT", "/" + COLLISION_INDEX + "/_doc/1?refresh=true");
+      Request doc = TestUtils.seedDocRequest(COLLISION_INDEX, "1");
       doc.setJsonEntity(COLLISION_DOC);
       client().performRequest(doc);
     }
@@ -65,10 +65,10 @@ public class CalcitePPLSpathCollisionIT extends PPLIntegTestCase {
     // which must not change what doc 1's `log.msg` reads after extraction.
     if (!TestUtils.isIndexExist(client(), DYNAMIC_INDEX)) {
       TestUtils.createIndexByRestClient(client(), DYNAMIC_INDEX, COLLISION_MAPPING);
-      Request doc1 = new Request("PUT", "/" + DYNAMIC_INDEX + "/_doc/1?refresh=true");
+      Request doc1 = TestUtils.seedDocRequest(DYNAMIC_INDEX, "1");
       doc1.setJsonEntity(COLLISION_DOC);
       client().performRequest(doc1);
-      Request doc2 = new Request("PUT", "/" + DYNAMIC_INDEX + "/_doc/2?refresh=true");
+      Request doc2 = TestUtils.seedDocRequest(DYNAMIC_INDEX, "2");
       doc2.setJsonEntity(
           "{\"log\": {\"level\": \"X\", \"src\": \"y\", \"msg\": \"DYNAMICALLY-MAPPED\"},"
               + " \"body\": \"{\\\"level\\\":\\\"E2\\\",\\\"msg\\\":\\\"json-2\\\"}\"}");

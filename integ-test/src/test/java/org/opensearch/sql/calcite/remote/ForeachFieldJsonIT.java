@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.util.Capability.MULTI_VALUE_FIELD_LOAD;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -16,8 +17,14 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 /** Foreach collection modes over index fields. */
+@RequiresCapability(
+    value = MULTI_VALUE_FIELD_LOAD,
+    note =
+        "The class's only fixture doc carries a multi-value array on a scalar-mapped long field"
+            + " (nativenums), which the parquet store rejects at ingest; every test reads it.")
 public class ForeachFieldJsonIT extends PPLIntegTestCase {
 
   @Override
@@ -25,6 +32,11 @@ public class ForeachFieldJsonIT extends PPLIntegTestCase {
     super.init();
     enableCalcite();
 
+    if (isAnalyticsParquetIndicesEnabled()) {
+      // The fixture doc below can't ingest on the parquet store (multi-value long field); all
+      // tests in this class are capability-gated off the analytics route, so skip the load too.
+      return;
+    }
     if (!TestUtils.isIndexExist(client(), "test_foreach_field2")) {
       String mapping =
           "{\"mappings\":{\"properties\":{\"jsonfield\":{\"type\":\"keyword\"},"

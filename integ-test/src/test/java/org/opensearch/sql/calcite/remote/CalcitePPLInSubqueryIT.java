@@ -25,6 +25,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 import org.opensearch.sql.util.RequiresCapability;
 
@@ -46,7 +47,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
     if (!workerExisted) {
       // {"index":{"_id":"7"}}
       // {"id":1006,"name":"Tommy","occupation":"Teacher","country":"USA","salary":30000}
-      Request request1 = new Request("PUT", "/" + TEST_INDEX_WORKER + "/_doc/7?refresh=true");
+      Request request1 = TestUtils.seedDocRequest(TEST_INDEX_WORKER, "7");
       request1.setJsonEntity(
           "{\"id\":1006,\"name\":\"Tommy\",\"occupation\":\"Teacher\",\"country\":\"USA\",\"salary\":30000}");
       client().performRequest(request1);

@@ -23,6 +23,7 @@ import org.json.JSONObject;
 import org.junit.Assume;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.legacy.TestsConstants;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 import org.opensearch.sql.util.RequiresCapability;
@@ -51,27 +52,24 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
   }
 
   private void appendDataForBadResponse() throws IOException {
-    Request request1 = new Request("PUT", "/" + TEST_INDEX_WEBLOGS + "/_doc/7?refresh=true");
+    Request request1 = TestUtils.seedDocRequest(TEST_INDEX_WEBLOGS, "7");
     request1.setJsonEntity(
         "{\"host\": \"::1\", \"method\": \"GET\", \"url\": \"/history/apollo/\", \"response\":"
             + " \"301\", \"bytes\": \"6245\"}");
     client().performRequest(request1);
-    Request request2 =
-        new Request("PUT", "/" + TestsConstants.TEST_INDEX_WEBLOGS + "/_doc/8?refresh=true");
+    Request request2 = TestUtils.seedDocRequest(TestsConstants.TEST_INDEX_WEBLOGS, "8");
     request2.setJsonEntity(
         "{\"host\": \"0.0.0.2\", \"method\": \"GET\", \"url\":"
             + " \"/shuttle/missions/sts-73/mission-sts-73.html\", \"response\": \"500\","
             + " \"bytes\": \"4085\"}");
     client().performRequest(request2);
-    Request request3 =
-        new Request("PUT", "/" + TestsConstants.TEST_INDEX_WEBLOGS + "/_doc/9?refresh=true");
+    Request request3 = TestUtils.seedDocRequest(TestsConstants.TEST_INDEX_WEBLOGS, "9");
     request3.setJsonEntity(
         "{\"host\": \"::3\", \"method\": \"GET\", \"url\":"
             + " \"/shuttle/countdown/countdown.html\", \"response\": \"403\", \"bytes\":"
             + " \"3985\"}");
     client().performRequest(request3);
-    Request request4 =
-        new Request("PUT", "/" + TestsConstants.TEST_INDEX_WEBLOGS + "/_doc/10?refresh=true");
+    Request request4 = TestUtils.seedDocRequest(TestsConstants.TEST_INDEX_WEBLOGS, "10");
     request4.setJsonEntity(
         "{\"host\": \"1.2.3.5\", \"method\": \"GET\", \"url\": \"/history/voyager2/\","
             + " \"response\": null, \"bytes\": \"4321\"}");

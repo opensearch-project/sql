@@ -24,16 +24,22 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
     super.init();
     enableCalcite();
 
-    Request request1 = TestUtils.seedDocRequest("test", "1");
-    request1.setJsonEntity("{\"name\": \"hello\", \"age\": 20}");
-    client().performRequest(request1);
-    Request request2 = TestUtils.seedDocRequest("test", "2");
-    request2.setJsonEntity("{\"name\": \"world\", \"age\": 30}");
-    client().performRequest(request2);
+    // Seed once, mirroring loadIndex's isIndexExist guard: init() runs before every test method,
+    // and on the analytics route the append-only store would accumulate a duplicate per method.
+    if (!TestUtils.isIndexExist(client(), "test")) {
+      Request request1 = TestUtils.seedDocRequest("test", "1");
+      request1.setJsonEntity("{\"name\": \"hello\", \"age\": 20}");
+      client().performRequest(request1);
+      Request request2 = TestUtils.seedDocRequest("test", "2");
+      request2.setJsonEntity("{\"name\": \"world\", \"age\": 30}");
+      client().performRequest(request2);
+    }
     // PUT index test1
-    Request request3 = TestUtils.seedDocRequest("test1", "1");
-    request3.setJsonEntity("{\"name\": \"HELLO\", \"alias\": \"Hello\"}");
-    client().performRequest(request3);
+    if (!TestUtils.isIndexExist(client(), "test1")) {
+      Request request3 = TestUtils.seedDocRequest("test1", "1");
+      request3.setJsonEntity("{\"name\": \"HELLO\", \"alias\": \"Hello\"}");
+      client().performRequest(request3);
+    }
   }
 
   @Test

@@ -24,6 +24,7 @@ import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.legacy.TestsConstants;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
@@ -50,27 +51,19 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
     loadIndex(Index.OCCUPATION);
     loadIndex(Index.HOBBIES);
     if (seedStateCountry) {
-      Request request1 =
-          new Request(
-              "PUT", "/" + TestsConstants.TEST_INDEX_STATE_COUNTRY + "/_doc/5?refresh=true");
+      Request request1 = TestUtils.seedDocRequest(TestsConstants.TEST_INDEX_STATE_COUNTRY, "5");
       request1.setJsonEntity(
           "{\"name\":\"Jim\",\"age\":27,\"state\":\"B.C\",\"country\":\"Canada\",\"year\":2023,\"month\":4}");
       client().performRequest(request1);
-      Request request2 =
-          new Request(
-              "PUT", "/" + TestsConstants.TEST_INDEX_STATE_COUNTRY + "/_doc/6?refresh=true");
+      Request request2 = TestUtils.seedDocRequest(TestsConstants.TEST_INDEX_STATE_COUNTRY, "6");
       request2.setJsonEntity(
           "{\"name\":\"Peter\",\"age\":57,\"state\":\"B.C\",\"country\":\"Canada\",\"year\":2023,\"month\":4}");
       client().performRequest(request2);
-      Request request3 =
-          new Request(
-              "PUT", "/" + TestsConstants.TEST_INDEX_STATE_COUNTRY + "/_doc/7?refresh=true");
+      Request request3 = TestUtils.seedDocRequest(TestsConstants.TEST_INDEX_STATE_COUNTRY, "7");
       request3.setJsonEntity(
           "{\"name\":\"Rick\",\"age\":70,\"state\":\"B.C\",\"country\":\"Canada\",\"year\":2023,\"month\":4}");
       client().performRequest(request3);
-      Request request4 =
-          new Request(
-              "PUT", "/" + TestsConstants.TEST_INDEX_STATE_COUNTRY + "/_doc/8?refresh=true");
+      Request request4 = TestUtils.seedDocRequest(TestsConstants.TEST_INDEX_STATE_COUNTRY, "8");
       request4.setJsonEntity(
           "{\"name\":\"David\",\"age\":40,\"state\":\"Washington\",\"country\":\"USA\",\"year\":2023,\"month\":4}");
       client().performRequest(request4);

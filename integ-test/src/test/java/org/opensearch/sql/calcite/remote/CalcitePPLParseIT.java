@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
+import static org.opensearch.sql.util.Capability.DOC_MUTATION;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -18,6 +19,7 @@ import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalcitePPLParseIT extends PPLIntegTestCase {
   @Override
@@ -111,6 +113,11 @@ public class CalcitePPLParseIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = DOC_MUTATION,
+      note =
+          "Re-seeds the shared 'test' index _id 1 with different content; the append-only AE store"
+              + " appends instead of replacing, changing the row set the assertions rely on.")
   public void testParseOverriding2() throws IOException {
     Request request1 = TestUtils.seedDocRequest("test", "1");
     request1.setJsonEntity(
