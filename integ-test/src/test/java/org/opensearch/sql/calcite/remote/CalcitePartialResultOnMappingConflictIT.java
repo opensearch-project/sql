@@ -73,6 +73,11 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
   private static final String NUMTEXT_TEXT_INDEX = "partial_numtext_text";
   private static final String NUMTEXT_PATTERN = "partial_numtext_*";
 
+  // chart/timechart fixture: the same env conflict plus a date field to chart over.
+  private static final String CHART_KEYWORD_INDEX = "partial_chart_keyword";
+  private static final String CHART_TEXT_INDEX = "partial_chart_text";
+  private static final String CHART_PATTERN = "partial_chart_*";
+
   @Override
   public void init() throws Exception {
     super.init();
@@ -224,6 +229,36 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
       Request bulk = new Request("POST", "/" + NUMTEXT_TEXT_INDEX + "/_bulk?refresh=true");
       bulk.setJsonEntity(
           "{\"index\":{}}\n{\"val\":\"aa\"}\n" + "{\"index\":{}}\n{\"val\":\"bb\"}\n");
+      performRequest(client(), bulk);
+    }
+
+    // env conflict again, with a date field so chart and timechart have something to chart over.
+    if (!isIndexExist(client(), CHART_KEYWORD_INDEX)) {
+      String mapping =
+          "{\"mappings\":{\"properties\":{\"@timestamp\":{\"type\":\"date\"},"
+              + "\"ts\":{\"type\":\"date\"},\"env\":{\"type\":\"keyword\"}}}}";
+      createIndexByRestClient(client(), CHART_KEYWORD_INDEX, mapping);
+      Request bulk = new Request("POST", "/" + CHART_KEYWORD_INDEX + "/_bulk?refresh=true");
+      bulk.setJsonEntity(
+          "{\"index\":{}}\n"
+              + "{\"@timestamp\":\"2026-01-01T00:00:00Z\",\"ts\":\"2026-01-01T00:00:00Z\",\"env\":\"prod\"}\n"
+              + "{\"index\":{}}\n"
+              + "{\"@timestamp\":\"2026-01-01T00:00:00Z\",\"ts\":\"2026-01-01T00:00:00Z\",\"env\":\"prod\"}\n"
+              + "{\"index\":{}}\n"
+              + "{\"@timestamp\":\"2026-01-01T00:00:00Z\",\"ts\":\"2026-01-01T00:00:00Z\",\"env\":\"dev\"}\n");
+      performRequest(client(), bulk);
+    }
+    if (!isIndexExist(client(), CHART_TEXT_INDEX)) {
+      String mapping =
+          "{\"mappings\":{\"properties\":{\"@timestamp\":{\"type\":\"date\"},"
+              + "\"ts\":{\"type\":\"date\"},\"env\":{\"type\":\"text\"}}}}";
+      createIndexByRestClient(client(), CHART_TEXT_INDEX, mapping);
+      Request bulk = new Request("POST", "/" + CHART_TEXT_INDEX + "/_bulk?refresh=true");
+      bulk.setJsonEntity(
+          "{\"index\":{}}\n"
+              + "{\"@timestamp\":\"2026-01-01T00:00:00Z\",\"ts\":\"2026-01-01T00:00:00Z\",\"env\":\"prod\"}\n"
+              + "{\"index\":{}}\n"
+              + "{\"@timestamp\":\"2026-01-01T00:00:00Z\",\"ts\":\"2026-01-01T00:00:00Z\",\"env\":\"qa\"}\n");
       performRequest(client(), bulk);
     }
 
@@ -437,6 +472,47 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
     assertTrue(
         "CSV must return the complete result, including the text index: " + csv,
         csv.contains("qa"));
+  }
+
+  /**
+   * chart aggregates twice over the same scan -- once for the plotted rows, once to rank the top-N
+   * columns -- on different group keys, so each aggregate would pick its own index subset and the
+   * ranking would not describe the rows plotted. Partial mode is skipped: the complete result comes
+   * back, with no warning.
+   */
+  @Test
+  public void partialResultSkippedForChart() throws IOException {
+    setPartialResult(true);
+    JSONObject result =
+        executeQuery(String.format("source=%s | chart count() over ts by env", CHART_PATTERN));
+
+    assertTrue("chart must not return a partial result: " + result, !result.has("warnings"));
+    // qa exists only in the text index, so its presence proves nothing was excluded.
+    assertTrue("the text index must still be counted: " + result, result.toString().contains("qa"));
+  }
+
+  /** timechart parses into the same node as chart, so the same gate covers it. */
+  @Test
+  public void partialResultSkippedForTimechart() throws IOException {
+    setPartialResult(true);
+    JSONObject result =
+        executeQuery(String.format("source=%s | timechart span=1h count() by env", CHART_PATTERN));
+
+    assertTrue("timechart must not return a partial result: " + result, !result.has("warnings"));
+    assertTrue("the text index must still be counted: " + result, result.toString().contains("qa"));
+  }
+
+  /**
+   * The gate is scoped to chart, not a blanket disable: stats over the same pattern still partials.
+   */
+  @Test
+  public void partialResultStillAppliesToStatsOverTheChartPattern() throws IOException {
+    setPartialResult(true);
+    JSONObject result =
+        executeQuery(String.format("source=%s | stats count() by env | sort env", CHART_PATTERN));
+
+    verifyDataRows(result, rows(1, "dev"), rows(2, "prod"));
+    assertEquals(1, result.getJSONArray("warnings").length());
   }
 
   private void setPartialResult(boolean enabled) throws IOException {

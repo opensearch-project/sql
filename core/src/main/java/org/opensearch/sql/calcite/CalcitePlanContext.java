@@ -91,6 +91,16 @@ public class CalcitePlanContext {
    */
   private static final ThreadLocal<Boolean> partialResultOverride = new ThreadLocal<>();
 
+  /**
+   * Set when the plan contains a {@code chart} or {@code timechart}. They aggregate twice over the
+   * same scan -- once for the plotted data, once to rank the top-N columns -- and partial mode
+   * partitions each on its own group keys, so the two can exclude different indices and the ranking
+   * would not match the rows plotted. Partial mode is skipped for such a query. Set while building
+   * the plan but read during pushdown, which can run on the complex worker pool, so it rides {@link
+   * ThreadLocalSnapshot}. Cleared per query.
+   */
+  private static final ThreadLocal<Boolean> chartPlanned = ThreadLocal.withInitial(() -> false);
+
   /** Thread-local switch that tells whether the current query prefers legacy behavior. */
   private static final ThreadLocal<Boolean> legacyPreferredFlag =
       ThreadLocal.withInitial(() -> true);
@@ -281,6 +291,7 @@ public class CalcitePlanContext {
     pendingWarnings.remove();
     warningsSupported.set(false);
     partialResultOverride.remove();
+    chartPlanned.set(false);
   }
 
   /** Records a non-fatal warning to be attached to the response for the current query. */
@@ -317,6 +328,19 @@ public class CalcitePlanContext {
     return partialResultOverride.get();
   }
 
+  /** Records that the plan contains a {@code chart} or {@code timechart}. */
+  public static void markChartPlanned() {
+    chartPlanned.set(true);
+  }
+
+  /**
+   * @return whether the plan contains a {@code chart} or {@code timechart}, which bars partial
+   *     mode.
+   */
+  public static boolean isChartPlanned() {
+    return chartPlanned.get();
+  }
+
   /**
    * Returns and clears the warnings collected for the current query, de-duplicated by value. The
    * planner may fire a rule that raises a warning more than once for equivalent plan alternatives,
@@ -344,6 +368,7 @@ public class CalcitePlanContext {
     final String executionPool;
     final boolean warningsSupported;
     final Boolean partialResultOverride;
+    final boolean chartPlanned;
 
     private ThreadLocalSnapshot(
         boolean skipEncoding,
@@ -352,7 +377,8 @@ public class CalcitePlanContext {
         String timewrapSeries,
         String executionPool,
         boolean warningsSupported,
-        Boolean partialResultOverride) {
+        Boolean partialResultOverride,
+        boolean chartPlanned) {
       this.skipEncoding = skipEncoding;
       this.stripNullColumns = stripNullColumns;
       this.timewrapUnitName = timewrapUnitName;
@@ -360,6 +386,7 @@ public class CalcitePlanContext {
       this.executionPool = executionPool;
       this.warningsSupported = warningsSupported;
       this.partialResultOverride = partialResultOverride;
+      this.chartPlanned = chartPlanned;
     }
   }
 
@@ -372,7 +399,8 @@ public class CalcitePlanContext {
         timewrapSeries.get(),
         executionPool.get(),
         warningsSupported.get(),
-        partialResultOverride.get());
+        partialResultOverride.get(),
+        chartPlanned.get());
   }
 
   /** Restore thread-local state from a snapshot. */
@@ -384,6 +412,7 @@ public class CalcitePlanContext {
     executionPool.set(snapshot.executionPool);
     warningsSupported.set(snapshot.warningsSupported);
     partialResultOverride.set(snapshot.partialResultOverride);
+    chartPlanned.set(snapshot.chartPlanned);
   }
 
   public void pushForeachBindings(
