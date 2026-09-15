@@ -258,7 +258,7 @@ Epoch seconds are not accepted -- a ten-digit number is read as milliseconds, so
 
 Send them only alongside an equivalent filter in the query -- a ``where`` clause on the same field and range. The result is then identical to the query without them. They are not themselves a filter: they exclude whole indices, so a window the query does not also restrict returns fewer rows, and an index not mapping ``time_field`` is excluded from every window.
 
-Every source the query reads is narrowed, as with Splunk's time range picker: a ``join``'s other side and a subsearch's too, not only the source the query starts from. Filter each of them to the same window, or leave the bounds off.
+Every source the query reads is narrowed, like the Dashboards date picker they carry: a ``join``'s other side and a subsearch's too, not only the source the query starts from. Filter each of them to the same window, or leave the bounds off.
 
 Supported on the Calcite engine. Other engines accept the parameters and ignore them.
 
