@@ -1,0 +1,16 @@
+{"index":{"_id":"1"}}
+{"name":"X","mgr":"top","tag":"a"}
+{"index":{"_id":"2"}}
+{"name":"X","mgr":"top","tag":"b"}
+{"index":{"_id":"3"}}
+{"name":"top","tag":"c"}
+{"index":{"_id":"4"}}
+{"name":"Y","tag":"z"}
+{"index":{"_id":"5"}}
+{"name":"Y","tag":"z"}
+{"index":{"_id":"6"}}
+{"name":"S","mgr":["A","Q"]}
+{"index":{"_id":"7"}}
+{"name":"A","mgr":["Q"]}
+{"index":{"_id":"8"}}
+{"name":"Q","tag":"q"}

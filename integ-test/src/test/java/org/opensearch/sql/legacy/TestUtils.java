@@ -725,6 +725,11 @@ public class TestUtils {
     return getMappingFile(mappingFile);
   }
 
+  public static String getGraphMultiIndexMapping() {
+    String mappingFile = "graph_multi_index_mapping.json";
+    return getMappingFile(mappingFile);
+  }
+
   public static String getDuplicationNullableIndexMapping() {
     String mappingFile = "duplication_nullable_index_mapping.json";
     return getMappingFile(mappingFile);
