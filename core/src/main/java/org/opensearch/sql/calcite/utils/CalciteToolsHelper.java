@@ -532,6 +532,7 @@ public class CalciteToolsHelper {
         rel = rel.accept(shuttle);
 
         try (Connection connection = context.connection) {
+          markScanAggregates(rel);
           final RelRunner runner = connection.unwrap(RelRunner.class);
           return runner.prepareStatement(rel);
         } catch (SQLException e) {
@@ -564,6 +565,20 @@ public class CalciteToolsHelper {
                   .filter(rule -> rule != PPLSimplifyDedupRule.DEDUP_SIMPLIFY_RULE)
                   .toList())
           .build();
+
+  /**
+   * Records whether the plan groups a scan more than once, for the partial-result gate in pushdown,
+   * which sees only its own subtree. Only that gate reads it and it needs a warnings channel, so a
+   * format without one skips the walk.
+   */
+  public static void markScanAggregates(RelNode plan) {
+    // Only the partial-result pushdown reads this, and it needs a warnings channel, so a format
+    // without one skips the walk entirely.
+    CalcitePlanContext.setMultiAggregateInfo(
+        CalcitePlanContext.isWarningsSupported()
+            ? ScanAggregates.analyze(plan)
+            : ScanAggregates.MultiAggregateInfo.EMPTY);
+  }
 
   public static RelNode optimize(RelNode plan, CalcitePlanContext context) {
     Util.discard(context);
