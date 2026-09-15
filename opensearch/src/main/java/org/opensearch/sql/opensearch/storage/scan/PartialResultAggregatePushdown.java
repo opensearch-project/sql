@@ -123,21 +123,23 @@ final class PartialResultAggregatePushdown {
 
   private static Warning buildWarning(
       List<String> bucketNames, List<String> excludedIndices, int totalIndices) {
-    // Sort here (not in plan): ordering only matters for a stable, readable message.
+    // Sort both lists so plan alternatives differing only in order render alike and de-duplicate.
     List<String> sortedExcluded = new ArrayList<>(excludedIndices);
     sortedExcluded.sort(null);
+    List<String> sortedBuckets = new ArrayList<>(bucketNames);
+    sortedBuckets.sort(null);
     String message =
         String.format(
             "Results exclude %d of %d indices due to a mapping conflict on %s.",
-            sortedExcluded.size(), totalIndices, bucketNames);
+            sortedExcluded.size(), totalIndices, sortedBuckets);
     String detail =
         String.format(
             "%s is not aggregatable in every queried index (mapped as text or otherwise without doc"
                 + " values there), so these indices were excluded from the aggregation: %s. Map %s"
                 + " as an aggregatable type across all indices to include them.",
-            bucketNames,
+            sortedBuckets,
             formatIndexList(sortedExcluded, MAX_EXCLUDED_INDICES_IN_WARNING),
-            bucketNames);
+            sortedBuckets);
     return new Warning(Warning.TYPE_PARTIAL_RESULT, message, detail);
   }
 

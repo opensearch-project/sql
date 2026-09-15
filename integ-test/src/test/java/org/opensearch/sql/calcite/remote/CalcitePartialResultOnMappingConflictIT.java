@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -14,6 +15,12 @@ import static org.opensearch.sql.util.TestUtils.isIndexExist;
 import static org.opensearch.sql.util.TestUtils.performRequest;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
@@ -72,6 +79,19 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
   private static final String NUMTEXT_INT_INDEX = "partial_numtext_int";
   private static final String NUMTEXT_TEXT_INDEX = "partial_numtext_text";
   private static final String NUMTEXT_PATTERN = "partial_numtext_*";
+
+  // No aggregatable index at all: the field is bare text everywhere, so no subset can be kept.
+  private static final String ALLTEXT_INDEX_1 = "partial_alltext_one";
+  private static final String ALLTEXT_INDEX_2 = "partial_alltext_two";
+  private static final String ALLTEXT_PATTERN = "partial_alltext_*";
+
+  // Two-aggregation fixture: env and svc are conflicted in different indices, so grouping by each
+  // excludes a different subset. Carries a date field to chart over. The prefix must stay outside
+  // MULTI_PATTERN and every other pattern above, or it joins their index sets.
+  private static final String TWOAGG_ALL_INDEX = "partial_twoagg_all";
+  private static final String TWOAGG_ENVTEXT_INDEX = "partial_twoagg_envtext";
+  private static final String TWOAGG_SVCTEXT_INDEX = "partial_twoagg_svctext";
+  private static final String TWOAGG_PATTERN = "partial_twoagg_*";
 
   @Override
   public void init() throws Exception {
@@ -226,6 +246,20 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
           "{\"index\":{}}\n{\"val\":\"aa\"}\n" + "{\"index\":{}}\n{\"val\":\"bb\"}\n");
       performRequest(client(), bulk);
     }
+
+    createBareTextIndex(ALLTEXT_INDEX_1, "prod");
+    createBareTextIndex(ALLTEXT_INDEX_2, "qa");
+
+    createTwoAggIndex(
+        TWOAGG_ALL_INDEX,
+        "keyword",
+        "keyword",
+        pair("prod", "api"),
+        pair("prod", "api"),
+        pair("dev", "api"));
+    createTwoAggIndex(
+        TWOAGG_ENVTEXT_INDEX, "text", "keyword", pair("prod", "cart"), pair("qa", "cart"));
+    createTwoAggIndex(TWOAGG_SVCTEXT_INDEX, "keyword", "text", pair("stage", "web"));
 
     String bareTextMapping =
         "{\"settings\":{\"index\":{\"number_of_shards\":2,\"number_of_replicas\":0}},"
@@ -437,6 +471,401 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
     assertTrue(
         "CSV must return the complete result, including the text index: " + csv,
         csv.contains("qa"));
+  }
+
+  // The two-aggregation queries below all narrow to one shared subset: env is aggregatable in the
+  // all-keyword and svc-text indices, svc in the all-keyword and env-text indices, so the union
+  // {env, svc} is aggregatable only in the all-keyword index. Every aggregate is narrowed to it, so
+  // the response is drawn from one population and carries a single warning -- never the mix of
+  // populations and duplicate banners a per-aggregate subset produced.
+
+  /** chart groups a scan twice; both group keys narrow to the same subset. */
+  @Test
+  public void partialResultNarrowsChartToOneSubset() throws IOException {
+    setPartialResult(true);
+    JSONObject result =
+        executeQuery(String.format("source=%s | chart count() over ts by env", TWOAGG_PATTERN));
+
+    // union {env, ts}: ts is aggregatable everywhere, env only outside the env-text index, so that
+    // one index is excluded and qa (its only env) cannot appear.
+    assertEquals(1, result.getJSONArray("warnings").length());
+    assertExcludesConflictedValues(result, "qa");
+  }
+
+  /** timechart parses into the same node as chart. */
+  @Test
+  public void partialResultNarrowsTimechartToOneSubset() throws IOException {
+    setPartialResult(true);
+    JSONObject result =
+        executeQuery(String.format("source=%s | timechart span=1h count() by env", TWOAGG_PATTERN));
+
+    assertEquals(1, result.getJSONArray("warnings").length());
+    assertExcludesConflictedValues(result, "qa");
+  }
+
+  @Test
+  public void partialResultNarrowsAppendOfTwoAggregationsToOneSubset() throws IOException {
+    setPartialResult(true);
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() by env | append [ search source=%s | stats count() by"
+                    + " svc ]",
+                TWOAGG_PATTERN, TWOAGG_PATTERN));
+
+    // Narrowed to the all-keyword index, so both halves describe the same documents: env is
+    // prod/dev, svc is api, and the env-text (qa, cart) and svc-text (stage, web) values are gone.
+    assertEquals(1, result.getJSONArray("warnings").length());
+    assertExcludesConflictedValues(result, "qa", "cart", "stage", "web");
+    assertTrue("the shared subset must still be counted: " + result, contains(result, "prod"));
+  }
+
+  @Test
+  public void partialResultNarrowsMultisearchOfTwoAggregationsToOneSubset() throws IOException {
+    setPartialResult(true);
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "| multisearch [ search source=%s | stats count() by env ] [ search source=%s |"
+                    + " stats count() by svc ]",
+                TWOAGG_PATTERN, TWOAGG_PATTERN));
+
+    assertEquals(1, result.getJSONArray("warnings").length());
+    assertExcludesConflictedValues(result, "qa", "cart", "stage", "web");
+  }
+
+  /** appendcol zips the two aggregations; both must be over the same population or a row lies. */
+  @Test
+  public void partialResultNarrowsAppendcolOfTwoAggregationsToOneSubset() throws IOException {
+    setPartialResult(true);
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() by env | appendcol [ stats count() by svc ]",
+                TWOAGG_PATTERN));
+
+    assertEquals(1, result.getJSONArray("warnings").length());
+    assertExcludesConflictedValues(result, "qa", "cart", "stage", "web");
+  }
+
+  /** Not a blanket disable: a single aggregation keeps its own, wider subset. */
+  @Test
+  public void partialResultStillAppliesToASingleAggregation() throws IOException {
+    setPartialResult(true);
+    JSONObject result =
+        executeQuery(String.format("source=%s | stats count() by env | sort env", TWOAGG_PATTERN));
+
+    // Only env matters here, so only the env-text index is excluded -- stage (svc-text) stays.
+    verifyDataRows(result, rows(1, "dev"), rows(2, "prod"), rows(1, "stage"));
+    assertEquals(1, result.getJSONArray("warnings").length());
+  }
+
+  /** The second aggregate reads the first, not the scan: one subset only. */
+  @Test
+  public void partialResultStillAppliesToChainedStats() throws IOException {
+    setPartialResult(true);
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() as c by env | stats sum(c) as total", TWOAGG_PATTERN));
+
+    verifyDataRows(result, rows(4));
+    assertEquals(1, result.getJSONArray("warnings").length());
+  }
+
+  /** limit=0 drops the top-N pass, leaving one aggregate that can go partial. */
+  @Test
+  public void partialResultStillAppliesToChartWithoutTopN() throws IOException {
+    setPartialResult(true);
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | chart limit=0 count() over ts by env", TWOAGG_PATTERN));
+
+    assertEquals(1, result.getJSONArray("warnings").length());
+  }
+
+  /** A join over an aggregating subsearch groups the scan twice; both sides narrow together. */
+  @Test
+  public void partialResultNarrowsJoinOverAnAggregatingSubsearch() throws IOException {
+    setPartialResult(true);
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() as c by env | join left=l right=r on l.env = r.env"
+                    + " [ source=%s | stats count() as c2 by env, svc ]",
+                TWOAGG_PATTERN, TWOAGG_PATTERN));
+
+    assertEquals(1, result.getJSONArray("warnings").length());
+    assertExcludesConflictedValues(result, "qa", "cart", "stage", "web");
+  }
+
+  /** A subquery is still a RexSubQuery at compile time, so the walk has to look inside it. */
+  @Test
+  public void partialResultNarrowsSubqueryOverAnAggregatingSubsearch() throws IOException {
+    setPartialResult(true);
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() by env | where env in [ source=%s | stats count() by env"
+                    + " | fields env ]",
+                TWOAGG_PATTERN, TWOAGG_PATTERN));
+
+    assertEquals(1, result.getJSONArray("warnings").length());
+  }
+
+  /** A chart nested in a subsearch is still a chart. */
+  @Test
+  public void partialResultNarrowsChartInsideASubsearch() throws IOException {
+    setPartialResult(true);
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() by env | append [ search source=%s | chart count() over"
+                    + " ts by svc ]",
+                TWOAGG_PATTERN, TWOAGG_PATTERN));
+
+    assertEquals(1, result.getJSONArray("warnings").length());
+  }
+
+  /** appendpipe re-aggregates the main result; a grouped re-aggregation groups the scan twice. */
+  @Test
+  public void partialResultNarrowsAppendpipeWithAGroupedAggregation() throws IOException {
+    setPartialResult(true);
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() as c by env | appendpipe [ stats count() by env ]",
+                TWOAGG_PATTERN));
+
+    assertEquals(1, result.getJSONArray("warnings").length());
+  }
+
+  @Test
+  public void partialResultStillAppliesToAppendpipeWithAnUngroupedAggregation() throws IOException {
+    setPartialResult(true);
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() as c by env | appendpipe [ stats sum(c) ]",
+                TWOAGG_PATTERN));
+
+    assertEquals(1, result.getJSONArray("warnings").length());
+  }
+
+  /**
+   * addcoltotals and streamstats hand one aggregate to two branches, making the plan a DAG.
+   * Counting per path rather than per node would read that as two aggregations and bar partial
+   * mode.
+   */
+  @Test
+  public void partialResultStillAppliesToAddcoltotals() throws IOException {
+    setPartialResult(true);
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() as c by env | addcoltotals c", TWOAGG_PATTERN));
+
+    assertEquals(1, result.getJSONArray("warnings").length());
+  }
+
+  @Test
+  public void partialResultStillAppliesToStreamstats() throws IOException {
+    setPartialResult(true);
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() as c by env | streamstats window=2 sum(c)",
+                TWOAGG_PATTERN));
+
+    assertEquals(1, result.getJSONArray("warnings").length());
+  }
+
+  /** eventstats and top/rare aggregate through a window, not a second grouping. */
+  @Test
+  public void partialResultStillAppliesToEventstatsAndTop() throws IOException {
+    setPartialResult(true);
+    JSONObject eventstats =
+        executeQuery(
+            String.format(
+                "source=%s | eventstats count() as e by env | stats count() by env",
+                TWOAGG_PATTERN));
+    JSONObject top = executeQuery(String.format("source=%s | top 2 env", TWOAGG_PATTERN));
+
+    assertEquals(1, eventstats.getJSONArray("warnings").length());
+    assertEquals(1, top.getJSONArray("warnings").length());
+  }
+
+  /**
+   * timewrap post-processes a narrowed timechart; the pivot must not swallow the partial-result
+   * warning (its finally clears the lifecycle signals, so warnings are drained before it runs).
+   */
+  @Test
+  public void partialResultWarningSurvivesTimewrap() throws IOException {
+    setPartialResult(true);
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | timechart span=1h count() by env | timewrap 1d", TWOAGG_PATTERN));
+
+    assertEquals(1, result.getJSONArray("warnings").length());
+  }
+
+  /** One aggregation over a union of two patterns: neither branch is narrowed. */
+  @Test
+  public void partialResultSkippedForOneAggregationOverAUnion() throws IOException {
+    setPartialResult(true);
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | append [ search source=%s ] | stats count() by env",
+                TWOAGG_PATTERN, PATTERN));
+
+    assertFalse("a union must not be narrowed per branch: " + result, result.has("warnings"));
+    assertTrue("both patterns must be counted: " + result, contains(result, "qa"));
+  }
+
+  /** No aggregatable subset exists, so there is nothing to narrow to. */
+  @Test
+  public void partialResultOnAllTextPatternReturnsCompleteResult() throws IOException {
+    setPartialResult(true);
+    JSONObject result =
+        executeQuery(String.format("source=%s | stats count() by env | sort env", ALLTEXT_PATTERN));
+
+    assertFalse("no subset can be kept: " + result, result.has("warnings"));
+    verifyDataRows(result, rows(1, "prod"), rows(1, "qa"));
+  }
+
+  /** Partial mode is a pushdown path, so it cannot apply when pushdown is off. */
+  @Test
+  public void partialResultRequiresPushdown() throws IOException {
+    setPartialResult(true);
+    setPushdown(false);
+    try {
+      JSONObject result =
+          executeQuery(String.format("source=%s | stats count() by env", TWOAGG_PATTERN));
+
+      assertFalse("no pushdown, no partial result: " + result, result.has("warnings"));
+      assertTrue("the env-text index must still be counted: " + result, contains(result, "qa"));
+    } finally {
+      setPushdown(true);
+    }
+  }
+
+  /**
+   * The per-query subset rides a thread-local on pooled workers, so mixed traffic must not
+   * cross-contaminate: a chart (union {env, ts}) excludes only the env-text index, a single stats
+   * on svc excludes only the svc-text index, and each must see its own subset.
+   */
+  @Test
+  public void perQuerySubsetDoesNotLeakBetweenConcurrentQueries() throws Exception {
+    setPartialResult(true);
+    ExecutorService pool = Executors.newFixedThreadPool(4);
+    try {
+      List<Callable<String>> jobs = new ArrayList<>();
+      for (int i = 0; i < 12; i++) {
+        boolean chart = i % 2 == 0;
+        jobs.add(
+            () -> {
+              JSONObject result =
+                  executeQuery(
+                      String.format(
+                          chart
+                              ? "source=%s | chart count() over ts by env"
+                              : "source=%s | stats count() by svc",
+                          TWOAGG_PATTERN));
+              String rows = result.getJSONArray("datarows").toString();
+              // chart (union {env, ts}) excludes only the env-text index: no qa, but stage
+              // (svc-text
+              // env) stays. svc-stats (union {svc}) excludes only the svc-text index: no web, but
+              // cart (env-text svc) stays. A leaked subset would drop the wrong value.
+              boolean ok =
+                  chart
+                      ? !rows.contains("\"qa\"") && rows.contains("\"stage\"")
+                      : !rows.contains("\"web\"") && rows.contains("\"cart\"");
+              return ok
+                  ? "ok"
+                  : String.format("%s leaked: %s", chart ? "chart" : "svc-stats", rows);
+            });
+      }
+      List<String> outcomes = new ArrayList<>();
+      for (Future<String> future : pool.invokeAll(jobs)) {
+        outcomes.add(future.get());
+      }
+      assertEquals(
+          "every query must see its own subset: " + outcomes,
+          List.of("ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok", "ok"),
+          outcomes);
+    } finally {
+      pool.shutdown();
+    }
+  }
+
+  private static String[] pair(String env, String svc) {
+    return new String[] {env, svc};
+  }
+
+  /** A narrowed result must contain none of the values that live only in an excluded index. */
+  private void assertExcludesConflictedValues(JSONObject result, String... conflicted) {
+    String rows = result.getJSONArray("datarows").toString();
+    for (String value : conflicted) {
+      assertFalse(
+          "excluded value [" + value + "] must not appear in a narrowed result: " + result,
+          rows.contains("\"" + value + "\""));
+    }
+  }
+
+  private boolean contains(JSONObject result, String value) {
+    return result.getJSONArray("datarows").toString().contains("\"" + value + "\"");
+  }
+
+  private void createBareTextIndex(String index, String env) throws IOException {
+    if (isIndexExist(client(), index)) {
+      return;
+    }
+    createIndexByRestClient(
+        client(),
+        index,
+        "{\"settings\":{\"index\":{\"number_of_shards\":2,\"number_of_replicas\":0}},"
+            + "\"mappings\":{\"properties\":{\"env\":{\"type\":\"text\"}}}}");
+    Request bulk = new Request("POST", "/" + index + "/_bulk?refresh=true");
+    bulk.setJsonEntity(String.format("{\"index\":{}}\n{\"env\":\"%s\"}\n", env));
+    performRequest(client(), bulk);
+  }
+
+  private void setPushdown(boolean enabled) throws IOException {
+    updateClusterSettings(
+        new ClusterSetting(
+            "persistent",
+            Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(),
+            Boolean.toString(enabled)));
+  }
+
+  /** One index of the two-aggregation fixture; each doc is an {@code {env, svc}} pair. */
+  private void createTwoAggIndex(String index, String envType, String svcType, String[]... docs)
+      throws IOException {
+    if (isIndexExist(client(), index)) {
+      return;
+    }
+    createIndexByRestClient(
+        client(),
+        index,
+        String.format(
+            "{\"settings\":{\"index\":{\"number_of_shards\":2,\"number_of_replicas\":0}},"
+                + "\"mappings\":{\"properties\":{\"@timestamp\":{\"type\":\"date\"},"
+                + "\"ts\":{\"type\":\"date\"},\"env\":{\"type\":\"%s\"},\"svc\":{\"type\":\"%s\"}}}}",
+            envType, svcType));
+    StringBuilder bulk = new StringBuilder();
+    for (String[] doc : docs) {
+      bulk.append("{\"index\":{}}\n")
+          .append(
+              String.format(
+                  "{\"@timestamp\":\"2026-01-01T00:00:00Z\",\"ts\":\"2026-01-01T00:00:00Z\","
+                      + "\"env\":\"%s\",\"svc\":\"%s\"}\n",
+                  doc[0], doc[1]));
+    }
+    Request request = new Request("POST", "/" + index + "/_bulk?refresh=true");
+    request.setJsonEntity(bulk.toString());
+    performRequest(client(), request);
   }
 
   private void setPartialResult(boolean enabled) throws IOException {

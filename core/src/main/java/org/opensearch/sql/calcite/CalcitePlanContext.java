@@ -29,6 +29,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelBuilder;
+import org.opensearch.sql.calcite.utils.ScanAggregates;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.Warning;
@@ -90,6 +91,10 @@ public class CalcitePlanContext {
    * query. Cleared per query.
    */
   private static final ThreadLocal<Boolean> partialResultOverride = new ThreadLocal<>();
+
+  /** See {@link ScanAggregates}. Read during pushdown on another pool, so it rides the snapshot. */
+  private static final ThreadLocal<ScanAggregates.MultiAggregateInfo> multiAggregateInfo =
+      ThreadLocal.withInitial(() -> ScanAggregates.MultiAggregateInfo.EMPTY);
 
   /** Thread-local switch that tells whether the current query prefers legacy behavior. */
   private static final ThreadLocal<Boolean> legacyPreferredFlag =
@@ -281,6 +286,7 @@ public class CalcitePlanContext {
     pendingWarnings.remove();
     warningsSupported.set(false);
     partialResultOverride.remove();
+    multiAggregateInfo.set(ScanAggregates.MultiAggregateInfo.EMPTY);
   }
 
   /** Records a non-fatal warning to be attached to the response for the current query. */
@@ -317,6 +323,14 @@ public class CalcitePlanContext {
     return partialResultOverride.get();
   }
 
+  public static void setMultiAggregateInfo(ScanAggregates.MultiAggregateInfo info) {
+    multiAggregateInfo.set(info);
+  }
+
+  public static ScanAggregates.MultiAggregateInfo getMultiAggregateInfo() {
+    return multiAggregateInfo.get();
+  }
+
   /**
    * Returns and clears the warnings collected for the current query, de-duplicated by value. The
    * planner may fire a rule that raises a warning more than once for equivalent plan alternatives,
@@ -344,6 +358,7 @@ public class CalcitePlanContext {
     final String executionPool;
     final boolean warningsSupported;
     final Boolean partialResultOverride;
+    final ScanAggregates.MultiAggregateInfo multiAggregateInfo;
 
     private ThreadLocalSnapshot(
         boolean skipEncoding,
@@ -352,7 +367,8 @@ public class CalcitePlanContext {
         String timewrapSeries,
         String executionPool,
         boolean warningsSupported,
-        Boolean partialResultOverride) {
+        Boolean partialResultOverride,
+        ScanAggregates.MultiAggregateInfo multiAggregateInfo) {
       this.skipEncoding = skipEncoding;
       this.stripNullColumns = stripNullColumns;
       this.timewrapUnitName = timewrapUnitName;
@@ -360,6 +376,7 @@ public class CalcitePlanContext {
       this.executionPool = executionPool;
       this.warningsSupported = warningsSupported;
       this.partialResultOverride = partialResultOverride;
+      this.multiAggregateInfo = multiAggregateInfo;
     }
   }
 
@@ -372,7 +389,8 @@ public class CalcitePlanContext {
         timewrapSeries.get(),
         executionPool.get(),
         warningsSupported.get(),
-        partialResultOverride.get());
+        partialResultOverride.get(),
+        multiAggregateInfo.get());
   }
 
   /** Restore thread-local state from a snapshot. */
@@ -384,6 +402,7 @@ public class CalcitePlanContext {
     executionPool.set(snapshot.executionPool);
     warningsSupported.set(snapshot.warningsSupported);
     partialResultOverride.set(snapshot.partialResultOverride);
+    multiAggregateInfo.set(snapshot.multiAggregateInfo);
   }
 
   public void pushForeachBindings(

@@ -526,10 +526,19 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
     if (!CalcitePlanContext.isWarningsSupported()) {
       return null;
     }
+    // Narrow by the shared union (not this aggregate's own fields) so several aggregates over one
+    // scan cannot pick different subsets; a barred scan stays complete. See ScanAggregates.
+    var multiAggregate = CalcitePlanContext.getMultiAggregateInfo();
+    String qualifiedName = String.join(".", table.getQualifiedName());
+    if (multiAggregate.barred(qualifiedName)) {
+      return null;
+    }
+    List<String> sharedFields = multiAggregate.unionFieldsFor(qualifiedName);
+    List<String> fieldsToPartitionBy = sharedFields != null ? sharedFields : partitionFields;
     try {
       Map<String, IndexMapping> mappings = osIndex.getIndexMappings();
       PartialResultAggregatePushdown.Plan plan =
-          PartialResultAggregatePushdown.plan(partitionFields, mappings);
+          PartialResultAggregatePushdown.plan(fieldsToPartitionBy, mappings);
       if (plan == null) {
         return null;
       }

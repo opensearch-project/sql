@@ -59,6 +59,7 @@ import org.opensearch.sql.executor.ExecutionContext;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.Schema.Column;
 import org.opensearch.sql.executor.Explain;
+import org.opensearch.sql.executor.Warning;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
@@ -471,6 +472,8 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       }
       columns.add(new Column(columnName, null, exprType));
     }
+    // Drain before the timewrap block's finally clears the lifecycle signals (warnings included).
+    List<Warning> warnings = CalcitePlanContext.drainWarnings();
     // Timewrap post-processing: pivot unpivoted rows into period columns. The pivot is shared with
     // the analytics route (AnalyticsExecutionEngine) so both engines produce identical output.
     if (TimewrapPivot.isTimewrap()) {
@@ -490,7 +493,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
 
     Schema schema = new Schema(columns);
     QueryResponse response = new QueryResponse(schema, values, null);
-    response.setWarnings(CalcitePlanContext.drainWarnings());
+    response.setWarnings(warnings);
     return response;
   }
 

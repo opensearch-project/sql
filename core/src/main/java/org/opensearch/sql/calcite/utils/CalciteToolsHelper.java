@@ -532,6 +532,7 @@ public class CalciteToolsHelper {
         rel = rel.accept(shuttle);
 
         try (Connection connection = context.connection) {
+          markScanAggregates(rel);
           final RelRunner runner = connection.unwrap(RelRunner.class);
           return runner.prepareStatement(rel);
         } catch (SQLException e) {
@@ -564,6 +565,14 @@ public class CalciteToolsHelper {
                   .filter(rule -> rule != PPLSimplifyDedupRule.DEDUP_SIMPLIFY_RULE)
                   .toList())
           .build();
+
+  /** Records how the plan's aggregates read scans; only the warnings-carrying pushdown reads it. */
+  public static void markScanAggregates(RelNode plan) {
+    CalcitePlanContext.setMultiAggregateInfo(
+        CalcitePlanContext.isWarningsSupported()
+            ? ScanAggregates.analyze(plan)
+            : ScanAggregates.MultiAggregateInfo.EMPTY);
+  }
 
   public static RelNode optimize(RelNode plan, CalcitePlanContext context) {
     Util.discard(context);
