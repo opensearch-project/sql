@@ -349,7 +349,7 @@ This setting is experimental; its name, values, and default may change in a futu
 
 When this setting is ``false`` (the default), that complete-but-slow result is returned. When set to ``true``, the aggregation is pushed down over only the subset of indices where the field is aggregatable, and the response carries a ``PARTIAL_RESULT`` warning naming the excluded indices and the remedy (map the field as ``keyword`` everywhere). The result is therefore **partial** -- documents in the excluded indices are not counted -- so the setting is off by default and only takes effect for response formats that can surface the warning (the JSON format; CSV/raw/visualization responses fall through to the complete result rather than silently dropping data).
 
-``chart`` and ``timechart`` never return a partial result, whatever this setting or the per-request override says: they aggregate twice over the same data -- once for the rows charted, once to rank the top-N columns -- and a partial result could rank the columns over a different set of indices than the rows it charts. Those queries return the complete result instead.
+``chart`` and ``timechart`` always return the complete result: neither this setting nor the per-request override applies to them.
 
 The behavior can also be overridden per request with the ``partial_result`` boolean field in the query body, which takes precedence over this cluster setting. Here is an example enabling it at the cluster level::
 
