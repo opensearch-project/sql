@@ -159,6 +159,21 @@ public class SQLPlugin extends Plugin
 
   private static final Logger LOGGER = LogManager.getLogger(SQLPlugin.class);
 
+  static {
+    // Default Calcite's charset to Unicode (UTF-16LE) so non-Latin-1 string literals (CJK/emoji)
+    // encode uniformly with string columns instead of failing with an ISO-8859-1 encoding error.
+    // Set at plugin load, before any Calcite class reads these once-cached properties.
+    setDefaultIfAbsent("calcite.default.charset", "UTF-16LE");
+    setDefaultIfAbsent("calcite.default.nationalcharset", "UTF-16LE");
+    setDefaultIfAbsent("calcite.default.collation.name", "UTF-16LE$en_US");
+  }
+
+  private static void setDefaultIfAbsent(String key, String value) {
+    if (System.getProperty(key) == null) {
+      System.setProperty(key, value);
+    }
+  }
+
   private List<ExecutionEngine> executionEngineExtensions = List.of();
   private List<RestEndpointProvider> restEndpointProviders = List.of();
   private ClusterService clusterService;
