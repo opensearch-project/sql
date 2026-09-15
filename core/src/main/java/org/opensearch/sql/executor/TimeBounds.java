@@ -10,7 +10,7 @@ import lombok.Value;
 
 /**
  * A request-level time range, applying to every source the query reads. Bounds are kept as sent;
- * see {@code IndexPruner} for the formats accepted.
+ * see {@code OpenSearchStorageEngine} for the formats accepted.
  */
 @Value
 public class TimeBounds {

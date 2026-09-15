@@ -20,6 +20,7 @@ import static org.opensearch.index.query.QueryBuilders.boolQuery;
 import static org.opensearch.index.query.QueryBuilders.constantScoreQuery;
 import static org.opensearch.index.query.QueryBuilders.queryStringQuery;
 import static org.opensearch.index.query.QueryBuilders.rangeQuery;
+import static org.opensearch.sql.calcite.plan.OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -41,8 +42,6 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.query.QueryBuilder;
-import org.opensearch.index.query.RangeQueryBuilder;
-import org.opensearch.sql.executor.TimeBounds;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest.IndexName;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -61,7 +60,7 @@ class IndexPrunerTest {
     @MethodSource("filters")
     void shouldSeeATimestampRangeOnlyWhereTheProbeCanUseIt(
         String shape, QueryBuilder filter, boolean expected) {
-      assertEquals(expected, IndexPruner.containsTimeRange(filter));
+      assertEquals(expected, IndexPruner.containsTimeRange(filter, IMPLICIT_FIELD_TIMESTAMP));
     }
 
     private static Stream<Arguments> filters() {
@@ -200,7 +199,7 @@ class IndexPrunerTest {
 
     @Test
     void shouldPruneOnTheBoundsOwnRangeWithNoPushedDownFilter() {
-      givenIndexExpression(indices("logs-*", 3), bounds("@timestamp"))
+      givenIndexExpression(indices("logs-*", 3), timeRange("@timestamp"), "@timestamp")
           .whenMatching("logs-a")
           .shouldPruneTo("logs-a");
     }
@@ -210,7 +209,7 @@ class IndexPrunerTest {
     void shouldProbeTheBoundsOwnTimeField() {
       ArgumentCaptor<FieldCapabilitiesRequest> captor =
           ArgumentCaptor.forClass(FieldCapabilitiesRequest.class);
-      givenIndexExpression(indices("logs-*", 3), bounds("event_time"))
+      givenIndexExpression(indices("logs-*", 3), timeRange("event_time"), "event_time")
           .whenMatching("logs-a")
           .shouldPruneTo("logs-a");
       verify(node).fieldCaps(captor.capture());
@@ -218,50 +217,44 @@ class IndexPrunerTest {
       assertArrayEquals(new String[] {"event_time"}, captor.getValue().fields());
     }
 
-    /** As sent: the index's own date parser reads them, so date math survives to the probe. */
+    /** Forwarded untouched, so date math reaches the index's own parser. */
     @Test
-    void shouldProbeWithTheBoundsExactlyAsSent() {
+    void shouldProbeWithTheFilterExactlyAsGiven() {
       ArgumentCaptor<FieldCapabilitiesRequest> captor =
           ArgumentCaptor.forClass(FieldCapabilitiesRequest.class);
-      givenIndexExpression(indices("logs-*", 3), bounds("@timestamp"))
+      QueryBuilder range = timeRange("@timestamp");
+      givenIndexExpression(indices("logs-*", 3), range, "@timestamp")
           .whenMatching("logs-a")
           .shouldPruneTo("logs-a");
       verify(node).fieldCaps(captor.capture());
 
-      RangeQueryBuilder range = (RangeQueryBuilder) captor.getValue().indexFilter();
-      assertEquals(
-          "@timestamp|now-15m|now|true|true",
-          String.join(
-              "|",
-              range.fieldName(),
-              String.valueOf(range.from()),
-              String.valueOf(range.to()),
-              String.valueOf(range.includeLower()),
-              String.valueOf(range.includeUpper())));
+      assertSame(range, captor.getValue().indexFilter());
     }
 
     @Test
     void shouldNotPruneAConcreteExpression() {
-      givenIndexExpression("logs-2024", bounds("@timestamp")).shouldNotPrune().shouldNotProbe();
+      givenIndexExpression("logs-2024", timeRange("@timestamp"), "@timestamp")
+          .shouldNotPrune()
+          .shouldNotProbe();
     }
 
     @Test
     void shouldNotPruneAnAlias() {
-      givenIndexExpression(alias("logs-*"), bounds("@timestamp"))
+      givenIndexExpression(alias("logs-*"), timeRange("@timestamp"), "@timestamp")
           .shouldNotPrune()
           .shouldNotProbeForMatches();
     }
 
     @Test
     void shouldNotPruneADataStream() {
-      givenIndexExpression(ds("logs-*"), bounds("@timestamp"))
+      givenIndexExpression(ds("logs-*"), timeRange("@timestamp"), "@timestamp")
           .shouldNotPrune()
           .shouldNotProbeForMatches();
     }
 
     @Test
     void shouldNotPruneWhenTheProbeFails() {
-      givenIndexExpression(indices("logs-*", 3), bounds("@timestamp"))
+      givenIndexExpression(indices("logs-*", 3), timeRange("@timestamp"), "@timestamp")
           .whenMatchProbeFails()
           .shouldNotPrune();
     }
@@ -271,9 +264,9 @@ class IndexPrunerTest {
     return rangeQuery("@timestamp").gte("now-1d");
   }
 
-  /** Date math, to show the probe carries the bounds as sent rather than re-interpreting them. */
-  private static TimeBounds bounds(String field) {
-    return new TimeBounds(field, "now-15m", "now");
+  /** Date math, to show the probe carries the range as given rather than re-interpreting it. */
+  private static QueryBuilder timeRange(String field) {
+    return rangeQuery(field).gte("now-15m").lte("now");
   }
 
   /** What the resolve probe reports for an expression. */
@@ -304,11 +297,11 @@ class IndexPrunerTest {
 
   /** An expression the gates reject, so nothing is ever resolved. */
   private Fixture givenIndexExpression(String expression, QueryBuilder filter) {
-    return new Fixture(expression, filter, null);
+    return new Fixture(expression, filter, (String) null);
   }
 
-  private Fixture givenIndexExpression(String expression, TimeBounds bounds) {
-    return new Fixture(expression, null, bounds);
+  private Fixture givenIndexExpression(String expression, QueryBuilder filter, String timeField) {
+    return new Fixture(expression, filter, timeField);
   }
 
   /**
@@ -345,12 +338,13 @@ class IndexPrunerTest {
                     resolution.indexCount(), mock(ResolveIndexAction.ResolvedIndex.class)));
       }
     }
-    return new Fixture(resolution.expression(), filter, null);
+    return new Fixture(resolution.expression(), filter, (String) null);
   }
 
-  private Fixture givenIndexExpression(Resolution resolution, TimeBounds bounds) {
+  private Fixture givenIndexExpression(
+      Resolution resolution, QueryBuilder filter, String timeField) {
     givenIndexExpression(resolution, (QueryBuilder) null);
-    return new Fixture(resolution.expression(), null, bounds);
+    return new Fixture(resolution.expression(), filter, timeField);
   }
 
   private void whenResolved() {
@@ -361,13 +355,13 @@ class IndexPrunerTest {
 
     private final IndexName original;
     private final QueryBuilder filter;
-    private final TimeBounds bounds;
+    private final String timeField;
     private IndexName result;
 
-    Fixture(String expression, QueryBuilder filter, TimeBounds bounds) {
+    Fixture(String expression, QueryBuilder filter, String timeField) {
       this.original = new IndexName(expression);
       this.filter = filter;
-      this.bounds = bounds;
+      this.timeField = timeField;
     }
 
     Fixture whenMatching(String... matching) {
@@ -411,9 +405,9 @@ class IndexPrunerTest {
     private IndexName pruned() {
       if (result == null) {
         result =
-            bounds == null
+            timeField == null
                 ? new IndexPruner(node).prune(original, filter)
-                : new IndexPruner(node).prune(original, bounds);
+                : new IndexPruner(node).prune(original, filter, timeField);
       }
       return result;
     }

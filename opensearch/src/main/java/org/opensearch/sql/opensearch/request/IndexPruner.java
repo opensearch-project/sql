@@ -22,7 +22,6 @@ import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.ConstantScoreQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.RangeQueryBuilder;
-import org.opensearch.sql.executor.TimeBounds;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest.IndexName;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -37,10 +36,6 @@ public class IndexPruner {
   /** Bounds each probe. Generous because a fallback can fail the query, not merely slow it. */
   private static final TimeValue PROBE_TIMEOUT = TimeValue.timeValueSeconds(10);
 
-  /** Formats a bound may be spelled in. Replaces the field's own; date math applies before them. */
-  private static final String BOUND_FORMATS =
-      "strict_date_optional_time||epoch_millis||yyyy-MM-dd HH:mm:ss.SSS||yyyy-MM-dd HH:mm:ss";
-
   /** Both probes are transport actions, so only the node client can issue them. */
   private final NodeClient node;
 
@@ -54,29 +49,20 @@ public class IndexPruner {
    * @return expression to read, never null
    */
   public IndexName prune(IndexName indexName, QueryBuilder filter) {
-    return prune(indexName, filter, containsTimeRange(filter), IMPLICIT_FIELD_TIMESTAMP);
+    return prune(indexName, filter, IMPLICIT_FIELD_TIMESTAMP);
   }
 
   /**
-   * As {@link #prune(IndexName, QueryBuilder)}, but from request-level bounds rather than a
-   * pushed-down filter, so it can run before the mapping merge.
+   * As {@link #prune(IndexName, QueryBuilder)}, but ranged on {@code timeField} rather than {@code
+   * @timestamp}. A request-level time range names its own field.
    *
+   * @param timeField field a range must be on for the expression to be prunable
    * @return expression to read, never null
    */
-  public IndexName prune(IndexName indexName, TimeBounds bounds) {
-    QueryBuilder range =
-        new RangeQueryBuilder(bounds.getTimeField())
-            .gte(bounds.getStart())
-            .lte(bounds.getEnd())
-            .format(BOUND_FORMATS);
-    return prune(indexName, range, true, bounds.getTimeField());
-  }
-
-  private IndexName prune(
-      IndexName indexName, QueryBuilder filter, boolean hasTimeRange, String timeField) {
+  public IndexName prune(IndexName indexName, QueryBuilder filter, String timeField) {
     try {
       IndexExpression indexExpr = new IndexExpression(indexName, node);
-      if (!isPrunable(indexExpr, hasTimeRange)) {
+      if (!isPrunable(indexExpr, containsTimeRange(filter, timeField))) {
         log.info("Index pruning skipped: {}", indexExpr);
         return indexName;
       }
@@ -104,17 +90,17 @@ public class IndexPruner {
         && !expression.hasDataStream();
   }
 
-  static boolean containsTimeRange(QueryBuilder query) {
+  static boolean containsTimeRange(QueryBuilder query, String timeField) {
     if (query instanceof RangeQueryBuilder range) {
-      return IMPLICIT_FIELD_TIMESTAMP.equals(range.fieldName());
+      return timeField.equals(range.fieldName());
     }
     if (query instanceof BoolQueryBuilder bool) {
       return Stream.of(bool.must(), bool.filter(), bool.should())
           .flatMap(List::stream)
-          .anyMatch(IndexPruner::containsTimeRange);
+          .anyMatch(clause -> containsTimeRange(clause, timeField));
     }
     if (query instanceof ConstantScoreQueryBuilder constantScore) {
-      return containsTimeRange(constantScore.innerQuery());
+      return containsTimeRange(constantScore.innerQuery(), timeField);
     }
     return false;
   }

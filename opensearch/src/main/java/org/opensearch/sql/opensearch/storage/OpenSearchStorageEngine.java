@@ -15,6 +15,8 @@ import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.TimeBounds;
@@ -36,6 +38,10 @@ import org.opensearch.sql.utils.SystemIndexUtils.RestSpec;
 @RequiredArgsConstructor
 @Log4j2
 public class OpenSearchStorageEngine implements StorageEngine, SupportsIndexPruning {
+
+  /** Formats a bound may be spelled in. Replaces the field's own; date math applies before them. */
+  private static final String BOUND_FORMATS =
+      "strict_date_optional_time||epoch_millis||yyyy-MM-dd HH:mm:ss.SSS||yyyy-MM-dd HH:mm:ss";
 
   /** OpenSearch client connection. */
   @Getter private final OpenSearchClient client;
@@ -82,7 +88,10 @@ public class OpenSearchStorageEngine implements StorageEngine, SupportsIndexPrun
             node -> {
               String pruned =
                   new IndexPruner(node)
-                      .prune(new OpenSearchRequest.IndexName(name), bounds)
+                      .prune(
+                          new OpenSearchRequest.IndexName(name),
+                          timeRangeQuery(bounds),
+                          bounds.getTimeField())
                       .toString();
               if (!pruned.equals(name)) {
                 log.info("Pruned index expression from {} to {}", name, pruned);
@@ -90,6 +99,14 @@ public class OpenSearchStorageEngine implements StorageEngine, SupportsIndexPrun
               return pruned;
             })
         .orElse(name);
+  }
+
+  /** The bounds as a range query, kept as sent: the index's own parser reads them. */
+  static QueryBuilder timeRangeQuery(TimeBounds bounds) {
+    return new RangeQueryBuilder(bounds.getTimeField())
+        .gte(bounds.getStart())
+        .lte(bounds.getEnd())
+        .format(BOUND_FORMATS);
   }
 
   private Table restTable(String name) {
