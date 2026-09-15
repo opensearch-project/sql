@@ -526,11 +526,6 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
     if (!CalcitePlanContext.isWarningsSupported()) {
       return null;
     }
-    // chart/timechart aggregate twice over the same scan, on different group keys, so each would
-    // pick its own index subset and the top-N ranking would not match the rows plotted.
-    if (CalcitePlanContext.isChartPlanned()) {
-      return null;
-    }
     try {
       Map<String, IndexMapping> mappings = osIndex.getIndexMappings();
       PartialResultAggregatePushdown.Plan plan =
