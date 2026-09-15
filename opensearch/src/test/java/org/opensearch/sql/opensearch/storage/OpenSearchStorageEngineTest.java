@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.storage;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -21,8 +22,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.executor.TimeBounds;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.storage.rest.CoreEndpointsProvider;
@@ -134,5 +137,28 @@ class OpenSearchStorageEngineTest {
                 engine.getTable(
                     new DataSourceSchemaName(DEFAULT_DATASOURCE_NAME, "default"), name));
     assertTrue(e.getMessage().contains("disabled on this cluster"));
+  }
+
+  /**
+   * The bounds reach the probe as sent -- date math and the accepted literal formats are the
+   * index's to parse, not ours to rewrite.
+   */
+  @Test
+  public void timeRangeQueryCarriesTheBoundsAsSent() {
+    RangeQueryBuilder range =
+        (RangeQueryBuilder)
+            OpenSearchStorageEngine.timeRangeQuery(new TimeBounds("event_time", "now-15m", "now"));
+
+    assertEquals(
+        "event_time|now-15m|now|true|true|strict_date_optional_time||epoch_millis||yyyy-MM-dd"
+            + " HH:mm:ss.SSS||yyyy-MM-dd HH:mm:ss",
+        String.join(
+            "|",
+            range.fieldName(),
+            String.valueOf(range.from()),
+            String.valueOf(range.to()),
+            String.valueOf(range.includeLower()),
+            String.valueOf(range.includeUpper()),
+            range.format()));
   }
 }
