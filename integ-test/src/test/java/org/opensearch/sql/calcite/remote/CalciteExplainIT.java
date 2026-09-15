@@ -21,6 +21,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TIME_DATA;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORKER;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORK_INFORMATION;
+import static org.opensearch.sql.util.Capability.MULTI_VALUE_FIELD_LOAD;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 import static org.opensearch.sql.util.MatcherUtils.assertYamlEqualsIgnoreId;
 import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
@@ -42,6 +43,7 @@ import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.ExplainIT;
 import org.opensearch.sql.protocol.response.format.Format;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalciteExplainIT extends ExplainIT {
   @Override
@@ -60,7 +62,13 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.WORK_INFORMATION);
     loadIndex(Index.WEBLOG);
     loadIndex(Index.DATA_TYPE_ALIAS);
-    loadIndex(Index.DEEP_NESTED);
+    // deep_nested has a multi-value array for a scalar-mapped field, which the parquet store
+    // rejects at bulk load (MULTI_VALUE_FIELD_LOAD); skip the load on the AE route so it
+    // doesn't abort init() for the independent tests. The dependent tests are
+    // @RequiresCapability-gated.
+    if (!isAnalyticsParquetIndicesEnabled()) {
+      loadIndex(Index.DEEP_NESTED);
+    }
     loadIndex(Index.CASCADED_NESTED);
     loadIndex(Index.MVEXPAND_EDGE_CASES);
     loadIndex(Index.GRAPH_EMPLOYEES);
@@ -2628,6 +2636,11 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  @RequiresCapability(
+      value = MULTI_VALUE_FIELD_LOAD,
+      note =
+          "reads deep_nested whose multi-value field can't load on the AE store"
+              + " (MULTI_VALUE_FIELD_LOAD).")
   public void testFilterOnComputedNestedFields() throws IOException {
     assertYamlEqualsIgnoreId(
         loadExpectedPlan("filter_computed_nested.yaml"),
@@ -2639,6 +2652,11 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  @RequiresCapability(
+      value = MULTI_VALUE_FIELD_LOAD,
+      note =
+          "reads deep_nested whose multi-value field can't load on the AE store"
+              + " (MULTI_VALUE_FIELD_LOAD).")
   public void testFilterOnNestedAndRootFields() throws IOException {
     assertYamlEqualsIgnoreId(
         loadExpectedPlan("filter_root_and_nested.yaml"),

@@ -146,6 +146,54 @@ public class TestUtils {
     }
 
     /**
+     * Analytics-engine (composite/parquet) indices are append-only ({@code
+     * index.append_only.enabled}), so a bulk {@code index}/{@code create} action carrying an
+     * explicit custom {@code _id} is rejected with HTTP 400 {@code validation_exception}. Fixtures
+     * that hard-code {@code _id} in their action metadata therefore cannot load on the
+     * analytics-engine route at all. This adapter strips ONLY the {@code _id} field from initial
+     * {@code index}/{@code create} action-metadata lines when the analytics-engine route is
+     * enabled, letting the engine assign auto-ids. It deliberately does NOT touch: document {@code
+     * _source} lines, line order, {@code routing} (or any other action-meta field), or {@code
+     * update}/{@code delete} actions (which legitimately require {@code _id}). When the
+     * analytics-engine route is disabled it returns the body byte-for-byte unchanged. A line is
+     * re-serialized only when an {@code _id} was actually removed, so every other line stays
+     * byte-identical to the fixture.
+     *
+     * <p>Tests that later reference a specific document id (GET by id, update, delete) are gated
+     * separately via {@code Capability.DOC_MUTATION} / {@code Capability.ID_METADATA} — stripping
+     * the load-time id does not affect them because they skip on this route entirely.
+     */
+    static String stripCustomIds(String bulkBody) {
+      if (!isEnabled()) {
+        return bulkBody;
+      }
+      String[] lines = bulkBody.split("\n", -1);
+      StringBuilder out = new StringBuilder(bulkBody.length());
+      for (int i = 0; i < lines.length; i++) {
+        String line = lines[i];
+        String trimmed = line.trim();
+        if (!trimmed.isEmpty() && trimmed.charAt(0) == '{') {
+          JSONObject doc = new JSONObject(trimmed);
+          // Only initial index/create actions can carry a custom _id that the append-only store
+          // rejects; update/delete must keep their _id and are left untouched.
+          String actionKey = doc.has("index") ? "index" : (doc.has("create") ? "create" : null);
+          if (actionKey != null) {
+            Object meta = doc.opt(actionKey);
+            if (meta instanceof JSONObject && ((JSONObject) meta).has("_id")) {
+              ((JSONObject) meta).remove("_id");
+              line = doc.toString();
+            }
+          }
+        }
+        out.append(line);
+        if (i < lines.length - 1) {
+          out.append('\n');
+        }
+      }
+      return out.toString();
+    }
+
+    /**
      * Field types the analytics-engine (DataFusion) backend cannot read, and which therefore must
      * be removed from a test index's mapping (and the matching key from each bulk doc) before the
      * index is created/loaded on the analytics-engine route. Seeding a dataset that happens to use
@@ -438,6 +486,9 @@ public class TestUtils {
     Path path = Paths.get(getResourceFilePath(dataSetFilePath));
     String body = new String(Files.readAllBytes(path));
     body = AnalyticsIndexConfig.stripBulkFields(body, droppedPaths);
+    // Drop custom _id from index/create action metadata so fixtures load on the append-only
+    // analytics-engine route. No-op / byte-identical when the analytics-engine route is disabled.
+    body = AnalyticsIndexConfig.stripCustomIds(body);
     Request request =
         new Request(
             "POST", "/" + indexName + "/_bulk?" + AnalyticsIndexConfig.bulkLoadRefreshParam());
@@ -492,6 +543,22 @@ public class TestUtils {
     Response response = performRequest(client, request);
     JSONObject jsonObject = new JSONObject(getResponseBody(response));
     return jsonObject.getInt("count");
+  }
+
+  /**
+   * Build the {@link Request} that seeds one test document. On the standard route this is the
+   * conventional idempotent {@code PUT /<index>/_doc/<id>?refresh=true}. On the analytics-engine
+   * route, parquet-backed indices are append-only ({@code index.append_only.enabled}) and reject
+   * any request carrying a custom document id with HTTP 400, so the request becomes {@code POST
+   * /<index>/_doc?refresh=true} and the engine assigns an auto-id. Only use this for pure data
+   * seeding — a test that later references the id (GET by id, overwrite, delete) has real
+   * doc-mutation semantics and must be gated with {@code Capability.DOC_MUTATION} instead.
+   */
+  public static Request seedDocRequest(String indexName, String docId) {
+    if (AnalyticsIndexConfig.isEnabled()) {
+      return new Request("POST", "/" + indexName + "/_doc?refresh=true");
+    }
+    return new Request("PUT", "/" + indexName + "/_doc/" + docId + "?refresh=true");
   }
 
   /**

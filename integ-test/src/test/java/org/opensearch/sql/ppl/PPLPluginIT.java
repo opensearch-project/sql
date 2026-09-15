@@ -39,7 +39,7 @@ public class PPLPluginIT extends PPLIntegTestCase {
 
   @Test
   public void testQueryEndpointShouldOK() throws IOException {
-    Request request = new Request("PUT", "/a/_doc/1?refresh=true");
+    Request request = org.opensearch.sql.legacy.TestUtils.seedDocRequest("a", "1");
     request.setJsonEntity("{\"name\": \"hello\"}");
     client().performRequest(request);
 

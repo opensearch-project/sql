@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ARRAY;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
 import static org.opensearch.sql.util.Capability.DOC_MUTATION;
+import static org.opensearch.sql.util.Capability.MULTI_VALUE_FIELD_LOAD;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -27,7 +28,13 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     loadIndex(Index.NESTED_SIMPLE);
-    loadIndex(Index.ARRAY);
+    // array has a multi-value array for a scalar-mapped field, which the parquet store
+    // rejects at bulk load (MULTI_VALUE_FIELD_LOAD); skip the load on the AE route so it
+    // doesn't abort init() for the independent tests. The dependent tests are
+    // @RequiresCapability-gated.
+    if (!isAnalyticsParquetIndicesEnabled()) {
+      loadIndex(Index.ARRAY);
+    }
     enableCalcite();
   }
 
@@ -154,6 +161,11 @@ public class CalciteExpandCommandIT extends PPLIntegTestCase {
   //  This makes it difficult to implement expand on arrays.
   @Ignore
   @Test
+  @RequiresCapability(
+      value = MULTI_VALUE_FIELD_LOAD,
+      note =
+          "reads array whose multi-value field can't load on the AE store"
+              + " (MULTI_VALUE_FIELD_LOAD).")
   public void testExpandOnArray() throws Exception {
     JSONObject response =
         executeQuery(String.format("source=%s | expand strings", TEST_INDEX_ARRAY));

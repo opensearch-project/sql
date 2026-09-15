@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_TYPE;
+import static org.opensearch.sql.util.Capability.MULTI_VALUE_FIELD_LOAD;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
@@ -27,6 +28,7 @@ import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.sql.legacy.TestUtils;
+import org.opensearch.sql.util.RequiresCapability;
 import tools.jackson.databind.ObjectMapper;
 
 public class IncludeMetadataIT extends PPLIntegTestCase {
@@ -222,6 +224,11 @@ public class IncludeMetadataIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = MULTI_VALUE_FIELD_LOAD,
+      note =
+          "reads nested_type whose multi-value field can't load on the AE store"
+              + " (MULTI_VALUE_FIELD_LOAD).")
   public void testIncludeMetadataWithNestedFields() throws IOException {
     // Test include_metadata behavior with nested/structured data
     loadIndex(Index.NESTED);

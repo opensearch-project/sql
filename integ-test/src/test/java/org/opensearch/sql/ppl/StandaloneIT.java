@@ -43,6 +43,7 @@ import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.monitor.AlwaysHealthyMonitor;
 import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
@@ -97,10 +98,10 @@ public class StandaloneIT extends PPLIntegTestCase {
 
   @Test
   public void testSourceFieldQuery() throws IOException {
-    Request request1 = new Request("PUT", "/test/_doc/1?refresh=true");
+    Request request1 = TestUtils.seedDocRequest("test", "1");
     request1.setJsonEntity("{\"name\": \"hello\", \"age\": 20}");
     client().performRequest(request1);
-    Request request2 = new Request("PUT", "/test/_doc/2?refresh=true");
+    Request request2 = TestUtils.seedDocRequest("test", "2");
     request2.setJsonEntity("{\"name\": \"world\", \"age\": 30}");
     client().performRequest(request2);
 

@@ -34,11 +34,11 @@ public class CalciteForeachCommandIT extends PPLIntegTestCase {
               + "\"value_mem\":{\"type\":\"long\"}}}}";
       TestUtils.createIndexByRestClient(client(), "test_foreach", mapping);
 
-      Request request1 = new Request("PUT", "/test_foreach/_doc/1?refresh=true");
+      Request request1 = TestUtils.seedDocRequest("test_foreach", "1");
       request1.setJsonEntity("{\"a\": 1, \"b\": 2, \"value_cpu\": 10, \"value_mem\": 20}");
       client().performRequest(request1);
 
-      Request request2 = new Request("PUT", "/test_foreach/_doc/2?refresh=true");
+      Request request2 = TestUtils.seedDocRequest("test_foreach", "2");
       request2.setJsonEntity("{\"a\": 3, \"b\": 4, \"value_cpu\": 30, \"value_mem\": 40}");
       client().performRequest(request2);
     }

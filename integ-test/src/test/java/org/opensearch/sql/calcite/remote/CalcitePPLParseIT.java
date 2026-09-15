@@ -16,6 +16,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalcitePPLParseIT extends PPLIntegTestCase {
@@ -111,7 +112,7 @@ public class CalcitePPLParseIT extends PPLIntegTestCase {
 
   @Test
   public void testParseOverriding2() throws IOException {
-    Request request1 = new Request("PUT", "/test/_doc/1?refresh=true");
+    Request request1 = TestUtils.seedDocRequest("test", "1");
     request1.setJsonEntity(
         "{\"email\": \"a@a.com\", \"email0\": \"b@b.com\", \"email1\": \"c@c.com\"}");
     client().performRequest(request1);

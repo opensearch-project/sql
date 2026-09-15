@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DEEP_NESTED;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TELEMETRY;
+import static org.opensearch.sql.util.Capability.MULTI_VALUE_FIELD_LOAD;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalciteEvalCommandIT extends PPLIntegTestCase {
 
@@ -30,7 +32,13 @@ public class CalciteEvalCommandIT extends PPLIntegTestCase {
 
     loadIndex(Index.BANK);
     loadIndex(Index.TELEMETRY);
-    loadIndex(Index.DEEP_NESTED);
+    // deep_nested has a multi-value array for a scalar-mapped field, which the parquet store
+    // rejects at bulk load (MULTI_VALUE_FIELD_LOAD); skip the load on the AE route so it
+    // doesn't abort init() for the independent tests. The dependent tests are
+    // @RequiresCapability-gated.
+    if (!isAnalyticsParquetIndicesEnabled()) {
+      loadIndex(Index.DEEP_NESTED);
+    }
 
     // Pre-create test_eval through the helper so the analytics-engine compatibility run
     // (tests.analytics.parquet_indices=true) provisions it as a parquet-backed composite
@@ -48,15 +56,15 @@ public class CalciteEvalCommandIT extends PPLIntegTestCase {
       TestUtils.createIndexByRestClient(client(), "test_eval", testEvalMapping);
 
       // Create test data for string concatenation
-      Request request1 = new Request("PUT", "/test_eval/_doc/1?refresh=true");
+      Request request1 = TestUtils.seedDocRequest("test_eval", "1");
       request1.setJsonEntity("{\"name\": \"Alice\", \"age\": 25, \"title\": \"Engineer\"}");
       client().performRequest(request1);
 
-      Request request2 = new Request("PUT", "/test_eval/_doc/2?refresh=true");
+      Request request2 = TestUtils.seedDocRequest("test_eval", "2");
       request2.setJsonEntity("{\"name\": \"Bob\", \"age\": 30, \"title\": \"Manager\"}");
       client().performRequest(request2);
 
-      Request request3 = new Request("PUT", "/test_eval/_doc/3?refresh=true");
+      Request request3 = TestUtils.seedDocRequest("test_eval", "3");
       request3.setJsonEntity("{\"name\": \"Charlie\", \"age\": null, \"title\": \"Analyst\"}");
       client().performRequest(request3);
     }
@@ -67,12 +75,12 @@ public class CalciteEvalCommandIT extends PPLIntegTestCase {
     // from the document contents. Using dynamic mapping keeps the init idempotent across
     // repeated `@Before` invocations in the preserved cluster.
     if (!TestUtils.isIndexExist(client(), "test_eval_agent")) {
-      Request agentDoc1 = new Request("PUT", "/test_eval_agent/_doc/1?refresh=true");
+      Request agentDoc1 = TestUtils.seedDocRequest("test_eval_agent", "1");
       agentDoc1.setJsonEntity(
           "{\"agent\": {\"name\": \"winlogbeat\", \"version\": \"7.0\"}, \"message\": \"hello\"}");
       client().performRequest(agentDoc1);
 
-      Request agentDoc2 = new Request("PUT", "/test_eval_agent/_doc/2?refresh=true");
+      Request agentDoc2 = TestUtils.seedDocRequest("test_eval_agent", "2");
       agentDoc2.setJsonEntity(
           "{\"agent\": {\"name\": \"filebeat\", \"version\": \"8.1\"}, \"message\": \"world\"}");
       client().performRequest(agentDoc2);
@@ -240,6 +248,11 @@ public class CalciteEvalCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = MULTI_VALUE_FIELD_LOAD,
+      note =
+          "reads deep_nested whose multi-value field can't load on the AE store"
+              + " (MULTI_VALUE_FIELD_LOAD).")
   public void testStruckFieldAndSubFieldWithHead() throws IOException {
     JSONObject result =
         executeQuery(

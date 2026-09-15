@@ -32,7 +32,7 @@ public class ForeachFieldJsonIT extends PPLIntegTestCase {
               + "\"nested_objs\":{\"type\":\"nested\",\"properties\":{\"a\":{\"type\":\"long\"}}}}}}";
       TestUtils.createIndexByRestClient(client(), "test_foreach_field2", mapping);
 
-      Request r = new Request("PUT", "/test_foreach_field2/_doc/1?refresh=true");
+      Request r = TestUtils.seedDocRequest("test_foreach_field2", "1");
       r.setJsonEntity(
           "{\"jsonfield\": \"[10,20,30]\", \"jsonstrs\": \"[\\\"a\\\",\\\"b\\\"]\","
               + " \"nativenums\": [1, 2, 3], \"nested_objs\": [{\"a\": 1}, {\"a\": 2}]}");
