@@ -254,11 +254,9 @@ Both accept these literals, whatever format the field itself is mapped with:
    * - Date and time separated by a space
      - ``2026-09-14 12:00:00.000``, ``2026-09-14 12:00:00``
 
-Epoch seconds are not accepted -- a ten-digit number is read as milliseconds, so ``1789329600`` means January 1970. Anything else, including a malformed value, is ignored: these parameters only affect which indices are read, so a request is never rejected on their account, and nothing is pruned.
+Epoch seconds are not accepted -- a ten-digit number is read as milliseconds, so ``1789329600`` means January 1970. Anything else, malformed values included, is ignored rather than rejected, and nothing is pruned.
 
-Send them only alongside an equivalent filter in the query -- a ``where`` clause on the same field and range. The result is then identical to the query without them. They are not themselves a filter: they exclude whole indices, so a window the query does not also restrict returns fewer rows, and an index not mapping ``time_field`` is excluded from every window.
-
-Every source the query reads is narrowed, like the Dashboards date picker they carry: a ``join``'s other side and a subsearch's too, not only the source the query starts from. Filter each of them to the same window, or leave the bounds off.
+They select indices, not rows. Send them only for a window the query's own ``where`` already restricts, and restrict every source it reads -- a ``join``'s other side and a subsearch are narrowed too. Otherwise the query returns fewer rows; an index that does not map ``time_field`` is excluded from every window.
 
 Supported on the Calcite engine. Other engines accept the parameters and ignore them.
 
@@ -271,7 +269,6 @@ Request body::
       "end_time" : "2026-09-14 00:00:00.000"
     }
 
-The bounds repeat the window the ``where`` clause already restricts, and name the field it filters on. That is the shape to copy.
 
 Disable it with::
 
