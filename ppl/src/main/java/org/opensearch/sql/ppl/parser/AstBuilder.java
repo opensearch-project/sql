@@ -40,6 +40,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -138,6 +139,7 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.executor.TimeBounds;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.AdCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ByClauseContext;
@@ -165,14 +167,46 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    */
   private final String query;
 
+  /**
+   * Request-level time range every source is narrowed to, or null when the request declared none.
+   */
+  @Nullable private final TimeBounds timeBounds;
+
   public AstBuilder(String query) {
-    this(query, null);
+    this(query, null, null);
   }
 
   public AstBuilder(String query, Settings settings) {
+    this(query, settings, null);
+  }
+
+  public AstBuilder(String query, Settings settings, @Nullable TimeBounds timeBounds) {
     this.expressionBuilder = new AstExpressionBuilder(this, AstBuildGuard.fromSettings(settings));
     this.query = query;
     this.settings = settings;
+    this.timeBounds = timeBounds;
+  }
+
+  /**
+   * A relation over {@code tableSources}, each name carrying the request's time bounds so the
+   * storage engine can narrow it (see {@link TimeBounds}). Every source a query reads goes through
+   * here, a lookup table and a multisearch dataset included.
+   */
+  private Relation relation(List<UnresolvedExpression> tableSources) {
+    if (timeBounds == null) {
+      return new Relation(tableSources);
+    }
+    return new Relation(tableSources.stream().map(this::withTimeBounds).toList());
+  }
+
+  private UnresolvedExpression withTimeBounds(UnresolvedExpression tableSource) {
+    if (!(tableSource instanceof QualifiedName name)) {
+      return tableSource;
+    }
+    List<String> parts = new ArrayList<>(name.getParts());
+    int last = parts.size() - 1;
+    parts.set(last, timeBounds.encodeInto(parts.get(last)));
+    return new QualifiedName(parts);
   }
 
   public Settings getSettings() {
@@ -1207,7 +1241,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   /** Lookup command */
   @Override
   public UnresolvedPlan visitLookupCommand(OpenSearchPPLParser.LookupCommandContext ctx) {
-    Relation lookupRelation = new Relation(this.internalVisitExpression(ctx.tableSource()));
+    Relation lookupRelation = relation(List.of(this.internalVisitExpression(ctx.tableSource())));
     // OUTPUT and REPLACE are synonyms - both overwrite existing fields
     Lookup.OutputStrategy strategy =
         ctx.APPEND() != null ? Lookup.OutputStrategy.APPEND : Lookup.OutputStrategy.REPLACE;
@@ -1247,7 +1281,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitTableSourceClause(TableSourceClauseContext ctx) {
     Relation relation =
-        new Relation(
+        relation(
             ctx.tableSource().stream()
                 .map(this::internalVisitExpression)
                 .collect(Collectors.toList()));
@@ -1539,8 +1573,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         datasets.add(visitSubSearch(datasetCtx.subSearch()));
       } else if (datasetCtx.tableSource() != null) {
         datasets.add(
-            new Relation(
-                Collections.singletonList(internalVisitExpression(datasetCtx.tableSource()))));
+            relation(Collections.singletonList(internalVisitExpression(datasetCtx.tableSource()))));
       }
     }
 

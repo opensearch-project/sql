@@ -158,18 +158,8 @@ public class QueryService {
       HighlightConfig highlightConfig,
       boolean includeMetadata,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
-    execute(plan, queryType, highlightConfig, includeMetadata, null, listener);
-  }
-
-  public void execute(
-      UnresolvedPlan plan,
-      QueryType queryType,
-      HighlightConfig highlightConfig,
-      boolean includeMetadata,
-      @Nullable TimeBounds timeBounds,
-      ResponseListener<ExecutionEngine.QueryResponse> listener) {
     if (shouldUseCalcite(queryType)) {
-      executeWithCalcite(plan, queryType, highlightConfig, includeMetadata, timeBounds, listener);
+      executeWithCalcite(plan, queryType, highlightConfig, includeMetadata, listener);
     } else {
       // The V2 engine has no notion of metadata fields, so includeMetadata is ignored there.
       executeWithLegacy(plan, queryType, listener, Optional.empty());
@@ -204,21 +194,8 @@ public class QueryService {
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
       ExplainMode mode,
       Format format) {
-    explain(plan, queryType, highlightConfig, includeMetadata, null, listener, mode, format);
-  }
-
-  public void explain(
-      UnresolvedPlan plan,
-      QueryType queryType,
-      HighlightConfig highlightConfig,
-      boolean includeMetadata,
-      @Nullable TimeBounds timeBounds,
-      ResponseListener<ExecutionEngine.ExplainResponse> listener,
-      ExplainMode mode,
-      Format format) {
     if (shouldUseCalcite(queryType)) {
-      explainWithCalcite(
-          plan, queryType, highlightConfig, includeMetadata, timeBounds, listener, mode, format);
+      explainWithCalcite(plan, queryType, highlightConfig, includeMetadata, listener, mode, format);
     } else {
       // The V2 engine has no notion of metadata fields, so includeMetadata is ignored there.
       explainWithLegacy(plan, queryType, listener, mode, Optional.empty());
@@ -230,7 +207,7 @@ public class QueryService {
       QueryType queryType,
       HighlightConfig highlightConfig,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
-    executeWithCalcite(plan, queryType, highlightConfig, false, null, listener);
+    executeWithCalcite(plan, queryType, highlightConfig, false, listener);
   }
 
   public void executeWithCalcite(
@@ -238,7 +215,6 @@ public class QueryService {
       QueryType queryType,
       HighlightConfig highlightConfig,
       boolean includeMetadata,
-      @Nullable TimeBounds timeBounds,
       ResponseListener<ExecutionEngine.QueryResponse> listener) {
     CalcitePlanContext.run(
         () -> {
@@ -251,7 +227,7 @@ public class QueryService {
                   try (ProfileScope analyzePhase = ProfileScope.open(MetricName.ANALYZE)) {
                     context =
                         CalcitePlanContext.create(
-                            buildFrameworkConfig(timeBounds),
+                            buildFrameworkConfig(),
                             SysLimit.fromSettings(settings),
                             queryType,
                             includeMetadata);
@@ -318,7 +294,7 @@ public class QueryService {
       HighlightConfig highlightConfig,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
       ExplainMode mode) {
-    explainWithCalcite(plan, queryType, highlightConfig, false, null, listener, mode, null);
+    explainWithCalcite(plan, queryType, highlightConfig, false, listener, mode, null);
   }
 
   public void explainWithCalcite(
@@ -326,7 +302,6 @@ public class QueryService {
       QueryType queryType,
       HighlightConfig highlightConfig,
       boolean includeMetadata,
-      @Nullable TimeBounds timeBounds,
       ResponseListener<ExecutionEngine.ExplainResponse> listener,
       ExplainMode mode,
       Format format) {
@@ -338,7 +313,7 @@ public class QueryService {
                 () -> {
                   CalcitePlanContext context =
                       CalcitePlanContext.create(
-                          buildFrameworkConfig(timeBounds),
+                          buildFrameworkConfig(),
                           SysLimit.fromSettings(settings),
                           queryType,
                           includeMetadata);
@@ -375,14 +350,6 @@ public class QueryService {
 
   public void analyzeWithCalcite(
       UnresolvedPlan plan, QueryType queryType, ResponseListener<AnalyzeResponse> listener) {
-    analyzeWithCalcite(plan, queryType, null, listener);
-  }
-
-  public void analyzeWithCalcite(
-      UnresolvedPlan plan,
-      QueryType queryType,
-      @Nullable TimeBounds timeBounds,
-      ResponseListener<AnalyzeResponse> listener) {
     if (!shouldUseCalcite(queryType)) {
       listener.onFailure(
           new UnsupportedOperationException(
@@ -404,8 +371,6 @@ public class QueryService {
         plan,
         queryType,
         null,
-        false,
-        timeBounds,
         new ResponseListener<>() {
           @Override
           public void onResponse(ExecutionEngine.QueryResponse response) {
@@ -457,9 +422,7 @@ public class QueryService {
                 () -> {
                   CalcitePlanContext context =
                       CalcitePlanContext.create(
-                          buildFrameworkConfig(timeBounds),
-                          SysLimit.fromSettings(settings),
-                          queryType);
+                          buildFrameworkConfig(), SysLimit.fromSettings(settings), queryType);
                   RelNode relNode = analyze(plan, context);
                   RelNode calcitePlan =
                       withCheckedArithmetic(convertToCalcitePlan(relNode, context), context);
@@ -759,16 +722,11 @@ public class QueryService {
   }
 
   private FrameworkConfig buildFrameworkConfig() {
-    return buildFrameworkConfig(null);
-  }
-
-  private FrameworkConfig buildFrameworkConfig(@Nullable TimeBounds timeBounds) {
     // Use simple calcite schema since we don't compute tables in advance of the query.
     final SchemaPlus rootSchema = CalciteSchema.createRootSchema(true, false).plus();
     final SchemaPlus opensearchSchema =
         rootSchema.add(
-            OpenSearchSchema.OPEN_SEARCH_SCHEMA_NAME,
-            new OpenSearchSchema(dataSourceService, timeBounds));
+            OpenSearchSchema.OPEN_SEARCH_SCHEMA_NAME, new OpenSearchSchema(dataSourceService));
     Frameworks.ConfigBuilder configBuilder =
         Frameworks.newConfigBuilder()
             .parserConfig(SqlParser.Config.DEFAULT) // TODO check

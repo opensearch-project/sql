@@ -117,11 +117,9 @@ public class QueryPlan extends AbstractPlan {
           getQueryType(),
           highlightConfig,
           includeMetadata,
-          getTimeBounds(),
           listener);
     } else {
-      queryService.execute(
-          plan, getQueryType(), highlightConfig, includeMetadata, getTimeBounds(), listener);
+      queryService.execute(plan, getQueryType(), highlightConfig, includeMetadata, listener);
     }
   }
 
@@ -140,14 +138,7 @@ public class QueryPlan extends AbstractPlan {
               "`explain` feature for paginated requests is not implemented yet."));
     } else {
       queryService.explain(
-          plan,
-          getQueryType(),
-          highlightConfig,
-          includeMetadata,
-          getTimeBounds(),
-          listener,
-          mode,
-          format);
+          plan, getQueryType(), highlightConfig, includeMetadata, listener, mode, format);
     }
   }
 }

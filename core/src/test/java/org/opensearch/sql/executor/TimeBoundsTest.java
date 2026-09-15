@@ -6,6 +6,7 @@
 package org.opensearch.sql.executor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -65,5 +66,45 @@ class TimeBoundsTest {
         arguments("blank lower bound", "@timestamp", " ", "now"),
         arguments("no upper bound", "@timestamp", "now-1h", null),
         arguments("blank upper bound", "@timestamp", "now-1h", ""));
+  }
+
+  /** Round trip through the table name, for every spelling a bound may arrive in. */
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("boundSpellings")
+  void shouldSurviveTheTableName(String spelling, String start, String end) {
+    TimeBounds bounds = new TimeBounds("event_time", start, end);
+
+    TimeBounds.Decoded decoded = TimeBounds.decode(bounds.encodeInto("logs-*"));
+
+    assertEquals("logs-*", decoded.tableName());
+    assertEquals(bounds, decoded.bounds());
+  }
+
+  @Test
+  void shouldEncodeReadably() {
+    assertEquals(
+        "logs-*<@timestamp,now-7d,now>",
+        new TimeBounds("@timestamp", "now-7d", "now").encodeInto("logs-*"));
+  }
+
+  /** A name no request encoded decodes to itself, so an ordinary query is untouched. */
+  @ParameterizedTest(name = "{0}")
+  @org.junit.jupiter.params.provider.ValueSource(
+      strings = {"logs-*", "logs-2026.09", "remote:logs-*", "a,b", "logs-*<broken", "logs-*<a,b>"})
+  void shouldLeaveAPlainNameAlone(String tableName) {
+    TimeBounds.Decoded decoded = TimeBounds.decode(tableName);
+
+    assertEquals(tableName, decoded.tableName());
+    assertNull(decoded.bounds());
+  }
+
+  /**
+   * A delimiter inside a bound cannot round trip, so the name is left unencoded and nothing prunes.
+   */
+  @Test
+  void shouldRefuseToEncodeABoundHoldingADelimiter() {
+    assertEquals("logs-*", new TimeBounds("@timestamp", "a,b", "now").encodeInto("logs-*"));
+    assertEquals("logs-*", new TimeBounds("@timestamp", "now-7d", "b>c").encodeInto("logs-*"));
+    assertEquals("logs-*", new TimeBounds("f<x", "now-7d", "now").encodeInto("logs-*"));
   }
 }

@@ -140,7 +140,7 @@ public class PPLService {
           statement =
               cst.accept(
                   new AstStatementBuilder(
-                      new AstBuilder(queryText, settings),
+                      new AstBuilder(queryText, settings, request.getTimeBounds()),
                       AstStatementBuilder.StatementBuilderContext.builder()
                           .isExplain(false)
                           .fetchSize(request.getFetchSize())
@@ -164,7 +164,6 @@ public class PPLService {
       UnresolvedPlan unresolvedPlan = ((Query) statement).getPlan();
       AbstractPlan analyzePlan =
           queryExecutionFactory.createAnalyzePlan(unresolvedPlan, PPL_QUERY, listener);
-      analyzePlan.setTimeBounds(request.getTimeBounds());
       queryManager.submit(analyzePlan);
     } catch (Exception e) {
       listener.onFailure(e);
@@ -188,7 +187,7 @@ public class PPLService {
         statement =
             cst.accept(
                 new AstStatementBuilder(
-                    new AstBuilder(request.getRequest(), settings),
+                    new AstBuilder(request.getRequest(), settings, request.getTimeBounds()),
                     AstStatementBuilder.StatementBuilderContext.builder()
                         .isExplain(request.isExplainRequest())
                         .fetchSize(request.getFetchSize())
@@ -214,7 +213,6 @@ public class PPLService {
     AbstractPlan plan = queryExecutionFactory.create(statement, queryListener, explainListener);
     plan.setWarningsSupported(request.warningsSupported());
     plan.setPartialResultOverride(request.partialResult());
-    plan.setTimeBounds(request.getTimeBounds());
     return plan;
   }
 }

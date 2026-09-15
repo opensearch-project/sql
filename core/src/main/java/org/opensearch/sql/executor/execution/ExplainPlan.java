@@ -48,7 +48,6 @@ public class ExplainPlan extends AbstractPlan {
 
   @Override
   public void execute() {
-    plan.setTimeBounds(getTimeBounds());
     plan.explain(explainListener, mode, format);
   }
 

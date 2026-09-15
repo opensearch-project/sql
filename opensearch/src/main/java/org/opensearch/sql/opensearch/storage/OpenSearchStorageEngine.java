@@ -30,14 +30,13 @@ import org.opensearch.sql.opensearch.storage.rest.RestEndpointRegistryHolder;
 import org.opensearch.sql.opensearch.storage.system.OpenSearchCatalogTable;
 import org.opensearch.sql.opensearch.storage.system.SystemIndexCatalogSource;
 import org.opensearch.sql.storage.StorageEngine;
-import org.opensearch.sql.storage.SupportsIndexPruning;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.utils.SystemIndexUtils.RestSpec;
 
 /** OpenSearch storage engine implementation. */
 @RequiredArgsConstructor
 @Log4j2
-public class OpenSearchStorageEngine implements StorageEngine, SupportsIndexPruning {
+public class OpenSearchStorageEngine implements StorageEngine {
 
   /** Formats a bound may be spelled in. Replaces the field's own; date math applies before them. */
   private static final String BOUND_FORMATS =
@@ -53,26 +52,23 @@ public class OpenSearchStorageEngine implements StorageEngine, SupportsIndexPrun
     return List.of(new VectorSearchTableFunctionResolver(client, settings));
   }
 
-  @Override
-  public Table getTable(DataSourceSchemaName dataSourceSchemaName, String name) {
-    return getTable(dataSourceSchemaName, name, null);
-  }
-
   /**
    * {@inheritDoc}
    *
-   * <p>Narrowed as the table is built, since its schema is the merge of what its name resolves to.
-   * Only an index expression can be narrowed.
+   * <p>{@code name} may carry a request-level time range (see {@link TimeBounds}); the index
+   * expression is narrowed to it here, as the table is built, since the table's schema is the merge
+   * of what its name resolves to.
    */
   @Override
-  public Table getTable(
-      DataSourceSchemaName dataSourceSchemaName, String name, @Nullable TimeBounds bounds) {
-    if (isRestSource(name)) {
-      return restTable(name);
-    } else if (isSystemIndex(name)) {
-      return new OpenSearchCatalogTable(new SystemIndexCatalogSource(client, name), settings);
+  public Table getTable(DataSourceSchemaName dataSourceSchemaName, String name) {
+    TimeBounds.Decoded decoded = TimeBounds.decode(name);
+    String tableName = decoded.tableName();
+    if (isRestSource(tableName)) {
+      return restTable(tableName);
+    } else if (isSystemIndex(tableName)) {
+      return new OpenSearchCatalogTable(new SystemIndexCatalogSource(client, tableName), settings);
     } else {
-      return new OpenSearchIndex(client, settings, prune(name, bounds));
+      return new OpenSearchIndex(client, settings, prune(tableName, decoded.bounds()));
     }
   }
 

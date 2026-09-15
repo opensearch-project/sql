@@ -13,7 +13,6 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryType;
-import org.opensearch.sql.executor.TimeBounds;
 import org.opensearch.sql.protocol.response.format.Format;
 
 /** AbstractPlan represent the execution entity of the Statement. */
@@ -40,9 +39,6 @@ public abstract class AbstractPlan {
    * QueryPlan#execute}) so it survives the security transport→worker handoff.
    */
   @Getter @Setter private Boolean partialResultOverride = null;
-
-  /** Carried to {@code QueryService}, which seeds them into the per-query schema. */
-  @Getter @Setter private TimeBounds timeBounds = null;
 
   /** Start query execution. */
   public abstract void execute();

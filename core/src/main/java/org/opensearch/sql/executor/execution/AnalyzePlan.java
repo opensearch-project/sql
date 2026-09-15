@@ -35,7 +35,7 @@ public class AnalyzePlan extends AbstractPlan {
 
   @Override
   public void execute() {
-    queryService.analyzeWithCalcite(plan, getQueryType(), getTimeBounds(), listener);
+    queryService.analyzeWithCalcite(plan, getQueryType(), listener);
   }
 
   @Override
