@@ -169,6 +169,7 @@ allprojects {
         // Align Calcite 1.42.0's bumped transitive deps under strict conflict resolution
         resolutionStrategy.force 'com.jayway.jsonpath:json-path:2.10.0'
         resolutionStrategy.force 'org.jooq:joou-java-6:0.9.5'
+        resolutionStrategy.force 'org.jspecify:jspecify:1.0.1'
         resolutionStrategy.dependencySubstitution {
             substitute module('commons-lang:commons-lang') using module('org.apache.commons:commons-lang3:3.18.0') because 'CVE-2025-48924: commons-lang 2.x vulnerable to StackOverflowError'
         }
