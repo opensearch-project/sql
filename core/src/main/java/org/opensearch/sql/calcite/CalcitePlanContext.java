@@ -92,12 +92,10 @@ public class CalcitePlanContext {
   private static final ThreadLocal<Boolean> partialResultOverride = new ThreadLocal<>();
 
   /**
-   * Set when the plan contains a {@code chart} or {@code timechart}. They aggregate twice over the
-   * same scan -- once for the plotted data, once to rank the top-N columns -- and partial mode
-   * partitions each on its own group keys, so the two can exclude different indices and the ranking
-   * would not match the rows plotted. Partial mode is skipped for such a query. Set while building
-   * the plan but read during pushdown, which can run on the complex worker pool, so it rides {@link
-   * ThreadLocalSnapshot}. Cleared per query.
+   * Set when the plan contains a {@code chart} or {@code timechart}, which bars partial-result
+   * mode: they aggregate twice over the same scan on different group keys, so each aggregate would
+   * exclude its own index subset. Read during pushdown, which can run on another pool, so it rides
+   * {@link ThreadLocalSnapshot}. Cleared per query.
    */
   private static final ThreadLocal<Boolean> chartPlanned = ThreadLocal.withInitial(() -> false);
 
@@ -328,15 +326,10 @@ public class CalcitePlanContext {
     return partialResultOverride.get();
   }
 
-  /** Records that the plan contains a {@code chart} or {@code timechart}. */
   public static void markChartPlanned() {
     chartPlanned.set(true);
   }
 
-  /**
-   * @return whether the plan contains a {@code chart} or {@code timechart}, which bars partial
-   *     mode.
-   */
   public static boolean isChartPlanned() {
     return chartPlanned.get();
   }

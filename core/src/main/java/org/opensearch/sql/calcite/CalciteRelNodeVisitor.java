@@ -3843,8 +3843,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitChart(Chart node, CalcitePlanContext context) {
-    // Bars partial-result mode; see CalcitePlanContext#isChartPlanned. Both chart and timechart
-    // parse into this node.
+    // timechart parses into this node too. See CalcitePlanContext#isChartPlanned.
     CalcitePlanContext.markChartPlanned();
     visitChildren(node, context);
     ArgumentMap argMap = ArgumentMap.of(node.getArguments());

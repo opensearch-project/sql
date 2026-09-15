@@ -474,12 +474,7 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
         csv.contains("qa"));
   }
 
-  /**
-   * chart aggregates twice over the same scan -- once for the plotted rows, once to rank the top-N
-   * columns -- on different group keys, so each aggregate would pick its own index subset and the
-   * ranking would not describe the rows plotted. Partial mode is skipped: the complete result comes
-   * back, with no warning.
-   */
+  /** chart aggregates twice on different group keys, so partial mode is skipped for it. */
   @Test
   public void partialResultSkippedForChart() throws IOException {
     setPartialResult(true);
@@ -502,9 +497,7 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
     assertTrue("the text index must still be counted: " + result, result.toString().contains("qa"));
   }
 
-  /**
-   * The gate is scoped to chart, not a blanket disable: stats over the same pattern still partials.
-   */
+  /** Scoped to chart, not a blanket disable. */
   @Test
   public void partialResultStillAppliesToStatsOverTheChartPattern() throws IOException {
     setPartialResult(true);

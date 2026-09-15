@@ -97,7 +97,6 @@ class OpenSearchSchemaTest {
     return new OpenSearchSchema(dataSourceService, bounds);
   }
 
-  /** Records what each resolution asked for. */
   private final class PruningEngine implements StorageEngine, SupportsIndexPruning {
 
     @Override

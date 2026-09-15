@@ -161,7 +161,6 @@ public class QueryService {
     execute(plan, queryType, highlightConfig, includeMetadata, null, listener);
   }
 
-  /** Execute with request-level time bounds the queried indices are narrowed to. */
   public void execute(
       UnresolvedPlan plan,
       QueryType queryType,
@@ -208,7 +207,6 @@ public class QueryService {
     explain(plan, queryType, highlightConfig, includeMetadata, null, listener, mode, format);
   }
 
-  /** Explain with request-level time bounds the queried indices are narrowed to. */
   public void explain(
       UnresolvedPlan plan,
       QueryType queryType,
@@ -380,7 +378,6 @@ public class QueryService {
     analyzeWithCalcite(plan, queryType, null, listener);
   }
 
-  /** Analyze with request-level time bounds the queried indices are narrowed to. */
   public void analyzeWithCalcite(
       UnresolvedPlan plan,
       QueryType queryType,

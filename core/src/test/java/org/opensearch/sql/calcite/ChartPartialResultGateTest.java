@@ -16,10 +16,8 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 
 /**
- * The gate that bars partial-result mode for {@code chart} and {@code timechart}. It lives in a
- * static thread-local set while building the plan and read during pushdown, so it must not survive
- * the query that set it: the next query on the same pooled worker thread would silently lose
- * partial mode.
+ * The gate that bars partial-result mode for {@code chart} and {@code timechart}. It must not
+ * survive its query: the next one on the same pooled thread would silently lose partial mode.
  */
 public class ChartPartialResultGateTest {
 
