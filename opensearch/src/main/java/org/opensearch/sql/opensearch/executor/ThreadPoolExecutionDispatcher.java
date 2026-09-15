@@ -69,6 +69,9 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
       // Capture thread-local state to propagate across thread boundary
       Map<String, String> ctx = ThreadContext.getImmutableContext();
       CancellableTask cancellableTask = OpenSearchQueryManager.getCancellableTask();
+      // Carry the parent marker across to the complex-worker thread; without it, join scans there
+      // lose the parent link and go untagged.
+      String queryInsightsParentMarker = OpenSearchQueryManager.getQueryInsightsParentMarker();
       ProfileContext profileContext = QueryProfiling.current();
       CalcitePlanContext.ThreadLocalSnapshot snapshot = CalcitePlanContext.snapshotThreadLocals();
       @Nullable JaninoRelMetadataProvider metadataProvider =
@@ -91,10 +94,14 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
                     ThreadPool.Names.GENERIC);
             Cancellable cancelPoller = scheduleCancellationPoller(cancellableTask, executionThread);
             Hook.Closeable hookHandle = null;
+            boolean trackResources = false;
+            long trackedThreadId = -1L;
+            boolean trackingStarted = false;
             try {
               // Restore state from caller thread
               ThreadContext.putAll(ctx);
               OpenSearchQueryManager.setCancellableTask(cancellableTask);
+              OpenSearchQueryManager.setQueryInsightsParentMarker(queryInsightsParentMarker);
               QueryProfiling.set(profileContext);
               CalcitePlanContext.restoreThreadLocals(snapshot);
               // Override execution pool to indicate complex pool
@@ -106,6 +113,16 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
                 hookHandle =
                     Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(currentTime));
               }
+              // Script plans run their real work on this complex-worker thread (the sql-worker
+              // returned once it scheduled us), so bracket resource tracking here. Stop only if
+              // start succeeded.
+              trackResources =
+                  cancellableTask != null && cancellableTask.supportsResourceTracking();
+              trackedThreadId = Thread.currentThread().getId();
+              trackingStarted =
+                  trackResources
+                      && OpenSearchQueryManager.startThreadResourceTracking(
+                          cancellableTask, trackedThreadId);
               task.run();
             } catch (Exception e) {
               LOG.error("Exception during task execution on complex pool", e);
@@ -119,7 +136,11 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
               if (hookHandle != null) {
                 hookHandle.close();
               }
+              if (trackingStarted) {
+                OpenSearchQueryManager.stopThreadResourceTracking(cancellableTask, trackedThreadId);
+              }
               OpenSearchQueryManager.clearCancellableTask();
+              OpenSearchQueryManager.clearQueryInsightsParentMarker();
               RelMetadataQueryBase.THREAD_PROVIDERS.remove();
               CalcitePlanContext.clearTimewrapSignals();
               QueryProfiling.clear();

@@ -25,4 +25,15 @@ public class PPLQueryTask extends CancellableTask {
   public boolean shouldCancelChildrenOnCancellation() {
     return true;
   }
+
+  /**
+   * Enable per-thread CPU/memory accounting for the PPL coordinator task so its resource usage (and
+   * the PPL engine work attributed to it on the {@code sql-worker} pool) is exposed through the
+   * tasks API and consumed by Query Insights. Defaults to {@code false} on {@link CancellableTask},
+   * which is why it must be overridden here.
+   */
+  @Override
+  public boolean supportsResourceTracking() {
+    return true;
+  }
 }

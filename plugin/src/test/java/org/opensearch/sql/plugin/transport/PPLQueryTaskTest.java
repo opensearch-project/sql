@@ -62,4 +62,35 @@ public class PPLQueryTaskTest {
     task.cancel("Test");
     assertTrue(task.isCancelled());
   }
+
+  private PPLQueryTask newTask() {
+    return new PPLQueryTask(
+        1,
+        "transport",
+        "cluster:admin/opensearch/ppl",
+        "test query",
+        TaskId.EMPTY_TASK_ID,
+        Map.of());
+  }
+
+  @Test
+  public void testSupportsResourceTracking() {
+    // Resource tracking must be enabled so the coordinator task's CPU/memory is exposed through
+    // the tasks API for Query Insights.
+    assertTrue(newTask().supportsResourceTracking());
+  }
+
+  @Test
+  public void testQueryInsightsParentHeaderName() {
+    // Query Insights relies on this exact header name to classify child DSL searches and associate
+    // them with the originating query; it must match what SQLPlugin.getTaskHeaders() registers.
+    assertEquals("X-Query-Insights-Parent", QueryInsightsMarker.PARENT_HEADER);
+  }
+
+  @Test
+  public void testQueryInsightsParentHeaderValueIsSourcePrefixed() {
+    // Value format is <source>:<nodeId>:<taskId> so QI reads both source and parent id from one
+    // header. SQL will reuse the same helper with source "SQL".
+    assertEquals("PPL:node-1:42", QueryInsightsMarker.value("PPL", "node-1", 42L));
+  }
 }

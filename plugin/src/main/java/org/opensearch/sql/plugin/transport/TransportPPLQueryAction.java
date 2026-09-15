@@ -28,7 +28,11 @@ import org.opensearch.common.inject.Guice;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.inject.Injector;
 import org.opensearch.common.inject.ModulesBuilder;
+import org.opensearch.common.settings.Setting;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.action.NotifyOnceListener;
+import org.opensearch.core.tasks.resourcetracker.TaskResourceUsage;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
@@ -88,6 +92,7 @@ public class TransportPPLQueryAction
   private final NodeClient clientRef;
   private final ClusterService clusterServiceRef;
   private final org.opensearch.sql.common.setting.Settings pluginSettingsRef;
+  private final TransportService transportServiceRef;
 
   @Inject
   public TransportPPLQueryAction(
@@ -102,6 +107,7 @@ public class TransportPPLQueryAction
     super(PPLQueryAction.NAME, transportService, actionFilters, TransportPPLQueryRequest::new);
     this.clientRef = client;
     this.clusterServiceRef = clusterService;
+    this.transportServiceRef = transportService;
 
     ModulesBuilder modules = new ModulesBuilder();
     modules.add(new OpenSearchPluginModule(extensionsHolder.engines(), tracer));
@@ -161,6 +167,177 @@ public class TransportPPLQueryAction
   }
 
   /**
+   * Stamp the parent marker into the thread context (and the engine ThreadLocal) so child DSL
+   * searches carry it back to this PPL query. Won't overwrite a marker already set by an enclosing
+   * PPL call.
+   */
+  private void stampQueryInsightsParentHeader(PPLQueryTask pplQueryTask) {
+    try {
+      ThreadContext threadContext = clientRef.threadPool().getThreadContext();
+      String value =
+          QueryInsightsMarker.value(
+              "PPL", clusterServiceRef.localNode().getId(), pplQueryTask.getId());
+      if (threadContext.getHeader(QueryInsightsMarker.PARENT_HEADER) == null) {
+        threadContext.putHeader(QueryInsightsMarker.PARENT_HEADER, value);
+      }
+      // The ThreadContext header alone doesn't survive the engine's thread hops, so also carry the
+      // marker on the ThreadLocal channel for deterministic child tagging.
+      OpenSearchQueryManager.setQueryInsightsParentMarker(value);
+    } catch (Exception e) {
+      LOG.warn("Failed to stamp Query Insights parent header for query association", e);
+    }
+  }
+
+  /**
+   * Toggle for recording PPL queries into Query Insights Top N. Registered by the Query Insights
+   * plugin (the two plugins share only this key string, not classes), so it is read through the
+   * registered Setting to honor opensearch.yml, dynamic updates, and the default.
+   */
+  static final String QUERY_INSIGHTS_PPL_ENABLED_KEY = "search.insights.top_queries.ppl.enabled";
+
+  /**
+   * True only when Query Insights is installed (its setting is registered) and the toggle is
+   * enabled. Defaults to disabled on any failure.
+   */
+  private boolean isQueryInsightsRecordingEnabled() {
+    try {
+      // Setting is registered iff Query Insights is installed.
+      Setting<?> setting =
+          clusterServiceRef.getClusterSettings().get(QUERY_INSIGHTS_PPL_ENABLED_KEY);
+      if (setting == null) {
+        return false;
+      }
+      Object value = clusterServiceRef.getClusterSettings().get(setting);
+      return Boolean.TRUE.equals(value);
+    } catch (Exception e) {
+      LOG.debug("Failed to evaluate Query Insights PPL recording gate; defaulting to disabled", e);
+      return false;
+    }
+  }
+
+  /**
+   * Report the finished PPL query to Query Insights once its resource tracking completes, so {@code
+   * getTotalResourceStats()} is final.
+   */
+  private void registerQueryInsightsReport(PPLQueryTask reportTask) {
+    try {
+      boolean registered =
+          reportTask.addResourceTrackingCompletionListener(
+              new NotifyOnceListener<>() {
+                @Override
+                protected void innerOnResponse(Task task) {
+                  writeQueryInsightsRecord((PPLQueryTask) task);
+                }
+
+                @Override
+                protected void innerOnFailure(Exception e) {
+                  // Tracking didn't complete cleanly; nothing to report.
+                }
+              });
+      if (registered == false) {
+        LOG.debug(
+            "Query Insights report listener not registered; resource tracking already complete");
+      }
+    } catch (Exception e) {
+      LOG.warn("Failed to register Query Insights report listener", e);
+    }
+  }
+
+  /**
+   * Serialize a completed PPL query (resource stats + query text + indices) and send it to Query
+   * Insights over the transport layer. Errors are logged at debug and ignored.
+   */
+  private void writeQueryInsightsRecord(PPLQueryTask reportTask) {
+    try {
+      String nodeId = clusterServiceRef.localNode().getId();
+      String queryText = stripPplPrefix(reportTask.getDescription());
+
+      TaskResourceUsage usage = reportTask.getTotalResourceStats();
+      long cpuNanos = usage == null ? 0L : usage.getCpuTimeInNanos();
+      long memoryBytes = usage == null ? 0L : usage.getMemoryInBytes();
+
+      // Wall-clock latency from task start to now (monotonic clock). Used instead of the profile
+      // total, which collapses to ~0 when finish() resolves on a different thread.
+      long latencyMillis =
+          Math.max(0L, (System.nanoTime() - reportTask.getStartTimeNanos()) / 1_000_000L);
+
+      // Must equal the marker stamped into child DSL tasks (child DERIVED_FROM == this) so Query
+      // Insights can roll child CPU/memory into this parent.
+      String parentMarker = QueryInsightsMarker.value("PPL", nodeId, reportTask.getId());
+
+      // No DSL SearchSourceBuilder exists at this layer, so index names come from the query text.
+      java.util.List<String> indices = extractPplIndices(queryText);
+
+      QueryInsightsReporter.report(
+          transportServiceRef,
+          clusterServiceRef.localNode(),
+          "PPL",
+          parentMarker,
+          nodeId,
+          queryText,
+          System.currentTimeMillis(),
+          latencyMillis,
+          cpuNanos,
+          memoryBytes,
+          indices);
+    } catch (Exception e) {
+      LOG.debug("Failed to write PPL query to Query Insights", e);
+    }
+  }
+
+  /**
+   * Heuristic extraction of index name(s) from {@code source=}/{@code index=} clauses in the query
+   * text (including {@code join} sources). Not an AST parse; empty list when nothing matches.
+   *
+   * @param queryText the prefix-stripped PPL query text
+   * @return index name(s), de-duplicated in encounter order
+   */
+  static java.util.List<String> extractPplIndices(String queryText) {
+    final java.util.LinkedHashSet<String> indices = new java.util.LinkedHashSet<>();
+    if (queryText == null || queryText.isEmpty()) {
+      return new java.util.ArrayList<>(indices);
+    }
+    // Value is a quoted span (may contain spaces) or an unquoted run up to the first whitespace or
+    // pipe, so it stops at the clause boundary. Comma lists without spaces are captured whole and
+    // split below. Single-level alternation of linear branches — no catastrophic backtracking.
+    final java.util.regex.Matcher m =
+        java.util.regex.Pattern.compile(
+                "(?i)\\b(?:source|index)\\s*=\\s*(\"[^\"]*\"|'[^']*'|`[^`]*`|[^\\s|]+)")
+            .matcher(queryText);
+    while (m.find()) {
+      final String raw = m.group(1).trim();
+      // A source clause may list multiple comma-separated indices.
+      for (String part : raw.split(",")) {
+        String name = part.trim();
+        // Strip surrounding quotes/backticks if present.
+        if (name.length() >= 2) {
+          final char c0 = name.charAt(0);
+          final char cN = name.charAt(name.length() - 1);
+          if ((c0 == '"' && cN == '"') || (c0 == '\'' && cN == '\'') || (c0 == '`' && cN == '`')) {
+            name = name.substring(1, name.length() - 1).trim();
+          }
+        }
+        if (name.isEmpty() == false) {
+          indices.add(name);
+        }
+      }
+    }
+    return new java.util.ArrayList<>(indices);
+  }
+
+  /** Strip the {@code "PPL: "} / {@code "PPL [queryId=...]: "} description prefix. */
+  private static String stripPplPrefix(String description) {
+    if (description == null) {
+      return "";
+    }
+    int colon = description.indexOf(": ");
+    if (description.startsWith("PPL") && colon >= 0) {
+      return description.substring(colon + 2);
+    }
+    return description;
+  }
+
+  /**
    * {@inheritDoc} Transform the request and call super.doExecute() to support call from other
    * plugins.
    */
@@ -183,8 +360,14 @@ public class TransportPPLQueryAction
       return;
     }
 
-    if (task instanceof PPLQueryTask pplQueryTask) {
-      OpenSearchQueryManager.setCancellableTask(pplQueryTask);
+    final PPLQueryTask reportTask = task instanceof PPLQueryTask ? (PPLQueryTask) task : null;
+    if (reportTask != null) {
+      OpenSearchQueryManager.setCancellableTask(reportTask);
+      // Opt-in: when disabled, skip header stamping and report registration entirely.
+      if (isQueryInsightsRecordingEnabled()) {
+        stampQueryInsightsParentHeader(reportTask);
+        registerQueryInsightsReport(reportTask);
+      }
     }
     Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_TOTAL).increment();
     Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_COUNT_TOTAL).increment();
@@ -281,6 +464,10 @@ public class TransportPPLQueryAction
       clearingListener.onFailure(e);
     } finally {
       spanScope.close();
+      // submit() removes these on the normal path; clear again so an early return/throw before
+      // submit() doesn't leak them onto this pooled transport thread.
+      OpenSearchQueryManager.clearQueryInsightsParentMarker();
+      OpenSearchQueryManager.clearCancellableTask();
     }
   }
 
