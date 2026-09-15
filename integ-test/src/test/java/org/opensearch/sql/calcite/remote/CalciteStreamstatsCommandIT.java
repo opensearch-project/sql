@@ -674,23 +674,31 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   @Test
   @RequiresCapability(DOC_MUTATION)
   public void testStreamstatsGlobalWithNullBucket() throws IOException {
+    // See testStreamstatsGlobalWithNull: global=true defines the sliding window over a global
+    // ROW_NUMBER() sequence that follows raw scan (encounter) order, which is non-deterministic
+    // across shards. Unlike the reset_* cases this plan accepts an upstream `sort`, so drive the
+    // seq-augmented fixture and pin the order with `| sort seq |`. Jay is PUT with seq 7 (one past
+    // the fixture's 6 rows) to keep the trailing encounter position the original single-shard test
+    // relied on. Expected rows are unchanged.
     final int docId = 7;
     Request insertRequest =
         new Request(
             "PUT",
-            String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY_WITH_NULL, docId));
+            String.format(
+                "/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY_WITH_NULL_ORDERED, docId));
     insertRequest.setJsonEntity(
         "{\"name\": \"Jay\",\"age\": 40,\"state\":"
             + " \"Quebec\",\"country\": \"USA\",\"year\": 2023,\"month\":"
-            + " 4}\n");
+            + " 4,\"seq\": 7}\n");
     client().performRequest(insertRequest);
     try {
       JSONObject actual =
           executeQuery(
               String.format(
-                  "source=%s | streamstats bucket_nullable=false window=2 global=true avg(age) as"
-                      + " avg by state | fields name, country, state, month, year, age, avg",
-                  TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+                  "source=%s | sort seq | streamstats bucket_nullable=false window=2 global=true"
+                      + " avg(age) as avg by state | fields name, country, state, month, year,"
+                      + " age, avg",
+                  TEST_INDEX_STATE_COUNTRY_WITH_NULL_ORDERED));
 
       verifyDataRows(
           actual,
@@ -705,9 +713,10 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
       JSONObject actual2 =
           executeQuery(
               String.format(
-                  "source=%s | streamstats bucket_nullable=true window=2 global=true avg(age) as"
-                      + " avg by state | fields name, country, state, month, year, age, avg",
-                  TEST_INDEX_STATE_COUNTRY_WITH_NULL));
+                  "source=%s | sort seq | streamstats bucket_nullable=true window=2 global=true"
+                      + " avg(age) as avg by state | fields name, country, state, month, year,"
+                      + " age, avg",
+                  TEST_INDEX_STATE_COUNTRY_WITH_NULL_ORDERED));
 
       verifyDataRows(
           actual2,
@@ -722,7 +731,8 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
       Request deleteRequest =
           new Request(
               "DELETE",
-              String.format("/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY_WITH_NULL, docId));
+              String.format(
+                  "/%s/_doc/%d?refresh=true", TEST_INDEX_STATE_COUNTRY_WITH_NULL_ORDERED, docId));
       client().performRequest(deleteRequest);
     }
   }
