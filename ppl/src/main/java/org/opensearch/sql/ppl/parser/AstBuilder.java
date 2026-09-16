@@ -186,11 +186,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     this.timeBounds = timeBounds;
   }
 
-  /**
-   * A relation whose names carry the request's time bounds (see {@link TimeBounds}). Every source
-   * the query searches comes through here, a multisearch dataset and a join's other side included
-   * -- but not a lookup's dimension table, which the window does not apply to.
-   */
+  /** A relation whose names carry the request's time bounds (see {@link TimeBounds}). */
   private Relation relation(List<UnresolvedExpression> tableSources) {
     if (timeBounds == null) {
       return new Relation(tableSources);
