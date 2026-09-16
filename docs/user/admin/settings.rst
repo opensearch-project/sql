@@ -286,9 +286,7 @@ The two row filters combine: a query may carry both a ``where`` clause and ``ear
 
 The bounds never filter a row, so they have to cover at least what the row filters restrict. A query whose own range is **wider** than the bounds loses rows: the indices outside the bounds are not read, whatever the query text asked for.
 
-A request may also carry a ``pruning`` boolean, which overrides this setting for that request alone. It is there for a client that cannot rely on the setting: a cluster older than 3.9 does not have it, and one newer may have it turned off. Omit it and the cluster setting decides.
-
-Supported on the Calcite engine. Other engines accept the parameters and ignore them.
+A request may also carry a ``pruning`` boolean, which overrides this setting for that request alone.
 
 Request body::
 
@@ -296,7 +294,8 @@ Request body::
       "query" : "source=logs-* | where `event_time` >= '2026-09-07 00:00:00.000' and `event_time` <= '2026-09-14 00:00:00.000' | stats count() by span(event_time, 1h)",
       "time_field" : "event_time",
       "start_time" : "2026-09-07 00:00:00.000",
-      "end_time" : "2026-09-14 00:00:00.000"
+      "end_time" : "2026-09-14 00:00:00.000",
+      "pruning" : true
     }
 
 
