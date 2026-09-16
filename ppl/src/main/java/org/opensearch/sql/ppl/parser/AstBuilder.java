@@ -186,8 +186,9 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   /**
-   * A relation whose names carry the request's time bounds (see {@link TimeBounds}). Every source a
-   * query reads comes through here, a lookup table and a multisearch dataset included.
+   * A relation whose names carry the request's time bounds (see {@link TimeBounds}). Every source
+   * the query searches comes through here, a multisearch dataset and a join's other side included
+   * -- but not a lookup's dimension table, which the window does not apply to.
    */
   private Relation relation(List<UnresolvedExpression> tableSources) {
     if (timeBounds == null) {
@@ -1238,7 +1239,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   /** Lookup command */
   @Override
   public UnresolvedPlan visitLookupCommand(OpenSearchPPLParser.LookupCommandContext ctx) {
-    Relation lookupRelation = relation(List.of(this.internalVisitExpression(ctx.tableSource())));
+    // Not narrowed: a lookup index is a dimension table, not one of the searched sources.
+    Relation lookupRelation = new Relation(this.internalVisitExpression(ctx.tableSource()));
     // OUTPUT and REPLACE are synonyms - both overwrite existing fields
     Lookup.OutputStrategy strategy =
         ctx.APPEND() != null ? Lookup.OutputStrategy.APPEND : Lookup.OutputStrategy.REPLACE;
