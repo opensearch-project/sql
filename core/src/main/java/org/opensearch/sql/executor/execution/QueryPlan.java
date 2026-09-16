@@ -111,7 +111,6 @@ public class QueryPlan extends AbstractPlan {
     // Log4j ThreadContext (dropped under security on the transport→worker handoff).
     CalcitePlanContext.setWarningsSupported(isWarningsSupported());
     CalcitePlanContext.setPartialResultOverride(getPartialResultOverride());
-    CalcitePlanContext.setPruningOverride(getPruningOverride());
     if (pageSize.isPresent()) {
       queryService.execute(
           new Paginate(pageSize.get(), plan),

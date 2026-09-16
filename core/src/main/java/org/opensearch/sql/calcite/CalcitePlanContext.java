@@ -91,12 +91,6 @@ public class CalcitePlanContext {
    */
   private static final ThreadLocal<Boolean> partialResultOverride = new ThreadLocal<>();
 
-  /**
-   * Per-request index-pruning override, carried onto the plan for the same reason as {@link
-   * #partialResultOverride}. {@code null} defers to the cluster setting. Cleared per query.
-   */
-  private static final ThreadLocal<Boolean> pruningOverride = new ThreadLocal<>();
-
   /** Thread-local switch that tells whether the current query prefers legacy behavior. */
   private static final ThreadLocal<Boolean> legacyPreferredFlag =
       ThreadLocal.withInitial(() -> true);
@@ -287,7 +281,6 @@ public class CalcitePlanContext {
     pendingWarnings.remove();
     warningsSupported.set(false);
     partialResultOverride.remove();
-    pruningOverride.remove();
   }
 
   /** Records a non-fatal warning to be attached to the response for the current query. */
@@ -324,18 +317,6 @@ public class CalcitePlanContext {
     return partialResultOverride.get();
   }
 
-  /** Records the per-request index-pruning override; {@code null} defers to the cluster setting. */
-  public static void setPruningOverride(Boolean override) {
-    pruningOverride.set(override);
-  }
-
-  /**
-   * @return whether this request forces index pruning on or off, or null to defer to the setting
-   */
-  public static Boolean getPruningOverride() {
-    return pruningOverride.get();
-  }
-
   /**
    * Returns and clears the warnings collected for the current query, de-duplicated by value. The
    * planner may fire a rule that raises a warning more than once for equivalent plan alternatives,
@@ -363,7 +344,6 @@ public class CalcitePlanContext {
     final String executionPool;
     final boolean warningsSupported;
     final Boolean partialResultOverride;
-    final Boolean pruningOverride;
 
     private ThreadLocalSnapshot(
         boolean skipEncoding,
@@ -372,8 +352,7 @@ public class CalcitePlanContext {
         String timewrapSeries,
         String executionPool,
         boolean warningsSupported,
-        Boolean partialResultOverride,
-        Boolean pruningOverride) {
+        Boolean partialResultOverride) {
       this.skipEncoding = skipEncoding;
       this.stripNullColumns = stripNullColumns;
       this.timewrapUnitName = timewrapUnitName;
@@ -381,7 +360,6 @@ public class CalcitePlanContext {
       this.executionPool = executionPool;
       this.warningsSupported = warningsSupported;
       this.partialResultOverride = partialResultOverride;
-      this.pruningOverride = pruningOverride;
     }
   }
 
@@ -394,8 +372,7 @@ public class CalcitePlanContext {
         timewrapSeries.get(),
         executionPool.get(),
         warningsSupported.get(),
-        partialResultOverride.get(),
-        pruningOverride.get());
+        partialResultOverride.get());
   }
 
   /** Restore thread-local state from a snapshot. */
@@ -407,7 +384,6 @@ public class CalcitePlanContext {
     executionPool.set(snapshot.executionPool);
     warningsSupported.set(snapshot.warningsSupported);
     partialResultOverride.set(snapshot.partialResultOverride);
-    pruningOverride.set(snapshot.pruningOverride);
   }
 
   public void pushForeachBindings(

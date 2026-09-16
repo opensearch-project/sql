@@ -18,7 +18,6 @@ import lombok.extern.log4j.Log4j2;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.sql.DataSourceSchemaName;
-import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.TimeBounds;
 import org.opensearch.sql.expression.function.FunctionResolver;
@@ -74,7 +73,8 @@ public class OpenSearchStorageEngine implements StorageEngine {
 
   /** {@code name} narrowed to {@code bounds}, or unchanged when pruning is off or declines. */
   private String prune(String name, @Nullable TimeBounds bounds) {
-    if (bounds == null || !isPruningEnabled(settings)) {
+    if (bounds == null
+        || !Boolean.TRUE.equals(settings.getSettingValue(Settings.Key.QUERY_PRUNING_ENABLED))) {
       return name;
     }
     return client
@@ -94,17 +94,6 @@ public class OpenSearchStorageEngine implements StorageEngine {
               return pruned;
             })
         .orElse(name);
-  }
-
-  /**
-   * Whether to prune: the per-request override when the request stated one, the cluster setting
-   * otherwise. A client that cannot rely on the setting being present states it per request.
-   */
-  public static boolean isPruningEnabled(Settings settings) {
-    Boolean override = CalcitePlanContext.getPruningOverride();
-    return override != null
-        ? override
-        : Boolean.TRUE.equals(settings.getSettingValue(Settings.Key.QUERY_PRUNING_ENABLED));
   }
 
   /** The bounds as a range query, kept as sent: the index's own parser reads them. */

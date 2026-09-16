@@ -1259,7 +1259,6 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   /** Lookup command */
   @Override
   public UnresolvedPlan visitLookupCommand(OpenSearchPPLParser.LookupCommandContext ctx) {
-    // Not narrowed: a lookup index is a dimension table, not one of the searched sources.
     Relation lookupRelation = new Relation(this.internalVisitExpression(ctx.tableSource()));
     // OUTPUT and REPLACE are synonyms - both overwrite existing fields
     Lookup.OutputStrategy strategy =

@@ -225,35 +225,6 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
     }
   }
 
-  /** The request's own override wins over a cluster that has pruning on. */
-  @Test
-  public void shouldNotPruneWhenTheRequestOverridesItOff() throws IOException {
-    setPruning(true);
-
-    verifyDataRows(
-        executeWithBoundsAndOverride(
-            IN_RANGE + " | fields legacy_only | head 1", "ts", FROM, TO, false),
-        rows((Object) null));
-  }
-
-  /** And over a cluster that has it off -- the case a client on an older cluster needs. */
-  @Test
-  public void shouldPruneWhenTheRequestOverridesItOn() throws IOException {
-    setPruning(false);
-
-    ResponseException e =
-        assertThrows(
-            ResponseException.class,
-            () ->
-                executeWithBoundsAndOverride(
-                    IN_RANGE + " | fields legacy_only | head 1", "ts", FROM, TO, true));
-
-    assertEquals(400, e.getResponse().getStatusLine().getStatusCode());
-    assertTrue(
-        "the out-of-range index maps legacy_only, so pruning must remove it: " + e.getMessage(),
-        e.getMessage().contains("Field [legacy_only] not found."));
-  }
-
   private JSONObject executeWithBounds(String query, String field, String from, String to)
       throws IOException {
     Request request = new Request("POST", "/_plugins/_ppl");
@@ -266,27 +237,6 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
             field,
             from,
             to));
-    RequestOptions.Builder options = RequestOptions.DEFAULT.toBuilder();
-    options.addHeader("Content-Type", "application/json");
-    request.setOptions(options);
-    Response response = client().performRequest(request);
-    return new JSONObject(org.opensearch.sql.legacy.TestUtils.getResponseBody(response, true));
-  }
-
-  /** As {@link #executeWithBounds}, plus the per-request {@code pruning} override. */
-  private JSONObject executeWithBoundsAndOverride(
-      String query, String field, String from, String to, boolean pruning) throws IOException {
-    Request request = new Request("POST", "/_plugins/_ppl");
-    request.setJsonEntity(
-        String.format(
-            Locale.ROOT,
-            "{ \"query\": \"%s\", \"time_field\": \"%s\", \"start_time\": \"%s\","
-                + " \"end_time\": \"%s\", \"pruning\": %s }",
-            query,
-            field,
-            from,
-            to,
-            pruning));
     RequestOptions.Builder options = RequestOptions.DEFAULT.toBuilder();
     options.addHeader("Content-Type", "application/json");
     request.setOptions(options);

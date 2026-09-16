@@ -40,12 +40,6 @@ public abstract class AbstractPlan {
    */
   @Getter @Setter private Boolean partialResultOverride = null;
 
-  /**
-   * Per-request index-pruning override, carried like {@link #partialResultOverride}. {@code null}
-   * defers to the cluster setting.
-   */
-  @Getter @Setter private Boolean pruningOverride = null;
-
   /** Start query execution. */
   public abstract void execute();
 
