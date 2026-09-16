@@ -168,7 +168,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    */
   private final String query;
 
-  /** Time range every source is narrowed to, or null when the request declared none. */
+  /** Time range the main source is narrowed to, or null when the request declared none. */
   @Nullable private final TimeBounds timeBounds;
 
   public AstBuilder(String query) {
@@ -199,15 +199,10 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   /**
-   * Whether {@code ctx} is the source of the outermost pipeline -- its own {@code source=}, rather
-   * than a join's other side, a subsearch's source, a multisearch dataset or a lookup table.
-   *
-   * <p>Only that source is narrowed by the request's time bounds, because it is the only one a
-   * client's own time filter is known to constrain: Dashboards splices its {@code where} clause
-   * after the first command, so a secondary source keeps every row. Narrowing one anyway would drop
-   * indices nothing filtered, losing rows -- and pruning must never do that. Splunk's picker does
-   * reach a subsearch, but as a row filter on the subsearch itself, which is a different feature
-   * (Approach 2 of #5698) from selecting indices.
+   * Whether {@code ctx} is the outermost pipeline's own {@code source=}, rather than a join's other
+   * side, a subsearch's source, a multisearch dataset or a lookup table. Only that one is narrowed:
+   * a client's time filter constrains the first command, so a secondary source keeps every row, and
+   * narrowing it would drop indices nothing filtered.
    */
   private boolean isMainSource(TableSourceClauseContext ctx) {
     if (!(ctx.getParent() instanceof OpenSearchPPLParser.TableOrSubqueryClauseContext)

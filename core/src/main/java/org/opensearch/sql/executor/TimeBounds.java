@@ -10,8 +10,8 @@ import javax.annotation.Nullable;
 import lombok.Value;
 
 /**
- * A request-level time range, applying to every source the query reads. Bounds are kept as sent;
- * see {@code OpenSearchStorageEngine} for the formats accepted.
+ * A request-level time range, narrowing the source the query searches. Bounds are kept as sent; see
+ * {@code OpenSearchStorageEngine} for the formats accepted.
  *
  * <p>Reaches the storage engine encoded into the table name -- {@code logs-*} becomes {@code
  * logs-*<@timestamp,t0,t1>} -- as {@code SystemIndexUtils.restTable} does. {@code <} and {@code >}

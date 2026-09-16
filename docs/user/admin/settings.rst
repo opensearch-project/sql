@@ -274,7 +274,7 @@ Three time ranges can reach one query. They do different jobs rather than compet
      - Selects indices
    * - ``where`` on a time field
      - yes
-     - only as in item 1 above
+     - only a range on ``@timestamp``, as above
    * - ``earliest=`` / ``latest=`` in the search command, always on ``@timestamp``
      - yes
      - no
@@ -284,7 +284,7 @@ Three time ranges can reach one query. They do different jobs rather than compet
 
 The two row filters combine: a query may carry both a ``where`` clause and ``earliest=``/``latest=``, and every one of them applies. Neither overrides the other.
 
-The bounds never filter a row, so they have to cover at least what the row filters restrict. A query whose own range is **wider** than the bounds loses rows: the indices outside the bounds are not read, whatever the query text asked for. Keep the bounds equal to or wider than the query's own range -- a client that writes the range into the query should send the same window it wrote.
+The bounds never filter a row, so they have to cover at least what the row filters restrict. A query whose own range is **wider** than the bounds loses rows: the indices outside the bounds are not read, whatever the query text asked for.
 
 A request may also carry a ``pruning`` boolean, which overrides this setting for that request alone. It is there for a client that cannot rely on the setting: a cluster older than 3.9 does not have it, and one newer may have it turned off. Omit it and the cluster setting decides.
 
