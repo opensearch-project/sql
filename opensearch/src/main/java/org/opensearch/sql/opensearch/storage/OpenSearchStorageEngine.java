@@ -11,12 +11,19 @@ import static org.opensearch.sql.utils.SystemIndexUtils.isSystemIndex;
 
 import java.util.Collection;
 import java.util.List;
+import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
+import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.executor.TimeBounds;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.request.IndexPruner;
+import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.storage.rest.RestCatalogSource;
 import org.opensearch.sql.opensearch.storage.rest.RestEndpointRegistry;
 import org.opensearch.sql.opensearch.storage.rest.RestEndpointRegistryHolder;
@@ -28,7 +35,12 @@ import org.opensearch.sql.utils.SystemIndexUtils.RestSpec;
 
 /** OpenSearch storage engine implementation. */
 @RequiredArgsConstructor
+@Log4j2
 public class OpenSearchStorageEngine implements StorageEngine {
+
+  /** Formats a bound may be spelled in. Replaces the field's own; date math applies before them. */
+  private static final String BOUND_FORMATS =
+      "strict_date_optional_time||epoch_millis||yyyy-MM-dd HH:mm:ss.SSS||yyyy-MM-dd HH:mm:ss";
 
   /** OpenSearch client connection. */
   @Getter private final OpenSearchClient client;
@@ -40,15 +52,56 @@ public class OpenSearchStorageEngine implements StorageEngine {
     return List.of(new VectorSearchTableFunctionResolver(client, settings));
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * <p>Narrowed to the time range {@code name} may carry (see {@link TimeBounds}) as the table is
+   * built, since its schema is the merge of what its name resolves to.
+   */
   @Override
   public Table getTable(DataSourceSchemaName dataSourceSchemaName, String name) {
-    if (isRestSource(name)) {
-      return restTable(name);
-    } else if (isSystemIndex(name)) {
-      return new OpenSearchCatalogTable(new SystemIndexCatalogSource(client, name), settings);
+    TimeBounds.Decoded decoded = TimeBounds.decode(name);
+    String tableName = decoded.tableName();
+    if (isRestSource(tableName)) {
+      return restTable(tableName);
+    } else if (isSystemIndex(tableName)) {
+      return new OpenSearchCatalogTable(new SystemIndexCatalogSource(client, tableName), settings);
     } else {
-      return new OpenSearchIndex(client, settings, name);
+      return new OpenSearchIndex(client, settings, prune(tableName, decoded.bounds()));
     }
+  }
+
+  /** {@code name} narrowed to {@code bounds}, or unchanged when pruning is off or declines. */
+  private String prune(String name, @Nullable TimeBounds bounds) {
+    if (bounds == null
+        || !Boolean.TRUE.equals(settings.getSettingValue(Settings.Key.QUERY_PRUNING_ENABLED))) {
+      return name;
+    }
+    return client
+        .getNodeClient()
+        .map(
+            node -> {
+              String pruned =
+                  new IndexPruner(node)
+                      .prune(
+                          new OpenSearchRequest.IndexName(name),
+                          timeRangeQuery(bounds),
+                          bounds.getTimeField())
+                      .toString();
+              if (!pruned.equals(name)) {
+                log.info("Pruned index expression from {} to {}", name, pruned);
+              }
+              return pruned;
+            })
+        .orElse(name);
+  }
+
+  /** The bounds as a range query, kept as sent: the index's own parser reads them. */
+  static QueryBuilder timeRangeQuery(TimeBounds bounds) {
+    return new RangeQueryBuilder(bounds.getTimeField())
+        .gte(bounds.getStart())
+        .lte(bounds.getEnd())
+        .format(BOUND_FORMATS);
   }
 
   private Table restTable(String name) {

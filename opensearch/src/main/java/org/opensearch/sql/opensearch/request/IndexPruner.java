@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.opensearch.action.admin.indices.resolve.ResolveIndexAction;
 import org.opensearch.action.fieldcaps.FieldCapabilitiesRequest;
+import org.opensearch.action.fieldcaps.FieldCapabilitiesResponse;
 import org.opensearch.common.regex.Regex;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.query.BoolQueryBuilder;
@@ -48,15 +49,26 @@ public class IndexPruner {
    * @return expression to read, never null
    */
   public IndexName prune(IndexName indexName, QueryBuilder filter) {
+    return prune(indexName, filter, IMPLICIT_FIELD_TIMESTAMP);
+  }
+
+  /**
+   * As {@link #prune(IndexName, QueryBuilder)}, but ranged on {@code timeField} rather than {@code
+   * @timestamp}. A request-level time range names its own field.
+   *
+   * @param timeField field a range must be on for the expression to be prunable
+   * @return expression to read, never null
+   */
+  public IndexName prune(IndexName indexName, QueryBuilder filter, String timeField) {
     try {
       IndexExpression indexExpr = new IndexExpression(indexName, node);
-      if (!isPrunable(indexExpr, filter)) {
+      if (!isPrunable(indexExpr, containsTimeRange(filter, timeField))) {
         log.info("Index pruning skipped: {}", indexExpr);
         return indexName;
       }
 
-      String[] candidates = indexExpr.probeMatching(filter);
-      if (0 < candidates.length && indexExpr.isPrunedBy(candidates)) {
+      String[] candidates = indexExpr.probeMatching(filter, timeField).getIndices();
+      if (0 < candidates.length && indexExpr.isPrunedBy(candidates.length)) {
         return new IndexName(String.join(",", candidates));
       }
       log.info(
@@ -69,25 +81,26 @@ public class IndexPruner {
     return indexName;
   }
 
-  private static boolean isPrunable(IndexExpression expression, QueryBuilder filter) {
+  private static boolean isPrunable(IndexExpression expression, boolean hasTimeRange) {
     return expression.hasWildcard()
-        && containsTimeRange(filter)
-        // Keep these last: unlike the gates above, they resolve the expression.
+        && hasTimeRange
+        // Last: these resolve the expression. An alias may carry a filter that substituting its
+        // concrete indices would drop.
         && !expression.hasAlias()
         && !expression.hasDataStream();
   }
 
-  static boolean containsTimeRange(QueryBuilder query) {
+  static boolean containsTimeRange(QueryBuilder query, String timeField) {
     if (query instanceof RangeQueryBuilder range) {
-      return IMPLICIT_FIELD_TIMESTAMP.equals(range.fieldName());
+      return timeField.equals(range.fieldName());
     }
     if (query instanceof BoolQueryBuilder bool) {
       return Stream.of(bool.must(), bool.filter(), bool.should())
           .flatMap(List::stream)
-          .anyMatch(IndexPruner::containsTimeRange);
+          .anyMatch(clause -> containsTimeRange(clause, timeField));
     }
     if (query instanceof ConstantScoreQueryBuilder constantScore) {
-      return containsTimeRange(constantScore.innerQuery());
+      return containsTimeRange(constantScore.innerQuery(), timeField);
     }
     return false;
   }
@@ -116,19 +129,19 @@ public class IndexPruner {
       return !resolved().getDataStreams().isEmpty();
     }
 
-    boolean isPrunedBy(String[] candidates) {
-      return candidates.length < resolved().getIndices().size();
+    boolean isPrunedBy(int candidateCount) {
+      return candidateCount < resolved().getIndices().size();
     }
 
-    String[] probeMatching(QueryBuilder filter) {
+    FieldCapabilitiesResponse probeMatching(QueryBuilder filter, String timeField) {
       FieldCapabilitiesRequest request =
           new FieldCapabilitiesRequest()
               .indices(indexName.getIndexNames())
-              .fields(IMPLICIT_FIELD_TIMESTAMP)
+              .fields(timeField)
               .indexFilter(filter)
               // Must expand as the search will, or candidates describe a different index set.
               .indicesOptions(DEFAULT_INDICES_OPTIONS);
-      return node.fieldCaps(request).actionGet(PROBE_TIMEOUT).getIndices();
+      return node.fieldCaps(request).actionGet(PROBE_TIMEOUT);
     }
 
     @Override

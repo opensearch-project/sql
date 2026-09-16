@@ -214,9 +214,14 @@ Version
 Description
 -----------
 
-Prunes a wildcard index expression down to the concrete indices that can hold data in the query's ``@timestamp`` range, so fewer indices and shards are touched. The primary use currently is to avoid exhausting the open point-in-time (PIT) context limit when a query would otherwise open a reader context over many indices. Enabled by default.
+Prunes a wildcard index expression down to the concrete indices that can hold data in the query's time range, so fewer indices and shards are touched. The primary use currently is to avoid exhausting the open point-in-time (PIT) context limit when a query would otherwise open a reader context over many indices. Enabled by default.
 
-Pruning only applies to a wildcard expression whose query filters on a ``@timestamp`` range; anything else is left untouched, and any failure while probing the cluster falls back to querying the full expression. Weigh these limitations before turning it off:
+Pruning needs a time range to prune on. It takes one from either of two places:
+
+1. A range on ``@timestamp`` in the query itself. Nothing to configure -- any query that filters on it is pruned.
+2. The ``start_time`` and ``end_time`` request parameters described below, for a query whose range is not on ``@timestamp``, or whose client would rather state the window than have it inferred.
+
+Anything else is left untouched, and any failure while probing the cluster falls back to querying the full expression. Weigh these limitations before turning it off:
 
 1. An index whose shards are all unavailable is pruned rather than reported, because ``_field_caps`` does not surface per-index failures. Such a query returns fewer rows instead of an error.
 2. Pruning fixes the list of index names, so an index created or deleted between pruning and PIT creation, by a rollover or retention policy for instance, is missed or fails the query. The interval between the two is short, so this is unlikely in practice.
@@ -224,6 +229,72 @@ Pruning only applies to a wildcard expression whose query filters on a ``@timest
 4. Pruning probes the cluster with the ``indices:admin/resolve/index`` and ``indices:data/read/field_caps*`` actions, both granted by the ``ppl_full_access`` role of the security plugin since 3.9. A principal lacking either permission falls back to querying the full expression silently, so pruning simply never takes effect.
 
 Pruning is also skipped when it would not reduce the read, that is when no index is excluded. The query then uses the original wildcard expression and reads exactly the same indices.
+
+Request-level time bounds
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``start_time`` and ``end_time`` declare the window a request is asking about. Both are required, and both are inclusive. ``time_field`` names the field they constrain and defaults to ``@timestamp``; a caller querying an index pattern whose time field is named something else has to give it, or nothing is pruned.
+
+Both accept these literals, whatever format the field itself is mapped with:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 34 66
+
+   * - Literal
+     - Example
+   * - OpenSearch date math
+     - ``now``, ``now-7d``, ``now-1d/d``
+   * - ISO-8601 date and time, zone optional
+     - ``2026-09-14T12:00:00.000Z``, ``2026-09-14T12:00:00+08:00``, ``2026-09-14T12:00:00``
+   * - ISO-8601 date only
+     - ``2026-09-14``
+   * - Epoch **milliseconds**
+     - ``1789329600000``
+   * - Date and time separated by a space
+     - ``2026-09-14 12:00:00.000``, ``2026-09-14 12:00:00``
+
+Epoch seconds are not accepted -- a ten-digit number is read as milliseconds, so ``1789329600`` means January 1970. Anything else, malformed values included, is ignored rather than rejected, and nothing is pruned.
+
+They select indices, not rows: an index wholly outside the window is not read. That happens whether or not the query filters on time, so send them only for a window the query's own ``where`` already restricts -- then every index dropped is one the clause had excluded anyway, and the answer is unchanged.
+
+Only the outermost ``source=`` is narrowed. A ``join``'s other side, a subsearch's source, a ``multisearch`` dataset and a ``lookup``'s dimension table are left alone, because the client's own time filter is not known to constrain them -- narrowing one would drop indices nothing filtered, and so drop rows.
+
+How they rank against the query's own time filters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Three time ranges can reach one query. They do different jobs rather than competing for one:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 18 42
+
+   * - Written as
+     - Filters rows
+     - Selects indices
+   * - ``where`` on a time field
+     - yes
+     - only a range on ``@timestamp``, as above
+   * - ``earliest=`` / ``latest=`` in the search command, always on ``@timestamp``
+     - yes
+     - no
+   * - ``start_time`` / ``end_time``
+     - no
+     - yes
+
+The two row filters combine: a query may carry both a ``where`` clause and ``earliest=``/``latest=``, and every one of them applies. Neither overrides the other.
+
+The bounds never filter a row, so they have to cover at least what the row filters restrict. A query whose own range is **wider** than the bounds loses rows: the indices outside the bounds are not read, whatever the query text asked for.
+
+Request body::
+
+    {
+      "query" : "source=logs-* | where `event_time` >= '2026-09-07 00:00:00.000' and `event_time` <= '2026-09-14 00:00:00.000' | stats count() by span(event_time, 1h)",
+      "time_field" : "event_time",
+      "start_time" : "2026-09-07 00:00:00.000",
+      "end_time" : "2026-09-14 00:00:00.000"
+    }
+
 
 Disable it with::
 
