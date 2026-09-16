@@ -114,3 +114,39 @@ teardown:
         body:
           query: source=test_error_agg | stats count(eval(age)) as cnt
   - match: {"$body": "/[Cc]ondition.*boolean|[Bb]oolean.*expected/"}
+
+---
+"Test wildcard pattern with no matching indices returns 404 with incompatible mapping hint":
+  - skip:
+      features:
+        - headers
+  # Query a wildcard pattern that matches no indices. The plugin should return HTTP 404
+  # with error.code=INDEX_NOT_FOUND and a details message that mentions the pattern and
+  # advises the user to check mapping compatibility.
+  - do:
+      catch: missing
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=no_such_index_errmsg_test_* | fields age
+  - match: { error.code: "INDEX_NOT_FOUND" }
+  - match: { "$body": "/no_such_index_errmsg_test_/" }
+  - match: { "$body": "/compatible mapping/" }
+
+---
+"Test exact index name not found returns 404 without compatible mapping hint":
+  - skip:
+      features:
+        - headers
+  # A plain non-wildcard name that doesn't exist should also return 404/INDEX_NOT_FOUND
+  # but the details should NOT mention "compatible mapping" (that hint is for patterns only).
+  - do:
+      catch: missing
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=no_such_index_errmsg_exact | fields age
+  - match: { error.code: "INDEX_NOT_FOUND" }
+  - match: { "$body": "/no_such_index_errmsg_exact/" }
