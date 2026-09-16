@@ -17,13 +17,14 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import org.junit.Test;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.executor.TimeBounds;
-import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
+import org.opensearch.sql.ppl.AstPlanningTestBase;
 
 /**
- * Which sources the request's time bounds are encoded into. They narrow what the query searches, so
- * a lookup's dimension table is left alone -- it holds a static dataset with no window to speak of.
+ * Which sources the request's time bounds are encoded into: the outermost pipeline's own source,
+ * and nothing else. A secondary source keeps every row -- a client splices its time filter after
+ * the first command only -- so narrowing one would drop indices nothing filtered.
  */
-public class AstTimeBoundsTest {
+public class AstTimeBoundsTest extends AstPlanningTestBase {
 
   private static final TimeBounds BOUNDS = new TimeBounds("ts", "now-7d", "now");
   private static final String ENCODED = "<ts,now-7d,now>";
@@ -34,19 +35,28 @@ public class AstTimeBoundsTest {
   }
 
   @Test
-  public void shouldNarrowEverySourceOfAMultisearch() {
+  public void shouldLeaveAJoinsOtherSideAlone() {
     assertEquals(
-        Set.of("a", "b"), narrowedSources("| multisearch [ search source=a ] [ search source=b ]"));
+        Set.of("logs-*"),
+        narrowedSources("source=logs-* | inner join left=l right=r on l.id = r.id refs-*"));
   }
 
   @Test
-  public void shouldNarrowASubsearchsSource() {
+  public void shouldLeaveASubsearchsSourceAlone() {
     assertEquals(
-        Set.of("outer", "inner"),
-        narrowedSources("source=outer | where a in [ source=inner | fields a ]"));
+        Set.of("outer"), narrowedSources("source=outer | where a in [ source=inner | fields a ]"));
   }
 
-  /** A dimension table, not a searched source: the source is narrowed, the lookup index is not. */
+  /**
+   * No outermost source of its own, so there is nothing a client's time filter is known to cover.
+   */
+  @Test
+  public void shouldNarrowNoDatasetOfAMultisearch() {
+    assertEquals(
+        Set.of(), narrowedSources("| multisearch [ search source=a ] [ search source=b ]"));
+  }
+
+  /** A dimension table, not a searched source. */
   @Test
   public void shouldLeaveALookupTableAlone() {
     String plan = plan("source=logs-* | lookup countries id", BOUNDS);
@@ -76,8 +86,8 @@ public class AstTimeBoundsTest {
   }
 
   private String plan(String query, TimeBounds bounds) {
-    ParseTree cst = new PPLSyntaxParser().parse(query);
-    Node plan = cst.accept(new AstBuilder(query, null, bounds));
+    ParseTree cst = parser.parse(query);
+    Node plan = cst.accept(new AstBuilder(query, settings, bounds));
     return plan.toString();
   }
 }

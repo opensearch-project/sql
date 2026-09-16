@@ -256,7 +256,9 @@ Both accept these literals, whatever format the field itself is mapped with:
 
 Epoch seconds are not accepted -- a ten-digit number is read as milliseconds, so ``1789329600`` means January 1970. Anything else, malformed values included, is ignored rather than rejected, and nothing is pruned.
 
-They select indices, not rows: an index wholly outside the window is not read. Send them only for a window the query's own ``where`` already restricts, on every source it searches -- a ``join``'s other side and a subsearch are narrowed too, a ``lookup``'s dimension table is not.
+They select indices, not rows: an index wholly outside the window is not read. Send them only for a window the query's own ``where`` already restricts.
+
+Only the outermost ``source=`` is narrowed. A ``join``'s other side, a subsearch's source, a ``multisearch`` dataset and a ``lookup``'s dimension table are left alone, because the client's own time filter is not known to constrain them -- narrowing one would drop indices nothing filtered, and so drop rows.
 
 Supported on the Calcite engine. Other engines accept the parameters and ignore them.
 

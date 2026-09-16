@@ -42,6 +42,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -195,6 +196,30 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
       return new Relation(tableSources);
     }
     return new Relation(tableSources.stream().map(this::withTimeBounds).toList());
+  }
+
+  /**
+   * Whether {@code ctx} is the source of the outermost pipeline -- its own {@code source=}, rather
+   * than a join's other side, a subsearch's source, a multisearch dataset or a lookup table.
+   *
+   * <p>Only that source is narrowed by the request's time bounds, because it is the only one a
+   * client's own time filter is known to constrain: Dashboards splices its {@code where} clause
+   * after the first command, so a secondary source keeps every row. Narrowing one anyway would drop
+   * indices nothing filtered, losing rows -- and pruning must never do that. Splunk's picker does
+   * reach a subsearch, but as a row filter on the subsearch itself, which is a different feature
+   * (Approach 2 of #5698) from selecting indices.
+   */
+  private boolean isMainSource(TableSourceClauseContext ctx) {
+    if (!(ctx.getParent() instanceof OpenSearchPPLParser.TableOrSubqueryClauseContext)
+        || !(ctx.getParent().getParent() instanceof OpenSearchPPLParser.FromClauseContext)) {
+      return false;
+    }
+    for (RuleContext parent = ctx.getParent(); parent != null; parent = parent.getParent()) {
+      if (parent instanceof OpenSearchPPLParser.SubSearchContext) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private UnresolvedExpression withTimeBounds(UnresolvedExpression tableSource) {
@@ -1279,11 +1304,9 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   @Override
   public UnresolvedPlan visitTableSourceClause(TableSourceClauseContext ctx) {
-    Relation relation =
-        relation(
-            ctx.tableSource().stream()
-                .map(this::internalVisitExpression)
-                .collect(Collectors.toList()));
+    List<UnresolvedExpression> tableSources =
+        ctx.tableSource().stream().map(this::internalVisitExpression).collect(Collectors.toList());
+    Relation relation = isMainSource(ctx) ? relation(tableSources) : new Relation(tableSources);
     return ctx.alias != null
         ? new SubqueryAlias(internalVisitExpression(ctx.alias).toString(), relation)
         : relation;
@@ -1572,7 +1595,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         datasets.add(visitSubSearch(datasetCtx.subSearch()));
       } else if (datasetCtx.tableSource() != null) {
         datasets.add(
-            relation(Collections.singletonList(internalVisitExpression(datasetCtx.tableSource()))));
+            new Relation(
+                Collections.singletonList(internalVisitExpression(datasetCtx.tableSource()))));
       }
     }
 

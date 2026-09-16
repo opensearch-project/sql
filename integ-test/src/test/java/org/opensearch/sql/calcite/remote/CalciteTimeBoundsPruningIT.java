@@ -144,9 +144,13 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
         executeWithBounds(IN_RANGE + " | stats count()", "no_such_field", FROM, TO), rows(2));
   }
 
-  /** The bounds reach a join's other side, even a wildcard the outer query never names. */
+  /**
+   * A join's other side keeps every row. Nothing filtered it -- a client splices its time filter
+   * after the first command -- so narrowing it would drop rows for a window the query never asked
+   * for.
+   */
   @Test
-  public void shouldApplyTheBoundsToAJoinsOtherSide() throws IOException {
+  public void shouldNotNarrowAJoinsOtherSide() throws IOException {
     String ref = "prune_range_join_ref";
     String refOld = ref + "-old";
     String refNew = ref + "-new";
@@ -163,7 +167,7 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
               + " | fields ref_rows | head 1";
 
       verifyDataRows(executeQuery(query), rows(2));
-      verifyDataRows(executeWithBounds(query, "ts", FROM, TO), rows(1));
+      verifyDataRows(executeWithBounds(query, "ts", FROM, TO), rows(2));
     } finally {
       client().performRequest(new Request("DELETE", "/" + refOld + "," + refNew));
     }
@@ -181,9 +185,9 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
     }
   }
 
-  /** Request-level scope: the bounds reach a subsearch's source too. */
+  /** A subsearch's source keeps every row, for the same reason a join's other side does. */
   @Test
-  public void shouldApplyTheBoundsToASubsearchToo() throws IOException {
+  public void shouldNotNarrowASubsearchsSource() throws IOException {
     String query =
         IN_RANGE
             + " | eval k = 1 | join left=l right=r on l.k = r.k"
@@ -194,7 +198,7 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
             + " | fields out_of_range_rows | head 1";
 
     verifyDataRows(executeQuery(query), rows(1));
-    assertEquals(0, executeWithBounds(query, "ts", FROM, TO).getInt("total"));
+    verifyDataRows(executeWithBounds(query, "ts", FROM, TO), rows(1));
   }
 
   /** A document with no time value is in no window, so its index is pruned. */
