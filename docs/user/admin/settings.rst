@@ -260,6 +260,32 @@ They select indices, not rows: an index wholly outside the window is not read. S
 
 Only the outermost ``source=`` is narrowed. A ``join``'s other side, a subsearch's source, a ``multisearch`` dataset and a ``lookup``'s dimension table are left alone, because the client's own time filter is not known to constrain them -- narrowing one would drop indices nothing filtered, and so drop rows.
 
+How they rank against the query's own time filters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Three time ranges can reach one query. They do different jobs rather than competing for one:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 18 42
+
+   * - Written as
+     - Filters rows
+     - Selects indices
+   * - ``where`` on a time field
+     - yes
+     - only as in item 1 above
+   * - ``earliest=`` / ``latest=`` in the search command, always on ``@timestamp``
+     - yes
+     - no
+   * - ``start_time`` / ``end_time``
+     - no
+     - yes
+
+The two row filters combine: a query may carry both a ``where`` clause and ``earliest=``/``latest=``, and every one of them applies. Neither overrides the other.
+
+The bounds never filter a row, so they have to cover at least what the row filters restrict. A query whose own range is **wider** than the bounds loses rows: the indices outside the bounds are not read, whatever the query text asked for. Keep the bounds equal to or wider than the query's own range -- a client that writes the range into the query should send the same window it wrote.
+
 Supported on the Calcite engine. Other engines accept the parameters and ignore them.
 
 Request body::
