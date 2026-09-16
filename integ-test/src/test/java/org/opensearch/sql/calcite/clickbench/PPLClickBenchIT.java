@@ -35,6 +35,11 @@ public class PPLClickBenchIT extends PPLIntegTestCase {
   public static void reset() throws IOException {
     long total = 0;
     Map<String, Long> map = summary.immutableMap();
+    if (map.isEmpty()) {
+      // Every test in the class was skipped (e.g. capability-gated on the analytics route);
+      // there is nothing to summarize and the average below would divide by zero.
+      return;
+    }
     for (long duration : map.values()) {
       total += duration;
     }
