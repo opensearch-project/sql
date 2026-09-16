@@ -49,6 +49,7 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.agg.CountAsTotalHitsParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
+import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 
 /** OpenSearch search request builder. */
 @Log4j2
@@ -165,7 +166,7 @@ public class OpenSearchRequestBuilder {
 
   private OpenSearchRequest.IndexName pruneIndexName(
       OpenSearchRequest.IndexName indexName, OpenSearchClient client) {
-    if (!Boolean.TRUE.equals(settings.getSettingValue(Settings.Key.QUERY_PRUNING_ENABLED))) {
+    if (!OpenSearchStorageEngine.isPruningEnabled(settings)) {
       return indexName;
     }
 

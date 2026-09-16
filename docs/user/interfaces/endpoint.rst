@@ -326,7 +326,7 @@ Description
 
 ``start_time`` and ``end_time`` tell the engine which time window a request is asking about, and ``time_field`` names the field they constrain. When ``plugins.query.pruning.enabled`` is on, a query over a wildcard index expression then reads only the indices that can hold data in that window, rather than all of them.
 
-Send them only alongside an equivalent filter in the query -- a ``where`` clause on the same field and range. They are not themselves a filter: they exclude whole indices, so a window the query does not also restrict returns fewer rows. They apply to the outermost ``source=`` only. A ``join``'s other side, a subsearch's source, a ``multisearch`` dataset and a ``lookup``'s dimension table are left alone, since the query's own time filter is not known to constrain them.
+Send them only alongside an equivalent filter in the query -- a ``where`` clause on the same field and range. They are not themselves a filter: they exclude whole indices, so a window the query does not also restrict returns fewer rows. A ``pruning`` boolean in the same body overrides ``plugins.query.pruning.enabled`` for that request. They apply to the outermost ``source=`` only. A ``join``'s other side, a subsearch's source, a ``multisearch`` dataset and a ``lookup``'s dimension table are left alone, since the query's own time filter is not known to constrain them.
 
 Both bounds are required and both are inclusive. ``time_field`` defaults to ``@timestamp``, so an index pattern whose time field is named something else has to give it. Accepted literals:
 

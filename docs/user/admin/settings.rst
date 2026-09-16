@@ -286,6 +286,8 @@ The two row filters combine: a query may carry both a ``where`` clause and ``ear
 
 The bounds never filter a row, so they have to cover at least what the row filters restrict. A query whose own range is **wider** than the bounds loses rows: the indices outside the bounds are not read, whatever the query text asked for. Keep the bounds equal to or wider than the query's own range -- a client that writes the range into the query should send the same window it wrote.
 
+A request may also carry a ``pruning`` boolean, which overrides this setting for that request alone. It is there for a client that cannot rely on the setting: a cluster older than 3.9 does not have it, and one newer may have it turned off. Omit it and the cluster setting decides.
+
 Supported on the Calcite engine. Other engines accept the parameters and ignore them.
 
 Request body::

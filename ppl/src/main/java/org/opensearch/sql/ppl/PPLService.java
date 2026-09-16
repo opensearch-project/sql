@@ -213,6 +213,7 @@ public class PPLService {
     AbstractPlan plan = queryExecutionFactory.create(statement, queryListener, explainListener);
     plan.setWarningsSupported(request.warningsSupported());
     plan.setPartialResultOverride(request.partialResult());
+    plan.setPruningOverride(request.pruning());
     return plan;
   }
 }

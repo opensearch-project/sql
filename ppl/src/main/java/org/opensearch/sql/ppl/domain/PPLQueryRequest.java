@@ -37,6 +37,7 @@ public class PPLQueryRequest {
   private static final String START_TIME_FIELD = "start_time";
   private static final String END_TIME_FIELD = "end_time";
   private static final String TIME_FIELD_FIELD = "time_field";
+  private static final String PRUNING_FIELD = "pruning";
   private static final int MAX_HIGHLIGHT_FIELDS = 100;
   private static final int MAX_TAG_ENTRIES = 10;
 
@@ -183,6 +184,19 @@ public class PPLQueryRequest {
       return false;
     }
     return jsonContent.optBoolean(INCLUDE_METADATA_FIELD, false);
+  }
+
+  /**
+   * Per-request index-pruning override, read off the body like the bounds themselves. A client that
+   * cannot rely on the cluster setting -- one talking to a cluster older than it -- states it here.
+   *
+   * @return true or false to force pruning on or off, or null to defer to the cluster setting
+   */
+  public Boolean pruning() {
+    if (jsonContent == null || !jsonContent.has(PRUNING_FIELD)) {
+      return null;
+    }
+    return jsonContent.optBoolean(PRUNING_FIELD);
   }
 
   /**
