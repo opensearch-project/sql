@@ -795,6 +795,26 @@ public enum Capability {
       "Disabling the Calcite engine setting does not fall back to the v2 engine on the"
           + " analytics-engine route; v2-shaped expectations never materialize."),
 
+  /**
+   * Keyword-field equality ({@code =}) case-folds the field value on the analytics-engine route, so
+   * a literal containing uppercase characters silently matches zero documents even when the stored
+   * value is byte-identical (probe-verified: {@code proto = 'TCP'} returns 0 while {@code proto =
+   * 'tcp'} returns all 95 TCP docs whose stored value is {@code TCP}; {@code in ('TCP')} and {@code
+   * like(proto, 'TCP')} match correctly). Wrong-result defect, not an error.
+   */
+  KEYWORD_EQUALS_CASE_FOLD(
+      "Keyword equality (=) case-folds the field on the analytics-engine route: uppercase literals"
+          + " match zero documents while in()/like() match correctly."),
+
+  /**
+   * {@code sort} on an aggregated measure followed by {@code head N} selects different rows among
+   * measure ties at the truncation boundary on the analytics-engine route (the v2/Calcite path
+   * breaks ties deterministically by term).
+   */
+  AGG_MEASURE_TIE_ORDER(
+      "sort on an aggregated measure + head N selects different rows among tied measure values on"
+          + " the analytics-engine route."),
+
   /** Combining the result rows of two or more queries with a SQL set operator. */
   SET_OPERATION("SQL set operations are unsupported.");
 
