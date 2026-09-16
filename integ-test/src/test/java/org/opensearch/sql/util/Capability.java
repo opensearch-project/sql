@@ -777,6 +777,24 @@ public enum Capability {
       "Queries executed through a direct Lucene read path (raw _search / standalone unified-query"
           + " engine) fail on parquet-backed analytics indices (all shards failed)."),
 
+  /**
+   * The {@code flatten} command is a doc-deferred command on the analytics-engine route: struct
+   * field expansion resolves to zero fields (alias-count validation fails) and the flattened output
+   * diverges from the v2/Calcite path.
+   */
+  FLATTEN_COMMAND(
+      "The flatten command is not supported on the analytics-engine route; struct field expansion"
+          + " resolves to zero fields."),
+
+  /**
+   * With the Calcite engine setting disabled, the default route falls back to the v2 engine (v2
+   * response shape); the analytics-engine route always plans through the new engine, so v2-fallback
+   * expectations (schema/row shape) never materialize.
+   */
+  V2_ENGINE_FALLBACK(
+      "Disabling the Calcite engine setting does not fall back to the v2 engine on the"
+          + " analytics-engine route; v2-shaped expectations never materialize."),
+
   /** Combining the result rows of two or more queries with a SQL set operator. */
   SET_OPERATION("SQL set operations are unsupported.");
 

@@ -7,6 +7,7 @@ package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpenSearchDataSourceMetadata;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
+import static org.opensearch.sql.util.Capability.DIRECT_LUCENE_QUERY;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -64,6 +65,7 @@ import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.util.ExecuteOnCallerThreadQueryManager;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * Run PPL with query engine outside OpenSearch cluster. This IT doesn't require our plugin
@@ -97,6 +99,7 @@ public class StandaloneIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DIRECT_LUCENE_QUERY)
   public void testSourceFieldQuery() throws IOException {
     Request request1 = TestUtils.seedDocRequest("test", "1");
     request1.setJsonEntity("{\"name\": \"hello\", \"age\": 20}");

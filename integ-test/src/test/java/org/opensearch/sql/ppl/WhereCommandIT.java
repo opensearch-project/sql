@@ -11,6 +11,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_TIME;
 import static org.opensearch.sql.util.Capability.DYNAMIC_STRING_NO_KEYWORD;
 import static org.opensearch.sql.util.Capability.ID_METADATA;
+import static org.opensearch.sql.util.Capability.QUERY_ERROR_MESSAGE;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -302,6 +303,7 @@ public class WhereCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(QUERY_ERROR_MESSAGE)
   public void testInWithIncompatibleType() {
     Exception e =
         assertThrows(
