@@ -6,12 +6,14 @@
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.util.Capability.FULLTEXT_RELEVANCE_FUNC;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class SettingsIT extends PPLIntegTestCase {
 
@@ -22,6 +24,7 @@ public class SettingsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FULLTEXT_RELEVANCE_FUNC)
   public void testQuerySizeLimit() throws IOException {
     // Default setting, fetch 200 rows from query
     JSONObject result =

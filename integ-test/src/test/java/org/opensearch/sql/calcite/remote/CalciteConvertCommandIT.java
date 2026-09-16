@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.util.Capability.COMPARISON_DELEGATION;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -17,6 +18,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 /** Integration tests for the PPL convert command with Calcite enabled. */
 public class CalciteConvertCommandIT extends PPLIntegTestCase {
@@ -370,6 +372,7 @@ public class CalciteConvertCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(COMPARISON_DELEGATION)
   public void testConvertTimeformatWithWhere() throws IOException {
     JSONObject result =
         executeQuery(

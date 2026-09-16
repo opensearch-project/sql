@@ -8,6 +8,8 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OCCUPATION;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORKER;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORK_INFORMATION;
+import static org.opensearch.sql.util.Capability.HEAD_WITHOUT_STABLE_SORT;
+import static org.opensearch.sql.util.Capability.SUBSEARCH_MAXOUT_IN_SUBQUERY;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -22,6 +24,7 @@ import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
 
@@ -49,6 +52,7 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(HEAD_WITHOUT_STABLE_SORT)
   public void testSimpleExistsSubquery() throws IOException {
     JSONObject result =
         executeQuery(
@@ -86,6 +90,7 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(HEAD_WITHOUT_STABLE_SORT)
   public void testSimpleExistsSubqueryInFilter() throws IOException {
     JSONObject result =
         executeQuery(
@@ -219,6 +224,7 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(HEAD_WITHOUT_STABLE_SORT)
   public void testNestedExistsSubquery() throws IOException {
     JSONObject result =
         executeQuery(
@@ -291,6 +297,7 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(SUBSEARCH_MAXOUT_IN_SUBQUERY)
   public void testSubsearchMaxOut1() throws IOException {
     setSubsearchMaxOut(1);
     JSONObject result =
@@ -308,6 +315,7 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(SUBSEARCH_MAXOUT_IN_SUBQUERY)
   public void testSubsearchMaxOut2() throws IOException {
     setSubsearchMaxOut(2);
     JSONObject result =
@@ -325,6 +333,7 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(SUBSEARCH_MAXOUT_IN_SUBQUERY)
   public void testSubsearchMaxOut3() throws IOException {
     setSubsearchMaxOut(2);
     JSONObject result =
@@ -346,6 +355,7 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(SUBSEARCH_MAXOUT_IN_SUBQUERY)
   public void testSubsearchMaxOut4() throws IOException {
     setSubsearchMaxOut(2);
     JSONObject result =
@@ -366,6 +376,7 @@ public class CalcitePPLExistsSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(SUBSEARCH_MAXOUT_IN_SUBQUERY)
   public void testSubsearchMaxOutUncorrelated() throws IOException {
     setSubsearchMaxOut(1);
     JSONObject result =

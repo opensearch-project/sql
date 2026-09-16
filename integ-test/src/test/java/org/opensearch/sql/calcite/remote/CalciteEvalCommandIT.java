@@ -9,6 +9,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DEEP_NESTED;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TELEMETRY;
 import static org.opensearch.sql.util.Capability.MULTI_VALUE_FIELD_LOAD;
+import static org.opensearch.sql.util.Capability.STRUCT_PARENT_FIELD;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -141,6 +142,7 @@ public class CalciteEvalCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(STRUCT_PARENT_FIELD)
   public void testEvalDottedNameDoesNotDropStructParent() throws IOException {
     // Reviewer's case from PR #5351: assigning a new dotted-path column must not remove the
     // struct-parent column that happens to be a prefix of the eval target.
@@ -162,6 +164,7 @@ public class CalciteEvalCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(STRUCT_PARENT_FIELD)
   public void testEvalDottedNamePreservesStructParent_ImplicitProject() throws IOException {
     // Complementary coverage for the reviewer's case without the explicit trailing projection.
     // With the implicit `fields *` (AllFields) that the PPL parser appends, the downstream

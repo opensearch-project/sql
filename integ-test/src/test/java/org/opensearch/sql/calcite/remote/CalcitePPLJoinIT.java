@@ -9,6 +9,7 @@ import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_HOBBIES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OCCUPATION;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
+import static org.opensearch.sql.util.Capability.JOIN_MAX_OPTION;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonRowsEqualIgnoreOrder;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -27,6 +28,7 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.legacy.TestsConstants;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalcitePPLJoinIT extends PPLIntegTestCase {
 
@@ -1068,6 +1070,7 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(JOIN_MAX_OPTION)
   public void testJoinComparing() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -1136,6 +1139,7 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
   // five would not bound anything, since five already exceeds the three matching rows. The exact
   // count under a cap is asserted in testJoinSubsearchMaxOutOnFilteredSubsearch.
   @Test
+  @RequiresCapability(JOIN_MAX_OPTION)
   public void testJoinSubsearchMaxOut() throws IOException {
     String query =
         String.format(
@@ -1154,6 +1158,7 @@ public class CalcitePPLJoinIT extends PPLIntegTestCase {
   // identically. That makes the capped count exact rather than a bound: 5 left rows times
   // min(cap, 3) retained rows, no matter which rows the cap keeps.
   @Test
+  @RequiresCapability(JOIN_MAX_OPTION)
   public void testJoinSubsearchMaxOutOnFilteredSubsearch() throws IOException {
     String query =
         String.format(

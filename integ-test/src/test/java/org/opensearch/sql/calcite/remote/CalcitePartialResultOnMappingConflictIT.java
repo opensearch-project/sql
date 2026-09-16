@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.opensearch.sql.util.Capability.CROSS_INDEX_INCOMPATIBLE_TYPES;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.TestUtils.createIndexByRestClient;
@@ -21,6 +22,7 @@ import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * End-to-end tests for the partial-result path on a text/keyword mapping conflict. A field mapped
@@ -255,6 +257,7 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(CROSS_INDEX_INCOMPATIBLE_TYPES)
   public void partialResultOnReturnsKeywordSubsetWithWarning() throws IOException {
     setPartialResult(true);
     // Even with the PIT budget crippled, partial mode pushes the aggregation down (size=0), so no
@@ -289,6 +292,7 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(CROSS_INDEX_INCOMPATIBLE_TYPES)
   public void partialResultOnHandlesNestedDottedField() throws IOException {
     setPartialResult(true);
     setPitContextLimit("1");
@@ -314,6 +318,7 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(CROSS_INDEX_INCOMPATIBLE_TYPES)
   public void partialResultOnHandlesEvalDerivedGroupKey() throws IOException {
     setPartialResult(true);
     setPitContextLimit("1");
@@ -338,6 +343,7 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(CROSS_INDEX_INCOMPATIBLE_TYPES)
   public void partialResultOnHandlesMultiFieldExpressionGroupKey() throws IOException {
     setPartialResult(true);
     setPitContextLimit("1");
@@ -363,6 +369,7 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(CROSS_INDEX_INCOMPATIBLE_TYPES)
   public void partialResultKeepsNumericExcludesText() throws IOException {
     setPartialResult(true);
     setPitContextLimit("1");
@@ -386,6 +393,7 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(CROSS_INDEX_INCOMPATIBLE_TYPES)
   public void partialResultKeepsKeywordGroupEvenWhenOutnumbered() throws IOException {
     setPartialResult(true);
     setPitContextLimit("1");
@@ -406,6 +414,7 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(CROSS_INDEX_INCOMPATIBLE_TYPES)
   public void partialResultWarningTruncatesLargeExcludedList() throws IOException {
     setPartialResult(true);
     setPitContextLimit("1");
@@ -425,6 +434,7 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(CROSS_INDEX_INCOMPATIBLE_TYPES)
   public void partialResultRefusedForCsvFormat() throws IOException {
     setPartialResult(true);
     // CSV has no warnings channel, so partial mode must NOT silently drop the text index -- there

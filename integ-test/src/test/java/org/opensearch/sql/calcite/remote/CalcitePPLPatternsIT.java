@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_HDFS_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
+import static org.opensearch.sql.util.Capability.PATTERNS_BRAIN_MODE;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -31,6 +32,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalcitePPLPatternsIT extends PPLIntegTestCase {
   @Override
@@ -260,6 +262,7 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(PATTERNS_BRAIN_MODE)
   public void testBrainLabelMode_ShowNumberedToken() throws IOException {
     JSONObject result =
         executeQuery(
@@ -301,6 +304,7 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(PATTERNS_BRAIN_MODE)
   public void testBrainAggregationMode_NotShowNumberedToken() throws IOException {
     JSONObject result =
         executeQuery(
@@ -333,6 +337,7 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(PATTERNS_BRAIN_MODE)
   public void testBrainAggregationMode_ShowNumberedToken() throws IOException {
     JSONObject result =
         executeQuery(
@@ -394,6 +399,7 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(PATTERNS_BRAIN_MODE)
   public void testBrainAggregationModeWithGroupByClause_ShowNumberedToken() throws IOException {
     JSONObject result =
         executeQuery(
@@ -482,6 +488,7 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(PATTERNS_BRAIN_MODE)
   public void testBrainParseWithUUID_ShowNumberedToken() throws IOException {
     JSONObject result =
         executeQuery(

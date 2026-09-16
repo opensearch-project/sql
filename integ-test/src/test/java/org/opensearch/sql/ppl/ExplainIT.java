@@ -11,6 +11,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OTEL_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TIME_DATA;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
+import static org.opensearch.sql.util.Capability.EXPLAIN_FORMAT;
 import static org.opensearch.sql.util.Capability.MULTI_VALUE_FIELD_LOAD;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 import static org.opensearch.sql.util.MatcherUtils.assertYamlEqualsIgnoreId;
@@ -25,6 +26,7 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.util.RequiresCapability;
 
+@RequiresCapability(EXPLAIN_FORMAT)
 public class ExplainIT extends PPLIntegTestCase {
 
   @Override

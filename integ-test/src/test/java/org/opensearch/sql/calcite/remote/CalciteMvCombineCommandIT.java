@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.util.Capability.MVCOMBINE_ARRAY_AGG;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
 
@@ -49,6 +51,7 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
   // ---------------------------
 
   @Test
+  @RequiresCapability(MVCOMBINE_ARRAY_AGG)
   public void testMvCombine_basicGroupCollapsesToOneRow() throws IOException {
     String q =
         "source="
@@ -79,6 +82,7 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(MVCOMBINE_ARRAY_AGG)
   public void testMvCombine_singleRowGroupStaysSingleRow() throws IOException {
     String q =
         "source="
@@ -99,6 +103,7 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(MVCOMBINE_ARRAY_AGG)
   public void testMvCombine_missingTargetWithinGroup_collapses_nonNullPreserved()
       throws IOException {
     String q =
@@ -127,6 +132,7 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
   // ---------------------------
 
   @Test
+  @RequiresCapability(MVCOMBINE_ARRAY_AGG)
   public void testMvCombine_multipleGroups_producesOneRowPerGroupKey() throws IOException {
     String base =
         "source="

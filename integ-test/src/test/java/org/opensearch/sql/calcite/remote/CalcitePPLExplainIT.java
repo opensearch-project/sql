@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.util.Capability.EXPLAIN_FORMAT;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 
 import java.io.IOException;
@@ -15,8 +16,10 @@ import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 import org.opensearch.sql.ppl.PPLIntegTestCase.GlobalPushdownConfig;
 import org.opensearch.sql.protocol.response.format.Format;
+import org.opensearch.sql.util.RequiresCapability;
 import tools.jackson.databind.ObjectMapper;
 
+@RequiresCapability(EXPLAIN_FORMAT)
 public class CalcitePPLExplainIT extends PPLIntegTestCase {
 
   @Override

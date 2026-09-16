@@ -23,6 +23,7 @@ import org.opensearch.client.Request;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 import org.opensearch.sql.util.RequiresCapability;
 
+@RequiresCapability(MULTI_VALUE_FIELD_LOAD)
 public class CalciteExpandCommandIT extends PPLIntegTestCase {
   @Override
   public void init() throws Exception {

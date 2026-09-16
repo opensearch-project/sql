@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.standalone;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprYearweek;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.formatNow;
 import static org.opensearch.sql.legacy.TestsConstants.*;
+import static org.opensearch.sql.util.Capability.DATETIME_BUILTIN_SCALARS;
 import static org.opensearch.sql.util.MatcherUtils.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 
@@ -34,7 +35,9 @@ import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.legacy.TestUtils;
+import org.opensearch.sql.util.RequiresCapability;
 
+@RequiresCapability(DATETIME_BUILTIN_SCALARS)
 public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   @Override
   public void init() throws IOException {

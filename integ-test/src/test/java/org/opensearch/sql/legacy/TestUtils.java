@@ -554,6 +554,16 @@ public class TestUtils {
    * seeding — a test that later references the id (GET by id, overwrite, delete) has real
    * doc-mutation semantics and must be gated with {@code Capability.DOC_MUTATION} instead.
    */
+  /**
+   * Adapts an inline bulk-request body for the active backend: on the analytics-engine route,
+   * custom {@code _id}s are stripped from {@code index} action lines (the append-only store rejects
+   * them); on the standard route the body is returned unchanged. Public entry point for tests that
+   * build bulk bodies inline instead of loading fixture files.
+   */
+  public static String adaptBulkBody(String bulkBody) {
+    return AnalyticsIndexConfig.stripCustomIds(bulkBody);
+  }
+
   public static Request seedDocRequest(String indexName, String docId) {
     if (AnalyticsIndexConfig.isEnabled()) {
       return new Request("POST", "/" + indexName + "/_doc?refresh=true");

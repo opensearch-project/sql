@@ -9,6 +9,7 @@ import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OCCUPATION;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORKER;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORK_INFORMATION;
+import static org.opensearch.sql.util.Capability.HEAD_WITHOUT_STABLE_SORT;
 import static org.opensearch.sql.util.Capability.SUBSEARCH_MAXOUT_IN_SUBQUERY;
 import static org.opensearch.sql.util.Capability.TEXT_FIELD_EXACT_MATCH;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -55,6 +56,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(HEAD_WITHOUT_STABLE_SORT)
   public void testSelfInSubquery() throws IOException {
     var result =
         executeQuery(
@@ -76,6 +78,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(HEAD_WITHOUT_STABLE_SORT)
   public void testWhereInSubquery() throws IOException {
     JSONObject result =
         executeQuery(
@@ -98,6 +101,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(HEAD_WITHOUT_STABLE_SORT)
   public void testFilterInSubquery() throws IOException {
     JSONObject result =
         executeQuery(
@@ -119,6 +123,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(HEAD_WITHOUT_STABLE_SORT)
   public void testInSubqueryWithParentheses() throws IOException {
     JSONObject result1 =
         executeQuery(
@@ -141,6 +146,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(HEAD_WITHOUT_STABLE_SORT)
   public void testTwoExpressionsInSubquery() throws IOException {
     JSONObject result =
         executeQuery(

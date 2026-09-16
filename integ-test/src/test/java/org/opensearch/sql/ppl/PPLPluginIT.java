@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.util.Capability.QUERY_ERROR_MESSAGE;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -24,6 +25,7 @@ import org.junit.rules.ExpectedException;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
+import org.opensearch.sql.util.RequiresCapability;
 import org.opensearch.sql.util.TestUtils;
 
 public class PPLPluginIT extends PPLIntegTestCase {
@@ -57,6 +59,7 @@ public class PPLPluginIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(QUERY_ERROR_MESSAGE)
   public void testQueryEndpointShouldFailWithNonExistIndex() throws IOException {
     exceptionRule.expect(ResponseException.class);
     exceptionRule.expect(hasProperty("response", statusCode(404)));

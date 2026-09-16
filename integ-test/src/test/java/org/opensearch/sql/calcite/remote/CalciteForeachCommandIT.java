@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.util.Capability.FOREACH_COMMAND;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalciteForeachCommandIT extends PPLIntegTestCase {
 
@@ -84,6 +86,7 @@ public class CalciteForeachCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FOREACH_COMMAND)
   public void testForeachMultivalueMode() throws IOException {
     JSONObject result =
         executeQuery(
@@ -94,6 +97,7 @@ public class CalciteForeachCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FOREACH_COMMAND)
   public void testForeachMultivalueIterPlaceholder() throws IOException {
     JSONObject result =
         executeQuery(
@@ -104,6 +108,7 @@ public class CalciteForeachCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FOREACH_COMMAND)
   public void testForeachAssignmentsUseUpdatedStateInOrder() throws IOException {
     JSONObject result =
         executeQuery(
@@ -115,6 +120,7 @@ public class CalciteForeachCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FOREACH_COMMAND)
   public void testForeachStringItemWithNumericIter() throws IOException {
     JSONObject result =
         executeQuery(
@@ -130,6 +136,7 @@ public class CalciteForeachCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FOREACH_COMMAND)
   public void testForeachJsonArrayMode() throws IOException {
     JSONObject result =
         executeQuery(
@@ -140,6 +147,7 @@ public class CalciteForeachCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FOREACH_COMMAND)
   public void testForeachJsonArrayFunctionWithoutMode() throws IOException {
     JSONObject result =
         executeQuery(
@@ -150,6 +158,7 @@ public class CalciteForeachCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FOREACH_COMMAND)
   public void testForeachJsonArrayStringElements() throws IOException {
     JSONObject result =
         executeQuery(
@@ -160,6 +169,7 @@ public class CalciteForeachCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FOREACH_COMMAND)
   public void testForeachAutoCollectionsMode() throws IOException {
     JSONObject result =
         executeQuery(
@@ -170,6 +180,7 @@ public class CalciteForeachCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FOREACH_COMMAND)
   public void testForeachAutoCollectionsWithoutTarget() throws IOException {
     JSONObject result =
         executeQuery(

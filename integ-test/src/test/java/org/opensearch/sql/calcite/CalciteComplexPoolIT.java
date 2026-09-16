@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite;
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.plugin.rest.RestPPLQueryAction.QUERY_API_ENDPOINT;
+import static org.opensearch.sql.util.Capability.PROFILE_SHAPE;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
@@ -18,6 +19,7 @@ import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * Integration tests for queries dispatched to the complex worker pool. Verifies that queries
@@ -53,6 +55,7 @@ public class CalciteComplexPoolIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(PROFILE_SHAPE)
   public void testComplexPoolProfileIncludesThreadPool() throws IOException {
     // Query with parse to trigger complex pool
     String query =
@@ -74,6 +77,7 @@ public class CalciteComplexPoolIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(PROFILE_SHAPE)
   public void testSimpleQueryUsesWorkerPool() throws IOException {
     // Query without scripts — should use sql-worker pool
     String query = String.format("source=%s | fields account_number | head 1", TEST_INDEX_BANK);

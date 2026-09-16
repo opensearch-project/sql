@@ -11,6 +11,7 @@ import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.DATA_TYPE_NUMERIC
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ALIAS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
+import static org.opensearch.sql.util.Capability.CONSTANT_KEYWORD_TYPE;
 import static org.opensearch.sql.util.Capability.CROSS_INDEX_INCOMPATIBLE_TYPES;
 import static org.opensearch.sql.util.Capability.DOC_MUTATION;
 import static org.opensearch.sql.util.Capability.NESTED_FIELDS;
@@ -209,6 +210,7 @@ public class DataTypeIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(CONSTANT_KEYWORD_TYPE)
   public void test_constant_keyword_data_type() throws Exception {
     String index = "test_constant_keyword";
     try {

@@ -26,14 +26,27 @@ import org.opensearch.test.rest.OpenSearchRestTestCase;
 public class AnalyticsEngineProfileIT extends OpenSearchRestTestCase {
 
   private static final String INDEX = "profile_test";
-  private static boolean initialized = false;
 
   private void ensureSetup() throws IOException {
-    if (initialized) return;
+    // OpenSearchRestTestCase wipes indices between tests, so a static seed-once flag leaves every
+    // test after the first querying a deleted index. Probe the index instead and re-seed when the
+    // wipe removed it.
+    if (indexExists()) return;
     enableCalcite();
     createCompositeIndex();
     ingestData();
-    initialized = true;
+  }
+
+  private boolean indexExists() throws IOException {
+    try {
+      return client()
+              .performRequest(new Request("HEAD", "/" + INDEX))
+              .getStatusLine()
+              .getStatusCode()
+          == 200;
+    } catch (ResponseException e) {
+      return false;
+    }
   }
 
   private void enableCalcite() throws IOException {

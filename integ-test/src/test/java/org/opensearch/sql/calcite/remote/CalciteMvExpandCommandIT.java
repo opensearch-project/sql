@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.util.Capability.MULTI_VALUE_FIELD_LOAD;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -15,7 +16,9 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
+@RequiresCapability(MULTI_VALUE_FIELD_LOAD)
 public class CalciteMvExpandCommandIT extends PPLIntegTestCase {
 
   private static final String INDEX = Index.MVEXPAND_EDGE_CASES.getName();
