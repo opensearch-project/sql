@@ -13,11 +13,9 @@ import lombok.Value;
  * A request-level time range, applying to every source the query reads. Bounds are kept as sent;
  * see {@code OpenSearchStorageEngine} for the formats accepted.
  *
- * <p>Carried to the storage engine encoded into the table name -- {@code logs-*} becomes {@code
- * logs-*<@timestamp,t0,t1>} -- so it reaches every source through the name the query already
- * resolves, rather than a parallel channel down the plan. The same trick as {@code
- * SystemIndexUtils.restTable}. {@code <} and {@code >} are illegal in an index name, so an encoded
- * name cannot collide with one a query could have named.
+ * <p>Reaches the storage engine encoded into the table name -- {@code logs-*} becomes {@code
+ * logs-*<@timestamp,t0,t1>} -- as {@code SystemIndexUtils.restTable} does. {@code <} and {@code >}
+ * are illegal in an index name, so an encoded name cannot collide with one a query could name.
  */
 @Value
 public class TimeBounds {
@@ -53,8 +51,8 @@ public class TimeBounds {
   public record Decoded(String tableName, @Nullable TimeBounds bounds) {}
 
   /**
-   * Splits {@code tableName} back into the name to read and the bounds to narrow it to. A name that
-   * carries none, or carries something unreadable, decodes to itself with no bounds.
+   * The name to read and the bounds to narrow it to. A name carrying none, or something unreadable,
+   * decodes to itself.
    */
   public static Decoded decode(String tableName) {
     if (tableName == null

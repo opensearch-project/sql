@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class TimeBoundsTest {
 
@@ -89,7 +90,7 @@ class TimeBoundsTest {
 
   /** A name no request encoded decodes to itself, so an ordinary query is untouched. */
   @ParameterizedTest(name = "{0}")
-  @org.junit.jupiter.params.provider.ValueSource(
+  @ValueSource(
       strings = {"logs-*", "logs-2026.09", "remote:logs-*", "a,b", "logs-*<broken", "logs-*<a,b>"})
   void shouldLeaveAPlainNameAlone(String tableName) {
     TimeBounds.Decoded decoded = TimeBounds.decode(tableName);

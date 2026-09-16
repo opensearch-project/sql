@@ -55,9 +55,8 @@ public class OpenSearchStorageEngine implements StorageEngine {
   /**
    * {@inheritDoc}
    *
-   * <p>{@code name} may carry a request-level time range (see {@link TimeBounds}); the index
-   * expression is narrowed to it here, as the table is built, since the table's schema is the merge
-   * of what its name resolves to.
+   * <p>Narrowed to the time range {@code name} may carry (see {@link TimeBounds}) as the table is
+   * built, since its schema is the merge of what its name resolves to.
    */
   @Override
   public Table getTable(DataSourceSchemaName dataSourceSchemaName, String name) {

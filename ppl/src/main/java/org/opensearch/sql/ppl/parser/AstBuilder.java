@@ -167,9 +167,7 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    */
   private final String query;
 
-  /**
-   * Request-level time range every source is narrowed to, or null when the request declared none.
-   */
+  /** Time range every source is narrowed to, or null when the request declared none. */
   @Nullable private final TimeBounds timeBounds;
 
   public AstBuilder(String query) {
@@ -188,9 +186,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   /**
-   * A relation over {@code tableSources}, each name carrying the request's time bounds so the
-   * storage engine can narrow it (see {@link TimeBounds}). Every source a query reads goes through
-   * here, a lookup table and a multisearch dataset included.
+   * A relation whose names carry the request's time bounds (see {@link TimeBounds}). Every source a
+   * query reads comes through here, a lookup table and a multisearch dataset included.
    */
   private Relation relation(List<UnresolvedExpression> tableSources) {
     if (timeBounds == null) {
