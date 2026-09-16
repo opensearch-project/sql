@@ -65,6 +65,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   CalcitePPLAppendcolIT.class,
   CalcitePPLAppendCommandIT.class,
   CalcitePPLBasicIT.class,
+  CalciteTimeBoundsPruningIT.class,
   CalcitePPLBuiltinDatetimeFunctionInvalidIT.class,
   CalcitePPLBuiltinFunctionIT.class,
   CalcitePPLBuiltinFunctionsNullIT.class,

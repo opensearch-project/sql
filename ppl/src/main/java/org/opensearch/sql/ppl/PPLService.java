@@ -140,7 +140,7 @@ public class PPLService {
           statement =
               cst.accept(
                   new AstStatementBuilder(
-                      new AstBuilder(queryText, settings),
+                      new AstBuilder(queryText, settings, request.getTimeBounds()),
                       AstStatementBuilder.StatementBuilderContext.builder()
                           .isExplain(false)
                           .fetchSize(request.getFetchSize())
@@ -162,8 +162,9 @@ public class PPLService {
       anonymizedQuerySink.accept(anonymized);
 
       UnresolvedPlan unresolvedPlan = ((Query) statement).getPlan();
-      queryManager.submit(
-          queryExecutionFactory.createAnalyzePlan(unresolvedPlan, PPL_QUERY, listener));
+      AbstractPlan analyzePlan =
+          queryExecutionFactory.createAnalyzePlan(unresolvedPlan, PPL_QUERY, listener);
+      queryManager.submit(analyzePlan);
     } catch (Exception e) {
       listener.onFailure(e);
     }
@@ -186,7 +187,7 @@ public class PPLService {
         statement =
             cst.accept(
                 new AstStatementBuilder(
-                    new AstBuilder(request.getRequest(), settings),
+                    new AstBuilder(request.getRequest(), settings, request.getTimeBounds()),
                     AstStatementBuilder.StatementBuilderContext.builder()
                         .isExplain(request.isExplainRequest())
                         .fetchSize(request.getFetchSize())
