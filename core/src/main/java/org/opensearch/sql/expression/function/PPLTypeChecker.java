@@ -275,11 +275,14 @@ public interface PPLTypeChecker {
     /**
      * Modified from {@link SqlTypeUtil#isComparable(RelDataType, RelDataType)} to
      *
+     * <p>Package-private so the multi-valued-field comparison overloads in {@code
+     * PPLFuncImpTable} can reuse the same comparability rules for an array's element type.
+     *
      * @param type1 first type
      * @param type2 second type
      * @return true if the two types are comparable, false otherwise
      */
-    private static boolean isComparable(RelDataType type1, RelDataType type2) {
+    static boolean isComparable(RelDataType type1, RelDataType type2) {
       if (type1.isStruct() != type2.isStruct()) {
         return false;
       }
