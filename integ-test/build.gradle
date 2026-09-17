@@ -326,7 +326,7 @@ task downloadTestPplFrontendZip(type: Download) {
 }
 
 task downloadAnalyticsBackendLuceneZip(type: Download) {
-    src "${featureBuildBase}/1-analytics-backend-lucene-${pluginVersion}.zip"
+    src "${featureBuildBase}/analytics-backend-lucene-${pluginVersion}.zip"
     dest analyticsBackendLuceneZipDest
     overwrite false
     onlyIfModified true
@@ -334,7 +334,7 @@ task downloadAnalyticsBackendLuceneZip(type: Download) {
 }
 
 task downloadParquetDataFormatZip(type: Download) {
-    src "${featureBuildBase}/1-parquet-data-format-${pluginVersion}.zip"
+    src "${featureBuildBase}/parquet-data-format-${pluginVersion}.zip"
     dest parquetDataFormatZipDest
     overwrite false
     onlyIfModified true
@@ -342,7 +342,7 @@ task downloadParquetDataFormatZip(type: Download) {
 }
 
 task downloadCompositeEngineZip(type: Download) {
-    src "${featureBuildBase}/1-composite-engine-${pluginVersion}.zip"
+    src "${featureBuildBase}/2-composite-engine-${pluginVersion}.zip"
     dest compositeEngineZipDest
     overwrite false
     onlyIfModified true
@@ -350,7 +350,7 @@ task downloadCompositeEngineZip(type: Download) {
 }
 
 task downloadAnalyticsBackendDatafusionZip(type: Download) {
-    src "${featureBuildBase}/1-analytics-backend-datafusion-${pluginVersion}.zip"
+    src "${featureBuildBase}/analytics-backend-datafusion-${pluginVersion}.zip"
     dest analyticsBackendDatafusionZipDest
     overwrite false
     onlyIfModified true

@@ -1,4 +1,4 @@
-name: Analytics Engine Compatibility
+name: Analytics Engine ITs
 
 on:
   pull_request:
@@ -42,3 +42,7 @@ jobs:
         run: |
           chown -R 1000:1000 `pwd`
           su `id -un 1000` -c "./gradlew :integ-test:analyticsEngineCompatIT"
+
+      - name: Run analytics-engine security IT
+        run: |
+          su `id -un 1000` -c "./gradlew :integ-test:analyticsEngineSecurityIT"
