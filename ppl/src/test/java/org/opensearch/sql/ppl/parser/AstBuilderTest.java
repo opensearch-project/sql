@@ -82,10 +82,12 @@ import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.MakeResults;
+import org.opensearch.sql.ast.tree.Multikv;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Xyseries;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings.Key;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.AstPlanningTestBase;
 import org.opensearch.sql.utils.SystemIndexUtils;
@@ -1203,6 +1205,52 @@ public class AstBuilderTest extends AstPlanningTestBase {
   public void testMakeResultsCommand() {
     assertEqual("makeresults", new MakeResults(1));
     assertEqual("makeresults count=5", new MakeResults(5));
+  }
+
+  @Test
+  public void testMultikvCommand() {
+    assertEqual(
+        "source=t | multikv fields CPU pctIdle",
+        new Multikv("_raw", Arrays.asList(field("CPU"), field("pctIdle")), null, null, false, true)
+            .attach(relation("t")));
+    assertEqual(
+        "source=t | multikv fields endpoint forceheader=2",
+        new Multikv("_raw", Arrays.asList(field("endpoint")), null, 2, false, true)
+            .attach(relation("t")));
+    assertEqual(
+        "source=t | multikv noheader=true",
+        new Multikv("_raw", null, null, null, true, true).attach(relation("t")));
+    assertEqual(
+        "source=t | multikv field=message fields CPU",
+        new Multikv("message", Arrays.asList(field("CPU")), null, null, false, true)
+            .attach(relation("t")));
+  }
+
+  @Test
+  public void testMultikvCommandWithTypedFields() {
+    assertEqual(
+        "source=t | multikv fields pctIdle:long",
+        new Multikv(
+                "_raw",
+                Arrays.asList(field("pctIdle")),
+                Arrays.asList(ExprCoreType.LONG),
+                null,
+                null,
+                false,
+                true)
+            .attach(relation("t")));
+    // an undeclared column keeps a null slot alongside the typed ones
+    assertEqual(
+        "source=t | multikv field=message fields CPU pctIdle:long ratio:double",
+        new Multikv(
+                "message",
+                Arrays.asList(field("CPU"), field("pctIdle"), field("ratio")),
+                Arrays.asList(null, ExprCoreType.LONG, ExprCoreType.DOUBLE),
+                null,
+                null,
+                false,
+                true)
+            .attach(relation("t")));
   }
 
   @Test

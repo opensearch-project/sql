@@ -76,7 +76,8 @@
     "user/ppl/cmd/table.md",
     "user/ppl/cmd/convert.md",
     "user/ppl/cmd/expand.md",
-    "user/ppl/cmd/flatten.md"
+    "user/ppl/cmd/flatten.md",
+    "user/ppl/cmd/multikv.md"
   ],
   "sql_cli": [
     "user/dql/expressions.rst",
