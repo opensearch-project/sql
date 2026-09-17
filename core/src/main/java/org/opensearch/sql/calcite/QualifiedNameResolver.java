@@ -182,12 +182,42 @@ public class QualifiedNameResolver {
     List<Set<String>> inputFieldNames = collectInputFieldNames(context, inputCount);
 
     List<String> parts = nameNode.getParts();
+    Optional<RexNode> resolved = resolveFromParts(parts, context, inputCount, inputFieldNames);
+    if (resolved.isPresent()) {
+      return resolved;
+    }
+    // A quoted identifier that contains dots (`cluster.name`) is a single part, so the walk above
+    // has
+    // nothing to descend and only matches a column literally called that. Vanilla flattens objects,
+    // so
+    // there such a column really exists; where an object is a struct instead, the same name means
+    // the
+    // path into it. Split and retry, but only after the literal lookup failed, so a column
+    // named
+    // with dots still wins.
+    List<String> split = new ArrayList<>(parts.size());
+    for (String part : parts) {
+      split.addAll(List.of(part.split("\\.")));
+    }
+    if (split.size() != parts.size()) {
+      return resolveFromParts(split, context, inputCount, inputFieldNames);
+    }
+    return Optional.empty();
+  }
+
+  /**
+   * Longest-prefix match over {@code parts}, descending whatever is left into the matched field.
+   */
+  private static Optional<RexNode> resolveFromParts(
+      List<String> parts,
+      CalcitePlanContext context,
+      int inputCount,
+      List<Set<String>> inputFieldNames) {
     for (int length = parts.size(); 1 <= length; length--) {
       String fieldName = joinParts(parts, 0, length);
-      log.debug("resolveFieldWithoutAlias() trying fieldName={} with length={}", fieldName, length);
+      log.debug("resolveFromParts() trying fieldName={} with length={}", fieldName, length);
 
       int foundInput = findInputContainingFieldName(inputCount, inputFieldNames, fieldName);
-      log.debug("resolveFieldWithoutAlias() foundInput={}", foundInput);
       if (foundInput != -1) {
         RexNode fieldNode = context.relBuilder.field(inputCount, foundInput, fieldName);
         return Optional.of(resolveFieldAccess(context, parts, 0, length, fieldNode));
@@ -287,16 +317,38 @@ public class QualifiedNameResolver {
             });
   }
 
+  /**
+   * Resolves the path segments left over after {@code field} was matched.
+   *
+   * <p>A ROW is descended one segment at a time with Calcite's native field access, which is how a
+   * struct is referenced: {@code $1.location.latitude} is two accesses, each typed by the child it
+   * reads. Anything else keeps the whole remainder as a single {@code ITEM} key, which is right for
+   * a MAP: a vanilla {@code object} is typed {@code MAP<VARCHAR, ANY>} because vanilla stores
+   * objects flattened, so {@code city.location.latitude} genuinely is one key there.
+   *
+   * <p>Joining the remainder unconditionally, as this did before, produced {@code ITEM($city,
+   * 'location.latitude')} for a real nested struct. {@code SqlItemOperator} looks a dotted key up
+   * as one field name, finds nothing, and throws {@code AssertionError: Cannot infer type of field
+   * ... within ROW type}. Being an Error it escapes the {@code catch (Exception)} in the resolve
+   * loop and surfaces as a 500. That made every struct path deeper than one segment unreachable.
+   */
   private static RexNode resolveFieldAccess(
       CalcitePlanContext context, List<String> parts, int start, int length, RexNode field) {
-    if (length == parts.size() - start) {
-      return field;
-    } else {
-      int remainingStart = length + start;
-      int remainingLength = parts.size() - remainingStart;
-      String itemName = joinParts(parts, remainingStart, remainingLength);
-      return createItemAccess(field, itemName, context);
+    int remaining = length + start;
+    RexNode current = field;
+    while (remaining < parts.size() && current.getType().isStruct()) {
+      RelDataTypeField child = current.getType().getField(parts.get(remaining), false, false);
+      if (child == null) {
+        break;
+      }
+      current = context.rexBuilder.makeFieldAccess(current, child.getIndex());
+      remaining++;
     }
+    if (remaining == parts.size()) {
+      return current;
+    }
+    return createItemAccess(
+        current, joinParts(parts, remaining, parts.size() - remaining), context);
   }
 
   private static RexNode createItemAccess(
