@@ -513,6 +513,7 @@ task pplAsyncLargeDataDemo(type: RestIntegTestTask) {
     systemProperty 'tests.security.manager', 'false'
     systemProperty 'project.root', project.projectDir.absolutePath
     systemProperty 'defaultQuerySizeLimit', '1000000'
+    systemProperty 'ppl.demo.rows', System.getProperty('ppl.demo.rows', '4000000')
 
     testLogging {
         events "passed", "skipped", "failed"

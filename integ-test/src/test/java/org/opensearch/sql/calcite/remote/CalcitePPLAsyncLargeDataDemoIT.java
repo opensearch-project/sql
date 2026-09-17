@@ -9,10 +9,12 @@ import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Stream;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
@@ -30,12 +32,19 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
  * integ-test/build/reports/ppl-async-large-data-demo}.
  */
 public class CalcitePPLAsyncLargeDataDemoIT extends PPLIntegTestCase {
-  private static final String INDEX = "ppl_async_large_data_demo";
+  private static final String INDEX = "logs-00001";
+  private static final String INDEX_TEMPLATE = "log-template";
   private static final int ROW_COUNT = Integer.getInteger("ppl.demo.rows", 4_000_000);
   private static final int SHARD_COUNT = 12;
   private static final int SEARCH_PAGE_SIZE = 10_000;
   private static final int BULK_BATCH_SIZE = 10_000;
-  private static final int APPEND_RESULT_COUNT = 250_000;
+  private static final int PRODUCT_COUNT = 10_000;
+  private static final int CLUSTER_COUNT = 1_000;
+  private static final long TIME_BUCKET_MILLIS = 30_000L;
+  private static final long TIMESTAMP_STEP_MILLIS = 100L;
+  private static final long BASE_TIMESTAMP_MILLIS =
+      Instant.parse("2025-09-04T16:00:00Z").toEpochMilli();
+  private static final int APPEND_RESULT_COUNT = Math.min(250_000, ROW_COUNT);
   private static final int RESPONSE_COUNT = 10_000;
   private static final long MIN_HEAP_BYTES = 16L * 1024 * 1024 * 1024;
   private static final Path REPORT_DIRECTORY =
@@ -56,10 +65,10 @@ public class CalcitePPLAsyncLargeDataDemoIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void testFiveQueryPatternsMatchSynchronousResults() throws Exception {
-    Files.createDirectories(REPORT_DIRECTORY);
+  public void testSixOtelQueryPatternsMatchSynchronousResults() throws Exception {
+    prepareReportDirectory();
     assertClusterHeap();
-    createLargeIndex();
+    createOtelLogIndex();
 
     List<QueryPattern> patterns =
         List.of(
@@ -67,9 +76,9 @@ public class CalcitePPLAsyncLargeDataDemoIT extends PPLIntegTestCase {
                 "rex_append",
                 String.format(
                     Locale.ROOT,
-                    "source=%s | where event_id %% 16 = 0"
-                        + " | rex field=email \"(?<user>[^@]+)@(?<domain>.+)\""
-                        + " | fields event_id, email, user, domain"
+                    "source=%s"
+                        + " | rex field=body \"level[^a-z]+(?<loglevel>error|warn|info)\""
+                        + " | fields `@timestamp`, severityText, body, loglevel"
                         + " | head %d",
                     INDEX,
                     APPEND_RESULT_COUNT),
@@ -82,10 +91,10 @@ public class CalcitePPLAsyncLargeDataDemoIT extends PPLIntegTestCase {
                 String.format(
                     Locale.ROOT,
                     "source=%s"
-                        + " | stats sum(event_id %% 1000) as sum_mod_1000,"
-                        + " avg(event_id %% 997) as avg_mod_997,"
-                        + " max(event_id %% 991) as max_mod_991,"
-                        + " min(event_id %% 983) as min_mod_983",
+                        + " | stats sum(`attributes.obs_body_length`) as total_body_bytes,"
+                        + " avg(severityNumber) as avg_severity,"
+                        + " max(flags) as max_flags,"
+                        + " min(severityNumber) as min_severity",
                     INDEX),
                 "REPLACE",
                 true,
@@ -95,40 +104,56 @@ public class CalcitePPLAsyncLargeDataDemoIT extends PPLIntegTestCase {
                 "composite_post_processing",
                 String.format(
                     Locale.ROOT,
-                    "source=%s | stats count() as total by group_id"
+                    "source=%s"
+                        + " | stats count() as total by `resource.attributes.productid`"
                         + " | eval doubled = total * 2"
-                        + " | fields group_id, total, doubled",
+                        + " | fields `resource.attributes.productid`, total, doubled",
                     INDEX),
                 "REPLACE",
                 true,
                 false,
-                10_000),
+                Math.min(PRODUCT_COUNT, ROW_COUNT)),
             new QueryPattern(
                 "eventstats_blocking",
                 String.format(
                     Locale.ROOT,
-                    "source=%s | rex field=email \"(?<domain>[^@]+)@(?<maildomain>.+)\""
-                        + " | eventstats count() as group_count by group_id"
-                        + " | where event_id %% 1000 = 0"
-                        + " | fields event_id, group_id, maildomain, group_count",
+                    "source=%s"
+                        + " | rex field=body"
+                        + " \"caller[^a-z]+(?<caller>[a-z]+/[a-z]+[.]go)\""
+                        + " | eventstats count() as product_log_count"
+                        + " by `resource.attributes.productid`"
+                        + " | where severityText = 'ERROR'"
+                        + " | fields `@timestamp`, severityText,"
+                        + " `resource.attributes.productid`,"
+                        + " `attributes.cluster.name`, caller, product_log_count",
                     INDEX),
                 "REPLACE",
                 false,
                 false,
-                ROW_COUNT / 1_000),
+                divideRoundingUp(ROW_COUNT, 1_000)),
             new QueryPattern(
                 "sort_blocking",
                 String.format(
                     Locale.ROOT,
-                    "source=%s | rex field=email \"(?<domain>example[0-9]+[.]com)\""
-                        + " | where domain = 'example000.com'"
-                        + " | sort - event_id"
-                        + " | fields event_id, email, domain",
+                    "source=%s"
+                        + " | where `attributes.cluster.name` ="
+                        + " 'xyz-cluster0-ci-prod-us-east-1'"
+                        + " | sort - `@timestamp`"
+                        + " | fields `@timestamp`, severityText, body,"
+                        + " `attributes.cluster.name`",
                     INDEX),
                 "REPLACE",
                 false,
                 true,
-                ROW_COUNT / 1_000));
+                divideRoundingUp(ROW_COUNT, CLUSTER_COUNT)),
+            new QueryPattern(
+                "timespan_aggregation",
+                String.format(
+                    Locale.ROOT, "source=%s | stats count() by span(@timestamp, 30s)", INDEX),
+                "REPLACE",
+                true,
+                false,
+                timeBucketCount()));
 
     List<PatternResult> results = new ArrayList<>();
     for (QueryPattern pattern : patterns) {
@@ -363,10 +388,65 @@ public class CalcitePPLAsyncLargeDataDemoIT extends PPLIntegTestCase {
             });
   }
 
-  private void createLargeIndex() throws Exception {
+  private void createOtelLogIndex() throws Exception {
     Request delete = new Request("DELETE", "/" + INDEX);
     delete.addParameter("ignore_unavailable", "true");
     client().performRequest(delete);
+
+    Request template = new Request("PUT", "/_index_template/" + INDEX_TEMPLATE);
+    template.setJsonEntity(
+        """
+        {
+          "index_patterns": ["logs-*"],
+          "priority": 100,
+          "template": {
+            "settings": {
+              "number_of_shards": 1,
+              "number_of_replicas": 1
+            },
+            "mappings": {
+              "dynamic_templates": [
+                {
+                  "resource_attributes": {
+                    "path_match": "resource.attributes.*",
+                    "mapping": {"type": "keyword"},
+                    "match_mapping_type": "string"
+                  }
+                },
+                {
+                  "attributes": {
+                    "path_match": "attributes.*",
+                    "mapping": {"type": "keyword"},
+                    "match_mapping_type": "string"
+                  }
+                }
+              ],
+              "properties": {
+                "traceId": {"type": "keyword"},
+                "flags": {"type": "byte"},
+                "severityNumber": {"type": "integer"},
+                "body": {"norms": false, "type": "text"},
+                "serviceName": {"type": "keyword"},
+                "schemaUrl": {"type": "keyword"},
+                "spanId": {"type": "keyword"},
+                "@timestamp": {"type": "date"},
+                "severityText": {"type": "keyword"},
+                "@version": {"type": "keyword"},
+                "attributes": {
+                  "type": "object",
+                  "properties": {
+                    "time": {"enabled": false, "type": "object"}
+                  }
+                },
+                "time": {"type": "date"},
+                "observedTimestamp": {"type": "date"},
+                "log": {"type": "keyword"}
+              }
+            }
+          }
+        }
+        """);
+    Assert.assertEquals(200, client().performRequest(template).getStatusLine().getStatusCode());
 
     Request create = new Request("PUT", "/" + INDEX);
     create.setJsonEntity(
@@ -379,13 +459,6 @@ public class CalcitePPLAsyncLargeDataDemoIT extends PPLIntegTestCase {
                 "number_of_replicas": 0,
                 "refresh_interval": "-1",
                 "index.max_result_window": %d
-              },
-              "mappings": {
-                "properties": {
-                  "event_id": {"type": "integer"},
-                  "group_id": {"type": "integer"},
-                  "email": {"type": "keyword"}
-                }
               }
             }
             """,
@@ -396,18 +469,9 @@ public class CalcitePPLAsyncLargeDataDemoIT extends PPLIntegTestCase {
     long startNanos = System.nanoTime();
     for (int start = 0; start < ROW_COUNT; start += BULK_BATCH_SIZE) {
       int end = Math.min(ROW_COUNT, start + BULK_BATCH_SIZE);
-      StringBuilder body = new StringBuilder((end - start) * 120);
-      for (int eventId = start; eventId < end; eventId++) {
-        body.append("{\"index\":{}}\n")
-            .append(
-                String.format(
-                    Locale.ROOT,
-                    "{\"event_id\":%d,\"group_id\":%d,"
-                        + "\"email\":\"user%07d@example%03d.com\"}%n",
-                    eventId,
-                    eventId % 10_000,
-                    eventId,
-                    eventId % 1_000));
+      StringBuilder body = new StringBuilder((end - start) * 1_024);
+      for (int documentId = start; documentId < end; documentId++) {
+        appendOtelDocument(body, documentId);
       }
       Request bulk = new Request("POST", "/" + INDEX + "/_bulk");
       bulk.setJsonEntity(body.toString());
@@ -421,6 +485,101 @@ public class CalcitePPLAsyncLargeDataDemoIT extends PPLIntegTestCase {
         ROW_COUNT,
         SHARD_COUNT,
         elapsedMillis(startNanos));
+  }
+
+  private static void appendOtelDocument(StringBuilder bulkBody, int documentId) {
+    int productId = documentId % PRODUCT_COUNT;
+    int clusterId = documentId % CLUSTER_COUNT;
+    int severityNumber = documentId % 24;
+    String severityText =
+        documentId % 1_000 == 0 ? "ERROR" : documentId % 100 == 0 ? "WARN" : "INFO";
+    String logLevel = severityText.toLowerCase(Locale.ROOT);
+    String timestamp =
+        Instant.ofEpochMilli(BASE_TIMESTAMP_MILLIS + documentId * TIMESTAMP_STEP_MILLIS).toString();
+
+    bulkBody
+        .append("{\"index\":{}}\n")
+        .append("{\"traceId\":\"\",")
+        .append("\"instrumentationScope\":{\"droppedAttributesCount\":0},")
+        .append("\"resource\":{\"droppedAttributesCount\":0,\"attributes\":{")
+        .append("\"log_type\":\"EKS_node\",")
+        .append("\"k8s_label.productid\":\"pr")
+        .append(123_456 + productId)
+        .append("\",")
+        .append("\"k8s_label.sourcetype\":\"unknown\",")
+        .append("\"productid\":\"pr")
+        .append(123_456 + productId)
+        .append("\",")
+        .append("\"k8s.platform\":\"EKS\",")
+        .append("\"k8s_label.criticality_code\":\"99\",")
+        .append("\"k8s.cluster.business.unit\":\"bu\",")
+        .append("\"criticality_code\":\"5\",")
+        .append("\"sourcetype\":\"unknown\",")
+        .append("\"log_tier\":\"standard\",")
+        .append("\"applicationid\":\"ap")
+        .append(123_456 + productId)
+        .append("\",")
+        .append("\"obs_namespace\":\"defaultv1\"},\"schemaUrl\":\"\"},")
+        .append("\"flags\":")
+        .append(documentId % 4)
+        .append(',')
+        .append("\"severityNumber\":")
+        .append(severityNumber)
+        .append(',')
+        .append("\"schemaUrl\":\"\",\"spanId\":\"\",")
+        .append("\"severityText\":\"")
+        .append(severityText)
+        .append("\",")
+        .append("\"attributes\":{")
+        .append("\"cluster.name\":\"xyz-cluster")
+        .append(clusterId)
+        .append("-ci-prod-us-east-1\",")
+        .append("\"cluster.region\":\"us-east-1\",")
+        .append("\"log.file.path\":\"/var/log/xyz/abc.log\",")
+        .append("\"cluster.env\":\"prod\",")
+        .append("\"obs_body_length\":")
+        .append(146 + documentId % 64)
+        .append("},")
+        .append("\"time\":\"")
+        .append(timestamp)
+        .append("\",\"droppedAttributesCount\":0,")
+        .append("\"observedTimestamp\":\"")
+        .append(timestamp)
+        .append("\",\"@timestamp\":\"")
+        .append(timestamp)
+        .append("\",\"body\":\"{\\\"msg\\\":\\\"Error finding unassigned IPs for ENI eni-")
+        .append(documentId)
+        .append("\\\",\\\"caller\\\":\\\"network/eni.go:702\\\",\\\"level\\\":\\\"")
+        .append(logLevel)
+        .append("\\\",\\\"ts\\\":\\\"")
+        .append(timestamp)
+        .append("\\\"}\",\"log\":null}\n");
+  }
+
+  private static int divideRoundingUp(int dividend, int divisor) {
+    return (dividend + divisor - 1) / divisor;
+  }
+
+  private static int timeBucketCount() {
+    if (ROW_COUNT == 0) {
+      return 0;
+    }
+    return (int) (((ROW_COUNT - 1L) * TIMESTAMP_STEP_MILLIS) / TIME_BUCKET_MILLIS + 1);
+  }
+
+  private static void prepareReportDirectory() throws Exception {
+    Files.createDirectories(REPORT_DIRECTORY);
+    try (Stream<Path> files = Files.list(REPORT_DIRECTORY)) {
+      files.filter(Files::isRegularFile).forEach(CalcitePPLAsyncLargeDataDemoIT::deleteReportFile);
+    }
+  }
+
+  private static void deleteReportFile(Path path) {
+    try {
+      Files.delete(path);
+    } catch (Exception exception) {
+      throw new IllegalStateException("Unable to delete stale demo report " + path, exception);
+    }
   }
 
   private JSONObject perform(Request request) throws Exception {
