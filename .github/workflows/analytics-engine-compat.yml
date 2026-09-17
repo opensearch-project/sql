@@ -60,6 +60,27 @@ jobs:
           chown -R 1000:1000 `pwd`
           su `id -un 1000` -c "./gradlew :integ-test:analyticsEngineCompatIT"
 
+      - name: Debug resolved OpenSearch base distribution
+        if: always()
+        run: |
+          echo "=== resolved base OpenSearch server jar(s) and their build commit/date ==="
+          find "$HOME" /root /home -type f \
+            -path "*transforms*/opensearch-*-linux-x64.tar.gz/opensearch-*/lib/opensearch-*.jar" 2>/dev/null \
+            | grep -E "opensearch-[0-9]" | grep -viE "cli|core|common|x-content|geo|secure-sm|compress|dataformat|plugin-classloader" \
+            | while read -r j; do
+                echo "--- $j ---"
+                unzip -p "$j" META-INF/MANIFEST.MF 2>/dev/null | grep -E "Change:|Build-Date:" || true
+                echo "PreparableOneMerge present: $(unzip -l "$j" 2>/dev/null | grep -c PreparableOneMerge)"
+              done
+          echo "=== also scan the assembled testcluster distro on disk ==="
+          find integ-test/build/testclusters -path "*distro*/lib/opensearch-*.jar" 2>/dev/null \
+            | grep -viE "cli|core|common|x-content|geo|secure-sm|compress|dataformat|plugin-classloader" \
+            | while read -r j; do
+                echo "--- $j ---"
+                unzip -p "$j" META-INF/MANIFEST.MF 2>/dev/null | grep -E "Change:|Build-Date:" || true
+                echo "PreparableOneMerge present: $(unzip -l "$j" 2>/dev/null | grep -c PreparableOneMerge)"
+              done
+
       - name: Run analytics-engine security IT
         run: |
           su `id -un 1000` -c "./gradlew :integ-test:analyticsEngineSecurityIT"
@@ -67,3 +88,7 @@ jobs:
       - name: Run analytics-engine profile IT
         run: |
           su `id -un 1000` -c "./gradlew :integ-test:analyticsEngineProfileIT"
+
+      - name: Run analytics-engine multi-value IT
+        run: |
+          su `id -un 1000` -c "./gradlew :integ-test:analyticsEngineMultiValueIT"

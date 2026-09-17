@@ -915,6 +915,12 @@ integTest {
     // Exclude tests that require the analytics engine plugin stack (run separately via dedicated tasks)
     exclude 'org/opensearch/sql/analytics/AnalyticsEngineProfileIT.class'
 
+    // Multi-value keyword ITs need the composite/parquet analytics-engine cluster; they run in the
+    // dedicated :analyticsEngineMultiValueIT task. Running them here (plain integTest cluster has no
+    // composite data format) fails at index creation with "unknown setting [index.composite.*]".
+    exclude 'org/opensearch/sql/calcite/remote/CalciteMultiValueKeywordOperatorIT.class'
+    exclude 'org/opensearch/sql/calcite/remote/CalciteMultiValueDistributedIT.class'
+
     exclude 'org/opensearch/sql/calcite/tracing/**'
 
     // Explain IT is dependent on internal implementation of old engine so it's not necessary
@@ -1596,4 +1602,58 @@ task integTestRemote(type: RestIntegTestTask) {
     // externally provided cluster, so these suites cannot pass here. integTest still covers them.
     exclude 'org/opensearch/sql/datasource/DataSourceAPIsIT.class'
     exclude 'org/opensearch/sql/datasource/DataSourceEnabledIT.class'
+}
+
+// ── Multi-value PPL-operator IT: runs CalciteMultiValueKeywordOperatorIT against the full
+// analytics-engine stack (composite + parquet + datafusion), so the stock PPL multi-value
+// operators (mvjoin/mvindex/mvfind/mvdedup/mvappend/array_length/mvexpand) execute on the AE path
+// against a multi_value keyword field rather than the sql plugin's Lucene pushdown.
+// Pass -PnativeLibPath=/abs/release/ for the DataFusion native library.
+task analyticsEngineMultiValueIT(type: RestIntegTestTask) {
+    dependsOn downloadAnalyticsEngineZip, downloadArrowFlightRpcZip, downloadArrowBaseZip, downloadAnalyticsBackendLuceneZip, downloadParquetDataFormatZip, downloadCompositeEngineZip, downloadAnalyticsBackendDatafusionZip
+    dependsOn downloadNativeLib
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+
+    systemProperty 'tests.security.manager', 'false'
+
+    filter {
+        includeTestsMatching 'org.opensearch.sql.calcite.remote.CalciteMultiValueKeywordOperatorIT'
+        includeTestsMatching 'org.opensearch.sql.calcite.remote.CalciteMultiValueDistributedIT'
+    }
+
+    // Surface per-test results in the CI log so this suite's execution is visible (these AE ITs
+    // historically never ran in CI — a silent gap; explicit logging guards against regressing to it).
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+    }
+    afterTest { desc, result ->
+        logger.quiet "${desc.className}.${desc.name}: ${result.resultType} ${(result.getEndTime() - result.getStartTime())/1000}s"
+    }
+}
+
+testClusters.analyticsEngineMultiValueIT {
+    testDistribution = 'archive'
+    plugin(getJobSchedulerPlugin())
+    plugin(getArrowBasePlugin())
+    plugin(getArrowFlightRpcPlugin())
+    plugin(getAnalyticsEnginePlugin())
+    plugin(getCompositeEnginePlugin())
+    plugin(getParquetDataFormatPlugin())
+    plugin(getAnalyticsBackendLucenePlugin())
+    plugin(getAnalyticsBackendDatafusionPlugin())
+    plugin ":opensearch-sql-plugin"
+    // Arrow Flight / streaming transport requirements
+    jvmArgs '--add-opens=java.base/java.nio=ALL-UNNAMED'
+    jvmArgs '--enable-native-access=ALL-UNNAMED'
+    systemProperty 'io.netty.allocator.numDirectArenas', '1'
+    systemProperty 'io.netty.noUnsafe', 'false'
+    systemProperty 'io.netty.tryUnsafe', 'true'
+    systemProperty 'io.netty.tryReflectionSetAccessible', 'true'
+    systemProperty 'opensearch.experimental.feature.pluggable.dataformat.enabled', 'true'
+    systemProperty 'opensearch.experimental.feature.transport.stream.enabled', 'true'
+    // Native library path for DataFusion/parquet. Prefer the caller-supplied -PnativeLibPath
+    // (local runs that build the .so from core); otherwise fall back to the .so extracted
+    // from the feature-datafusion distribution by downloadNativeLib (the CI path).
+    systemProperty 'java.library.path', project.findProperty('nativeLibPath') ?: nativeLibDir.absolutePath
 }
