@@ -128,11 +128,19 @@ public class OpenSearchDataType implements ExprType, Serializable {
             return;
           }
           // create OpenSearchDataType
-          result.put(
-              k,
+          OpenSearchDataType fieldType =
               OpenSearchDataType.of(
                   EnumUtils.getEnumIgnoreCase(OpenSearchDataType.MappingType.class, type),
-                  innerMap));
+                  innerMap);
+          // A field mapped `multi_value: true` (e.g. keyword promoted to multi-value) is stored as
+          // a
+          // LIST column and must surface as ARRAY so array operators (array_length, mvjoin,
+          // mvexpand,
+          // ...) type-check against it. Wrap the element type as ARRAY.
+          if (Boolean.TRUE.equals(innerMap.get("multi_value"))) {
+            fieldType = OpenSearchDataType.ofArray(fieldType);
+          }
+          result.put(k, fieldType);
         });
 
     return result;
@@ -214,6 +222,16 @@ public class OpenSearchDataType implements ExprType, Serializable {
     }
 
     return new OpenSearchDataType((ExprCoreType) type);
+  }
+
+  /**
+   * Builds an ARRAY-typed OpenSearchDataType wrapping the given element type. Used for {@code
+   * multi_value} fields so array operators type-check against a Calcite ARRAY.
+   */
+  public static OpenSearchDataType ofArray(OpenSearchDataType elementType) {
+    // ARRAY<ANY> — element type is not preserved by the current Calcite ARRAY conversion, which is
+    // sufficient for array operators to bind. elementType retained as a param for future typing.
+    return OpenSearchDataType.of(ExprCoreType.ARRAY);
   }
 
   protected OpenSearchDataType(MappingType mappingType) {

@@ -51,3 +51,6 @@ jobs:
 
       - name: Run analytics-engine profile IT
         run: ./gradlew :integ-test:analyticsEngineProfileIT
+
+      - name: Run analytics-engine multi-value IT
+        run: ./gradlew :integ-test:analyticsEngineMultiValueIT
