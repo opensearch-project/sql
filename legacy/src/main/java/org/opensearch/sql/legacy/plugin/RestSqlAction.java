@@ -143,7 +143,7 @@ public class RestSqlAction extends BaseRestHandler {
 
       LOG.info("[{}] Incoming request {}", QueryContext.getRequestId(), request.uri());
 
-      Format format = SqlRequestParam.getFormat(request.params());
+      Format format = resolveFormat(request);
 
       SQLQueryRequest newSqlRequest =
           new SQLQueryRequest(
@@ -318,6 +318,29 @@ public class RestSqlAction extends BaseRestHandler {
 
   private static boolean isExplainRequest(final RestRequest request) {
     return request.path().endsWith("/_explain");
+  }
+
+  /**
+   * Resolve the response {@link Format} for this request.
+   *
+   * <p>{@code format=json} is accepted for explain requests for backward compatibility: prior to
+   * OpenSearch 3.0, {@code ?format=json} was a valid way to request the explain plan (see #4373).
+   * It was never a real member of {@link Format} - {@code SqlRequestParam#getFormat} always
+   * rejected it - but the explain response body is JSON regardless of this parameter (see {@link
+   * #executeSqlRequest}, which calls {@code queryAction.explain().explain()} directly instead of
+   * going through a {@link Format}-specific executor), so the parameter can simply be ignored here
+   * for explain requests without changing any actual behavior.
+   */
+  private static Format resolveFormat(final RestRequest request) {
+    try {
+      return SqlRequestParam.getFormat(request.params());
+    } catch (IllegalArgumentException e) {
+      if (isExplainRequest(request)
+          && "json".equalsIgnoreCase(request.param(SqlRequestParam.QUERY_PARAMS_FORMAT))) {
+        return Format.JDBC;
+      }
+      throw e;
+    }
   }
 
   private static boolean isClientError(Exception e) {
