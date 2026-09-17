@@ -20,8 +20,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.data.type.WideningTypeRule;
-import org.opensearch.sql.exception.ExpressionEvaluationException;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
@@ -68,12 +69,12 @@ class DefaultFunctionResolverTest {
     DefaultFunctionResolver resolver =
         new DefaultFunctionResolver(functionName, ImmutableMap.of(notMatchFS, notMatchBuilder));
 
-    ExpressionEvaluationException exception =
-        assertThrows(
-            ExpressionEvaluationException.class, () -> resolver.resolve(functionSignature));
+    ErrorReport exception =
+        assertThrows(ErrorReport.class, () -> resolver.resolve(functionSignature));
     assertEquals(
         "add function expected {[INTEGER,INTEGER]}, but got [BOOLEAN,BOOLEAN]",
         exception.getMessage());
+    assertEquals(ErrorCode.TYPE_ERROR, exception.getCode());
   }
 
   @Test
@@ -100,10 +101,10 @@ class DefaultFunctionResolverTest {
     DefaultFunctionResolver resolver =
         new DefaultFunctionResolver(functionName, ImmutableMap.of(bestMatchFS, bestMatchBuilder));
 
-    ExpressionEvaluationException exception =
-        assertThrows(
-            ExpressionEvaluationException.class, () -> resolver.resolve(functionSignature));
+    ErrorReport exception =
+        assertThrows(ErrorReport.class, () -> resolver.resolve(functionSignature));
     assertEquals("concat function expected 1-9 arguments, but got 0", exception.getMessage());
+    assertEquals(ErrorCode.TYPE_ERROR, exception.getCode());
   }
 
   @Test
@@ -120,9 +121,9 @@ class DefaultFunctionResolverTest {
     DefaultFunctionResolver resolver =
         new DefaultFunctionResolver(functionName, ImmutableMap.of(bestMatchFS, bestMatchBuilder));
 
-    ExpressionEvaluationException exception =
-        assertThrows(
-            ExpressionEvaluationException.class, () -> resolver.resolve(functionSignature));
+    ErrorReport exception =
+        assertThrows(ErrorReport.class, () -> resolver.resolve(functionSignature));
     assertEquals("concat function expected 1-9 arguments, but got 10", exception.getMessage());
+    assertEquals(ErrorCode.TYPE_ERROR, exception.getCode());
   }
 }

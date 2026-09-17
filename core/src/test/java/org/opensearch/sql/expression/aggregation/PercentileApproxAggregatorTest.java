@@ -24,9 +24,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
-import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.LiteralExpression;
@@ -185,7 +185,7 @@ public class PercentileApproxAggregatorTest extends AggregationTest {
     assertEquals("out of bounds percent value, must be in [0, 100]", exception.getMessage());
     var exception2 =
         assertThrows(
-            ExpressionEvaluationException.class,
+            ErrorReport.class,
             () ->
                 aggregation(
                     DSL.percentile(DSL.ref("double_value", DOUBLE), DSL.literal("string")),

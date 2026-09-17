@@ -17,6 +17,8 @@ import static org.opensearch.sql.utils.ExpressionUtils.format;
 
 import java.util.List;
 import java.util.Locale;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -82,8 +84,16 @@ public class SumAggregator extends Aggregator<SumState> {
           sumResult = doubleValue(getDoubleValue(sumResult) + getDoubleValue(value));
           break;
         default:
-          throw new ExpressionEvaluationException(
-              String.format("unexpected type [%s] in sum aggregation", type));
+          throw ErrorReport.wrap(
+                  new ExpressionEvaluationException(
+                      String.format(
+                          "sum aggregation does not support type %s; expected a numeric type"
+                              + " (INTEGER, LONG, FLOAT, or DOUBLE)",
+                          type)))
+              .code(ErrorCode.TYPE_ERROR)
+              .context("aggregation", "sum")
+              .context("actual_type", type.toString())
+              .build();
       }
     }
 

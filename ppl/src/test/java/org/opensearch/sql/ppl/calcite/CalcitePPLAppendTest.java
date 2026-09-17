@@ -11,6 +11,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Assert;
 import org.junit.Test;
+import org.opensearch.sql.common.error.ErrorReport;
 
 public class CalcitePPLAppendTest extends CalcitePPLAbstractTest {
 
@@ -231,8 +232,7 @@ public class CalcitePPLAppendTest extends CalcitePPLAbstractTest {
   public void testAppendWithConflictTypeColumn() {
     String ppl =
         "source=EMP | fields DEPTNO | append [ source=EMP | fields DEPTNO | eval DEPTNO = 20 ]";
-    Exception exception =
-        Assert.assertThrows(IllegalArgumentException.class, () -> getRelNode(ppl));
+    Exception exception = Assert.assertThrows(ErrorReport.class, () -> getRelNode(ppl));
     verifyErrorMessageContains(
         exception, "Unable to process column 'DEPTNO' due to incompatible types:");
   }
