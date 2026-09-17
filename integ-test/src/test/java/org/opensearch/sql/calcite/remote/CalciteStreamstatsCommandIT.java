@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.Capability.CHAINED_STREAMSTATS_BY;
 import static org.opensearch.sql.util.Capability.DOC_MUTATION;
+import static org.opensearch.sql.util.Capability.SPAN_WINDOW_AGGREGATE;
 import static org.opensearch.sql.util.Capability.STREAMSTATS_SORT_NOT_HONORED;
 import static org.opensearch.sql.util.MatcherUtils.*;
 
@@ -1399,6 +1400,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(SPAN_WINDOW_AGGREGATE)
   public void testStreamstatsVarianceBySpan() throws IOException {
     JSONObject actual =
         executeQuery(

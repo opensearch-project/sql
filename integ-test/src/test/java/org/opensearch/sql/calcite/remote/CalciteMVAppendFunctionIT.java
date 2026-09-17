@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.util.Capability.ARRAY_HIGHER_ORDER_FUNC;
 import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
@@ -13,6 +14,7 @@ import java.util.List;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalciteMVAppendFunctionIT extends PPLIntegTestCase {
   @Override
@@ -80,6 +82,7 @@ public class CalciteMVAppendFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ARRAY_HIGHER_ORDER_FUNC)
   public void testMvappendWithMixedTypes() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -122,6 +125,7 @@ public class CalciteMVAppendFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ARRAY_HIGHER_ORDER_FUNC)
   public void testMvappendWithFieldsAndLiterals() throws IOException {
     // `head` without a preceding sort selects an undefined row, so the asserted age only holds by
     // accident of scan order. Sort by account_number as the neighbouring real-field tests do; the
@@ -138,6 +142,7 @@ public class CalciteMVAppendFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ARRAY_HIGHER_ORDER_FUNC)
   public void testMvappendWithEmptyArray() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -210,6 +215,7 @@ public class CalciteMVAppendFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ARRAY_HIGHER_ORDER_FUNC)
   public void testMvappendWithNull() throws IOException {
     JSONObject actual =
         executeQuery(

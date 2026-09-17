@@ -47,6 +47,7 @@ public class CalcitePPLEvalMaxMinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(EVAL_MAX_MIN_INT_WIDENING)
   public void testEvalMaxNumericWhenFieldSelected() throws Exception {
     JSONObject result =
         executeQuery(
@@ -87,6 +88,7 @@ public class CalcitePPLEvalMaxMinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(EVAL_MAX_MIN_INT_WIDENING)
   public void testEvalMinNumeric() throws Exception {
     JSONObject result =
         executeQuery(

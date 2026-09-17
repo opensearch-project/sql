@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.standalone;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.exprYearweek;
 import static org.opensearch.sql.expression.datetime.DateTimeFunctions.formatNow;
 import static org.opensearch.sql.legacy.TestsConstants.*;
+import static org.opensearch.sql.util.Capability.DATETIME_BUILTIN_SCALARS;
 import static org.opensearch.sql.util.MatcherUtils.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 
@@ -33,7 +34,10 @@ import org.opensearch.client.Request;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
+import org.opensearch.sql.legacy.TestUtils;
+import org.opensearch.sql.util.RequiresCapability;
 
+@RequiresCapability(DATETIME_BUILTIN_SCALARS)
 public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase {
   @Override
   public void init() throws IOException {
@@ -551,14 +555,25 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     verifyDataRows(actual, rows(1984, 1984, 2020));
   }
 
+  // The relative-time docs are re-seeded before every test method on the standard route so their
+  // wall-clock-relative values stay fresh (PUT with a fixed _id is an idempotent overwrite there).
+  // The analytics route's parquet store is append-only: the same re-PUT is rejected with HTTP 400,
+  // and a POST would accumulate a duplicate set per method. Seed exactly once per JVM there; the
+  // minutes of staleness within a single class run don't affect the relative-window assertions.
+  private static boolean relativeDocsSeededOnAnalyticsRoute = false;
+
   private void initRelativeDocs() throws IOException {
+    if (isAnalyticsParquetIndicesEnabled()) {
+      if (relativeDocsSeededOnAnalyticsRoute) {
+        return;
+      }
+      relativeDocsSeededOnAnalyticsRoute = true;
+    }
     List<String> relativeList = List.of("NOW", "TMR", "+month", "-2wk", "-1d@d");
     int index = 0;
     for (String time : relativeList) {
       Request request =
-          new Request(
-              "PUT",
-              "/opensearch-sql_test_index_date_formats/_doc/%s?refresh=true".formatted(index));
+          TestUtils.seedDocRequest("opensearch-sql_test_index_date_formats", String.valueOf(index));
       request.setJsonEntity(
           "{\"strict_date_optional_time\":\"%s\"}".formatted(convertTimeExpression(time)));
 

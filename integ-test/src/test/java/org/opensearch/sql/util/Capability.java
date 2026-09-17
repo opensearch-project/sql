@@ -585,6 +585,236 @@ public enum Capability {
       "FILTER(WHERE) on aggregates can't be executed on the analytics-engine route: the Substrait"
           + " streaming path doesn't support filtered aggregates."),
 
+  /**
+   * BACKEND: the {@code graphLookup} command's plan node is not implemented by the analytics-engine
+   * planner — {@code OpenSearchSortRule} fails with {@code Sort rule encountered unmarked child
+   * [LogicalGraphLookup]}, surfacing as HTTP 500 on any graphLookup query.
+   */
+  GRAPH_LOOKUP_COMMAND(
+      "The graphLookup command's plan node is not implemented by the analytics-engine planner"
+          + " (Sort rule encountered unmarked child [LogicalGraphLookup]), so any graphLookup query"
+          + " fails with an internal error on the analytics-engine route."),
+
+  /**
+   * PPL datetime builtin scalars (PERIOD_ADD/PERIOD_DIFF, ADDDATE/SUBDATE, DATEDIFF, TO_DAYS,
+   * WEEKDAY, ADDTIME/SUBTIME/TIMEDIFF, LAST_DAY, YEARWEEK, ...) are not lowered to executable
+   * expressions on the analytics-engine route; queries fail with {@code
+   * search_phase_execution_exception: all shards failed}.
+   */
+  DATETIME_BUILTIN_SCALARS(
+      "PPL datetime builtin scalar functions are not lowered on the analytics-engine route;"
+          + " queries fail with search_phase_execution_exception (all shards failed)."),
+
+  /**
+   * The {@code highlight()} function produces no {@code _highlight} column on the analytics-engine
+   * route: highlighting rides on the Lucene relevance machinery the DataFusion scan doesn't have.
+   */
+  HIGHLIGHT_FUNCTION(
+      "highlight() produces no _highlight column on the analytics-engine route (no Lucene"
+          + " relevance/highlight machinery in the DataFusion scan)."),
+
+  /**
+   * Array scalar functions the mv-command family compiles to (e.g. {@code ARRAY_COMPACT} for {@code
+   * nomv}) are not registered on the analytics-engine route ({@code UnsupportedFunctionException:
+   * Function [ARRAY_COMPACT] is not currently supported}).
+   */
+  ARRAY_SCALAR_FUNC(
+      "Array scalar functions (e.g. ARRAY_COMPACT backing the nomv command) are not registered on"
+          + " the analytics-engine route."),
+
+  /**
+   * The {@code foreach} command compiles to internal scalar functions (e.g. {@code
+   * foreach_pair_item}) that are not registered on the analytics-engine route.
+   */
+  FOREACH_COMMAND(
+      "The foreach command's internal scalar functions (foreach_pair_item, ...) are not registered"
+          + " on the analytics-engine route."),
+
+  /**
+   * A negative test asserting the default v2/Calcite route rejects a command or call shape (e.g.
+   * {@code convert}, {@code union}, xyseries variants, approx count-distinct) cannot run on the
+   * analytics-engine route, which implements the shape and returns success instead of the asserted
+   * error.
+   */
+  STRICT_QUERY_REJECTION(
+      "The test asserts the default route rejects this command/call shape; the analytics-engine"
+          + " route implements it and returns success instead of the asserted error."),
+
+  /**
+   * Long-sum overflow raises an error on the v2/Calcite route (checked accumulator); the
+   * analytics-engine route's DataFusion accumulators do not detect overflow, so the asserted
+   * overflow error never surfaces.
+   */
+  CHECKED_ARITHMETIC_OVERFLOW(
+      "Checked long-sum overflow detection (error on overflow) is not performed by the"
+          + " analytics-engine route's accumulators."),
+
+  /**
+   * The structured error-report output (stage, context, location) asserted by the error-report
+   * tests is not wired on the analytics-engine route.
+   */
+  ERROR_REPORT_CONTEXT(
+      "Structured error-report output (stage/context/location) is not wired on the"
+          + " analytics-engine route."),
+
+  /**
+   * {@code patterns} BRAIN mode (aggregation/label modes with numbered tokens) fails with an
+   * internal backend error on the analytics-engine route; the default patterns mode works.
+   */
+  PATTERNS_BRAIN_MODE(
+      "patterns BRAIN mode fails with an internal backend error on the analytics-engine route."),
+
+  /**
+   * A windowed aggregate over a {@code span()} bucket (e.g. {@code streamstats var_samp(...) by
+   * span(...)}) fails with an internal backend error on the analytics-engine route.
+   */
+  SPAN_WINDOW_AGGREGATE(
+      "A windowed aggregate partitioned by a span() bucket fails with an internal backend error on"
+          + " the analytics-engine route."),
+
+  /**
+   * Grouping by a fractional numeric {@code span()} produces a different bucket set on the
+   * analytics-engine route than the v2/Calcite path.
+   */
+  FRACTIONAL_SPAN_BUCKETING(
+      "Fractional numeric span() bucketing produces a different bucket set on the analytics-engine"
+          + " route."),
+
+  /**
+   * A comparison whose operand is a non-trivial expression (e.g. {@code mktime(...) > literal}) is
+   * rejected on the analytics-engine route: {@code Comparison performance-delegation requires
+   * (RexInputRef, RexLiteral)}.
+   */
+  COMPARISON_DELEGATION(
+      "A comparison over a non-trivial expression operand is rejected on the analytics-engine"
+          + " route (performance delegation requires (RexInputRef, RexLiteral))."),
+
+  /**
+   * Documents written with dotted-path field names (e.g. {@code {"log.json": ...}}) are surfaced
+   * differently on the analytics-engine route: the dotted leaf and the equivalent nested object
+   * produce distinct rows/columns rather than merging as on the v2/Calcite path.
+   */
+  DOTTED_PATH_DOC(
+      "Dotted-path document fields are not merged with their object-path equivalents on the"
+          + " analytics-engine route, so row/column sets diverge."),
+
+  /**
+   * {@code constant_keyword}-mapped fields cannot be created on the analytics-engine route's
+   * parquet/composite store, so the test's self-created index is absent.
+   */
+  CONSTANT_KEYWORD_TYPE(
+      "constant_keyword fields cannot be created on the analytics-engine route's parquet/composite"
+          + " store."),
+
+  /**
+   * A deeply-piped query (e.g. triple {@code appendpipe}) exceeds the analytics-engine route's
+   * plan-tree recursion guard and is rejected.
+   */
+  PLAN_RECURSION_DEPTH(
+      "A deeply-piped query exceeds the analytics-engine route's plan-tree recursion depth guard."),
+
+  /**
+   * Bare search-filter syntax ({@code search source=x field=value}) is not accepted on the
+   * analytics-engine route (the v2 semantic-check path that admits it is bypassed).
+   */
+  SEARCH_FILTER_SYNTAX(
+      "Bare search-filter syntax (search source=x field=value) is not accepted on the"
+          + " analytics-engine route."),
+
+  /**
+   * The query profile output has a different shape on the analytics-engine route (e.g. no {@code
+   * thread_pool} section), so profile-shape assertions diverge.
+   */
+  PROFILE_SHAPE(
+      "Query profile output shape differs on the analytics-engine route (e.g. no thread_pool"
+          + " section)."),
+
+  /**
+   * A negated filter ({@code NOT LIKE}, {@code NOT >}) over a field with NULL/empty values returns
+   * no rows on the analytics-engine route, where the v2/Calcite path returns the non-matching
+   * non-null rows.
+   */
+  NOT_FILTER_NULL_SEMANTICS(
+      "Negated filters over fields with NULL values return no rows on the analytics-engine route;"
+          + " the v2/Calcite path returns non-matching non-null rows."),
+
+  /**
+   * {@code rare} breaks frequency ties in a different order on the analytics-engine route, so
+   * ordered row assertions diverge.
+   */
+  RARE_TIE_ORDER("rare breaks frequency ties in a different order on the analytics-engine route."),
+
+  /**
+   * {@code spath} output-field collision handling diverges on the analytics-engine route: colliding
+   * leaves are silently readable / extracted-value visibility differs from the v2/Calcite path
+   * (which the tests assert, including expected rejections).
+   */
+  SPATH_COLLISION_SEMANTICS(
+      "spath output-field collision handling diverges on the analytics-engine route (silently"
+          + " readable leaves / different extracted-value visibility)."),
+
+  /**
+   * {@code join} with an explicit {@code max=N} option returns no rows on the analytics-engine
+   * route.
+   */
+  JOIN_MAX_OPTION(
+      "join with an explicit max=N option returns no rows on the analytics-engine route."),
+
+  /**
+   * {@code trendline} after {@code | sort} computes over backend scan order on the analytics-engine
+   * route (same mechanism as {@link #STREAMSTATS_SORT_NOT_HONORED}).
+   */
+  TRENDLINE_SORT_NOT_HONORED(
+      "trendline computes over backend scan order on the analytics-engine route, ignoring a"
+          + " preceding | sort."),
+
+  /**
+   * The class executes queries through a path that reads Lucene segments directly (raw {@code
+   * _search} / the standalone unified-query engine), which parquet-backed analytics indices do not
+   * serve — every query fails with {@code all shards failed}.
+   */
+  DIRECT_LUCENE_QUERY(
+      "Queries executed through a direct Lucene read path (raw _search / standalone unified-query"
+          + " engine) fail on parquet-backed analytics indices (all shards failed)."),
+
+  /**
+   * The {@code flatten} command is a doc-deferred command on the analytics-engine route: struct
+   * field expansion resolves to zero fields (alias-count validation fails) and the flattened output
+   * diverges from the v2/Calcite path.
+   */
+  FLATTEN_COMMAND(
+      "The flatten command is not supported on the analytics-engine route; struct field expansion"
+          + " resolves to zero fields."),
+
+  /**
+   * With the Calcite engine setting disabled, the default route falls back to the v2 engine (v2
+   * response shape); the analytics-engine route always plans through the new engine, so v2-fallback
+   * expectations (schema/row shape) never materialize.
+   */
+  V2_ENGINE_FALLBACK(
+      "Disabling the Calcite engine setting does not fall back to the v2 engine on the"
+          + " analytics-engine route; v2-shaped expectations never materialize."),
+
+  /**
+   * Keyword-field equality ({@code =}) case-folds the field value on the analytics-engine route, so
+   * a literal containing uppercase characters silently matches zero documents even when the stored
+   * value is byte-identical (probe-verified: {@code proto = 'TCP'} returns 0 while {@code proto =
+   * 'tcp'} returns all 95 TCP docs whose stored value is {@code TCP}; {@code in ('TCP')} and {@code
+   * like(proto, 'TCP')} match correctly). Wrong-result defect, not an error.
+   */
+  KEYWORD_EQUALS_CASE_FOLD(
+      "Keyword equality (=) case-folds the field on the analytics-engine route: uppercase literals"
+          + " match zero documents while in()/like() match correctly."),
+
+  /**
+   * {@code sort} on an aggregated measure followed by {@code head N} selects different rows among
+   * measure ties at the truncation boundary on the analytics-engine route (the v2/Calcite path
+   * breaks ties deterministically by term).
+   */
+  AGG_MEASURE_TIE_ORDER(
+      "sort on an aggregated measure + head N selects different rows among tied measure values on"
+          + " the analytics-engine route."),
+
   /** Combining the result rows of two or more queries with a SQL set operator. */
   SET_OPERATION("SQL set operations are unsupported.");
 

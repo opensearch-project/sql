@@ -11,6 +11,7 @@ import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.DATA_TYPE_NUMERIC
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ALIAS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
+import static org.opensearch.sql.util.Capability.CONSTANT_KEYWORD_TYPE;
 import static org.opensearch.sql.util.Capability.CROSS_INDEX_INCOMPATIBLE_TYPES;
 import static org.opensearch.sql.util.Capability.DOC_MUTATION;
 import static org.opensearch.sql.util.Capability.NESTED_FIELDS;
@@ -28,6 +29,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.util.RequiresCapability;
 
 public class DataTypeIT extends PPLIntegTestCase {
@@ -189,12 +191,12 @@ public class DataTypeIT extends PPLIntegTestCase {
       client().performRequest(createText);
 
       // Insert boolean value into boolean-typed index
-      Request insertBool = new Request("PUT", "/" + indexBool + "/_doc/1?refresh=true");
+      Request insertBool = TestUtils.seedDocRequest(indexBool, "1");
       insertBool.setJsonEntity("{\"startTime\":\"2026-03-25T20:25:00.000Z\",\"flag\":false}");
       client().performRequest(insertBool);
 
       // Insert numeric value into text-typed index
-      Request insertText = new Request("PUT", "/" + indexText + "/_doc/1?refresh=true");
+      Request insertText = TestUtils.seedDocRequest(indexText, "1");
       insertText.setJsonEntity("{\"startTime\":\"2026-03-24T20:25:00.000Z\",\"flag\":0}");
       client().performRequest(insertText);
 
@@ -208,6 +210,7 @@ public class DataTypeIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(CONSTANT_KEYWORD_TYPE)
   public void test_constant_keyword_data_type() throws Exception {
     String index = "test_constant_keyword";
     try {
@@ -218,7 +221,7 @@ public class DataTypeIT extends PPLIntegTestCase {
               + "\"message\":{\"type\":\"text\"}}}}");
       client().performRequest(createIndex);
 
-      Request insertDoc = new Request("PUT", "/" + index + "/_doc/1?refresh=true");
+      Request insertDoc = TestUtils.seedDocRequest(index, "1");
       insertDoc.setJsonEntity("{\"tenant\":\"acme\",\"message\":\"hello\"}");
       client().performRequest(insertDoc);
 

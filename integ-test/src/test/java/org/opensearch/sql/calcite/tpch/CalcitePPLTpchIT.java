@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.tpch;
 
+import static org.opensearch.sql.util.Capability.FLOAT_ARITHMETIC_PRECISION;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import static org.opensearch.sql.util.MatcherUtils.closeTo;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -19,6 +20,7 @@ import org.json.JSONObject;
 import org.junit.Assume;
 import org.junit.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 import org.opensearch.sql.util.Retry;
 
 @Retry
@@ -40,6 +42,7 @@ public class CalcitePPLTpchIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FLOAT_ARITHMETIC_PRECISION)
   public void testQ1() throws IOException {
     String ppl = sanitize(loadFromFile("tpch/queries/q1.ppl"));
     JSONObject actual = executeQuery(ppl);

@@ -11,6 +11,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TIME_DATE_NULL;
 import static org.opensearch.sql.util.Capability.BIN_TIME_FIELD_BUCKETING;
+import static org.opensearch.sql.util.Capability.FRACTIONAL_SPAN_BUCKETING;
 import static org.opensearch.sql.util.Capability.PERCENTILE_APPROXIMATE;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -1214,6 +1215,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FRACTIONAL_SPAN_BUCKETING)
   public void testStatsByFractionalSpan() throws IOException {
     JSONObject response1 =
         executeQuery(

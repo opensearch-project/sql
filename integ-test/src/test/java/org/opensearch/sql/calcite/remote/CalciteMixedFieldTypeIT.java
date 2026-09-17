@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.util.Capability.CROSS_INDEX_INCOMPATIBLE_TYPES;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -19,6 +20,7 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * Integration tests for field resolution in pushed-down scripts.
@@ -27,6 +29,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
  * across different indices (GitHub issue #4659), and the same resolution applied to object
  * subfields addressed by a dotted path (GitHub issue #5702).
  */
+@RequiresCapability(CROSS_INDEX_INCOMPATIBLE_TYPES)
 public class CalciteMixedFieldTypeIT extends PPLIntegTestCase {
 
   private static final String LOG_TEXT_INDEX = "test_log_text_4659";

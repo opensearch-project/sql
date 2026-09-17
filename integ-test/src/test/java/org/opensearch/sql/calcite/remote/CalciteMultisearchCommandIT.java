@@ -125,6 +125,7 @@ public class CalciteMultisearchCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(MULTISEARCH_SAME_INDEX_CONFLATION)
   public void testMultisearchWithFieldsProjection() throws IOException {
     JSONObject result =
         executeQuery(

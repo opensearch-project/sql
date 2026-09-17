@@ -40,15 +40,15 @@ public class CalciteFieldFormatCommandIT extends PPLIntegTestCase {
       TestUtils.createIndexByRestClient(client(), "test_eval", testEvalMapping);
 
       // Create test data for string concatenation
-      Request request1 = new Request("PUT", "/test_eval/_doc/1?refresh=true");
+      Request request1 = TestUtils.seedDocRequest("test_eval", "1");
       request1.setJsonEntity("{\"name\": \"Alice\", \"age\": 25, \"title\": \"Engineer\"}");
       client().performRequest(request1);
 
-      Request request2 = new Request("PUT", "/test_eval/_doc/2?refresh=true");
+      Request request2 = TestUtils.seedDocRequest("test_eval", "2");
       request2.setJsonEntity("{\"name\": \"Bob\", \"age\": 30, \"title\": \"Manager\"}");
       client().performRequest(request2);
 
-      Request request3 = new Request("PUT", "/test_eval/_doc/3?refresh=true");
+      Request request3 = TestUtils.seedDocRequest("test_eval", "3");
       request3.setJsonEntity("{\"name\": \"Charlie\", \"age\": null, \"title\": \"Analyst\"}");
       client().performRequest(request3);
     }

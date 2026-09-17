@@ -12,7 +12,9 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMER
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TELEMETRY;
+import static org.opensearch.sql.util.Capability.CHECKED_ARITHMETIC_OVERFLOW;
 import static org.opensearch.sql.util.Capability.PERCENTILE_APPROXIMATE;
+import static org.opensearch.sql.util.Capability.STRICT_QUERY_REJECTION;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -136,6 +138,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(CHECKED_ARITHMETIC_OVERFLOW)
   public void testSumAllIntegralTypes() throws IOException {
     String stats =
         "stats sum(byte_number), sum(short_number), sum(integer_number), sum(long_number)";
@@ -171,6 +174,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(CHECKED_ARITHMETIC_OVERFLOW)
   public void testSumAvgLongOverflow() throws IOException {
     String overflowIndex = "test_sum_long_overflow";
     createLongIndex(overflowIndex, Long.MAX_VALUE, Long.MAX_VALUE, Long.MAX_VALUE);
@@ -239,6 +243,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(CHECKED_ARITHMETIC_OVERFLOW)
   public void testNegativeLongSumOverflowAndBoundary() throws IOException {
     String overflowIndex = "test_sum_long_negative_overflow";
     createLongIndex(overflowIndex, Long.MIN_VALUE, Long.MIN_VALUE, Long.MIN_VALUE);
@@ -258,6 +263,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(CHECKED_ARITHMETIC_OVERFLOW)
   public void testFallbackLongSumRejectsIntermediateOverflow() throws IOException {
     String index = "test_sum_long_intermediate_overflow";
     createLongIndex(index, Long.MAX_VALUE, 1L, -1L);
@@ -267,6 +273,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(CHECKED_ARITHMETIC_OVERFLOW)
   public void testFloatingSumsDoNotUseCheckedLongAccumulator() throws IOException {
     String stats =
         "stats sum(double_number), sum(float_number),"
@@ -1246,6 +1253,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(STRICT_QUERY_REJECTION)
   public void testCountDistinctApprox() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -1257,6 +1265,7 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(STRICT_QUERY_REJECTION)
   public void testCountDistinctApproxWithAlias() throws IOException {
     JSONObject actual =
         executeQuery(

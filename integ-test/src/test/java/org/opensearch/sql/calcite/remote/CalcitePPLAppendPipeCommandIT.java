@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.Capability.APPENDPIPE_MAIN_RESULT_DROPPED;
+import static org.opensearch.sql.util.Capability.PLAN_RECURSION_DEPTH;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -118,6 +119,7 @@ public class CalcitePPLAppendPipeCommandIT extends PPLIntegTestCase {
 
   /** Regression test: triple appendpipe with different aggregations (issue #5173). */
   @Test
+  @RequiresCapability(PLAN_RECURSION_DEPTH)
   public void testTripleAppendPipe() throws IOException {
     JSONObject actual =
         executeQuery(

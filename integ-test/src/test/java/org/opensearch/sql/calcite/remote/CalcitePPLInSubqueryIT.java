@@ -9,6 +9,7 @@ import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OCCUPATION;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORKER;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORK_INFORMATION;
+import static org.opensearch.sql.util.Capability.HEAD_WITHOUT_STABLE_SORT;
 import static org.opensearch.sql.util.Capability.SUBSEARCH_MAXOUT_IN_SUBQUERY;
 import static org.opensearch.sql.util.Capability.TEXT_FIELD_EXACT_MATCH;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -25,6 +26,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 import org.opensearch.sql.util.RequiresCapability;
 
@@ -46,7 +48,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
     if (!workerExisted) {
       // {"index":{"_id":"7"}}
       // {"id":1006,"name":"Tommy","occupation":"Teacher","country":"USA","salary":30000}
-      Request request1 = new Request("PUT", "/" + TEST_INDEX_WORKER + "/_doc/7?refresh=true");
+      Request request1 = TestUtils.seedDocRequest(TEST_INDEX_WORKER, "7");
       request1.setJsonEntity(
           "{\"id\":1006,\"name\":\"Tommy\",\"occupation\":\"Teacher\",\"country\":\"USA\",\"salary\":30000}");
       client().performRequest(request1);
@@ -54,6 +56,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(HEAD_WITHOUT_STABLE_SORT)
   public void testSelfInSubquery() throws IOException {
     var result =
         executeQuery(
@@ -75,6 +78,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(HEAD_WITHOUT_STABLE_SORT)
   public void testWhereInSubquery() throws IOException {
     JSONObject result =
         executeQuery(
@@ -97,6 +101,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(HEAD_WITHOUT_STABLE_SORT)
   public void testFilterInSubquery() throws IOException {
     JSONObject result =
         executeQuery(
@@ -118,6 +123,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(HEAD_WITHOUT_STABLE_SORT)
   public void testInSubqueryWithParentheses() throws IOException {
     JSONObject result1 =
         executeQuery(
@@ -140,6 +146,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(HEAD_WITHOUT_STABLE_SORT)
   public void testTwoExpressionsInSubquery() throws IOException {
     JSONObject result =
         executeQuery(

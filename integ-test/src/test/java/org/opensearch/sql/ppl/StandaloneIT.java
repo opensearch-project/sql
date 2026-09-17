@@ -7,6 +7,7 @@ package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpenSearchDataSourceMetadata;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
+import static org.opensearch.sql.util.Capability.DIRECT_LUCENE_QUERY;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -43,6 +44,7 @@ import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.monitor.AlwaysHealthyMonitor;
 import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
@@ -63,6 +65,7 @@ import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.util.ExecuteOnCallerThreadQueryManager;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * Run PPL with query engine outside OpenSearch cluster. This IT doesn't require our plugin
@@ -96,11 +99,12 @@ public class StandaloneIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DIRECT_LUCENE_QUERY)
   public void testSourceFieldQuery() throws IOException {
-    Request request1 = new Request("PUT", "/test/_doc/1?refresh=true");
+    Request request1 = TestUtils.seedDocRequest("test", "1");
     request1.setJsonEntity("{\"name\": \"hello\", \"age\": 20}");
     client().performRequest(request1);
-    Request request2 = new Request("PUT", "/test/_doc/2?refresh=true");
+    Request request2 = TestUtils.seedDocRequest("test", "2");
     request2.setJsonEntity("{\"name\": \"world\", \"age\": 30}");
     client().performRequest(request2);
 

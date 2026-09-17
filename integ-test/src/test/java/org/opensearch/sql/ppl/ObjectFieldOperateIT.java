@@ -7,6 +7,7 @@ package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.DEEP_NESTED;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DEEP_NESTED;
+import static org.opensearch.sql.util.Capability.MULTI_VALUE_FIELD_LOAD;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -15,7 +16,13 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.sql.util.RequiresCapability;
 
+@RequiresCapability(
+    value = MULTI_VALUE_FIELD_LOAD,
+    note =
+        "init() loads deep_nested whose multi-value field can't load on the AE store"
+            + " (MULTI_VALUE_FIELD_LOAD). All tests read the dataset.")
 public class ObjectFieldOperateIT extends PPLIntegTestCase {
 
   @Override

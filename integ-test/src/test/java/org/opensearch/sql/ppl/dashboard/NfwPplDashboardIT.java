@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ppl.dashboard;
 
+import static org.opensearch.sql.util.Capability.KEYWORD_EQUALS_CASE_FOLD;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class NfwPplDashboardIT extends PPLIntegTestCase {
 
@@ -712,6 +714,7 @@ public class NfwPplDashboardIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(KEYWORD_EQUALS_CASE_FOLD)
   public void testTopLongLivedTCPFlows() throws IOException {
     String query =
         String.format(

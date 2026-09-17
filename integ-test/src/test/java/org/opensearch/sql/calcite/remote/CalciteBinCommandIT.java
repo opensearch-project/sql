@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.Capability.BIN_TIME_FIELD_BUCKETING;
+import static org.opensearch.sql.util.Capability.STRICT_QUERY_REJECTION;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -1008,6 +1009,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(STRICT_QUERY_REJECTION)
   public void testBinsOnTimeFieldWithPushdownDisabled_ShouldFail() throws IOException {
     // Verify that bins parameter on timestamp fields fails with clear error when pushdown disabled
     enabledOnlyWhenPushdownIsDisabled();

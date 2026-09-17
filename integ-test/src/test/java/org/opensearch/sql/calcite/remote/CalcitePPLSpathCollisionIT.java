@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.junit.Assert.assertThrows;
+import static org.opensearch.sql.util.Capability.SPATH_COLLISION_SEMANTICS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
@@ -17,6 +18,7 @@ import org.opensearch.client.Request;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * Behavioural contract for issue #5718 — {@code spath} (and any command that funnels through {@code
@@ -56,7 +58,7 @@ public class CalcitePPLSpathCollisionIT extends PPLIntegTestCase {
 
     if (!TestUtils.isIndexExist(client(), COLLISION_INDEX)) {
       TestUtils.createIndexByRestClient(client(), COLLISION_INDEX, COLLISION_MAPPING);
-      Request doc = new Request("PUT", "/" + COLLISION_INDEX + "/_doc/1?refresh=true");
+      Request doc = TestUtils.seedDocRequest(COLLISION_INDEX, "1");
       doc.setJsonEntity(COLLISION_DOC);
       client().performRequest(doc);
     }
@@ -65,10 +67,10 @@ public class CalcitePPLSpathCollisionIT extends PPLIntegTestCase {
     // which must not change what doc 1's `log.msg` reads after extraction.
     if (!TestUtils.isIndexExist(client(), DYNAMIC_INDEX)) {
       TestUtils.createIndexByRestClient(client(), DYNAMIC_INDEX, COLLISION_MAPPING);
-      Request doc1 = new Request("PUT", "/" + DYNAMIC_INDEX + "/_doc/1?refresh=true");
+      Request doc1 = TestUtils.seedDocRequest(DYNAMIC_INDEX, "1");
       doc1.setJsonEntity(COLLISION_DOC);
       client().performRequest(doc1);
-      Request doc2 = new Request("PUT", "/" + DYNAMIC_INDEX + "/_doc/2?refresh=true");
+      Request doc2 = TestUtils.seedDocRequest(DYNAMIC_INDEX, "2");
       doc2.setJsonEntity(
           "{\"log\": {\"level\": \"X\", \"src\": \"y\", \"msg\": \"DYNAMICALLY-MAPPED\"},"
               + " \"body\": \"{\\\"level\\\":\\\"E2\\\",\\\"msg\\\":\\\"json-2\\\"}\"}");
@@ -77,6 +79,7 @@ public class CalcitePPLSpathCollisionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(SPATH_COLLISION_SEMANTICS)
   public void testCollidingOutputLeafReadsExtractedValue() throws IOException {
     // Issue #5718 core case: log.level must read the extracted ERROR, not the stale mapped
     // MAPPED-DEBUG. The whole log.* subtree reads from the extraction: log.msg exists only in
@@ -99,6 +102,7 @@ public class CalcitePPLSpathCollisionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(SPATH_COLLISION_SEMANTICS)
   public void testCollidingOutputWhereMatchesExtractedValue() throws IOException {
     // Issue #5718 symptom B: filtering on the extracted value must match.
     JSONObject result =
@@ -111,6 +115,7 @@ public class CalcitePPLSpathCollisionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(SPATH_COLLISION_SEMANTICS)
   public void testCollidingOutputWhereStaleValueMatchesNothing() throws IOException {
     // The stale mapped value is shadowed and must no longer be reachable through log.level.
     JSONObject result =
@@ -123,6 +128,7 @@ public class CalcitePPLSpathCollisionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(SPATH_COLLISION_SEMANTICS)
   public void testCollidingOutputStableUnderDynamicMapping() throws IOException {
     // Issue #5718 symptom C: indexing an unrelated document that dynamically maps `log.msg`
     // must not change what the original document's `log.msg` reads. Both rows read from their
@@ -136,6 +142,7 @@ public class CalcitePPLSpathCollisionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(SPATH_COLLISION_SEMANTICS)
   public void testCollidingOutputThenEvalDottedLeaf() throws IOException {
     // Companion defect uncovered while reproducing #5718: with stale leaves present, a
     // subsequent `eval log.level = ...` fired the override path and dropStructParentsFor
@@ -163,6 +170,7 @@ public class CalcitePPLSpathCollisionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(SPATH_COLLISION_SEMANTICS)
   public void testCollidingOutputPathModeLeafIsNotSilentlyReadable() {
     // Path mode: `log` is now a scalar, so `log.level` has nothing to resolve against. It must
     // not silently answer from the stale mapped leaf; a clear error mirrors the flat-keyword
@@ -177,6 +185,7 @@ public class CalcitePPLSpathCollisionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(SPATH_COLLISION_SEMANTICS)
   public void testScalarEvalOverObjectParentIsNotSilentlyReadable() {
     // Generalisation of #5718 beyond spath: overriding a mapped object parent with a scalar
     // must not leave stale leaves silently readable. `log` is an INTEGER after the eval, so a

@@ -8,6 +8,7 @@ package org.opensearch.sql.api;
 import static java.sql.Types.BIGINT;
 import static java.sql.Types.VARCHAR;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
+import static org.opensearch.sql.util.Capability.DIRECT_LUCENE_QUERY;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -26,11 +27,13 @@ import org.opensearch.sql.opensearch.client.OpenSearchRestClient;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 import org.opensearch.sql.util.InternalRestHighLevelClient;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * Integration test demonstrating the integration and usage of the Unified Query API with OpenSearch
  * as a data source.
  */
+@RequiresCapability(DIRECT_LUCENE_QUERY)
 public class UnifiedQueryOpenSearchIT extends PPLIntegTestCase implements ResultSetAssertion {
 
   private UnifiedQueryContext context;

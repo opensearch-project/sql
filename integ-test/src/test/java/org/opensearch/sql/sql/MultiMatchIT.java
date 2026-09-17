@@ -162,6 +162,7 @@ public class MultiMatchIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FULLTEXT_RELEVANCE_FUNC)
   public void multi_match_alternate_syntaxes_return_the_same_results() throws IOException {
     String query1 =
         "SELECT Id FROM " + TEST_INDEX_BEER + " WHERE multi_match(['CreationDate'], '2014-01-22');";

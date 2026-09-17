@@ -10,6 +10,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NULL_MISSING;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
 import static org.opensearch.sql.util.Capability.FLOAT_ARITHMETIC_PRECISION;
+import static org.opensearch.sql.util.Capability.QUERY_ERROR_MESSAGE;
 import static org.opensearch.sql.util.MatcherUtils.closeTo;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -168,6 +169,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(QUERY_ERROR_MESSAGE)
   public void testConvWithInvalidRadix() {
     Throwable invalidRadixException =
         assertThrowsWithReplace(

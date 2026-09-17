@@ -15,6 +15,7 @@ import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.legacy.TestUtils;
+import org.opensearch.sql.util.ClusterPlugins;
 
 /**
  * Integration tests for analytics engine index-level authorization via the production SQL plugin
@@ -60,6 +61,10 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
 
   @Override
   protected void init() throws Exception {
+    ClusterPlugins.requirePluginOrAssume(
+        client(),
+        ClusterPlugins.SECURITY_PLUGIN,
+        "opensearch-security plugin not installed on test cluster; skipping FGAC tests");
     if (!initialized) {
       waitForSecurityPlugin();
       createTestIndices();

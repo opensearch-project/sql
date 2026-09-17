@@ -32,6 +32,9 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = DOC_MUTATION,
+      note = "PUTs a custom _id into a shared fixture; the append-only AE store rejects it.")
   public void testAscii() throws IOException {
     Request request1 =
         new Request("PUT", "/opensearch-sql_test_index_state_country/_doc/10?refresh=true");
