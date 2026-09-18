@@ -127,6 +127,27 @@ public class CalciteEvalCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testEvalUnicodeLiteral() throws IOException {
+    // Non-Latin-1 (CJK/emoji) literals must succeed, not fail with a charset encoding error.
+    JSONObject result =
+        executeQuery(
+            "source=test_eval | where name = 'Alice' | eval label = '你好 🎉' | fields name,"
+                + " label");
+    verifySchema(result, schema("name", "string"), schema("label", "string"));
+    verifyDataRows(result, rows("Alice", "你好 🎉"));
+  }
+
+  @Test
+  public void testEvalUnicodeAndAsciiConcatenation() throws IOException {
+    // Concatenating a non-ascii literal with an ascii column must not raise a mixed-charset error.
+    JSONObject result =
+        executeQuery(
+            "source=test_eval | where name = 'Bob' | eval label = name + '・你好' | fields label");
+    verifySchema(result, schema("label", "string"));
+    verifyDataRows(result, rows("Bob・你好"));
+  }
+
+  @Test
   public void testEvalStringConcatenationWithLiterals() throws IOException {
     JSONObject result =
         executeQuery(
