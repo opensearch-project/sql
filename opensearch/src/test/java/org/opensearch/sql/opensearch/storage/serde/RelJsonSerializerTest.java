@@ -39,6 +39,8 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchFlatObjectType;
+import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.UnsupportedScriptException;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 public class RelJsonSerializerTest {
@@ -422,5 +424,40 @@ public class RelJsonSerializerTest {
     var exception =
         assertThrows(IllegalStateException.class, () -> serializer.deserialize(encoded));
     assertTrue(exception.getMessage().contains("Failed to deserialize"));
+  }
+
+  // The serializer refuses rather than building a script that would read _source, so the caller
+  // falls back instead of scanning every record.
+  @Test
+  void aFlatObjectFieldCannotBeScripted() {
+    RelDataType flatRowType =
+        rexBuilder
+            .getTypeFactory()
+            .builder()
+            .kind(StructKind.FULLY_QUALIFIED)
+            .add(
+                "attributes",
+                rexBuilder
+                    .getTypeFactory()
+                    .createMapType(
+                        TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
+                        TYPE_FACTORY.createSqlType(SqlTypeName.VARIANT, true)))
+            .build();
+    RexNode leaf =
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.ITEM,
+            rexBuilder.makeInputRef(flatRowType.getFieldList().get(0).getType(), 0),
+            rexBuilder.makeLiteral("duration_ms"));
+    ScriptParameterHelper helper =
+        new ScriptParameterHelper(
+            flatRowType.getFieldList(),
+            Map.of("attributes", OpenSearchFlatObjectType.of()),
+            rexBuilder);
+
+    UnsupportedScriptException ex =
+        assertThrows(UnsupportedScriptException.class, () -> serializer.serialize(leaf, helper));
+    assertTrue(
+        ex.getMessage().contains("A flat_object field cannot be read by a pushed-down script"),
+        ex.getMessage());
   }
 }

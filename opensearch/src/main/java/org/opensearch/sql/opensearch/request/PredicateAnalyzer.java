@@ -82,6 +82,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.RangeSets;
 import org.apache.calcite.util.Sarg;
@@ -107,6 +108,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchAliasType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchFlatObjectType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.UnsupportedScriptException;
 import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.ScriptEngineType;
@@ -372,6 +374,11 @@ public class PredicateAnalyzer {
         throw new PredicateAnalyzerException(message);
       }
 
+      QueryExpression leafPredicate = flatObjectLeafPredicate(call);
+      if (leafPredicate != null) {
+        return leafPredicate;
+      }
+
       switch (syntax) {
         case BINARY, INTERNAL:
           return binary(call);
@@ -403,6 +410,140 @@ public class PredicateAnalyzer {
               format(Locale.ROOT, "Unsupported syntax [%s] for call: [%s]", syntax, call);
           throw new PredicateAnalyzerException(message);
       }
+    }
+
+    /**
+     * The index query that answers a predicate on a flat_object leaf, or null if the call is not
+     * one. Every leaf is indexed as a keyword term with the path folded in ({@code
+     * attributes.duration_ms=n/a}), so the term, terms, exists, prefix and wildcard queries below
+     * are the whole answer and no record is opened. A predicate the index cannot answer -- a
+     * comparison, which the index would answer by comparing text -- is rejected while the plan is
+     * built and never arrives here.
+     */
+    private @Nullable QueryExpression flatObjectLeafPredicate(RexCall call) {
+      List<RexNode> operands = call.getOperands();
+      switch (call.getKind()) {
+        case EQUALS, NOT_EQUALS -> {
+          for (int i = 0; i < 2; i++) {
+            String path = flatObjectLeafPath(operands.get(i));
+            if (path != null && leafLiteral(operands.get(1 - i)) instanceof RexLiteral literal) {
+              LiteralExpression value = new LiteralExpression(literal);
+              return analyzed(
+                  call.getKind() == SqlKind.EQUALS
+                      ? leaf(path).equals(value)
+                      : leaf(path).notEquals(value),
+                  call);
+            }
+          }
+        }
+        case IS_NOT_NULL -> {
+          String path = flatObjectLeafPath(operands.get(0));
+          if (path != null) {
+            return analyzed(leaf(path).exists(), call);
+          }
+        }
+        case IS_NULL -> {
+          String path = flatObjectLeafPath(operands.get(0));
+          if (path != null) {
+            return analyzed(leaf(path).notExists(), call);
+          }
+        }
+        case SEARCH -> {
+          // Calcite folds `x = 'a' or x = 'b'` into a SEARCH over a set of points and
+          // `x != 'a' and x != 'b'` into its complement. in() and notIn() answer both, and the
+          // nullAs switch below is the one binary()'s SEARCH branch applies: a negated set has to
+          // keep an exists filter, or a record that never wrote the leaf comes back. A Sarg that is
+          // a range comes from a comparison and is left to the caller.
+          String path = flatObjectLeafPath(operands.get(0));
+          if (path != null && operands.get(1) instanceof RexLiteral literal) {
+            boolean points = isSearchWithPoints(call);
+            boolean complemented = isSearchWithComplementedPoints(call);
+            if (points || complemented) {
+              LiteralExpression value = new LiteralExpression(literal);
+              QueryExpression matched = points ? leaf(path).in(value) : leaf(path).notIn(value);
+              return analyzed(
+                  switch (getNullAsForSearch(call)) {
+                    case FALSE ->
+                        points
+                            ? matched
+                            : CompoundQueryExpression.and(false, matched, leaf(path).exists());
+                    case TRUE -> CompoundQueryExpression.or(matched, leaf(path).notExists());
+                    case UNKNOWN ->
+                        complemented
+                            ? CompoundQueryExpression.and(false, matched, leaf(path).exists())
+                            : matched;
+                  },
+                  call);
+            }
+          }
+        }
+        case LIKE -> {
+          String path = flatObjectLeafPath(operands.get(0));
+          if (path != null
+              && operands.get(1) instanceof RexLiteral pattern
+              && isText(pattern)
+              && call.getOperator() instanceof SqlLikeOperator like) {
+            return analyzed(
+                leaf(path).like(new LiteralExpression(pattern), like.isCaseSensitive()), call);
+          }
+        }
+        default -> {}
+      }
+      return null;
+    }
+
+    /**
+     * A flat_object leaf as a field the rest of this class can push down: named by its dotted path,
+     * with no type, because the leaf has no mapping of its own. A null type makes every type test
+     * in {@link NamedFieldExpression} false and both of its references the path itself, which is
+     * how a keyword field behaves -- and a keyword term per leaf is exactly what the index holds.
+     * So the queries come from {@link SimpleQueryExpression}, the same ones a mapped field gets,
+     * rather than being rebuilt here.
+     */
+    private static SimpleQueryExpression leaf(String path) {
+      return (SimpleQueryExpression)
+          QueryExpression.create(new NamedFieldExpression(path, null, null));
+    }
+
+    private static QueryExpression analyzed(QueryExpression expression, RexCall call) {
+      expression.updateAnalyzedNodes(call);
+      return expression;
+    }
+
+    private static boolean isText(RexLiteral literal) {
+      return SqlTypeUtil.isCharacter(literal.getType());
+    }
+
+    /**
+     * The literal a comparison holds. Comparing a leaf with a value casts one side to the other's
+     * type -- the leaf to the value's, or the value to the leaf's VARIANT -- and either way the
+     * value looked up is the literal underneath. Null when the operand is not a literal.
+     */
+    private static @Nullable RexNode leafLiteral(RexNode node) {
+      RexNode literal = PlanUtils.stripCastOfLiteral(node);
+      return literal instanceof RexLiteral ? literal : null;
+    }
+
+    /**
+     * The DSL path of a flat_object leaf reference -- {@code ITEM(<flat_object column>, '<key>')},
+     * possibly under a cast to a character type -- as {@code column.key}; null for anything else.
+     */
+    private @Nullable String flatObjectLeafPath(RexNode node) {
+      // A comparison casts the leaf to the literal's type; the index holds one term either way.
+      node = PlanUtils.stripCast(node);
+      if (!(node instanceof RexCall item) || item.getKind() != SqlKind.ITEM) {
+        return null;
+      }
+      if (!(item.getOperands().get(0) instanceof RexInputRef ref)
+          || !(item.getOperands().get(1) instanceof RexLiteral key)
+          || !isText(key)) {
+        return null;
+      }
+      String column = ref.getIndex() < schema.size() ? schema.get(ref.getIndex()) : null;
+      if (column == null || !(fieldTypes.get(column) instanceof OpenSearchFlatObjectType)) {
+        return null;
+      }
+      return column + "." + RexLiteral.stringValue(key);
     }
 
     private QueryExpression visitRelevanceFunc(RexCall call) {
@@ -1697,6 +1838,14 @@ public class PredicateAnalyzer {
               .map(rowType.getFieldNames()::get)
               .toList();
       this.fieldTypes = fieldTypes;
+      // Refuse here, while the caller can still fall back, rather than when the script is
+      // generated. RexStandardizer says why a flat_object field is never read by a script.
+      for (String field : referredFields) {
+        if (fieldTypes.get(field) instanceof OpenSearchFlatObjectType) {
+          throw new UnsupportedScriptException(
+              "A flat_object field cannot be read by a pushed-down script: " + field);
+        }
+      }
     }
 
     // For filter script, this method will be called after planning phase;

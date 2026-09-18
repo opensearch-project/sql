@@ -39,6 +39,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
     DateNanos("date_nanos", ExprCoreType.TIMESTAMP),
     Object("object", ExprCoreType.STRUCT),
     Nested("nested", ExprCoreType.ARRAY),
+    FlatObject("flat_object", ExprCoreType.UNKNOWN),
     Byte("byte", ExprCoreType.BYTE),
     Short("short", ExprCoreType.SHORT),
     Integer("integer", ExprCoreType.INTEGER),
@@ -170,6 +171,8 @@ public class OpenSearchDataType implements ExprType, Serializable {
         return OpenSearchGeoPointType.of();
       case Binary:
         return OpenSearchBinaryType.of();
+      case FlatObject:
+        return OpenSearchFlatObjectType.of();
       case Date:
       case DateNanos:
         // Default date formatter is used when "" is passed as the second parameter

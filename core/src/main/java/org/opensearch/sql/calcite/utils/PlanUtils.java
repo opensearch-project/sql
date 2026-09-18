@@ -504,6 +504,33 @@ public interface PlanUtils {
     return rexNode;
   }
 
+  /**
+   * The expression under the casts wrapped around it. Comparing values of different types casts one
+   * side to the other's, and for a field whose values are looked up by their text -- a flat_object
+   * leaf -- that cast says nothing about which value the query meant.
+   */
+  static RexNode stripCast(RexNode node) {
+    while (node instanceof RexCall cast
+        && (cast.getKind() == SqlKind.CAST || cast.getKind() == SqlKind.SAFE_CAST)) {
+      node = cast.getOperands().get(0);
+    }
+    return node;
+  }
+
+  /**
+   * The literal under the casts wrapped around it, or the node itself when it is not a cast over a
+   * literal. Either side of a comparison may be the one that was cast, so a caller looking for the
+   * value compared has to look under a cast on the literal too.
+   */
+  static RexNode stripCastOfLiteral(RexNode node) {
+    while (node instanceof RexCall cast
+        && (cast.getKind() == SqlKind.CAST || cast.getKind() == SqlKind.SAFE_CAST)
+        && cast.getOperands().get(0) instanceof RexLiteral) {
+      node = cast.getOperands().get(0);
+    }
+    return node;
+  }
+
   /** Check if contains dedup, it should be put in the last position */
   static boolean containsRowNumberDedup(RelNode node) {
     List<String> fieldNames = node.getRowType().getFieldNames();

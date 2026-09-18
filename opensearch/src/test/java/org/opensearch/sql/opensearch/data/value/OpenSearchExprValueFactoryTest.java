@@ -57,6 +57,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchFlatObjectType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.utils.OpenSearchJsonContent;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory.JsonPath;
@@ -100,6 +101,7 @@ class OpenSearchExprValueFactoryTest {
           .put("structV.id", OpenSearchDataType.of(INTEGER))
           .put("structV.state", OpenSearchDataType.of(STRING))
           .put("arrayV", OpenSearchDataType.of(ARRAY))
+          .put("flatV", OpenSearchFlatObjectType.of())
           .put("arrayV.info", OpenSearchDataType.of(STRING))
           .put("arrayV.author", OpenSearchDataType.of(STRING))
           .put(
@@ -1018,6 +1020,70 @@ class OpenSearchExprValueFactoryTest {
                       }
                     })));
     assertEquals(expectedValue, tupleValue);
+  }
+
+  // flat_object: both spellings of a path collapse to one dotted key, and every leaf keeps the
+  // type it was written with.
+
+  @Test
+  public void constructFlatObject_bothSpellingsCollapseToDottedKey() {
+    ExprValue dotted = tupleValue("{\"flatV\":{\"a.b\":1}}").get("flatV");
+    ExprValue nested = tupleValue("{\"flatV\":{\"a\":{\"b\":1}}}").get("flatV");
+    ExprValue expected = ExprValueUtils.tupleValue(Map.of("a.b", integerValue(1)));
+    assertAll(
+        () -> assertEquals(expected, dotted),
+        () -> assertEquals(expected, nested),
+        () -> assertEquals(STRUCT, dotted.type()));
+  }
+
+  @Test
+  public void constructFlatObject_everyLeafKeepsItsType() {
+    ExprValue value =
+        tupleValue("{\"flatV\":{\"n\":12.5,\"s\":\"4\",\"b\":true,\"z\":null}}").get("flatV");
+    assertAll(
+        () -> assertEquals(doubleValue(12.5), value.tupleValue().get("n")),
+        () -> assertEquals(stringValue("4"), value.tupleValue().get("s")),
+        () -> assertEquals(booleanValue(true), value.tupleValue().get("b")),
+        () -> assertEquals(nullValue(), value.tupleValue().get("z")));
+  }
+
+  @Test
+  public void constructFlatObject_arrayStaysAnArrayOfTypedElements() {
+    ExprValue value = tupleValue("{\"flatV\":{\"tags\":[\"a\",1]}}").get("flatV");
+    assertAll(
+        () -> assertEquals(1, value.tupleValue().size()),
+        () ->
+            assertEquals(
+                new ExprCollectionValue(List.of(stringValue("a"), integerValue(1))),
+                value.tupleValue().get("tags")));
+  }
+
+  @Test
+  public void constructFlatObject_fromObjectContent() {
+    ExprValue value = constructFromObject("flatV", Map.of("a", Map.of("b", 503)));
+    assertEquals(ExprValueUtils.tupleValue(Map.of("a.b", integerValue(503))), value);
+  }
+
+  @Test
+  public void constructFlatObject_scalarWhereObjectExpectedIsNull() {
+    assertEquals(nullValue(), tupleValue("{\"flatV\":5}").get("flatV"));
+  }
+
+  @Test
+  public void constructFlatObject_depthIsCapped() {
+    // 25 nested levels; the walker descends 20 and keeps the remainder as one string leaf.
+    StringBuilder json = new StringBuilder("{\"flatV\":");
+    for (int i = 0; i < 25; i++) {
+      json.append("{\"k\":");
+    }
+    json.append("1");
+    json.append("}".repeat(25)).append("}");
+
+    ExprValue value = tupleValue(json.toString()).get("flatV");
+    String key = String.join(".", java.util.Collections.nCopies(21, "k"));
+    assertAll(
+        () -> assertEquals(1, value.tupleValue().size()),
+        () -> assertEquals(STRING, value.tupleValue().get(key).type()));
   }
 
   public Map<String, ExprValue> tupleValue(String jsonString) {

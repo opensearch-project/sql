@@ -320,6 +320,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.FlatObjectScopeValidator;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -585,6 +586,9 @@ public class PPLFuncImpTable {
         coercionNodes = CoercionUtils.castArguments(rexBuilder, signature.typeChecker(), fields);
       }
       if (coercionNodes == null) {
+        if (hasVariant(argTypes)) {
+          throw FlatObjectScopeValidator.unsupportedFunction(functionName.getName().toString());
+        }
         String errorMessagePattern =
             argTypes.size() <= 1
                 ? "Aggregation function %s expects field type {%s}, but got %s"
@@ -599,6 +603,11 @@ public class PPLFuncImpTable {
       }
     }
     return coercionNodes;
+  }
+
+  /** Whether any argument is a VARIANT, the type of a flat_object leaf. */
+  private static boolean hasVariant(List<RelDataType> argTypes) {
+    return argTypes.stream().anyMatch(t -> t.getSqlTypeName() == SqlTypeName.VARIANT);
   }
 
   private Pair<CalciteFuncSignature, AggHandler> getImplementation(
@@ -645,6 +654,14 @@ public class PPLFuncImpTable {
     args = coerceNumericComparisonOperands(builder, functionName, args);
 
     List<RelDataType> argTypes = Arrays.stream(args).map(RexNode::getType).toList();
+
+    // typeof reports the static type of its argument, and a flat_object leaf has none: it would
+    // answer "undefined" for every record. Rejected here, outside the resolution below, so that
+    // the reason reaches the user instead of a "cannot resolve function" wrapper.
+    if (functionName == TYPEOF && hasVariant(argTypes)) {
+      throw FlatObjectScopeValidator.unsupportedFunction("typeof");
+    }
+
     try {
       for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
         if (implement.getKey().match(functionName.getName(), argTypes)) {
@@ -664,6 +681,9 @@ public class PPLFuncImpTable {
               "Cannot resolve function: %s, arguments: %s, caused by: %s",
               functionName, PlanUtils.getActualSignature(argTypes), e.getMessage()),
           e);
+    }
+    if (hasVariant(argTypes)) {
+      throw FlatObjectScopeValidator.unsupportedFunction(functionName.getName().toString());
     }
     StringJoiner allowedSignatures = new StringJoiner(",");
     for (var implement : implementList) {

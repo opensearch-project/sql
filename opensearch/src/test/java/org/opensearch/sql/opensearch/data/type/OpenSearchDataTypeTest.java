@@ -32,6 +32,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
 import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -132,7 +133,8 @@ class OpenSearchDataTypeTest {
         Arguments.of(MappingType.Nested, "nested", ARRAY),
         Arguments.of(MappingType.Ip, "ip", IP),
         Arguments.of(MappingType.GeoPoint, "geo_point", OpenSearchGeoPointType.of()),
-        Arguments.of(MappingType.Binary, "binary", OpenSearchBinaryType.of()));
+        Arguments.of(MappingType.Binary, "binary", OpenSearchBinaryType.of()),
+        Arguments.of(MappingType.FlatObject, "flat_object", OpenSearchFlatObjectType.of()));
   }
 
   @ParameterizedTest(name = "{1}")
@@ -210,6 +212,9 @@ class OpenSearchDataTypeTest {
         () -> assertSame(OpenSearchDataType.of(MappingType.Text), OpenSearchTextType.of()),
         () -> assertSame(OpenSearchDataType.of(MappingType.Binary), OpenSearchBinaryType.of()),
         () -> assertSame(OpenSearchDataType.of(MappingType.GeoPoint), OpenSearchGeoPointType.of()),
+        () ->
+            assertSame(
+                OpenSearchDataType.of(MappingType.FlatObject), OpenSearchFlatObjectType.of()),
         () ->
             assertNotSame(
                 OpenSearchTextType.of(),
@@ -567,5 +572,27 @@ class OpenSearchDataTypeTest {
             "col2",
             new OpenSearchAliasType("col1", OpenSearchDataType.of(MappingType.Invalid))),
         OpenSearchDataType.parseMapping(indexMapping2));
+  }
+
+  // A flat_object declares no `properties`, so it must survive parseMapping as a leaf of its own
+  // type (it used to be dropped as an unknown mapping type) and flatten to exactly one entry.
+  @Test
+  public void test_parseMapping_on_FlatObject() {
+    Map<String, Object> indexMapping =
+        Map.of(
+            "service", Map.of("type", "keyword"),
+            "attributes", Map.of("type", "flat_object"));
+
+    Map<String, OpenSearchDataType> parsed = OpenSearchDataType.parseMapping(indexMapping);
+    assertAll(
+        () -> assertEquals(2, parsed.size()),
+        () -> assertSame(OpenSearchFlatObjectType.of(), parsed.get("attributes")),
+        () -> assertTrue(parsed.get("attributes").getProperties().isEmpty()));
+
+    Map<String, OpenSearchDataType> flattened = OpenSearchDataType.traverseAndFlatten(parsed);
+    assertAll(
+        () -> assertEquals(Set.of("service", "attributes"), flattened.keySet()),
+        () -> assertSame(OpenSearchFlatObjectType.of(), flattened.get("attributes")),
+        () -> assertSame(OpenSearchFlatObjectType.of(), flattened.get("attributes").getExprType()));
   }
 }

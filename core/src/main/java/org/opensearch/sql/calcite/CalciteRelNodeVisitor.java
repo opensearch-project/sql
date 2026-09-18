@@ -190,6 +190,7 @@ import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.calcite.utils.WildcardUtils;
 import org.opensearch.sql.common.error.ErrorCode;
 import org.opensearch.sql.common.error.ErrorReport;
+import org.opensearch.sql.common.error.QueryProcessingStage;
 import org.opensearch.sql.common.patterns.PatternUtils;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -236,7 +237,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   public RelNode analyze(UnresolvedPlan unresolved, CalcitePlanContext context) {
-    return unresolved.accept(this, context);
+    RelNode plan = unresolved.accept(this, context);
+    // Here rather than in QueryService.analyze, so the unified query pipeline -- which calls this
+    // method directly -- is held to the same rules.
+    FlatObjectScopeValidator.validate(plan);
+    return plan;
   }
 
   @Override
@@ -4456,7 +4461,24 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // 2. Get the field to expand and an optional alias.
     Field arrayField = expand.getField();
-    RexInputRef arrayFieldRex = (RexInputRef) rexVisitor.analyze(arrayField, context);
+    RexNode resolved = rexVisitor.analyze(arrayField, context);
+    if (!(resolved instanceof RexInputRef arrayFieldRex)) {
+      // Anything that is not a column of the input -- a leaf of an object or a flat_object field,
+      // an expression -- has no column to correlate the expansion with. Raised the way the
+      // mvexpand check below does, rather than as the ClassCastException the cast used to throw.
+      String name = StringUtils.unquoteIdentifier(arrayField.getField().toString());
+      throw ErrorReport.wrap(
+              new IllegalArgumentException(StringUtils.format("Cannot expand [%s]", name)))
+          .code(ErrorCode.UNSUPPORTED_OPERATION)
+          .stage(QueryProcessingStage.ANALYZING)
+          .location("while resolving the field for expand")
+          .context("command", "expand")
+          .context("field", name)
+          .suggestion(
+              "expand takes a field of the index, not a value computed from one. Expand the field"
+                  + " itself, or project the value first.")
+          .build();
+    }
     String alias = expand.getAlias();
 
     buildExpandRelNode(arrayFieldRex, arrayField.getField().toString(), alias, null, context);

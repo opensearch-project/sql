@@ -50,6 +50,7 @@ The table below list the mapping between OpenSearch Data Type, PPL Data Type and
 | binary | binary | VARBINARY |
 | object | struct | STRUCT |
 | nested | array | STRUCT |
+| flat_object | struct | STRUCT |
   
 Notes: Not all the PPL Type has correspond OpenSearch Type. e.g. data and time. To use function which required such data type, user should explicit convert the data type.
 ## Numeric Data Types  
@@ -113,6 +114,33 @@ A string is a sequence of characters enclosed in either single or double quotes.
 ## Query Struct Data Types  
 
 In PPL, the Struct Data Types corresponding to the [Object field type in OpenSearch](https://opensearch.org/docs/latest/field-types/supported-field-types/object/). The "." is used as the path selector when access the inner attribute of the struct data.
+
+A [flat_object field](https://docs.opensearch.org/latest/mappings/supported-field-types/flat-object/) is also presented as a struct, keyed by the dotted path of each leaf. A flat_object declares no sub-fields, so each leaf keeps the type it was written with in the document: `12.5` is a number and `"4"` is text. Both a nested object and a literal dotted key reach the same leaf: `{"a": {"b": 1}}` and `{"a.b": 1}` each give the entry `a.b` with the value `1`. An array leaf is an array whose elements keep their own types. A path that receives more than one value holds all of them, whether the values come from an array, from several elements of an array of objects, or from both spellings of the same path appearing in one document.
+
+What a query can do with a flat_object leaf is what the field type itself can do: PPL inherits the field type's [limitations](https://docs.opensearch.org/latest/mappings/supported-field-types/flat-object/#limitations). A flat_object stores its leaves without a type of their own, so a leaf can be looked up, but there is nothing to compare, sort or aggregate it by.
+
+Supported on a leaf:
+
+- reading it, or the whole field;
+- equality and inequality;
+- membership in a set of values;
+- presence and absence;
+- pattern matching;
+- any of these combined with `and` / `or` / `not`, or with filters on other fields.
+
+Not supported on a leaf. These are rejected when the query is planned, with an error that names the field and links to the field type's documentation:
+
+- aggregating it, or grouping by it;
+- sorting by it;
+- computing a new value from it, such as a function or an arithmetic expression;
+- numeric comparison -- `>`, `<`, `>=`, `<=`, `between`.
+
+A lookup finds the value as it was written, without distinguishing it from the text that spells it: a leaf written as a number is matched by the equivalent text, and the reverse. Numeric comparison is rejected for the opposite reason -- it would compare the leaves as text and quietly return the wrong rows.
+
+A cast follows the same rule as any other computation: converting a leaf to return its value is rejected, while a cast inside a supported filter is fine, because the filter is still a lookup.
+
+A path that runs through an array of objects is a path like any other: a filter on it matches any element, and reading it returns every element's value.
+
 ### Example: People  
 
 There are three fields in test index `people`: 1) deep nested object field `city`; 2) object field of array value `account`; 3) nested field `projects`

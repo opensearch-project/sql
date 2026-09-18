@@ -206,6 +206,13 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         return TYPE_FACTORY.createSqlType(SqlTypeName.GEOMETRY, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("text")) {
         return TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, nullable);
+      } else if (fieldType.legacyTypeName().equalsIgnoreCase("flat_object")) {
+        // Keys are the dotted leaf paths; each leaf value is a VARIANT carrying the type it was
+        // written with in _source (a number stays a number, text stays text).
+        return TYPE_FACTORY.createMapType(
+            TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
+            TYPE_FACTORY.createSqlType(SqlTypeName.VARIANT, true),
+            nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("ip")) {
         return TYPE_FACTORY.createUDT(ExprUDT.EXPR_IP, nullable);
       } else if (fieldType.getOriginalPath().isPresent()) {
@@ -258,7 +265,8 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       // through to UNKNOWN.
       case ROW -> STRUCT;
       case GEOMETRY -> GEO_POINT;
-      case NULL, ANY, OTHER -> UNDEFINED;
+      // VARIANT has no static type; its columns take the type of their runtime value.
+      case NULL, ANY, OTHER, VARIANT -> UNDEFINED;
       default -> UNKNOWN;
     };
   }
