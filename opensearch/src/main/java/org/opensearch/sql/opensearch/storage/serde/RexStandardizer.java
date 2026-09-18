@@ -39,6 +39,7 @@ import org.apache.calcite.util.Pair;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.Source;
 
@@ -107,7 +108,10 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
     RelDataTypeField field = helper.inputFieldList.get(index);
     ExprType exprType = helper.fieldTypes.get(field.getName());
     String docFieldName =
-        exprType == ExprCoreType.STRUCT || exprType == ExprCoreType.ARRAY
+        exprType == ExprCoreType.STRUCT
+                || exprType == ExprCoreType.ARRAY
+                // A binary field has no doc values, so it has to be read from _source too.
+                || exprType instanceof OpenSearchBinaryType
             ? null
             : OpenSearchTextType.toKeywordSubField(field.getName(), exprType);
     int newIndex = helper.sources.size();

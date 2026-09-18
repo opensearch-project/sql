@@ -105,6 +105,7 @@ import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchAliasType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.UnsupportedScriptException;
@@ -1855,6 +1856,19 @@ public class PredicateAnalyzer {
       this(literal == null ? null : RexLiteral.stringValue(literal), null, null);
     }
 
+    /**
+     * A binary field has neither fielddata nor doc values, so bucketing or sorting on it fails at
+     * the shard, while an {@code exists} filter succeeds and silently matches nothing. Refusing
+     * here rather than in the constructor leaves {@link #getRootName()} usable, because a {@code
+     * top_hits} fetch field is served from {@code _source} by the fields API and so is valid.
+     */
+    private static void rejectBinaryField(String name, ExprType type) {
+      if (type instanceof OpenSearchBinaryType) {
+        throw new PredicateAnalyzerException(
+            format(Locale.ROOT, "Cannot push down a reference to binary field [%s]", name));
+      }
+    }
+
     public String getRootName() {
       return name;
     }
@@ -1899,10 +1913,12 @@ public class PredicateAnalyzer {
     }
 
     String getReference() {
+      rejectBinaryField(name, type);
       return getRootName();
     }
 
     public String getReferenceForTermQuery() {
+      rejectBinaryField(name, type);
       return OpenSearchTextType.toKeywordSubField(getRootName(), this.type);
     }
   }
