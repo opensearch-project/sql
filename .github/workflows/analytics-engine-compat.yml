@@ -38,6 +38,23 @@ jobs:
           distribution: 'temurin'
           java-version: 25
 
+      - name: Compute native-lib cache week
+        id: nativecache
+        run: echo "week=$(date -u +%Y-%U)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache feature-datafusion dist tarball (native lib source)
+        # The dist tarball (~900MB) is the only published artifact carrying
+        # lib/rust/libopensearch_native.so, which the AE testClusters need at node boot.
+        # downloadNativeLib reuses build/tmp/opensearch-*.tar.gz if present, so caching it
+        # avoids re-downloading on every run. Keyed weekly since the feature-build is a
+        # rolling "latest" and the .so must stay reasonably fresh vs the plugin zips.
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4
+        with:
+          path: integ-test/build/tmp/opensearch-*-linux-x64.tar.gz
+          key: ae-native-dist-${{ runner.os }}-${{ steps.nativecache.outputs.week }}
+          restore-keys: |
+            ae-native-dist-${{ runner.os }}-
+
       - name: Run analytics-engine compatibility smoke test
         run: |
           chown -R 1000:1000 `pwd`
