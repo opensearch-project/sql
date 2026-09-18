@@ -63,3 +63,7 @@ jobs:
       - name: Run analytics-engine security IT
         run: |
           su `id -un 1000` -c "./gradlew :integ-test:analyticsEngineSecurityIT"
+
+      - name: Run analytics-engine profile IT
+        run: |
+          su `id -un 1000` -c "./gradlew :integ-test:analyticsEngineProfileIT"

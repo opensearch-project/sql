@@ -675,6 +675,16 @@ task analyticsEngineProfileIT(type: RestIntegTestTask) {
     filter {
         includeTestsMatching 'org.opensearch.sql.analytics.AnalyticsEngineProfileIT'
     }
+
+    // Surface per-test results in the CI log so this suite's execution is visible (these AE ITs
+    // historically never ran in CI — a silent gap; explicit logging guards against regressing to it).
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+    }
+    afterTest { desc, result ->
+        logger.quiet "${desc.className}.${desc.name}: ${result.resultType} ${(result.getEndTime() - result.getStartTime())/1000}s"
+    }
 }
 
 testClusters.analyticsEngineProfileIT {
@@ -682,11 +692,14 @@ testClusters.analyticsEngineProfileIT {
     plugin(getJobSchedulerPlugin())
     plugin(getArrowBasePlugin())
     plugin(getArrowFlightRpcPlugin())
+    // composite-engine MUST be installed before analytics-backend-lucene/datafusion, which declare
+    // it as a dependency — otherwise the node fails at plugin install with
+    // "Missing plugin [composite-engine], dependency of [analytics-backend-lucene]".
+    plugin(getCompositeEnginePlugin())
     plugin(getAnalyticsEnginePlugin())
     plugin(getAnalyticsBackendLucenePlugin())
     plugin(getAnalyticsBackendDatafusionPlugin())
     plugin(getParquetDataFormatPlugin())
-    plugin(getCompositeEnginePlugin())
     plugin ":opensearch-sql-plugin"
     // Arrow Flight / streaming transport requirements
     jvmArgs '--add-opens=java.base/java.nio=ALL-UNNAMED'
