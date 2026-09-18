@@ -269,8 +269,6 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
         executePPLAsUser("source = " + TEST_INDEX + " | fields name, age", ALLOWED_USER);
     assertDataRowsPresent(result, "authorized user on concrete index");
     assertContainsName(result, "alice");
-    // TEMPORARY: deliberate failure to prove this suite actually executes in CI. REVERT before merge.
-    org.junit.Assert.fail("CI EXECUTION PROOF: intentional failure — revert this line");
   }
 
   @Test
