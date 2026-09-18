@@ -217,6 +217,18 @@ class PartialResultAggregatePushdownTest {
     assertTrue(w.getDetail().contains("txt"), "detail names the excluded index");
   }
 
+  @Test
+  void warningTextIsIndependentOfGroupKeyOrder() {
+    // Equivalent plan alternatives can present the same group keys in either order. The warning has
+    // to read the same either way, or the two render differently and both reach the response.
+    Map<String, IndexMapping> mappings =
+        ordered("kw", twoKeywordIndex(), "txt", oneTextOneKeywordIndex());
+    Warning ab = PartialResultAggregatePushdown.plan(List.of("a", "b"), mappings).warning();
+    Warning ba = PartialResultAggregatePushdown.plan(List.of("b", "a"), mappings).warning();
+    assertEquals(ab, ba, "group-key order must not change the warning");
+    assertTrue(ab.getMessage().contains("[a, b]"), "keys read in a stable order");
+  }
+
   // ---- helpers ----
 
   private static String resolveOne(Map<String, OpenSearchDataType> mapping) {
@@ -229,6 +241,14 @@ class PartialResultAggregatePushdownTest {
 
   private static IndexMapping bareTextIndex() {
     return new IndexMapping(Map.of("f", BARE_TEXT_TYPE));
+  }
+
+  private static IndexMapping twoKeywordIndex() {
+    return new IndexMapping(Map.of("a", KEYWORD_TYPE, "b", KEYWORD_TYPE));
+  }
+
+  private static IndexMapping oneTextOneKeywordIndex() {
+    return new IndexMapping(Map.of("a", BARE_TEXT_TYPE, "b", KEYWORD_TYPE));
   }
 
   private static IndexMapping textWithKeywordIndex() {

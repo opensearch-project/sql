@@ -18,6 +18,7 @@ import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.tools.RelRunner;
 import org.opensearch.sql.api.UnifiedQueryContext;
+import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 
 /**
  * {@code UnifiedQueryCompiler} compiles Calcite logical plans ({@link RelNode}) into executable
@@ -74,6 +75,7 @@ public class UnifiedQueryCompiler {
         };
     RelNode transformedPlan = plan.accept(shuttle);
 
+    CalciteToolsHelper.markScanAggregates(transformedPlan);
     Connection connection = context.getPlanContext().connection;
     final RelRunner runner = connection.unwrap(RelRunner.class);
     return runner.prepareStatement(transformedPlan);
