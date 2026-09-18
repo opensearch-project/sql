@@ -13,6 +13,17 @@ import org.opensearch.sql.common.error.ErrorReport;
 /** Error Message. */
 public class ErrorMessage {
 
+  // Calcite reports a planning failure as SQLException("Error while preparing plan [<plan>]"), so
+  // back-filling the cause message into 'reason' publishes the plan. It stays in the node log, and
+  // `explain` is the supported way to obtain one.
+  //
+  // Matched with contains, not startsWith, because a layer that does new SomeException(cause) sets
+  // its message to cause.toString() and buries the marker mid-string.
+  private static final String PLAN_PREPARATION_PREFIX = "Error while preparing plan [";
+
+  private static final String PLAN_PREPARATION_REASON =
+      "Failed to prepare the query plan for execution.";
+
   protected final Throwable exception;
 
   private final int status;
@@ -73,7 +84,11 @@ public class ErrorMessage {
         String reasonMessage =
             cause.getLocalizedMessage() != null ? cause.getLocalizedMessage() : cause.getMessage();
         if (reasonMessage != null) {
-          errorJson.put("reason", reasonMessage);
+          errorJson.put(
+              "reason",
+              reasonMessage.contains(PLAN_PREPARATION_PREFIX)
+                  ? PLAN_PREPARATION_REASON
+                  : reasonMessage);
         }
       }
       return errorJson;
