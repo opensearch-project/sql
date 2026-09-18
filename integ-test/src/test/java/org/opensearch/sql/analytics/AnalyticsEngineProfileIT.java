@@ -65,7 +65,9 @@ public class AnalyticsEngineProfileIT extends OpenSearchRestTestCase {
               "number_of_shards": 2,
               "number_of_replicas": 0,
               "index.pluggable.dataformat.enabled": true,
-              "index.pluggable.dataformat": "composite"
+              "index.pluggable.dataformat": "composite",
+              "index.composite.primary_data_format": "parquet",
+              "index.composite.secondary_data_formats": ["lucene"]
             },
             "mappings": {
               "properties": {

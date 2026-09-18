@@ -284,6 +284,14 @@ def getGeoSpatialPlugin() {
 // fetch from the feature-build artifact for now (linux/x64 only; for local dev pass -PanalyticsEngineZip=/path instead).
 ext.pluginVersion = opensearch_version.tokenize('-')[0]
 ext.featureBuildBase = "https://ci.opensearch.org/ci/dbc/feature-build-opensearch/feature-datafusion/latest/linux/x64/tar/builds/opensearch/plugins"
+// The feature-datafusion distribution tarball is the ONLY published artifact that carries the
+// unified Rust native library (lib/rust/libopensearch_native.so). It is not bundled in any of the
+// individual plugin zips above, so the AE test clusters (which install parquet-data-format) would
+// otherwise fail at node boot with "Failed to load native library 'opensearch_native'". We download
+// the dist tarball once and extract just the .so into build/native/, then point java.library.path
+// at that dir (see downloadNativeLib below and the AE testClusters blocks).
+ext.featureBuildDistBase = "https://ci.opensearch.org/ci/dbc/feature-build-opensearch/feature-datafusion/latest/linux/x64/tar/dist/opensearch"
+ext.nativeLibDir = file("${buildDir}/native")
 ext.analyticsEngineZipDest = "${buildDir}/distributions/analytics-engine-${pluginVersion}-SNAPSHOT.zip"
 ext.arrowFlightRpcZipDest = "${buildDir}/distributions/arrow-flight-rpc-${pluginVersion}-SNAPSHOT.zip"
 ext.arrowBaseZipDest = "${buildDir}/distributions/arrow-base-${pluginVersion}-SNAPSHOT.zip"
@@ -326,7 +334,7 @@ task downloadTestPplFrontendZip(type: Download) {
 }
 
 task downloadAnalyticsBackendLuceneZip(type: Download) {
-    src "${featureBuildBase}/1-analytics-backend-lucene-${pluginVersion}.zip"
+    src "${featureBuildBase}/analytics-backend-lucene-${pluginVersion}.zip"
     dest analyticsBackendLuceneZipDest
     overwrite false
     onlyIfModified true
@@ -334,7 +342,7 @@ task downloadAnalyticsBackendLuceneZip(type: Download) {
 }
 
 task downloadParquetDataFormatZip(type: Download) {
-    src "${featureBuildBase}/1-parquet-data-format-${pluginVersion}.zip"
+    src "${featureBuildBase}/parquet-data-format-${pluginVersion}.zip"
     dest parquetDataFormatZipDest
     overwrite false
     onlyIfModified true
@@ -342,7 +350,7 @@ task downloadParquetDataFormatZip(type: Download) {
 }
 
 task downloadCompositeEngineZip(type: Download) {
-    src "${featureBuildBase}/1-composite-engine-${pluginVersion}.zip"
+    src "${featureBuildBase}/2-composite-engine-${pluginVersion}.zip"
     dest compositeEngineZipDest
     overwrite false
     onlyIfModified true
@@ -350,11 +358,52 @@ task downloadCompositeEngineZip(type: Download) {
 }
 
 task downloadAnalyticsBackendDatafusionZip(type: Download) {
-    src "${featureBuildBase}/1-analytics-backend-datafusion-${pluginVersion}.zip"
+    src "${featureBuildBase}/analytics-backend-datafusion-${pluginVersion}.zip"
     dest analyticsBackendDatafusionZipDest
     overwrite false
     onlyIfModified true
     onlyIf { !project.findProperty('analyticsBackendDatafusionZip') }
+}
+
+// Extract lib/rust/libopensearch_native.so from the feature-datafusion distribution tarball into
+// build/native/. The AE testClusters point java.library.path here so parquet-data-format's
+// RustBridge can load the unified native library at node boot. Skipped entirely when the caller
+// supplies -PnativeLibPath (local runs that build the .so from core).
+task downloadNativeLib {
+    def nativeLib = file("${nativeLibDir}/libopensearch_native.so")
+    outputs.file(nativeLib)
+    onlyIf { !project.findProperty('nativeLibPath') }
+
+    doLast {
+        def distTarball = file("${buildDir}/tmp/opensearch-${pluginVersion}-linux-x64.tar.gz")
+        // Cache-friendly: reuse the tarball across runs (GitHub Actions can cache build/tmp).
+        if (!distTarball.exists()) {
+            def url = "${featureBuildDistBase}/opensearch-${pluginVersion}-linux-x64.tar.gz"
+            logger.lifecycle "Downloading feature-datafusion distribution for native lib: ${url}"
+            distTarball.parentFile.mkdirs()
+            ant.get(src: url, dest: distTarball, httpusecaches: false)
+        }
+
+        delete nativeLibDir
+        nativeLibDir.mkdirs()
+        // Extract only the single native library entry, flattening it into nativeLibDir.
+        copy {
+            from(tarTree(resources.gzip(distTarball))) {
+                include "opensearch-${pluginVersion}/lib/rust/libopensearch_native.so"
+                eachFile { it.path = it.name }
+                includeEmptyDirs = false
+            }
+            into nativeLibDir
+        }
+
+        if (!nativeLib.exists()) {
+            throw new GradleException(
+                "Expected opensearch-${pluginVersion}/lib/rust/libopensearch_native.so inside " +
+                "${distTarball}, but it was not found after extraction. The feature-datafusion " +
+                "distribution layout may have changed.")
+        }
+        logger.lifecycle "Extracted native library to ${nativeLib}"
+    }
 }
 
 def getAnalyticsEnginePlugin() {
@@ -555,6 +604,7 @@ task analyticsEngineCompatIT(type: RestIntegTestTask) {
 
 task analyticsEngineSecurityIT(type: RestIntegTestTask) {
     dependsOn downloadAnalyticsEngineZip, downloadArrowFlightRpcZip, downloadArrowBaseZip, downloadAnalyticsBackendLuceneZip, downloadParquetDataFormatZip, downloadCompositeEngineZip, downloadAnalyticsBackendDatafusionZip
+    dependsOn downloadNativeLib
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
 
     systemProperty 'tests.security.manager', 'false'
@@ -568,6 +618,16 @@ task analyticsEngineSecurityIT(type: RestIntegTestTask) {
 
     filter {
         includeTestsMatching 'org.opensearch.sql.security.AnalyticsEngineSecurityIT'
+    }
+
+    // Surface per-test results in the CI log so this suite's execution is visible (these AE ITs
+    // historically never ran in CI — a silent gap; explicit logging guards against regressing to it).
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+    }
+    afterTest { desc, result ->
+        logger.quiet "${desc.className}.${desc.name}: ${result.resultType} ${(result.getEndTime() - result.getStartTime())/1000}s"
     }
 }
 
@@ -597,22 +657,33 @@ testClusters.analyticsEngineSecurityIT {
     setting 'cluster.pluggable.dataformat', 'composite'
     setting 'cluster.composite.primary_data_format', 'parquet'
     setting 'cluster.composite.secondary_data_formats', '["lucene"]'
-    // Native library path for DataFusion/parquet — pass via -PnativeLibPath=/path/to/release/
-    if (project.findProperty('nativeLibPath')) {
-        systemProperty 'java.library.path', project.findProperty('nativeLibPath')
-    }
+    // Native library path for DataFusion/parquet. Prefer the caller-supplied -PnativeLibPath
+    // (local runs that build the .so from core); otherwise fall back to the .so extracted
+    // from the feature-datafusion distribution by downloadNativeLib (the CI path).
+    systemProperty 'java.library.path', project.findProperty('nativeLibPath') ?: nativeLibDir.absolutePath
 }
 
 configureSecurityPlugin(testClusters.analyticsEngineSecurityIT)
 
 task analyticsEngineProfileIT(type: RestIntegTestTask) {
     dependsOn downloadAnalyticsEngineZip, downloadArrowFlightRpcZip, downloadArrowBaseZip, downloadAnalyticsBackendLuceneZip, downloadParquetDataFormatZip, downloadCompositeEngineZip, downloadAnalyticsBackendDatafusionZip
+    dependsOn downloadNativeLib
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
 
     systemProperty 'tests.security.manager', 'false'
 
     filter {
         includeTestsMatching 'org.opensearch.sql.analytics.AnalyticsEngineProfileIT'
+    }
+
+    // Surface per-test results in the CI log so this suite's execution is visible (these AE ITs
+    // historically never ran in CI — a silent gap; explicit logging guards against regressing to it).
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+    }
+    afterTest { desc, result ->
+        logger.quiet "${desc.className}.${desc.name}: ${result.resultType} ${(result.getEndTime() - result.getStartTime())/1000}s"
     }
 }
 
@@ -621,11 +692,14 @@ testClusters.analyticsEngineProfileIT {
     plugin(getJobSchedulerPlugin())
     plugin(getArrowBasePlugin())
     plugin(getArrowFlightRpcPlugin())
+    // composite-engine MUST be installed before analytics-backend-lucene/datafusion, which declare
+    // it as a dependency — otherwise the node fails at plugin install with
+    // "Missing plugin [composite-engine], dependency of [analytics-backend-lucene]".
+    plugin(getCompositeEnginePlugin())
     plugin(getAnalyticsEnginePlugin())
     plugin(getAnalyticsBackendLucenePlugin())
     plugin(getAnalyticsBackendDatafusionPlugin())
     plugin(getParquetDataFormatPlugin())
-    plugin(getCompositeEnginePlugin())
     plugin ":opensearch-sql-plugin"
     // Arrow Flight / streaming transport requirements
     jvmArgs '--add-opens=java.base/java.nio=ALL-UNNAMED'
@@ -636,10 +710,10 @@ testClusters.analyticsEngineProfileIT {
     systemProperty 'io.netty.tryReflectionSetAccessible', 'true'
     systemProperty 'opensearch.experimental.feature.pluggable.dataformat.enabled', 'true'
     systemProperty 'opensearch.experimental.feature.transport.stream.enabled', 'true'
-    // Native library path for DataFusion/parquet — pass via -PnativeLibPath=/path/to/release/
-    if (project.findProperty('nativeLibPath')) {
-        systemProperty 'java.library.path', project.findProperty('nativeLibPath')
-    }
+    // Native library path for DataFusion/parquet. Prefer the caller-supplied -PnativeLibPath
+    // (local runs that build the .so from core); otherwise fall back to the .so extracted
+    // from the feature-datafusion distribution by downloadNativeLib (the CI path).
+    systemProperty 'java.library.path', project.findProperty('nativeLibPath') ?: nativeLibDir.absolutePath
 }
 
 task integJdbcTest(type: RestIntegTestTask) {
