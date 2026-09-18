@@ -44,6 +44,7 @@ public class ErrorReport extends RuntimeException {
   private final Map<String, Object> context;
   @Getter private final String suggestion;
   @Getter private final String details;
+  @Getter private final String reason;
 
   private ErrorReport(Builder builder) {
     super(builder.cause.getMessage(), builder.cause);
@@ -54,6 +55,7 @@ public class ErrorReport extends RuntimeException {
     this.context = new LinkedHashMap<>(builder.context);
     this.suggestion = builder.suggestion;
     this.details = builder.details;
+    this.reason = builder.reason;
   }
 
   /**
@@ -69,6 +71,7 @@ public class ErrorReport extends RuntimeException {
           .code(existing.code)
           .stage(existing.stage)
           .details(existing.details)
+          .reason(existing.reason)
           .suggestion(existing.suggestion)
           .addLocationChain(existing.locationChain)
           .addContext(existing.context);
@@ -145,6 +148,10 @@ public class ErrorReport extends RuntimeException {
 
     json.put("type", getExceptionType());
 
+    if (reason != null) {
+      json.put("reason", reason);
+    }
+
     if (code != null) {
       json.put("code", code.name());
     }
@@ -185,6 +192,7 @@ public class ErrorReport extends RuntimeException {
     private final Map<String, Object> context = new LinkedHashMap<>();
     private String suggestion = null;
     private String details = null;
+    private String reason = null;
 
     private Builder(Exception cause) {
       this.cause = cause;
@@ -268,6 +276,31 @@ public class ErrorReport extends RuntimeException {
     public Builder details(String details) {
       this.details = details;
       return this;
+    }
+
+    /**
+     * Override the user-facing reason. By default no reason is emitted and the response falls back
+     * to the wrapped exception's message, which is not always fit for a user to read.
+     *
+     * @param reason Custom reason message
+     */
+    public Builder reason(String reason) {
+      // First write wins, matching stage() above, since inner layers run first and sit closest to
+      // the failure. Deliberately the opposite of details() below, which defaults to the cause
+      // message and expects an outer layer to replace it.
+      if (this.reason == null) {
+        this.reason = reason;
+      }
+      return this;
+    }
+
+    /**
+     * Whether a reason has already been set. {@link StageErrorHandler} uses this to skip a report
+     * an inner layer has already described, leaving both its reason and its details intact.
+     * Package-private, only the error handling in this package needs it.
+     */
+    boolean hasReason() {
+      return this.reason != null;
     }
 
     /**
