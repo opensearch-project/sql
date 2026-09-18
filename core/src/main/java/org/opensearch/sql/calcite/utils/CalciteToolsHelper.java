@@ -491,7 +491,8 @@ public class CalciteToolsHelper {
     }
 
     private static void enrichErrorsForSpecialCases(ErrorReport.Builder report, SQLException e) {
-      if (e.getMessage().contains(PLAN_PREPARATION_PREFIX) && e.getCause() != null) {
+      String message = e.getMessage();
+      if (message != null && message.contains(PLAN_PREPARATION_PREFIX) && e.getCause() != null) {
         // Generic 'something went wrong' planning error, try to get the cause. rootCauseMessage
         // falls back to this exception's own message when every deeper message is null, and on this
         // branch that message is the plan. Overwrite it, do not skip, since the builder already
