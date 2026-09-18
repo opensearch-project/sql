@@ -15,14 +15,17 @@ import java.util.concurrent.Executor;
 import javax.annotation.Nullable;
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.tasks.TaskCancelledException;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.NonFallbackCalciteException;
 import org.opensearch.sql.monitor.profile.ProfileContext;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
+import org.opensearch.tasks.CancellableTask;
 
 /**
  * Utility class for asynchronously scanning an index. This lets us send background requests to the
@@ -64,6 +67,13 @@ import org.opensearch.sql.opensearch.response.OpenSearchResponse;
  * cleanup.
  */
 public class BackgroundSearchScanner {
+  /**
+   * Task header linking a child DSL search to its SQL/PPL query. Re-applied per search because
+   * background scans run on a pool thread without the coordinator's context (see {@link
+   * #searchWithParentHeader}).
+   */
+  private static final String QUERY_INSIGHTS_PARENT_HEADER = "X-Query-Insights-Parent";
+
   private final OpenSearchClient client;
   @Nullable private final Executor backgroundExecutor;
   private CompletableFuture<OpenSearchResponse> nextBatchFuture = null;
@@ -106,10 +116,72 @@ public class BackgroundSearchScanner {
   public void startScanning(OpenSearchRequest request) {
     if (isAsync()) {
       ProfileContext ctx = QueryProfiling.current();
+      // Capture on the calling thread; the background pool thread re-establishes both per search.
+      CancellableTask task = OpenSearchQueryManager.getCancellableTask();
+      String parentMarker = currentQueryInsightsParentHeader();
       nextBatchFuture =
           CompletableFuture.supplyAsync(
-              () -> QueryProfiling.withCurrentContext(ctx, () -> client.search(request)),
+              () ->
+                  QueryProfiling.withCurrentContext(
+                      ctx, () -> searchWithTask(request, task, parentMarker)),
               backgroundExecutor);
+    }
+  }
+
+  /**
+   * Parent marker from the ThreadContext header; null for non-SQL/PPL queries or when recording is
+   * off.
+   */
+  @Nullable
+  private String currentQueryInsightsParentHeader() {
+    if (client.getNodeClient().isEmpty()) {
+      return null;
+    }
+    return client
+        .getNodeClient()
+        .get()
+        .threadPool()
+        .getThreadContext()
+        .getHeader(QUERY_INSIGHTS_PARENT_HEADER);
+  }
+
+  /** Binds {@code task} to this pool thread for the search, restoring the previous task after. */
+  private OpenSearchResponse searchWithTask(
+      OpenSearchRequest request, @Nullable CancellableTask task, @Nullable String parentMarker) {
+    if (task == null) {
+      return searchWithParentHeader(request, parentMarker);
+    }
+    CancellableTask previous = OpenSearchQueryManager.getCancellableTask();
+    OpenSearchQueryManager.setCancellableTask(task);
+    try {
+      return searchWithParentHeader(request, parentMarker);
+    } finally {
+      if (previous != null) {
+        OpenSearchQueryManager.setCancellableTask(previous);
+      } else {
+        OpenSearchQueryManager.clearCancellableTask();
+      }
+    }
+  }
+
+  /**
+   * Re-applies the parent-marker header so OpenSearch stamps it onto the child SearchTask. Uses
+   * {@link ThreadContext#newStoredContext} rather than {@code stashContext()}, which would drop the
+   * security user transient and run the search unauthenticated.
+   */
+  private OpenSearchResponse searchWithParentHeader(
+      OpenSearchRequest request, @Nullable String parentMarker) {
+    if (parentMarker == null || parentMarker.isEmpty() || client.getNodeClient().isEmpty()) {
+      return client.search(request);
+    }
+    ThreadContext threadContext = client.getNodeClient().get().threadPool().getThreadContext();
+    // Already set on this pool thread: leave it be, putHeader would throw on a duplicate.
+    if (threadContext.getHeader(QUERY_INSIGHTS_PARENT_HEADER) != null) {
+      return client.search(request);
+    }
+    try (ThreadContext.StoredContext ignored = threadContext.newStoredContext(true)) {
+      threadContext.putHeader(QUERY_INSIGHTS_PARENT_HEADER, parentMarker);
+      return client.search(request);
     }
   }
 
@@ -176,8 +248,11 @@ public class BackgroundSearchScanner {
 
       // Pre-fetch next batch if needed
       if (!stopIteration && isAsync()) {
+        CancellableTask task = OpenSearchQueryManager.getCancellableTask();
+        String parentMarker = currentQueryInsightsParentHeader();
         nextBatchFuture =
-            CompletableFuture.supplyAsync(() -> client.search(request), backgroundExecutor);
+            CompletableFuture.supplyAsync(
+                () -> searchWithTask(request, task, parentMarker), backgroundExecutor);
       }
     } else {
       iterator = Collections.emptyIterator();
