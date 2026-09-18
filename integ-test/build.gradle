@@ -368,7 +368,7 @@ task downloadAnalyticsBackendDatafusionZip(type: Download) {
 // Extract lib/rust/libopensearch_native.so from the feature-datafusion distribution tarball into
 // build/native/. The AE testClusters point java.library.path here so parquet-data-format's
 // RustBridge can load the unified native library at node boot. Skipped entirely when the caller
-// supplies -PnativeLibPath (the local/EC2 workflow that builds the .so from core).
+// supplies -PnativeLibPath (local runs that build the .so from core).
 task downloadNativeLib {
     def nativeLib = file("${nativeLibDir}/libopensearch_native.so")
     outputs.file(nativeLib)
@@ -619,6 +619,16 @@ task analyticsEngineSecurityIT(type: RestIntegTestTask) {
     filter {
         includeTestsMatching 'org.opensearch.sql.security.AnalyticsEngineSecurityIT'
     }
+
+    // Surface per-test results in the CI log so this suite's execution is visible (these AE ITs
+    // historically never ran in CI — a silent gap; explicit logging guards against regressing to it).
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+    }
+    afterTest { desc, result ->
+        logger.quiet "${desc.className}.${desc.name}: ${result.resultType} ${(result.getEndTime() - result.getStartTime())/1000}s"
+    }
 }
 
 testClusters.analyticsEngineSecurityIT {
@@ -648,7 +658,7 @@ testClusters.analyticsEngineSecurityIT {
     setting 'cluster.composite.primary_data_format', 'parquet'
     setting 'cluster.composite.secondary_data_formats', '["lucene"]'
     // Native library path for DataFusion/parquet. Prefer the caller-supplied -PnativeLibPath
-    // (local/EC2 runs that build the .so from core); otherwise fall back to the .so extracted
+    // (local runs that build the .so from core); otherwise fall back to the .so extracted
     // from the feature-datafusion distribution by downloadNativeLib (the CI path).
     systemProperty 'java.library.path', project.findProperty('nativeLibPath') ?: nativeLibDir.absolutePath
 }
@@ -688,7 +698,7 @@ testClusters.analyticsEngineProfileIT {
     systemProperty 'opensearch.experimental.feature.pluggable.dataformat.enabled', 'true'
     systemProperty 'opensearch.experimental.feature.transport.stream.enabled', 'true'
     // Native library path for DataFusion/parquet. Prefer the caller-supplied -PnativeLibPath
-    // (local/EC2 runs that build the .so from core); otherwise fall back to the .so extracted
+    // (local runs that build the .so from core); otherwise fall back to the .so extracted
     // from the feature-datafusion distribution by downloadNativeLib (the CI path).
     systemProperty 'java.library.path', project.findProperty('nativeLibPath') ?: nativeLibDir.absolutePath
 }
