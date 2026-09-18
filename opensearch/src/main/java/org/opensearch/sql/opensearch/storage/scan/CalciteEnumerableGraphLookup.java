@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -38,7 +39,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.index.query.QueryBuilder;
-import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.sql.calcite.plan.Scannable;
 import org.opensearch.sql.calcite.plan.rel.GraphLookup;
 import org.opensearch.sql.data.type.ExprType;
@@ -55,6 +55,28 @@ import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
  * <p>Performs BFS graph traversal by dynamically querying OpenSearch with filter pushdown instead
  * of loading all lookup data into memory. For each source row, it executes BFS queries to find all
  * connected nodes in the graph.
+ *
+ * <p><b>All-reached semantics.</b> Every document matched during the traversal is a reached node
+ * and is emitted exactly once, at the first (hence minimum) BFS depth it is matched. Emission is
+ * independent of whether the document has any unvisited onward neighbors, so a node whose only
+ * edges point back to already-visited nodes (for example a leaf of a cycle) is still surfaced. The
+ * onward edges are used solely to build the next-level frontier.
+ *
+ * <p><b>Order independence.</b> The frontier for the next level and the set of reached documents
+ * are decided against the visited-node set as it stands at the <em>start</em> of a level; the
+ * frontier discovered within a level is folded into the visited set only after the entire level has
+ * been processed. The result is therefore independent of the order in which the shard(s) return
+ * rows within a level. The order of elements inside the collected output array remains
+ * non-contractual.
+ *
+ * <p><b>Document identity.</b> Reached documents are deduplicated by a structural key over all of
+ * their projected columns, not by the connectTo (toField) value, because two distinct documents can
+ * share the same toField value and keying on it would collapse them. Residual limitation: two
+ * documents whose projected columns are byte-for-byte identical but which are distinct OpenSearch
+ * documents (different {@code _id}) still collapse to one result. Fully separating that case
+ * requires projecting the document {@code _id} into the lookup scan and stripping it from the
+ * user-visible output; that is a cross-layer change (core rel row type, planner rule, metadata
+ * projection) and is tracked separately.
  */
 @Getter
 public class CalciteEnumerableGraphLookup extends GraphLookup implements EnumerableRel, Scannable {
@@ -390,16 +412,24 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
 
       // TODO: support spillable for these collections
       List<Object> results = new ArrayList<>();
+      // Node key VALUES that have been folded into the traversal frontier. A value enters this set
+      // exactly once, the first time it is discovered. This is what makes the BFS terminate on
+      // cyclic graphs and what guarantees every node is assigned its shallowest (minimum) depth.
       // TODO: If we want to include loop edges, we also need to track the visited edges
       Set<Object> visitedNodes = new HashSet<>();
+      // Identities of documents already emitted into results. Every matched document is emitted
+      // once, at the first (minimum) depth it is matched. Documents are deduplicated by a
+      // structural key over all projected columns rather than by the toField (connectTo) value,
+      // because two distinct documents can share the same toField value and keying on it would
+      // collapse them. See the class-level note for the residual identical-duplicate (_id) case.
+      Set<Object> emitted = new HashSet<>();
       Queue<Object> queue = new ArrayDeque<>();
 
-      // Initialize BFS with start value
+      // Initialize BFS with the start value(s).
       if (startValue instanceof Collection<?> collection) {
         collection.forEach(
             value -> {
-              if (!visitedNodes.contains(value)) {
-                visitedNodes.add(value);
+              if (visitedNodes.add(value)) {
                 queue.offer(value);
               }
             });
@@ -410,42 +440,37 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
 
       int currentLevelDepth = 0;
       while (!queue.isEmpty()) {
-        // Collect all values at current level for batch query
+        // Drain all values at the current level for a single batched query.
         List<Object> currentLevelValues = new ArrayList<>();
-
         while (!queue.isEmpty()) {
-          Object value = queue.poll();
-          currentLevelValues.add(value);
+          currentLevelValues.add(queue.poll());
         }
-
         if (currentLevelValues.isEmpty()) {
           break;
         }
 
-        // Query OpenSearch for all current level values
-        // Forward direction: fromField = currentLevelValues
-        List<Object> forwardResults = queryLookupTable(currentLevelValues, visitedNodes);
+        List<Object> forwardResults = queryLookupTable(currentLevelValues);
 
         if (!graphLookup.usePIT
             && forwardResults.size() >= this.lookupScan.getOsIndex().getMaxResultWindow()) {
           LOG.warn("BFS result size exceeds max result window, returning partial result.");
         }
-        for (Object row : forwardResults) {
-          Object[] rowArray = (Object[]) (row);
-          Object fromValue = rowArray[fromFieldIdx];
-          // Collect next values to traverse (may be single value or list)
-          // For forward traversal: extract fromField values for next level
-          // For bidirectional: also extract toField values.
-          // Skip visited values while keep null value
-          List<Object> nextValues = new ArrayList<>();
-          collectValues(fromValue, nextValues, visitedNodes);
-          if (graphLookup.bidirectional) {
-            Object toValue = rowArray[toFieldIdx];
-            collectValues(toValue, nextValues, visitedNodes);
-          }
 
-          // Add row to results if the nextValues is not empty
-          if (!nextValues.isEmpty()) {
+        // The next-level frontier is decided against visitedNodes as it stands at the START of this
+        // level, and is folded into visitedNodes only AFTER the whole level has been processed
+        // (below). This removes any dependence on the order in which the shard(s) return rows
+        // within
+        // a level. A LinkedHashSet collapses converging paths (two frontier nodes reaching the same
+        // target in one level) into a single next-level entry.
+        Set<Object> nextFrontier = new LinkedHashSet<>();
+        for (Object row : forwardResults) {
+          Object[] rowArray = (Object[]) row;
+
+          // All-reached semantics: every matched document is a reached node and is emitted once, at
+          // the first (hence minimum) depth it is seen. Emission is NOT gated on whether the
+          // document has unvisited onward neighbors, so a node whose only edges point back to
+          // already-visited nodes is still surfaced.
+          if (emitted.add(identityKey(rowArray))) {
             if (graphLookup.depthField != null) {
               Object[] rowWithDepth = new Object[rowArray.length + 1];
               System.arraycopy(rowArray, 0, rowWithDepth, 0, rowArray.length);
@@ -454,61 +479,54 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
             } else {
               results.add(rowArray);
             }
+          }
 
-            // Add unvisited non-null values to queue for next level traversal
-            for (Object val : nextValues) {
-              if (val != null) {
-                visitedNodes.add(val);
-                queue.offer(val);
-              }
-            }
+          // Onward edges only build the next frontier; they never affect whether the current
+          // document is emitted. Forward traversal follows fromField; bidirectional additionally
+          // follows toField. Null edges are graph terminals and are never enqueued.
+          addToFrontier(rowArray[fromFieldIdx], nextFrontier, visitedNodes);
+          if (graphLookup.bidirectional) {
+            addToFrontier(rowArray[toFieldIdx], nextFrontier, visitedNodes);
           }
         }
 
-        if (++currentLevelDepth > graphLookup.maxDepth) break;
+        // Fold this level's frontier into visitedNodes and enqueue it for the next level.
+        for (Object value : nextFrontier) {
+          visitedNodes.add(value);
+          queue.offer(value);
+        }
+
+        if (++currentLevelDepth > graphLookup.maxDepth) {
+          break;
+        }
       }
 
       return results;
     }
 
     /**
-     * Queries the lookup table with a terms filter.
+     * Queries the lookup table for documents reachable from the current frontier.
      *
-     * @param values Values to match
-     * @param visitedValues Values to not match (ignored when supportArray is true)
-     * @return List of matching rows
+     * <p>Matches documents whose toField (connectTo) is one of the frontier {@code values}; for
+     * bidirectional traversal it additionally matches documents whose fromField is one of the
+     * values. No visited-node exclusion is applied: a reached document must be returned even when
+     * its onward neighbors were already visited, otherwise all-reached emission could not surface
+     * it. The traversal still terminates because a value enters the frontier at most once (guarded
+     * by visitedNodes in {@link #addToFrontier}), so each value is queried at most once across the
+     * whole traversal.
+     *
+     * @param values frontier values to match
+     * @return list of matching rows
      */
-    private List<Object> queryLookupTable(
-        Collection<Object> values, Collection<Object> visitedValues) {
+    private List<Object> queryLookupTable(Collection<Object> values) {
       if (values.isEmpty()) {
         return List.of();
       }
 
-      // Forward direction query
-      QueryBuilder query;
-      if (graphLookup.supportArray) {
-        // When supportArray is true, don't push down visited filter
-        // because array fields may contain multiple values that need to be checked individually
-        query = getQueryBuilder(toFieldIdx, values);
-      } else {
-        query =
-            boolQuery()
-                .must(getQueryBuilder(toFieldIdx, values))
-                .mustNot(getQueryBuilder(fromFieldIdx, visitedValues));
-      }
-
+      QueryBuilder query = getQueryBuilder(toFieldIdx, values);
       if (graphLookup.bidirectional) {
-        // Also query fromField for bidirectional traversal
-        QueryBuilder backQuery;
-        if (graphLookup.supportArray) {
-          backQuery = getQueryBuilder(fromFieldIdx, values);
-        } else {
-          backQuery =
-              boolQuery()
-                  .must(getQueryBuilder(fromFieldIdx, values))
-                  .mustNot(getQueryBuilder(toFieldIdx, visitedValues));
-        }
-        query = QueryBuilders.boolQuery().should(query).should(backQuery);
+        QueryBuilder backQuery = getQueryBuilder(fromFieldIdx, values);
+        query = boolQuery().should(query).should(backQuery);
       }
       CalciteEnumerableIndexScan newScan = (CalciteEnumerableIndexScan) this.lookupScan.copy();
       QueryBuilder finalQuery = query;
@@ -556,22 +574,66 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
     }
 
     /**
-     * Collects values from a field that may be a single value or a list.
+     * Adds the unvisited, non-null nodes reachable through an edge value to the next-level
+     * frontier. The edge value may be a single value or a list (array-typed edge field). Null
+     * members are graph terminals and are skipped. Membership is tested against {@code visited} as
+     * of the start of the current level, so sibling rows within a level cannot influence one
+     * another.
      *
-     * @param value The field value (may be single value or List)
-     * @param collector The list to collect values into
-     * @param visited Previously visited values to avoid duplicates
+     * @param edgeValue the edge field value (single value or list)
+     * @param frontier the next-level frontier to add to
+     * @param visited nodes already folded into the traversal as of the start of the level
      */
-    private void collectValues(Object value, List<Object> collector, Set<Object> visited) {
-      if (value instanceof List<?> list) {
+    private void addToFrontier(Object edgeValue, Set<Object> frontier, Set<Object> visited) {
+      if (edgeValue instanceof List<?> list) {
         for (Object item : list) {
-          if (!visited.contains(item)) {
-            collector.add(item);
+          if (item != null && !visited.contains(item)) {
+            frontier.add(item);
           }
         }
-      } else if (!visited.contains(value)) {
-        collector.add(value);
+      } else if (edgeValue != null && !visited.contains(edgeValue)) {
+        frontier.add(edgeValue);
       }
+    }
+
+    /**
+     * Builds a structural identity key for a lookup row over all of its projected columns. Nested
+     * array cells (Object[] or List) are canonicalized recursively so that value-equal rows produce
+     * equal keys. This deduplicates a document against itself when it is rediscovered at a deeper
+     * level and, unlike keying on the toField value alone, keeps two distinct documents that merely
+     * share a toField value as separate results.
+     *
+     * <p>Residual limitation: two documents whose projected columns are byte-for-byte identical but
+     * which are distinct OpenSearch documents (different {@code _id}) still collapse to one key.
+     * See the class-level note.
+     *
+     * @param rowArray the raw lookup row (before any depth column is appended)
+     * @return an equals/hashCode-stable structural key
+     */
+    private static Object identityKey(Object[] rowArray) {
+      List<Object> key = new ArrayList<>(rowArray.length);
+      for (Object cell : rowArray) {
+        key.add(canonicalize(cell));
+      }
+      return key;
+    }
+
+    private static Object canonicalize(Object value) {
+      if (value instanceof Object[] arr) {
+        List<Object> list = new ArrayList<>(arr.length);
+        for (Object item : arr) {
+          list.add(canonicalize(item));
+        }
+        return list;
+      }
+      if (value instanceof List<?> list) {
+        List<Object> canonical = new ArrayList<>(list.size());
+        for (Object item : list) {
+          canonical.add(canonicalize(item));
+        }
+        return canonical;
+      }
+      return value;
     }
 
     @Override
