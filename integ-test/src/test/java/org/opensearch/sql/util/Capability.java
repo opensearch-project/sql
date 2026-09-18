@@ -815,6 +815,17 @@ public enum Capability {
       "sort on an aggregated measure + head N selects different rows among tied measure values on"
           + " the analytics-engine route."),
 
+  /**
+   * Request-level time bounds ({@code time_field}/{@code start_time}/{@code end_time}) prune the
+   * indices of a pattern before the schema is resolved on the OpenSearch route only. The
+   * analytics-engine route does not observe the pruning: a field mapped only in an out-of-range
+   * index still resolves, and an index that does not map the time field is not dropped, so the
+   * "Field [...] not found." rejections the pruning tests assert on are never raised there.
+   */
+  TIME_BOUNDS_PRUNING(
+      "Request-level time-bounds index pruning before schema resolution is applied on the"
+          + " OpenSearch route only; the analytics-engine route resolves the unpruned pattern."),
+
   /** Combining the result rows of two or more queries with a SQL set operator. */
   SET_OPERATION("SQL set operations are unsupported.");
 

@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.util.Capability.TIME_BOUNDS_PRUNING;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.TestUtils.createIndexByRestClient;
@@ -22,8 +23,10 @@ import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 /** The {@code start_time}/{@code end_time} parameters, observed through the resolved schema. */
+@RequiresCapability(TIME_BOUNDS_PRUNING)
 public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
 
   private static final String OLD_INDEX = "prune_range_000001";
