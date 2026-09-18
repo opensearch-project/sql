@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.security;
 
+import static org.opensearch.sql.util.Capability.TIME_BOUNDS_PRUNING;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.TestUtils.createIndexByRestClient;
@@ -21,12 +22,15 @@ import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.util.ClusterPlugins;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * Request-level time bounds with the security plugin installed: the bounds must survive the
  * transport-to-worker handoff, which drops Log4j {@code ThreadContext}, and the probes must be
  * permitted. Both failures are silent, so this observes the resolved schema.
  */
+@RequiresCapability(TIME_BOUNDS_PRUNING)
 public class TimeBoundsPruningSecurityIT extends SecurityTestBase {
 
   private static final String OLD_INDEX = "prune_sec_000001";
@@ -48,6 +52,10 @@ public class TimeBoundsPruningSecurityIT extends SecurityTestBase {
 
   @Override
   protected void init() throws Exception {
+    ClusterPlugins.requirePluginOrAssume(
+        client(),
+        ClusterPlugins.SECURITY_PLUGIN,
+        "opensearch-security plugin not installed on test cluster; skipping FGAC tests");
     super.init();
     enableCalcite();
     if (!initialized) {
