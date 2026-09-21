@@ -1616,15 +1616,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         distinctRefsOfCounts = refsPerCount.stream().flatMap(List::stream).distinct().toList();
       }
       if (distinctRefsOfCounts.size() == 1 && refsPerCount.stream().noneMatch(List::isEmpty)) {
-        // This filter is stacked on top of the Project, so its reference has to address the
-        // Project's OUTPUT. distinctRefsOfCounts may instead hold an index mapped through the
-        // Project, which addresses its INPUT — that mapping exists only to prove two aliases are
-        // one column, and it is not a reference we can use here. `fields COMM | stats count(COMM)`
-        // is the clearest case: COMM is $6 of the scan and $0 of the projection, and filtering on
-        // $6 fails with "RexInputRef index 6 out of range 0..0". Where the projection merely
-        // reorders, the index stays in range and names a different column, so the wrong column's
-        // nullness is tested. refsPerCount is already in the output frame, and by this branch every
-        // entry denotes the same column, so any one of them gives the same predicate.
+        // The filter is stacked on the Project, so its reference must address the Project's output.
+        // distinctRefsOfCounts may hold an index mapped through the Project, which addresses its
+        // input; that mapping only serves to prove two aliases are one column. refsPerCount is
+        // already in the output frame, and every entry here denotes the same column.
         RexInputRef filterRef =
             refsPerCount.stream().flatMap(List::stream).findFirst().orElseThrow();
         context.relBuilder.filter(context.relBuilder.isNotNull(filterRef));

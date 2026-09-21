@@ -10,13 +10,11 @@ import org.apache.calcite.test.CalciteAssert;
 import org.junit.Test;
 
 /**
- * {@code stats count(field)} adds an is-not-null filter, and these pin the frame its reference is
- * expressed in.
+ * The is-not-null filter that {@code stats count(field)} adds sits on the projection the aggregate
+ * reads, so its reference must be the column's index in that projection's output. An input-side
+ * index is out of range when the projection narrows, and names the wrong column when it does not.
  *
- * <p>The filter is stacked on whatever the builder is holding, so the reference has to address that
- * node's output. A {@code fields} command in front of the {@code stats} makes the difference
- * visible: the column's index in the projection's output is not its index in the projection's
- * input, and using the latter is out of range as soon as the projection is narrower than its input.
+ * <p>EMP is {@code EMPNO $0, ENAME $1, JOB $2, MGR $3, HIREDATE $4, SAL $5, COMM $6, DEPTNO $7}.
  */
 public class CalcitePPLCountFrameTest extends CalcitePPLAbstractTest {
 
@@ -24,7 +22,7 @@ public class CalcitePPLCountFrameTest extends CalcitePPLAbstractTest {
     super(CalciteAssert.SchemaSpec.SCOTT_WITH_TEMPORAL);
   }
 
-  /** COMM is $6 of the scan but $0 of the projection the filter sits on. */
+  /** COMM is $6 of the scan and $0 of the projection, so an input-side index is out of range. */
   @Test
   public void testCountAfterNarrowingFields() {
     String ppl = "source=EMP | fields COMM | stats count(COMM) as c";
@@ -39,23 +37,29 @@ public class CalcitePPLCountFrameTest extends CalcitePPLAbstractTest {
     verifyResult(root, "c=4\n");
   }
 
-  /** Two columns kept, so the index is in range either way but only one of them is COMM. */
+  /**
+   * SAL sits at output position 6, so $6 stays in range and resolves to SAL while COMM is $5. Both
+   * are DECIMAL, so nothing objects. The result stays 4 because count ignores nulls itself, so only
+   * the plan shows which column the filter is about.
+   */
   @Test
-  public void testCountAfterReorderingFields() {
-    String ppl = "source=EMP | fields SAL, COMM | stats count(COMM) as c";
+  public void testCountWhenTheStaleIndexStaysInRange() {
+    String ppl =
+        "source=EMP | fields EMPNO, ENAME, JOB, MGR, HIREDATE, COMM, SAL | stats count(COMM) as c";
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         ""
             + "LogicalAggregate(group=[{}], c=[COUNT($0)])\n"
-            + "  LogicalProject(COMM=[$1])\n"
-            + "    LogicalFilter(condition=[IS NOT NULL($1)])\n"
-            + "      LogicalProject(SAL=[$5], COMM=[$6])\n"
+            + "  LogicalProject(COMM=[$5])\n"
+            + "    LogicalFilter(condition=[IS NOT NULL($5)])\n"
+            + "      LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " COMM=[$6], SAL=[$5])\n"
             + "        LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     verifyResult(root, "c=4\n");
   }
 
-  /** dc() takes the same filter, so it takes the same reference. */
+  /** dc() takes the same filter, so it took the same out-of-range reference. */
   @Test
   public void testDistinctCountAfterNarrowingFields() {
     String ppl = "source=EMP | fields COMM | stats dc(COMM) as c";
@@ -63,10 +67,7 @@ public class CalcitePPLCountFrameTest extends CalcitePPLAbstractTest {
     verifyResult(root, "c=4\n");
   }
 
-  /**
-   * Two names for one column, which is the case the index mapping exists for: it recognises them as
-   * the same column so a single filter covers both counts.
-   */
+  /** Two names for one column, which is what the input-side mapping is kept for. */
   @Test
   public void testCountOfAnAliasedColumn() {
     String ppl = "source=EMP | eval bonus = COMM | fields bonus | stats count(bonus) as c";
