@@ -92,6 +92,50 @@ public class ErrorReport extends RuntimeException {
     return cause.getClass().getSimpleName();
   }
 
+  // Calcite reports a planning failure as SQLException("Error while preparing plan [<plan>]"), so
+  // the cause message is the whole plan. Matched with contains, not startsWith, because a layer
+  // that does new SomeException(cause) sets its message to cause.toString() and buries the marker
+  // mid-string.
+  private static final String PLAN_PREPARATION_PREFIX = "Error while preparing plan [";
+
+  private static final String PLAN_PREPARATION_MESSAGE =
+      "Failed to prepare the query plan for execution.";
+
+  private String rawCauseMessage() {
+    return cause.getLocalizedMessage() != null ? cause.getLocalizedMessage() : cause.getMessage();
+  }
+
+  private static String withoutPlan(String message) {
+    if (message == null) {
+      return null;
+    }
+    return message.contains(PLAN_PREPARATION_PREFIX) ? PLAN_PREPARATION_MESSAGE : message;
+  }
+
+  /**
+   * The broad description safe to return to a caller. Prefers a reason an inner layer set, since
+   * that layer knew what failed, and otherwise falls back to the cause message with the plan
+   * stripped. {@link #getMessage()} deliberately keeps the raw text, since that is what carries the
+   * plan into the node log.
+   *
+   * @return A reason safe to publish, or null when there is nothing to say
+   */
+  public String getUserFacingMessage() {
+    return reason != null ? reason : withoutPlan(rawCauseMessage());
+  }
+
+  /**
+   * The precise description safe to return to a caller. Prefers the handwritten details, since a
+   * layer close to the failure curated it, and falls back to the cause message. Both are stripped
+   * of the plan, because {@link Builder} defaults details to the cause message when nobody overrode
+   * it.
+   *
+   * @return Details safe to publish, or null when there are none
+   */
+  public String getUserFacingDetails() {
+    return withoutPlan(details != null ? details : rawCauseMessage());
+  }
+
   /**
    * Format as a detailed message with all context information. This is suitable for logging or
    * detailed error displays.
