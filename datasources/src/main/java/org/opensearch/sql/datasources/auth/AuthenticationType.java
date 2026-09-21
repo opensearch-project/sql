@@ -14,7 +14,8 @@ import java.util.Map;
 public enum AuthenticationType {
   NOAUTH("noauth"),
   BASICAUTH("basicauth"),
-  AWSSIGV4AUTH("awssigv4");
+  AWSSIGV4AUTH("awssigv4"),
+  OAUTH2("oauth2");
 
   private String name;
 

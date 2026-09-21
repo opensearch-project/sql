@@ -14,8 +14,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
+import okhttp3.OkHttpClient;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -206,6 +208,64 @@ public class PrometheusClientUtilsTest {
 
     // Verify
     assertNotNull("Client should not be null", client);
+  }
+
+  @Test
+  public void testCreatePrometheusClientWithOAuth2() {
+    Map<String, String> properties = new HashMap<>();
+    properties.put(PrometheusClientUtils.PROMETHEUS_URI, "http://prometheus:9090");
+    properties.put(PrometheusClientUtils.AUTH_TYPE, "oauth2");
+    properties.put(PrometheusOAuth2Support.OAUTH2_CLIENT_ID, "client-id");
+    properties.put(PrometheusOAuth2Support.OAUTH2_CLIENT_SECRET, "client-secret");
+    properties.put(PrometheusOAuth2Support.OAUTH2_TOKEN_URL, "https://idp.example.com/token");
+
+    DataSourceMetadata metadata = mock(DataSourceMetadata.class);
+    when(metadata.getProperties()).thenReturn(properties);
+
+    PrometheusClient client = PrometheusClientUtils.createPrometheusClient(metadata, settings);
+
+    assertNotNull("Client should not be null", client);
+  }
+
+  @Test
+  public void testCreateAlertmanagerPropertiesWithOAuth2() {
+    Map<String, String> properties = new HashMap<>();
+    properties.put(PrometheusClientUtils.PROMETHEUS_URI, "http://prometheus:9090");
+    properties.put(PrometheusClientUtils.ALERTMANAGER_URI, "http://alertmanager:9093");
+    properties.put(PrometheusClientUtils.ALERTMANAGER_AUTH_TYPE, "oauth2");
+    properties.put(PrometheusOAuth2Support.OAUTH2_CLIENT_ID, "client-id");
+    properties.put(PrometheusOAuth2Support.OAUTH2_CLIENT_SECRET, "client-secret");
+    properties.put(PrometheusOAuth2Support.OAUTH2_TOKEN_URL, "https://idp.example.com/token");
+
+    Map<String, String> alertmanagerProperties =
+        PrometheusClientUtils.createAlertmanagerProperties(properties);
+
+    // No alertmanager.oauth2.* keys, so the whole Prometheus OAuth2 block is inherited.
+    assertEquals("client-id", alertmanagerProperties.get(PrometheusOAuth2Support.OAUTH2_CLIENT_ID));
+    assertEquals(
+        "https://idp.example.com/token",
+        alertmanagerProperties.get(PrometheusOAuth2Support.OAUTH2_TOKEN_URL));
+  }
+
+  @Test
+  public void testConfiguredGrantTypeReachesTheInterceptor() throws Exception {
+    // Regression guard: addOAuth2Interceptor used the constructor that always defaults to
+    // client_credentials, so a data source configured for another flow was silently downgraded
+    // on this side while Dashboards honoured the configured value.
+    Map<String, String> config = new HashMap<>();
+    config.put(PrometheusOAuth2Support.OAUTH2_CLIENT_ID, "client-id");
+    config.put(PrometheusOAuth2Support.OAUTH2_CLIENT_SECRET, "client-secret");
+    config.put(PrometheusOAuth2Support.OAUTH2_TOKEN_URL, "https://idp.example.com/token");
+    config.put(
+        PrometheusOAuth2Support.OAUTH2_GRANT_TYPE, "urn:ietf:params:oauth:grant-type:jwt-bearer");
+
+    OkHttpClient.Builder builder = new OkHttpClient.Builder();
+    PrometheusOAuth2Support.addOAuth2Interceptor(builder, config, settings);
+
+    Object interceptor = builder.interceptors().get(0);
+    Field grantType = interceptor.getClass().getDeclaredField("grantType");
+    grantType.setAccessible(true);
+    assertEquals("urn:ietf:params:oauth:grant-type:jwt-bearer", grantType.get(interceptor));
   }
 
   @Test
