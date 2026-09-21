@@ -1616,7 +1616,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         distinctRefsOfCounts = refsPerCount.stream().flatMap(List::stream).distinct().toList();
       }
       if (distinctRefsOfCounts.size() == 1 && refsPerCount.stream().noneMatch(List::isEmpty)) {
-        context.relBuilder.filter(context.relBuilder.isNotNull(distinctRefsOfCounts.getFirst()));
+        // The filter is stacked on the Project, so its reference must address the Project's output.
+        // distinctRefsOfCounts may hold an index mapped through the Project, which addresses its
+        // input; that mapping only serves to prove two aliases are one column. refsPerCount is
+        // already in the output frame, and every entry here denotes the same column.
+        RexInputRef filterRef =
+            refsPerCount.stream().flatMap(List::stream).findFirst().orElseThrow();
+        context.relBuilder.filter(context.relBuilder.isNotNull(filterRef));
       }
     }
 
