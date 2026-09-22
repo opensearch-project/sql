@@ -75,6 +75,83 @@ setup:
           - '{"host": "host-b", "payload": "Y210"}'
           - '{"index": {}}'
           - '{"host": "host-c", "payload": "Y211"}'
+  # Third index carrying field aliases. An alias never enters the table row type, it is added
+  # back as a project over its target, so payload_alias resolves to payload before any pushdown
+  # site inspects the type. host_alias is the control, since an alias over an aggregatable field
+  # must keep its pushdown. Separate index so the cases above keep their exact row types.
+  #
+  # host-c has no payload. Without it every document would satisfy isnotnull(payload_alias) and
+  # that case would pass whether the filter discriminated or was dropped entirely. It also makes
+  # the sort cases assert null ordering, which is NULLS FIRST on ascending.
+  - do:
+      indices.create:
+        index: binary_pushdown_5757_alias
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              host:
+                type: keyword
+              payload:
+                type: binary
+              payload_alias:
+                type: alias
+                path: payload
+              host_alias:
+                type: alias
+                path: host
+  - do:
+      bulk:
+        index: binary_pushdown_5757_alias
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"host": "host-a", "payload": "Y210"}'
+          - '{"index": {}}'
+          - '{"host": "host-a", "payload": "Y211"}'
+          - '{"index": {}}'
+          - '{"host": "host-b", "payload": "Y212"}'
+          - '{"index": {}}'
+          - '{"host": "host-b", "payload": "Y213"}'
+          - '{"index": {}}'
+          - '{"host": "host-c"}'
+  # Fourth index for graphLookup, whose filter was the one site calling the three-arg
+  # PredicateAnalyzer.analyze with rowType and cluster null, so no script filter could be built
+  # there. Node c has no payload, which is what lets isnotnull(payload) discriminate. Each row's
+  # one edge is the document whose name equals its parent, so a points at b, b and d at c.
+  # n exists for the script-path pair below.
+  - do:
+      indices.create:
+        index: binary_pushdown_5757_graph
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              name:
+                type: keyword
+              parent:
+                type: keyword
+              n:
+                type: integer
+              payload:
+                type: binary
+  - do:
+      bulk:
+        index: binary_pushdown_5757_graph
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"name": "a", "parent": "b", "n": 1, "payload": "Y210"}'
+          - '{"index": {}}'
+          - '{"name": "b", "parent": "c", "n": 2, "payload": "Y211"}'
+          - '{"index": {}}'
+          - '{"name": "c", "n": 3}'
+          - '{"index": {}}'
+          - '{"name": "d", "parent": "c", "n": 4, "payload": "Y212"}'
 
 ---
 teardown:
@@ -86,7 +163,7 @@ teardown:
             plugins.calcite.pushdown.enabled : null
   - do:
       indices.delete:
-        index: binary_pushdown_5757,binary_pushdown_5757_dup
+        index: binary_pushdown_5757,binary_pushdown_5757_dup,binary_pushdown_5757_alias,binary_pushdown_5757_graph
         ignore_unavailable: true
 
 ---
@@ -387,3 +464,195 @@ teardown:
           query: "source=binary_pushdown_5757 | dedup host"
   - match: {"calcite.physical": "/AGGREGATION/"}
   - match: {"calcite.physical": "/top_hits/"}
+
+---
+"sort on an alias to a binary field returns every row in order":
+  # The guards name OpenSearchBinaryType while the type map holds OpenSearchAliasType under the
+  # alias key, so reading them alone suggests an alias slips past. It does not, because the name
+  # is already payload by then. Before the fix this was the same fielddata 500 as the raw field.
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=binary_pushdown_5757_alias | sort payload_alias | fields payload_alias"
+  - match: {"total": 5}
+  - match: {"datarows": [[null], ["Y210"], ["Y211"], ["Y212"], ["Y213"]]}
+
+---
+"a filter on an alias to a binary field matches every populated document":
+  # The silent half of the bug through an alias. Before the fix this returned 200 with zero rows,
+  # so only a row assertion catches it. Four rows out of five indexed documents, since host-c has
+  # no payload, so this also fails if the filter stops discriminating and matches everything.
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=binary_pushdown_5757_alias | where isnotnull(payload_alias) | sort payload_alias | fields payload_alias"
+  - match: {"total": 4}
+  - match: {"datarows": [["Y210"], ["Y211"], ["Y212"], ["Y213"]]}
+
+---
+"an alias binary sort key ahead of a dedup on another field returns every distinct value":
+  # Passes with or without the fix, so it pins the path rather than the bug. The raw version
+  # above reaches the dedup sort hint, an alias never does, because the project defining the
+  # alias sits between the sort and the scan and the absorption does not see through it. Kept
+  # because nothing enforces that, so this becomes the regression test if it ever changes.
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=binary_pushdown_5757_alias | sort payload_alias | dedup host | fields host"
+  - match: {"total": 3}
+  - match: {"datarows": [["host-c"], ["host-a"], ["host-b"]]}
+
+---
+"stats grouped by an alias to a binary field returns one bucket per value":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=binary_pushdown_5757_alias | stats count() as cnt by payload_alias | sort payload_alias"
+  - match: {"total": 5}
+  - match: {"datarows": [[1, null], [1, "Y210"], [1, "Y211"], [1, "Y212"], [1, "Y213"]]}
+
+---
+"sort on an alias to an aggregatable field keeps its pushdown":
+  # The control for every alias case above. Rows cannot distinguish a declined pushdown from
+  # one that never applied, and without this an alias returning correct rows would be equally
+  # consistent with aliases never pushing down at all, which would make the binary cases prove
+  # nothing. The pushdown names host rather than host_alias, which is the alias resolution
+  # itself showing up in the request.
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl.explain:
+        body:
+          query: "source=binary_pushdown_5757_alias | sort host_alias | fields host_alias"
+  # Written with no spaces on purpose. MatchAssertion compiles these with Pattern.COMMENTS,
+  # which discards unescaped whitespace, so a pattern spelled "host" : \{ silently becomes
+  # "host":\{ and matches the compact sourceBuilder rather than the pretty-printed SORT-> block
+  # it appears to describe. Asserting on the sourceBuilder clause directly keeps the pattern and
+  # its target the same shape.
+  - match: {"calcite.physical": "/SORT->/"}
+  - match: {"calcite.physical": "/\"sort\":\\[\\{\"host\":/"}
+
+---
+"sort on an alias to a binary field declines its pushdown":
+  # The rows above prove the answer, not that the sort declined. CalciteEnumerableTopK is the
+  # decline itself, appearing only when Calcite sorts in memory. Before the fix this plan pushed
+  # SORT->{payload asc} and carried no TopK. The keyword-alias case above bounds the other
+  # direction, so the pair together shows the decline is caused by the type.
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl.explain:
+        body:
+          query: "source=binary_pushdown_5757_alias | sort payload_alias | fields payload_alias"
+  - match: {"calcite.physical": "/CalciteEnumerableTopK/"}
+
+---
+"a graphLookup filter on a binary field keeps only edges to documents that have it":
+  # The binary guards make this filter unanalyzable, and graphLookup cannot build the script
+  # fallback, so before the call-site fix it was a 500 reading "Can't convert IS NOT NULL".
+  # Read against the unfiltered case below: b and d drop to no edges because their only edge is
+  # c, the one document without a payload, while a keeps its edge to b.
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=binary_pushdown_5757_graph | graphLookup binary_pushdown_5757_graph start=parent edge=parent-->name filter=(isnotnull(payload)) as h | eval c = array_length(h) | fields name, c | sort name"
+  - match: {"total": 4}
+  - match: {"datarows": [["a", 1], ["b", 0], ["c", 0], ["d", 0]]}
+
+---
+"a graphLookup with no filter keeps every edge despite a binary field in the mapping":
+  # The baseline the case above is read against. Without it the filtered counts are just numbers,
+  # since a filter that silently dropped every edge would also produce mostly zeros.
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=binary_pushdown_5757_graph | graphLookup binary_pushdown_5757_graph start=parent edge=parent-->name as h | eval c = array_length(h) | fields name, c | sort name"
+  - match: {"total": 4}
+  - match: {"datarows": [["a", 1], ["b", 1], ["c", 0], ["d", 1]]}
+
+---
+"a graphLookup filter on a keyword field still applies":
+  # The control. It proves the filter is genuinely evaluated rather than dropped, which a
+  # binary-only pair cannot establish, and it is the mirror image of the binary case since it
+  # keeps only the edges pointing at c.
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=binary_pushdown_5757_graph | graphLookup binary_pushdown_5757_graph start=parent edge=parent-->name filter=(name = 'c') as h | eval c = array_length(h) | fields name, c | sort name"
+  - match: {"total": 4}
+  - match: {"datarows": [["a", 0], ["b", 1], ["c", 0], ["d", 1]]}
+
+---
+"a graphLookup filter needing a script keeps the same edges as the equivalent range filter":
+  # The binary case above is one instance of a wider breakage. Every graphLookup filter needing
+  # a script was failing on main, including abs(), length() and upper(), with no binary field
+  # involved. n + 1 > 3 reduces to n > 2, so these expected counts are whatever the case below
+  # produces, and the pair stops matching if the script path ever diverges from the query path.
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=binary_pushdown_5757_graph | graphLookup binary_pushdown_5757_graph start=parent edge=parent-->name filter=(n + 1 > 3) as h | eval c = array_length(h) | fields name, c | sort name"
+  - match: {"total": 4}
+  - match: {"datarows": [["a", 0], ["b", 1], ["c", 0], ["d", 1]]}
+
+---
+"a graphLookup range filter is pushed down as a plain query":
+  # The reference for the case above, and the one filter shape that worked before the fix. It
+  # keeps c and d, so a loses its only edge to b while b and d keep theirs to c.
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=binary_pushdown_5757_graph | graphLookup binary_pushdown_5757_graph start=parent edge=parent-->name filter=(n > 2) as h | eval c = array_length(h) | fields name, c | sort name"
+  - match: {"total": 4}
+  - match: {"datarows": [["a", 0], ["b", 1], ["c", 0], ["d", 1]]}
