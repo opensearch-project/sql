@@ -82,6 +82,16 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     return getResponseBody(response, true);
   }
 
+  /** Runs a query with a request-body {@code highlight}, as the dashboards search path sends. */
+  protected JSONObject executeQueryWithHighlightBody(String query, String highlightJson)
+      throws IOException {
+    Response response =
+        client()
+            .performRequest(buildRequestWithHighlight(query, QUERY_API_ENDPOINT, highlightJson));
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    return jsonify(getResponseBody(response, true));
+  }
+
   /** Deprecated, use {@link #explainQueryYaml(String)} */
   @Deprecated
   protected String explainQueryToString(String query) throws IOException {

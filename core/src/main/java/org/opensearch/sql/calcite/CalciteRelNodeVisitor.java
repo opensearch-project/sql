@@ -236,7 +236,31 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   }
 
   public RelNode analyze(UnresolvedPlan unresolved, CalcitePlanContext context) {
+    // A highlight cannot apply once rows collapse into aggregate buckets (no source rows survive to
+    // highlight), and its synthetic _highlight column on the scan defeats the column-origin tracing
+    // that partial-result narrowing relies on. Drop it so aggregating queries still narrow to one
+    // shared index subset and report the partial-result warning.
+    if (context.getHighlightConfig() != null && aggregatesResult(unresolved)) {
+      context.setHighlightConfig(null);
+    }
     return unresolved.accept(this, context);
+  }
+
+  /** Whether the plan collapses rows into aggregate buckets, so a highlight would be dropped. */
+  private static boolean aggregatesResult(Node node) {
+    if (node instanceof Aggregation
+        || node instanceof Chart
+        || node instanceof RareTopN
+        || node instanceof Timewrap
+        || node instanceof Xyseries) {
+      return true;
+    }
+    for (Node child : node.getChild()) {
+      if (aggregatesResult(child)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override

@@ -503,6 +503,37 @@ public class CalcitePartialResultOnMappingConflictIT extends PPLIntegTestCase {
     assertExcludesConflictedValues(result, "qa");
   }
 
+  // The dashboards search path attaches a highlight to every request. On a chart/timechart (which
+  // groups a scan more than once) its synthetic _highlight column defeats group-key origin tracing;
+  // before the fix that barred partial mode and dropped the warning. Highlight is meaningless once
+  // rows collapse to buckets, so it must be ignored and the query must still narrow + warn.
+
+  /** chart with a request-body highlight still narrows to one subset and warns. */
+  @Test
+  public void partialResultNarrowsChartWithHighlight() throws IOException {
+    setPartialResult(true);
+    JSONObject result =
+        executeQueryWithHighlightBody(
+            String.format("source=%s | chart count() over ts by env", TWOAGG_PATTERN),
+            "{\"pre_tags\":[\"@\"],\"post_tags\":[\"@\"],\"fields\":{\"*\":{}}}");
+
+    assertEquals(1, result.getJSONArray("warnings").length());
+    assertExcludesConflictedValues(result, "qa");
+  }
+
+  /** timechart with a request-body highlight still narrows to one subset and warns. */
+  @Test
+  public void partialResultNarrowsTimechartWithHighlight() throws IOException {
+    setPartialResult(true);
+    JSONObject result =
+        executeQueryWithHighlightBody(
+            String.format("source=%s | timechart span=1h count() by env", TWOAGG_PATTERN),
+            "{\"pre_tags\":[\"@\"],\"post_tags\":[\"@\"],\"fields\":{\"*\":{}}}");
+
+    assertEquals(1, result.getJSONArray("warnings").length());
+    assertExcludesConflictedValues(result, "qa");
+  }
+
   @Test
   public void partialResultNarrowsAppendOfTwoAggregationsToOneSubset() throws IOException {
     setPartialResult(true);
