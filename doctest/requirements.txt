@@ -1,2 +1,4 @@
 zc.customdoctests==1.0.1
-click==7.1.2
+# Address CVE-2026-7246 by mirroring the markers used by sql-cli's 1.0-legacy setup.py.
+click>=8.3.3; python_version >= "3.10"
+click>=8.1.8,<8.2; python_version < "3.10"
