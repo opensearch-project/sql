@@ -461,6 +461,9 @@ public class CalciteToolsHelper {
   }
 
   public static class OpenSearchRelRunners {
+    // Duplicated in the response layer, since neither module depends on the other.
+    private static final String PLAN_PREPARATION_PREFIX = "Error while preparing plan [";
+
     private static boolean isNonPushdownEnumerableAggregate(String message) {
       return message.contains("Error while preparing plan")
           && message.contains("CalciteEnumerableNestedAggregate");
@@ -488,16 +491,24 @@ public class CalciteToolsHelper {
     }
 
     private static void enrichErrorsForSpecialCases(ErrorReport.Builder report, SQLException e) {
-      if (e.getMessage().contains("Error while preparing plan [") && e.getCause() != null) {
-        // Generic 'something went wrong' planning error, try to get the cause
-        int planStart = e.getMessage().indexOf('[');
-        int planEnd = e.getMessage().lastIndexOf(']');
-        report
-            .context("plan", e.getMessage().substring(planStart + 1, planEnd))
-            .details(rootCauseMessage(e));
+      String message = e.getMessage();
+      if (message != null && message.contains(PLAN_PREPARATION_PREFIX) && e.getCause() != null) {
+        // Generic 'something went wrong' planning error, try to get the cause. rootCauseMessage
+        // falls back to this exception's own message when every deeper message is null, and on this
+        // branch that message is the plan. Overwrite it, do not skip, since the builder already
+        // defaults details to that same message and skipping would publish the plan.
+        String rootCause = rootCauseMessage(e);
+        if (rootCause != null && !rootCause.contains(PLAN_PREPARATION_PREFIX)) {
+          report.details(rootCause);
+        } else {
+          report.details(
+              "The engine could not prepare this query plan for execution. The plan is in the"
+                  + " OpenSearch node log.");
+        }
       }
       if (isWindowBinOnTimeField(e)) {
         report
+            .reason("The 'bins' parameter is not supported on a timestamp field in this context.")
             .details(
                 "The 'bins' parameter on timestamp fields requires: (1) pushdown to be enabled"
                     + " (controlled by plugins.calcite.pushdown.enabled, enabled by default), and"

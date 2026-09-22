@@ -41,6 +41,7 @@ import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
@@ -485,7 +486,13 @@ public class RestUnifiedQueryAction {
     }
     JsonObject err = new JsonObject();
     err.addProperty("type", error.getClass().getSimpleName());
-    err.addProperty("reason", error.getMessage() != null ? error.getMessage() : "");
+    // Read through ErrorReport when we have one, since its own message is the query plan on a
+    // planning failure. This sink bypasses ErrorMessage.getErrorAsJson entirely.
+    String reason =
+        error instanceof ErrorReport errorReport
+            ? errorReport.getUserFacingMessage()
+            : error.getMessage();
+    err.addProperty("reason", reason != null ? reason : "");
     return json.substring(0, json.length() - 1) + ",\"error\":" + err + "}";
   }
 
