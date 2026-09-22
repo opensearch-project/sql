@@ -273,11 +273,10 @@ public class OpenSearchDataType implements ExprType, Serializable {
    */
   public OpenSearchDataType cloneDeep() {
     OpenSearchDataType copy = cloneEmpty();
-    if (!properties.isEmpty()) {
-      Map<String, OpenSearchDataType> copiedProperties = new LinkedHashMap<>();
-      properties.forEach((field, type) -> copiedProperties.put(field, type.cloneDeep()));
-      copy.properties = copiedProperties;
-    }
+    // Mutable even when empty: a later merge may put fields into this copy.
+    Map<String, OpenSearchDataType> copiedProperties = new LinkedHashMap<>();
+    properties.forEach((field, type) -> copiedProperties.put(field, type.cloneDeep()));
+    copy.properties = copiedProperties;
     return copy;
   }
 
