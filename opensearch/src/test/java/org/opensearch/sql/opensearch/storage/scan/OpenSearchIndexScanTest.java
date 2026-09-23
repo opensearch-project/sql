@@ -14,7 +14,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
-import java.io.*;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -95,10 +94,9 @@ class OpenSearchIndexScanTest {
   void throws_no_cursor_exception() {
     var request = mock(OpenSearchRequest.class);
     when(request.hasAnotherBatch()).thenReturn(false);
-    try (var indexScan = new OpenSearchIndexScan(client, request);
-        var byteStream = new ByteArrayOutputStream();
-        var objectStream = new ObjectOutputStream(byteStream)) {
-      assertThrows(NoCursorException.class, () -> objectStream.writeObject(indexScan));
+    try (var indexScan = new OpenSearchIndexScan(client, request)) {
+      var flattener = new org.opensearch.sql.opensearch.executor.pagination.PlanFlattener();
+      assertThrows(NoCursorException.class, () -> flattener.flatten(indexScan, null));
     }
   }
 
@@ -137,30 +135,8 @@ class OpenSearchIndexScanTest {
       var newPlan = planSerializer.convertToPlan(cursor.toString());
       assertNotNull(newPlan);
     }
-  }
-
-  @SneakyThrows
-  @Test
-  void throws_io_exception_if_too_short() {
-    var request = mock(OpenSearchRequest.class);
-    ByteArrayOutputStream output = new ByteArrayOutputStream();
-    ObjectOutputStream objectOutput = new ObjectOutputStream(output);
-    objectOutput.writeInt(4);
-    objectOutput.flush();
-    ObjectInputStream objectInput =
-        new ObjectInputStream(new ByteArrayInputStream(output.toByteArray()));
-
-    try (var indexScan = new OpenSearchIndexScan(client, request)) {
-      assertThrows(IOException.class, () -> indexScan.readExternal(objectInput));
-    }
-  }
-
-  @Test
-  void plan_for_serialization() {
-    var request = mock(OpenSearchRequest.class);
-    try (var indexScan = new OpenSearchIndexScan(client, request)) {
-      assertEquals(indexScan, indexScan.getPlanForSerialization());
-    }
+    verify(client).cleanup(request);
+    verify(client, never()).forceCleanup(request);
   }
 
   @Test
@@ -306,9 +282,7 @@ class OpenSearchIndexScanTest {
     when(request.hasAnotherBatch()).thenReturn(true);
     var indexScan = new OpenSearchIndexScan(client, request);
 
-    // Simulate successful cursor serialization by calling writeExternal
-    var out = mock(ObjectOutput.class);
-    indexScan.writeExternal(out);
+    indexScan.markCursorSerialized();
 
     indexScan.close();
     verify(client).cleanup(request);

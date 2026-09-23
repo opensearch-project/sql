@@ -20,8 +20,6 @@ import static org.opensearch.sql.common.setting.Settings.Key.SQL_CURSOR_KEEP_ALI
 import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
 import static org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,6 +42,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionContext;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
+import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
@@ -51,7 +50,6 @@ import org.opensearch.sql.opensearch.executor.protector.OpenSearchExecutionProte
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
-import org.opensearch.sql.planner.SerializablePlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.TableScanOperator;
 import org.opensearch.sql.storage.split.Split;
@@ -132,7 +130,8 @@ class OpenSearchExecutionEngineTest {
           @Override
           public void onResponse(QueryResponse response) {
             actual.addAll(response.getResults());
-            assertTrue(response.getCursor().toString().startsWith("n:"));
+            // FakePhysicalPlan is outside the closed cursor schema.
+            assertEquals(Cursor.None, response.getCursor());
           }
 
           @Override
@@ -305,17 +304,11 @@ class OpenSearchExecutionEngineTest {
   }
 
   @RequiredArgsConstructor
-  private static class FakePhysicalPlan extends TableScanOperator implements SerializablePlan {
+  private static class FakePhysicalPlan extends TableScanOperator {
     private final Iterator<ExprValue> it;
     private boolean hasOpen;
     private boolean hasClosed;
     private boolean hasSplit;
-
-    @Override
-    public void readExternal(ObjectInput in) {}
-
-    @Override
-    public void writeExternal(ObjectOutput out) {}
 
     @Override
     public void open() {

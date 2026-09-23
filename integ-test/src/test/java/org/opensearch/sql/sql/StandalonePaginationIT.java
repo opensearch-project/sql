@@ -14,6 +14,8 @@ import static org.opensearch.sql.util.Capability.PAGINATION_CURSOR;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import lombok.Getter;
@@ -31,6 +33,7 @@ import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
@@ -50,11 +53,11 @@ import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalRelation;
-import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.sql.util.InternalRestHighLevelClient;
 import org.opensearch.sql.util.RequiresCapability;
 import org.opensearch.sql.util.StandaloneModule;
+import org.opensearch.sql.utils.DeserializationFilterUtil;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @RequiresCapability(PAGINATION_CURSOR)
@@ -94,52 +97,64 @@ public class StandalonePaginationIT extends SQLIntegTestCase {
   public void test_pagination_whitebox() throws IOException {
     class TestResponder implements ResponseListener<ExecutionEngine.QueryResponse> {
       @Getter Cursor cursor = Cursor.None;
+      @Getter List<ExprValue> results = List.of();
 
       @Override
       public void onResponse(ExecutionEngine.QueryResponse response) {
         cursor = response.getCursor();
+        results = response.getResults();
       }
 
       @Override
       public void onFailure(Exception e) {
-        e.printStackTrace();
         fail(e.getMessage());
       }
     }
 
-    // arrange
-    {
-      Request request1 = TestUtils.seedDocRequest("test", "1");
-      request1.setJsonEntity("{\"name\": \"hello\", \"age\": 20}");
-      client().performRequest(request1);
-      Request request2 = TestUtils.seedDocRequest("test", "2");
-      request2.setJsonEntity("{\"name\": \"world\", \"age\": 30}");
-      client().performRequest(request2);
-    }
+    Request request1 = TestUtils.seedDocRequest("test", "1");
+    request1.setJsonEntity("{\"name\": \"hello\", \"age\": 20}");
+    client().performRequest(request1);
+    Request request2 = TestUtils.seedDocRequest("test", "2");
+    request2.setJsonEntity("{\"name\": \"world\", \"age\": 30}");
+    client().performRequest(request2);
+    Request request3 = TestUtils.seedDocRequest("test", "3");
+    request3.setJsonEntity("{\"name\": \"again\", \"age\": 40}");
+    client().performRequest(request3);
 
-    // act 1, asserts in firstResponder
-    var t = new OpenSearchIndex(client, defaultSettings(), "test");
-    LogicalPlan p =
+    OpenSearchIndex index = new OpenSearchIndex(client, defaultSettings(), "test");
+    LogicalPlan initialPlan =
         new LogicalPaginate(
             1,
             List.of(
                 new LogicalProject(
-                    new LogicalRelation("test", t),
+                    new LogicalRelation("test", index),
                     List.of(
                         DSL.named("name", DSL.ref("name", ExprCoreType.STRING)),
                         DSL.named("age", DSL.ref("age", ExprCoreType.LONG))),
                     List.of())));
-    var firstResponder = new TestResponder();
-    queryService.executePlan(p, PlanContext.emptyPlanContext(), firstResponder);
+    List<TestResponder> pages = new ArrayList<>();
+    TestResponder firstPage = new TestResponder();
+    queryService.executePlan(initialPlan, PlanContext.emptyPlanContext(), firstPage);
+    pages.add(firstPage);
+    assertNotNull(planSerializer.convertToPlan(firstPage.getCursor().toString()));
 
-    // act 2, asserts in secondResponder
+    for (int continuation = 0; continuation < 3; continuation++) {
+      Cursor cursor = pages.get(pages.size() - 1).getCursor();
+      assertFalse("data page must provide a continuation cursor", cursor.equals(Cursor.None));
+      TestResponder nextPage = new TestResponder();
+      queryService.execute(new FetchCursor(cursor.toString()), SQL, nextPage);
+      pages.add(nextPage);
+    }
 
-    PhysicalPlan plan = planSerializer.convertToPlan(firstResponder.getCursor().toString());
-    var secondResponder = new TestResponder();
-    queryService.execute(
-        new FetchCursor(firstResponder.getCursor().toString()), SQL, secondResponder);
-
-    // act 3: confirm that there's no cursor.
+    List<ExprValue> rows = new ArrayList<>();
+    for (int dataPage = 0; dataPage < 3; dataPage++) {
+      assertEquals(1, pages.get(dataPage).getResults().size());
+      rows.addAll(pages.get(dataPage).getResults());
+    }
+    assertEquals(3, rows.size());
+    assertEquals("each document must appear exactly once", 3, new HashSet<>(rows).size());
+    assertTrue(pages.get(3).getResults().isEmpty());
+    assertEquals(Cursor.None, pages.get(3).getCursor());
   }
 
   @Test
@@ -174,6 +189,9 @@ public class StandalonePaginationIT extends SQLIntegTestCase {
               .put(Key.QUERY_BUCKET_SIZE, 1000)
               .put(Key.SQL_CURSOR_KEEP_ALIVE, TimeValue.timeValueMinutes(1))
               .put(Key.FIELD_TYPE_TOLERANCE, true)
+              .put(Key.DESERIALIZATION_MAX_DEPTH, DeserializationFilterUtil.DEFAULT_MAX_DEPTH)
+              .put(Key.DESERIALIZATION_MAX_REFS, DeserializationFilterUtil.DEFAULT_MAX_REFS)
+              .put(Key.DESERIALIZATION_MAX_BYTES, DeserializationFilterUtil.DEFAULT_MAX_BYTES)
               .build();
 
       @Override

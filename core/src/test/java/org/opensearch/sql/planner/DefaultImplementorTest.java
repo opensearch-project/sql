@@ -52,7 +52,6 @@ import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.NamedExpression;
@@ -81,7 +80,6 @@ import org.opensearch.sql.storage.TableScanOperator;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 import org.opensearch.sql.storage.write.TableWriteBuilder;
 import org.opensearch.sql.storage.write.TableWriteOperator;
-import org.opensearch.sql.utils.TestOperator;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -224,14 +222,11 @@ class DefaultImplementorTest {
   }
 
   @Test
-  void visitLogicalCursor_deserializes_it() {
+  void visitLogicalCursor_rejects_invalid_cursor() {
     var engine = mock(StorageEngine.class);
+    var logicalPlan = LogicalPlanDSL.fetchCursor("n:v2:AAAA", engine);
 
-    var physicalPlan = new TestOperator();
-    var logicalPlan =
-        LogicalPlanDSL.fetchCursor(
-            new PlanSerializer(engine).convertToCursor(physicalPlan).toString(), engine);
-    assertEquals(physicalPlan, logicalPlan.accept(implementor, null));
+    assertThrows(UnsupportedOperationException.class, () -> logicalPlan.accept(implementor, null));
   }
 
   @Test
