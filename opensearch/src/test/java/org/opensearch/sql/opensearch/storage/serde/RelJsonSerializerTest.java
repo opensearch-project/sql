@@ -124,7 +124,8 @@ public class RelJsonSerializerTest {
     String serialized = serializer.serialize(rexNode, helper);
     RexNode expr = serializer.deserialize(serialized);
     assertEquals(expectedNode, expr);
-    assertEquals(List.of(0, 0, 0, 0, 0), helper.sources);
+    // 1 is SOURCE, since a binary field has no doc values to read.
+    assertEquals(List.of(0, 0, 0, 0, 1), helper.sources);
     assertEquals(List.of("date", "time", "timestamp", "ip", "binary"), helper.digests);
   }
 
