@@ -22,13 +22,23 @@ import org.opensearch.sql.utils.DeserializationFilterUtil;
 public class PlanSerializer {
   public static final String CURSOR_PREFIX = "n:v2:";
 
+  /** Default cap for the complete Smile cursor envelope. */
+  public static final int DEFAULT_MAX_CURSOR_BYTES = 1 << 20;
+
+  /** Administrative ceiling for the complete Smile cursor envelope. */
+  public static final int MAX_CURSOR_BYTES = 16 << 20;
+
   private static final ObjectMapper WRITE_MAPPER = new ObjectMapper(new SmileFactory());
+
+  /** Bound for fixed closed-schema field names; the longest current wire name is 15 characters. */
+  private static final int MAX_SMILE_NAME_LENGTH = 64;
+
   private static final Base64.Encoder CURSOR_ENCODER = Base64.getEncoder();
   private static final Base64.Decoder CURSOR_DECODER = Base64.getDecoder();
 
   private final StorageEngine engine;
 
-  /** Cluster settings supplying deserialization structural limits; null falls back to defaults. */
+  /** Cluster settings supplying cursor and deserialization limits; null falls back to defaults. */
   private final Settings settings;
 
   private final ObjectMapper writeMapper;
@@ -117,9 +127,7 @@ public class PlanSerializer {
     int maxRefs =
         settingOrDefault(
             Settings.Key.DESERIALIZATION_MAX_REFS, DeserializationFilterUtil.DEFAULT_MAX_REFS);
-    int maxBytes =
-        settingOrDefault(
-            Settings.Key.DESERIALIZATION_MAX_BYTES, DeserializationFilterUtil.DEFAULT_MAX_BYTES);
+    int maxBytes = settingOrDefault(Settings.Key.CURSOR_MAX_BYTES, DEFAULT_MAX_CURSOR_BYTES);
     return new ReadLimits(maxDepth, maxRefs, maxBytes);
   }
 
@@ -138,7 +146,7 @@ public class PlanSerializer {
             .maxTokenCount(limits.maxRefs())
             .maxDocumentLength(limits.maxBytes())
             .maxStringLength(limits.maxBytes())
-            .maxNameLength(limits.maxBytes())
+            .maxNameLength(MAX_SMILE_NAME_LENGTH)
             .build();
     SmileFactory factory = SmileFactory.builder().streamReadConstraints(constraints).build();
     return new ObjectMapper(factory);

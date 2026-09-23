@@ -192,6 +192,7 @@ public class StandalonePaginationIT extends SQLIntegTestCase {
               .put(Key.DESERIALIZATION_MAX_DEPTH, DeserializationFilterUtil.DEFAULT_MAX_DEPTH)
               .put(Key.DESERIALIZATION_MAX_REFS, DeserializationFilterUtil.DEFAULT_MAX_REFS)
               .put(Key.DESERIALIZATION_MAX_BYTES, DeserializationFilterUtil.DEFAULT_MAX_BYTES)
+              .put(Key.CURSOR_MAX_BYTES, PlanSerializer.DEFAULT_MAX_CURSOR_BYTES)
               .build();
 
       @Override

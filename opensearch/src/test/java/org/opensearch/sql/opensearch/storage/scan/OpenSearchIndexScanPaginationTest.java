@@ -89,6 +89,9 @@ public class OpenSearchIndexScanPaginationTest {
     lenient()
         .when(settings.getSettingValue(Settings.Key.DESERIALIZATION_MAX_BYTES))
         .thenReturn(DeserializationFilterUtil.DEFAULT_MAX_BYTES);
+    lenient()
+        .when(settings.getSettingValue(Settings.Key.CURSOR_MAX_BYTES))
+        .thenReturn(PlanSerializer.DEFAULT_MAX_CURSOR_BYTES);
   }
 
   @Mock private OpenSearchClient client;
@@ -129,6 +132,21 @@ public class OpenSearchIndexScanPaginationTest {
     try (var indexScan = new OpenSearchIndexScan(client, request)) {
       PlanFlattener flattener = new PlanFlattener();
       assertThrows(NoCursorException.class, () -> flattener.flatten(indexScan, null));
+    }
+  }
+
+  @Test
+  void dont_serialize_project_expressions_if_no_cursor() {
+    OpenSearchRequest request = mock(OpenSearchRequest.class);
+    when(request.hasAnotherBatch()).thenReturn(false);
+    try (var indexScan = new OpenSearchIndexScan(client, request)) {
+      ProjectOperator project =
+          new ProjectOperator(
+              indexScan,
+              List.of(new NamedExpression("unsupported", new NonSerializableExpression())),
+              List.of());
+
+      assertThrows(NoCursorException.class, () -> new PlanFlattener().flatten(project, settings));
     }
   }
 
@@ -293,6 +311,28 @@ public class OpenSearchIndexScanPaginationTest {
 
   private static final class DisallowedExpression implements Expression {
     private static final long serialVersionUID = 1L;
+
+    @Override
+    public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+      return null;
+    }
+
+    @Override
+    public ExprType type() {
+      return null;
+    }
+
+    @Override
+    public <T, C> T accept(ExpressionNodeVisitor<T, C> visitor, C context) {
+      return null;
+    }
+  }
+
+  private static final class NonSerializableExpression implements Expression {
+    private static final long serialVersionUID = 1L;
+
+    @SuppressWarnings("unused")
+    private final Object nonSerializableState = new Object();
 
     @Override
     public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {

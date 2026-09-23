@@ -77,15 +77,16 @@ public final class PlanFlattener implements PlanSerializer.PlanFlattenFunction {
       List<OpenSearchIndexScan> serializedScans,
       List<String> serializedExpressions,
       DefaultExpressionSerializer expressionSerializer) {
+    PhysicalPlan child = projectOp.getChild().get(0);
+    SerializablePlanNode childNode =
+        flattenNode(child, serializedScans, serializedExpressions, expressionSerializer);
+
     List<String> serializedExprs =
         projectOp.getProjectList().stream()
             .map(expr -> expressionSerializer.serialize((NamedExpression) expr))
             .toList();
     serializedExpressions.addAll(serializedExprs);
 
-    PhysicalPlan child = projectOp.getChild().get(0);
-    SerializablePlanNode childNode =
-        flattenNode(child, serializedScans, serializedExpressions, expressionSerializer);
     return new ProjectNode(serializedExprs, childNode);
   }
 

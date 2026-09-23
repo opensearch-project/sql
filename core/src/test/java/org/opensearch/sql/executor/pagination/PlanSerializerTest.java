@@ -38,6 +38,7 @@ import org.opensearch.sql.executor.pagination.serde.ProjectNode;
 import org.opensearch.sql.executor.pagination.serde.SerializablePlanNode;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.StorageEngine;
+import org.opensearch.sql.utils.DeserializationFilterUtil;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 public class PlanSerializerTest {
@@ -130,6 +131,50 @@ public class PlanSerializerTest {
   }
 
   @Test
+  void cursor_byte_limit_is_independent_from_java_expression_stream_limit() {
+    PhysicalPlan plan = mock(PhysicalPlan.class);
+    SerializablePlanNode node = new IndexScanNode(new byte[256], 10);
+    AtomicBoolean committed = new AtomicBoolean();
+    when(flattener.flatten(eq(plan), nullable(Settings.class)))
+        .thenReturn(new FlattenResult(node, () -> committed.set(true)));
+    Settings settings = settingsWith(100, 1000, 1, 1024);
+    PlanSerializer serializer =
+        new PlanSerializer(storageEngine, settings, writeMapper, flattener, rebuilder);
+
+    Cursor cursor = serializer.convertToCursor(plan);
+
+    assertTrue(cursor.toString().startsWith(PlanSerializer.CURSOR_PREFIX));
+    assertTrue(committed.get());
+  }
+
+  @Test
+  void cursor_envelope_larger_than_expression_limit_round_trips() throws Exception {
+    PhysicalPlan plan = mock(PhysicalPlan.class);
+    byte[] requestBytes = new byte[DeserializationFilterUtil.DEFAULT_MAX_BYTES + 1];
+    SerializablePlanNode node = new IndexScanNode(requestBytes, 10);
+    byte[] smileBytes = writeMapper.writeValueAsBytes(node);
+    assertTrue(smileBytes.length > DeserializationFilterUtil.DEFAULT_MAX_BYTES);
+
+    AtomicBoolean committed = new AtomicBoolean();
+    when(flattener.flatten(eq(plan), nullable(Settings.class)))
+        .thenReturn(new FlattenResult(node, () -> committed.set(true)));
+    PhysicalPlan rebuilt = mock(PhysicalPlan.class);
+    when(rebuilder.rebuild(any(SerializablePlanNode.class), eq(storageEngine))).thenReturn(rebuilt);
+    Settings settings =
+        settingsWith(
+            100,
+            1000,
+            DeserializationFilterUtil.DEFAULT_MAX_BYTES,
+            PlanSerializer.DEFAULT_MAX_CURSOR_BYTES);
+    PlanSerializer serializer =
+        new PlanSerializer(storageEngine, settings, writeMapper, flattener, rebuilder);
+
+    Cursor cursor = serializer.convertToCursor(plan);
+    assertTrue(committed.get());
+    assertSame(rebuilt, serializer.convertToPlan(cursor.toString()));
+  }
+
+  @Test
   void serde_nodes_defensively_copy_mutable_components() {
     byte[] sourceBytes = new byte[] {1, 2, 3};
     IndexScanNode indexScan = new IndexScanNode(sourceBytes, 10);
@@ -216,11 +261,16 @@ public class PlanSerializerTest {
   }
 
   private static Settings settingsWith(int depth, int refs, int bytes) {
+    return settingsWith(depth, refs, bytes, bytes);
+  }
+
+  private static Settings settingsWith(int depth, int refs, int expressionBytes, int cursorBytes) {
     Map<Settings.Key, Object> values =
         Map.of(
             Settings.Key.DESERIALIZATION_MAX_DEPTH, depth,
             Settings.Key.DESERIALIZATION_MAX_REFS, refs,
-            Settings.Key.DESERIALIZATION_MAX_BYTES, bytes);
+            Settings.Key.DESERIALIZATION_MAX_BYTES, expressionBytes,
+            Settings.Key.CURSOR_MAX_BYTES, cursorBytes);
     return new Settings() {
       @Override
       @SuppressWarnings("unchecked")
