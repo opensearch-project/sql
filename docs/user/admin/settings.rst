@@ -358,6 +358,42 @@ Result set::
       }
     }
 
+plugins.query.cursor.max_bytes
+==============================
+
+Version
+-------
+Since 3.9
+
+Description
+-----------
+
+This setting limits the decoded size of a V2 query cursor. The cursor contains the physical plan state required to fetch the next page. The limit is checked before and after Base64 decoding so that oversized cursors are rejected before their full payload is processed.
+
+The default is 1048576 bytes (1 MiB). The minimum is 1 byte, and the maximum is 16777216 bytes (16 MiB). This setting has node scope and can be updated dynamically. Increase it only when a paginated query needs to preserve a larger plan. Here is an example::
+
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	  "transient" : {
+	    "plugins.query.cursor.max_bytes" : 2097152
+	  }
+	}'
+
+Result set::
+
+    {
+      "acknowledged" : true,
+      "persistent" : { },
+      "transient" : {
+        "plugins" : {
+          "query" : {
+            "cursor" : {
+              "max_bytes" : "2097152"
+            }
+          }
+        }
+      }
+    }
+
 plugins.query.partial_result.on_mapping_conflict.enabled [Experimental]
 =======================================================================
 
