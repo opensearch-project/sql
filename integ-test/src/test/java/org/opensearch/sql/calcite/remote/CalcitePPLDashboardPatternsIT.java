@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_HDFS_LOGS;
+import static org.opensearch.sql.util.Capability.PATTERNS_BRAIN_MODE;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -15,6 +16,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 /** Pins the BRAIN-label pattern panel query shape used by OpenSearch Dashboards. */
 public class CalcitePPLDashboardPatternsIT extends PPLIntegTestCase {
@@ -26,6 +28,7 @@ public class CalcitePPLDashboardPatternsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(PATTERNS_BRAIN_MODE)
   public void testDashboardBrainLabelStatsByPatternsField() throws IOException {
     JSONObject result =
         executeQuery(

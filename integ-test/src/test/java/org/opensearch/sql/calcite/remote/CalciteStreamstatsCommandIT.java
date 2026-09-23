@@ -296,6 +296,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(STREAMSTATS_SORT_NOT_HONORED)
   public void testStreamstatsBySpanWithNull() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -352,6 +353,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(STREAMSTATS_SORT_NOT_HONORED)
   public void testStreamstatsByMultiplePartitionsWithNull1() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -1162,6 +1164,7 @@ public class CalciteStreamstatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(STREAMSTATS_SORT_NOT_HONORED)
   public void testWhereInWithStreamstatsSubquery() throws IOException {
     JSONObject actual =
         executeQuery(
