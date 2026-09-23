@@ -78,8 +78,7 @@ public class PlanSerializerTest {
     assertTrue(committed.get());
     assertTrue(cursor.toString().startsWith(PlanSerializer.CURSOR_PREFIX));
     String encoded = cursor.toString().substring(PlanSerializer.CURSOR_PREFIX.length());
-    assertTrue(encoded.matches("[A-Za-z0-9_-]+"));
-    byte[] smileBytes = Base64.getUrlDecoder().decode(encoded);
+    byte[] smileBytes = Base64.getDecoder().decode(encoded);
     assertEquals(SmileConstants.HEADER_BYTE_1, smileBytes[0]);
     assertEquals(SmileConstants.HEADER_BYTE_2, smileBytes[1]);
     assertEquals(SmileConstants.HEADER_BYTE_3, smileBytes[2]);
@@ -213,9 +212,7 @@ public class PlanSerializerTest {
 
   private String cursorFor(SerializablePlanNode node) throws Exception {
     return PlanSerializer.CURSOR_PREFIX
-        + Base64.getUrlEncoder()
-            .withoutPadding()
-            .encodeToString(writeMapper.writeValueAsBytes(node));
+        + Base64.getEncoder().encodeToString(writeMapper.writeValueAsBytes(node));
   }
 
   private static Settings settingsWith(int depth, int refs, int bytes) {

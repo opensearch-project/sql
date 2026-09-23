@@ -23,8 +23,8 @@ public class PlanSerializer {
   public static final String CURSOR_PREFIX = "n:v2:";
 
   private static final ObjectMapper WRITE_MAPPER = new ObjectMapper(new SmileFactory());
-  private static final Base64.Encoder CURSOR_ENCODER = Base64.getUrlEncoder().withoutPadding();
-  private static final Base64.Decoder CURSOR_DECODER = Base64.getUrlDecoder();
+  private static final Base64.Encoder CURSOR_ENCODER = Base64.getEncoder();
+  private static final Base64.Decoder CURSOR_DECODER = Base64.getDecoder();
 
   private final StorageEngine engine;
 
