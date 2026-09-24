@@ -83,8 +83,7 @@ public class PPLAsyncQueryServiceTest {
 
     assertEquals(1, responses.get());
     assertEquals(
-        new PPLAsyncQueryService.JobSnapshot(
-            null, PPLAsyncQueryService.Status.SUCCEEDED, response(2), null, 25),
+        new PPLAsyncQueryService.JobSnapshot.Succeeded(Optional.empty(), response(2), 25),
         result.get());
     assertEquals(0, service.runningQueryCount());
     assertEquals(0, service.retainedJobCount());
@@ -105,11 +104,9 @@ public class PPLAsyncQueryServiceTest {
 
     timeoutTask.get().run();
 
-    String id = retainedResponse.get().id();
+    String id = retainedResponse.get().id().orElseThrow();
     assertEquals(
-        new PPLAsyncQueryService.JobSnapshot(
-            id, PPLAsyncQueryService.Status.RUNNING, null, null, -1),
-        retainedResponse.get());
+        new PPLAsyncQueryService.JobSnapshot.Running(id, Optional.empty()), retainedResponse.get());
     assertEquals(1, service.runningQueryCount());
     assertEquals(1, service.retainedJobCount());
 
@@ -118,8 +115,7 @@ public class PPLAsyncQueryServiceTest {
     PPLAsyncQueryService.JobSnapshot completed = service.get(id, OWNER, null);
 
     assertEquals(
-        new PPLAsyncQueryService.JobSnapshot(
-            id, PPLAsyncQueryService.Status.SUCCEEDED, response(2), null, 25),
+        new PPLAsyncQueryService.JobSnapshot.Succeeded(Optional.of(id), response(2), 25),
         completed);
     assertEquals(0, service.runningQueryCount());
     assertEquals(1, service.retainedJobCount());
@@ -346,7 +342,7 @@ public class PPLAsyncQueryServiceTest {
         request,
         registration.requestTask(),
         ignored -> new TrackingExecution(null),
-        listener(snapshot -> id.set(snapshot.id())));
+        listener(snapshot -> id.set(snapshot.id().orElseThrow())));
 
     service.delete(id.get(), OWNER);
 
@@ -442,7 +438,7 @@ public class PPLAsyncQueryServiceTest {
         TimeValue.ZERO,
         jobTask(null),
         ignored -> new TrackingExecution(null),
-        listener(snapshot -> id.set(snapshot.id())));
+        listener(snapshot -> id.set(snapshot.id().orElseThrow())));
 
     assertThrows(OpenSearchSecurityException.class, () -> service.get(id.get(), otherUser, null));
     assertThrows(OpenSearchSecurityException.class, () -> service.delete(id.get(), otherUser));
@@ -517,7 +513,10 @@ public class PPLAsyncQueryServiceTest {
     execution.complete();
     rows.add(ExprValueUtils.stringValue("second"));
 
-    assertEquals(1, result.get().response().getResults().size());
+    assertTrue(result.get() instanceof PPLAsyncQueryService.JobSnapshot.Succeeded);
+    PPLAsyncQueryService.JobSnapshot.Succeeded succeeded =
+        (PPLAsyncQueryService.JobSnapshot.Succeeded) result.get();
+    assertEquals(1, succeeded.response().getResults().size());
   }
 
   @Test
@@ -529,8 +528,7 @@ public class PPLAsyncQueryServiceTest {
     startQuery(service, null, TimeValue.timeValueSeconds(5), execution, listener(result::set));
 
     assertEquals(
-        new PPLAsyncQueryService.JobSnapshot(
-            null, PPLAsyncQueryService.Status.SUCCEEDED, response(2), null, 0),
+        new PPLAsyncQueryService.JobSnapshot.Succeeded(Optional.empty(), response(2), 0),
         result.get());
     assertEquals(1, execution.closes.get());
   }
@@ -544,14 +542,9 @@ public class PPLAsyncQueryServiceTest {
     execution.setCurrent(response(3));
     PPLAsyncQueryService.JobSnapshot second = service.get(id, OWNER, null);
 
+    assertEquals(new PPLAsyncQueryService.JobSnapshot.Running(id, Optional.of(response(1))), first);
     assertEquals(
-        new PPLAsyncQueryService.JobSnapshot(
-            id, PPLAsyncQueryService.Status.RUNNING, response(1), null, -1),
-        first);
-    assertEquals(
-        new PPLAsyncQueryService.JobSnapshot(
-            id, PPLAsyncQueryService.Status.RUNNING, response(3), null, -1),
-        second);
+        new PPLAsyncQueryService.JobSnapshot.Running(id, Optional.of(response(3))), second);
   }
 
   @Test
@@ -567,10 +560,8 @@ public class PPLAsyncQueryServiceTest {
       PPLAsyncQueryService.JobSnapshot failed = service.get(id, OWNER, null);
 
       assertEquals(
-          new PPLAsyncQueryService.JobSnapshot(
-              id,
-              PPLAsyncQueryService.Status.FAILED,
-              null,
+          new PPLAsyncQueryService.JobSnapshot.Failed(
+              Optional.of(id),
               new PPLAsyncQueryService.Failure("IllegalStateException", "boom"),
               0),
           failed);
@@ -612,7 +603,7 @@ public class PPLAsyncQueryServiceTest {
           service.delete(id.get(), OWNER);
           return execution;
         },
-        listener(snapshot -> id.set(snapshot.id())));
+        listener(snapshot -> id.set(snapshot.id().orElseThrow())));
 
     assertEquals(1, execution.closes.get());
     assertThrows(ResourceNotFoundException.class, () -> service.get(id.get(), OWNER, null));
@@ -731,7 +722,7 @@ public class PPLAsyncQueryServiceTest {
         task,
         TimeValue.ZERO,
         execution,
-        listener(snapshot -> id.set(snapshot.id())));
+        listener(snapshot -> id.set(snapshot.id().orElseThrow())));
     return id.get();
   }
 

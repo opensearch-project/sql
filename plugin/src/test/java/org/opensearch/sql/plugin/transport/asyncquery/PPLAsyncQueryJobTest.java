@@ -8,10 +8,12 @@ package org.opensearch.sql.plugin.transport.asyncquery;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
+import java.util.Optional;
 import org.junit.Test;
 import org.opensearch.ResourceNotFoundException;
 import org.opensearch.common.unit.TimeValue;
@@ -19,8 +21,7 @@ import org.opensearch.sql.executor.AsyncQueryExecution;
 import org.opensearch.sql.plugin.transport.asyncquery.PPLAsyncQueryJob.GetResult;
 import org.opensearch.sql.plugin.transport.asyncquery.PPLAsyncQueryJob.JobTask;
 import org.opensearch.sql.plugin.transport.asyncquery.PPLAsyncQueryJob.Removal;
-import org.opensearch.sql.plugin.transport.asyncquery.PPLAsyncQueryJob.ResponseContext;
-import org.opensearch.sql.plugin.transport.asyncquery.PPLAsyncQueryJob.Retention;
+import org.opensearch.sql.plugin.transport.asyncquery.PPLAsyncQueryJob.SnapshotSource;
 import org.opensearch.sql.plugin.transport.asyncquery.PPLAsyncQueryJob.Transition;
 import org.opensearch.sql.plugin.transport.asyncquery.PPLAsyncQueryService.Failure;
 import org.opensearch.sql.plugin.transport.asyncquery.PPLAsyncQueryService.Status;
@@ -41,11 +42,7 @@ public class PPLAsyncQueryJobTest {
     Transition transition = fixture.job().retain(RETAINED_TIME);
 
     assertEquals(
-        new Transition(
-            new ResponseContext(ID, Status.RUNNING, fixture.execution(), null, -1),
-            Retention.RETAIN,
-            null,
-            null),
+        new Transition.Retained(new SnapshotSource.Running(ID, Optional.of(fixture.execution()))),
         transition);
     assertNull(fixture.job().retain(RETAINED_TIME + 1));
   }
@@ -57,15 +54,14 @@ public class PPLAsyncQueryJobTest {
 
     Transition transition = fixture.job().complete(COMPLETION_TIME);
 
+    assertTrue(transition instanceof Transition.DirectResponse);
+    Transition.DirectResponse direct = (Transition.DirectResponse) transition;
     assertEquals(
-        new Transition(
-            new ResponseContext(
-                null, Status.SUCCEEDED, fixture.execution(), null, COMPLETION_TIME - START_TIME),
-            Retention.REMOVE,
-            fixture.execution(),
-            fixture.task()),
-        transition);
-    assertTrue(transition.releasesRunningSlot());
+        new SnapshotSource.Succeeded(
+            Optional.empty(), fixture.execution(), COMPLETION_TIME - START_TIME),
+        direct.response());
+    assertSame(fixture.task(), direct.task());
+    assertEquals(Optional.of(fixture.execution()), direct.executionToClose());
     assertNull(fixture.job().complete(COMPLETION_TIME + 1));
     assertThrows(ResourceNotFoundException.class, () -> fixture.job().get(COMPLETION_TIME, null));
   }
@@ -78,15 +74,13 @@ public class PPLAsyncQueryJobTest {
 
     Transition transition = fixture.job().fail(failure, COMPLETION_TIME);
 
+    assertTrue(transition instanceof Transition.DirectResponse);
+    Transition.DirectResponse direct = (Transition.DirectResponse) transition;
     assertEquals(
-        new Transition(
-            new ResponseContext(
-                null, Status.FAILED, fixture.execution(), failure, COMPLETION_TIME - START_TIME),
-            Retention.REMOVE,
-            fixture.execution(),
-            fixture.task()),
-        transition);
-    assertTrue(transition.releasesRunningSlot());
+        new SnapshotSource.Failed(Optional.empty(), failure, COMPLETION_TIME - START_TIME),
+        direct.response());
+    assertSame(fixture.task(), direct.task());
+    assertEquals(Optional.of(fixture.execution()), direct.executionToClose());
   }
 
   @Test
@@ -95,20 +89,22 @@ public class PPLAsyncQueryJobTest {
 
     Transition transition = fixture.job().complete(COMPLETION_TIME);
 
-    assertEquals(new Transition(null, Retention.RETAIN, null, fixture.task()), transition);
+    assertEquals(new Transition.ExecutionFinished(fixture.task(), Optional.empty()), transition);
+
+    GetResult result = fixture.job().get(COMPLETION_TIME, null);
+    assertTrue(result instanceof GetResult.Found);
     assertEquals(
-        new GetResult.Found(
-            new ResponseContext(
-                ID, Status.SUCCEEDED, fixture.execution(), null, COMPLETION_TIME - START_TIME)),
-        fixture.job().get(COMPLETION_TIME, null));
-    assertEquals(
-        new Removal(
-            Status.SUCCEEDED,
-            null,
-            fixture.execution(),
-            "PPL asynchronous query cancelled by user",
-            false),
-        fixture.job().delete(COMPLETION_TIME));
+        new SnapshotSource.Succeeded(
+            Optional.of(ID), fixture.execution(), COMPLETION_TIME - START_TIME),
+        ((GetResult.Found) result).response());
+
+    Removal removal = fixture.job().delete(COMPLETION_TIME);
+    assertTrue(removal instanceof Removal.Deleted);
+    Removal.Deleted deleted = (Removal.Deleted) removal;
+    assertEquals(Status.SUCCEEDED, deleted.responseStatus());
+    assertNull(deleted.resources().task());
+    assertSame(fixture.execution(), deleted.resources().execution());
+    assertEquals("PPL asynchronous query cancelled by user", deleted.reason());
   }
 
   @Test
@@ -119,11 +115,14 @@ public class PPLAsyncQueryJobTest {
     Transition transition = fixture.job().fail(failure, COMPLETION_TIME);
 
     assertEquals(
-        new Transition(null, Retention.RETAIN, fixture.execution(), fixture.task()), transition);
+        new Transition.ExecutionFinished(fixture.task(), Optional.of(fixture.execution())),
+        transition);
+
+    GetResult result = fixture.job().get(COMPLETION_TIME, null);
+    assertTrue(result instanceof GetResult.Found);
     assertEquals(
-        new GetResult.Found(
-            new ResponseContext(ID, Status.FAILED, null, failure, COMPLETION_TIME - START_TIME)),
-        fixture.job().get(COMPLETION_TIME, null));
+        new SnapshotSource.Failed(Optional.of(ID), failure, COMPLETION_TIME - START_TIME),
+        ((GetResult.Found) result).response());
   }
 
   @Test
@@ -134,15 +133,11 @@ public class PPLAsyncQueryJobTest {
     assertTrue(fixture.job().get(expirationTime - 1, null) instanceof GetResult.Found);
     GetResult result = fixture.job().get(expirationTime, null);
 
-    assertEquals(
-        new GetResult.Expired(
-            new Removal(
-                Status.RUNNING,
-                fixture.task(),
-                fixture.execution(),
-                "PPL asynchronous query expired",
-                true)),
-        result);
+    assertTrue(result instanceof GetResult.Expired);
+    Removal.Expired removal = ((GetResult.Expired) result).removal();
+    assertSame(fixture.task(), removal.resources().task());
+    assertSame(fixture.execution(), removal.resources().execution());
+    assertEquals("PPL asynchronous query expired", removal.reason());
   }
 
   @Test
@@ -167,14 +162,12 @@ public class PPLAsyncQueryJobTest {
     assertNull(fixture.job().expire(retainedTime - 1));
     fixture.job().retain(retainedTime);
     assertNull(fixture.job().expire(retainedTime + KEEP_ALIVE_MILLIS - 1));
-    assertEquals(
-        new Removal(
-            Status.RUNNING,
-            fixture.task(),
-            fixture.execution(),
-            "PPL asynchronous query expired",
-            true),
-        fixture.job().expire(retainedTime + KEEP_ALIVE_MILLIS));
+    Removal removal = fixture.job().expire(retainedTime + KEEP_ALIVE_MILLIS);
+    assertTrue(removal instanceof Removal.Expired);
+    Removal.Expired expired = (Removal.Expired) removal;
+    assertSame(fixture.task(), expired.resources().task());
+    assertSame(fixture.execution(), expired.resources().execution());
+    assertEquals("PPL asynchronous query expired", expired.reason());
   }
 
   @Test
@@ -183,15 +176,13 @@ public class PPLAsyncQueryJobTest {
 
     Removal removal = fixture.job().delete(RETAINED_TIME + 1);
 
-    assertEquals(
-        new Removal(
-            Status.CANCELLED,
-            fixture.task(),
-            fixture.execution(),
-            "PPL asynchronous query cancelled by user",
-            false),
-        removal);
-    assertTrue(removal.releasesRunningSlot());
+    assertTrue(removal instanceof Removal.Deleted);
+    Removal.Deleted deleted = (Removal.Deleted) removal;
+    assertEquals(Status.CANCELLED, deleted.responseStatus());
+    assertSame(fixture.task(), deleted.resources().task());
+    assertSame(fixture.execution(), deleted.resources().execution());
+    assertEquals("PPL asynchronous query cancelled by user", deleted.reason());
+    assertTrue(deleted.resources().releasesRunningSlot());
     assertThrows(ResourceNotFoundException.class, () -> fixture.job().delete(RETAINED_TIME + 2));
   }
 
@@ -200,14 +191,12 @@ public class PPLAsyncQueryJobTest {
     JobFixture fixture = newJob();
     assertTrue(fixture.job().tryAttachExecution(fixture.execution()));
 
-    assertEquals(
-        new Removal(
-            Status.RUNNING,
-            fixture.task(),
-            fixture.execution(),
-            "PPL asynchronous query startup failed",
-            false),
-        fixture.job().abort());
+    Removal removal = fixture.job().abort();
+    assertTrue(removal instanceof Removal.Discarded);
+    Removal.Discarded discarded = (Removal.Discarded) removal;
+    assertSame(fixture.task(), discarded.resources().task());
+    assertSame(fixture.execution(), discarded.resources().execution());
+    assertEquals("PPL asynchronous query startup failed", discarded.reason());
     assertNull(fixture.job().abort());
   }
 
@@ -215,9 +204,12 @@ public class PPLAsyncQueryJobTest {
   public void closeDetachesResourcesOnlyOnce() {
     JobFixture fixture = retainedJob();
 
-    assertEquals(
-        new Removal(Status.RUNNING, fixture.task(), fixture.execution(), "service closing", false),
-        fixture.job().close("service closing"));
+    Removal removal = fixture.job().close("service closing");
+    assertTrue(removal instanceof Removal.Discarded);
+    Removal.Discarded discarded = (Removal.Discarded) removal;
+    assertSame(fixture.task(), discarded.resources().task());
+    assertSame(fixture.execution(), discarded.resources().execution());
+    assertEquals("service closing", discarded.reason());
     assertNull(fixture.job().close("service closing"));
   }
 

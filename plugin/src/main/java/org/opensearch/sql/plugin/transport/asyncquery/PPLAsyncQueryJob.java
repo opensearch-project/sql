@@ -6,6 +6,7 @@
 package org.opensearch.sql.plugin.transport.asyncquery;
 
 import java.util.Objects;
+import java.util.Optional;
 import org.opensearch.ResourceNotFoundException;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.executor.AsyncQueryExecution;
@@ -19,7 +20,7 @@ import org.opensearch.tasks.CancellableTask;
  * service map, update capacity counters, or cancel tasks while holding the lock.
  *
  * <p>After attachment, the job owns one {@link AsyncQueryExecution}. Reads borrow it through a
- * {@link ResponseContext}; removal transitions detach it so the service can close it outside the
+ * {@link SnapshotSource}; removal transitions detach it so the service can close it outside the
  * lock.
  *
  * <pre>
@@ -106,7 +107,7 @@ final class PPLAsyncQueryJob {
     }
     state = State.RETAINED_RUNNING;
     expirationTimeMillis = now + keepAliveMillis;
-    return Transition.retain(retainedResponse());
+    return new Transition.Retained(runningSnapshot());
   }
 
   /**
@@ -164,12 +165,14 @@ final class PPLAsyncQueryJob {
     state = terminalState;
     completionTimeMillis = now;
     if (returnDirect) {
-      ResponseContext response = directResponse();
+      SnapshotSource response = snapshot(Optional.empty());
       state = State.REMOVED;
-      return Transition.returnDirect(response, detachExecution(), taskToClose);
+      return new Transition.DirectResponse(
+          response, taskToClose, Optional.ofNullable(detachExecution()));
     }
-    return Transition.finishRetained(
-        terminalState == State.RETAINED_FAILED ? detachExecution() : null, taskToClose);
+    AsyncQueryExecution executionToClose =
+        terminalState == State.RETAINED_FAILED ? detachExecution() : null;
+    return new Transition.ExecutionFinished(taskToClose, Optional.ofNullable(executionToClose));
   }
 
   /**
@@ -192,7 +195,7 @@ final class PPLAsyncQueryJob {
       keepAliveMillis = requestedKeepAlive.millis();
       expirationTimeMillis = now + keepAliveMillis;
     }
-    return new GetResult.Found(retainedResponse());
+    return new GetResult.Found(retainedSnapshot());
   }
 
   /**
@@ -207,7 +210,7 @@ final class PPLAsyncQueryJob {
     if (now >= expirationTimeMillis) {
       return expireLocked("PPL asynchronous query expired");
     }
-    return remove(
+    return delete(
         isExecuting() ? PPLAsyncQueryService.Status.CANCELLED : responseStatus(),
         "PPL asynchronous query cancelled by user");
   }
@@ -225,8 +228,10 @@ final class PPLAsyncQueryJob {
     return expireLocked("PPL asynchronous query expired");
   }
 
-  private Removal expireLocked(String reason) {
-    return remove(responseStatus(), reason, true);
+  private Removal.Expired expireLocked(String reason) {
+    Removal.Expired removal = new Removal.Expired(detachResources(), reason);
+    state = State.REMOVED;
+    return removal;
   }
 
   /**
@@ -235,7 +240,7 @@ final class PPLAsyncQueryJob {
    * @return removal with detached resources, or {@code null} if already removed
    */
   synchronized Removal abort() {
-    return removeIfPresent("PPL asynchronous query startup failed");
+    return discardIfPresent("PPL asynchronous query startup failed");
   }
 
   /**
@@ -245,39 +250,47 @@ final class PPLAsyncQueryJob {
    * @return removal with detached resources, or {@code null} if already removed
    */
   synchronized Removal close(String reason) {
-    return removeIfPresent(reason);
+    return discardIfPresent(reason);
   }
 
-  private Removal removeIfPresent(String reason) {
+  private Removal discardIfPresent(String reason) {
     if (state == State.REMOVED) {
       return null;
     }
-    return remove(responseStatus(), reason);
-  }
-
-  private Removal remove(PPLAsyncQueryService.Status responseStatus, String reason) {
-    return remove(responseStatus, reason, false);
-  }
-
-  private Removal remove(
-      PPLAsyncQueryService.Status responseStatus, String reason, boolean expired) {
-    Removal removal = new Removal(responseStatus, detachTask(), detachExecution(), reason, expired);
+    Removal.Discarded removal = new Removal.Discarded(detachResources(), reason);
     state = State.REMOVED;
     return removal;
   }
 
-  private ResponseContext directResponse() {
-    return responseContext(null);
+  private Removal delete(PPLAsyncQueryService.Status responseStatus, String reason) {
+    Removal.Deleted removal = new Removal.Deleted(responseStatus, detachResources(), reason);
+    state = State.REMOVED;
+    return removal;
   }
 
-  private ResponseContext retainedResponse() {
-    return responseContext(id);
+  private DetachedResources detachResources() {
+    return new DetachedResources(detachTask(), detachExecution());
   }
 
-  private ResponseContext responseContext(String responseId) {
+  private SnapshotSource retainedSnapshot() {
+    return snapshot(Optional.of(id));
+  }
+
+  private SnapshotSource.Running runningSnapshot() {
+    return new SnapshotSource.Running(id, Optional.ofNullable(execution));
+  }
+
+  private SnapshotSource snapshot(Optional<String> responseId) {
     long tookMillis =
         completionTimeMillis < 0 ? -1L : Math.max(0L, completionTimeMillis - startTimeMillis);
-    return new ResponseContext(responseId, responseStatus(), execution, failure, tookMillis);
+    return switch (state) {
+      case RUNNING, RETAINED_RUNNING -> runningSnapshot();
+      case RETAINED_SUCCEEDED ->
+          new SnapshotSource.Succeeded(responseId, Objects.requireNonNull(execution), tookMillis);
+      case RETAINED_FAILED ->
+          new SnapshotSource.Failed(responseId, Objects.requireNonNull(failure), tookMillis);
+      case REMOVED -> throw new IllegalStateException("PPL asynchronous query was removed");
+    };
   }
 
   private boolean isExecuting() {
@@ -311,21 +324,36 @@ final class PPLAsyncQueryJob {
     }
   }
 
-  /**
-   * Lifecycle data captured under the job lock for later response materialization.
-   *
-   * @param id job ID included in a retained response, or {@code null} for a direct POST response
-   * @param status public lifecycle status
-   * @param execution execution handle borrowed for result materialization
-   * @param failure failure returned for a failed job
-   * @param tookMillis elapsed execution time, or {@code -1} while running
-   */
-  record ResponseContext(
-      String id,
-      PPLAsyncQueryService.Status status,
-      AsyncQueryExecution execution,
-      PPLAsyncQueryService.Failure failure,
-      long tookMillis) {}
+  /** Lifecycle state captured under the job lock for later result materialization. */
+  sealed interface SnapshotSource {
+    /**
+     * Source for a retained running response.
+     *
+     * @param id retained job ID
+     * @param execution attached execution, or empty when retention wins before attachment
+     */
+    record Running(String id, Optional<AsyncQueryExecution> execution) implements SnapshotSource {}
+
+    /**
+     * Source for a successful final response.
+     *
+     * @param id retained job ID, or empty for a direct POST response
+     * @param execution completed execution that owns the final result
+     * @param tookMillis elapsed execution time
+     */
+    record Succeeded(Optional<String> id, AsyncQueryExecution execution, long tookMillis)
+        implements SnapshotSource {}
+
+    /**
+     * Source for a failed final response.
+     *
+     * @param id retained job ID, or empty for a direct POST response
+     * @param failure client-visible failure
+     * @param tookMillis elapsed execution time
+     */
+    record Failed(Optional<String> id, PPLAsyncQueryService.Failure failure, long tookMillis)
+        implements SnapshotSource {}
+  }
 
   /**
    * Cancellable task and the cleanup that releases its TaskManager registrations.
@@ -349,44 +377,34 @@ final class PPLAsyncQueryJob {
     REMOVED
   }
 
-  /** Whether a transition keeps the job in or removes it from the service registry. */
-  enum Retention {
-    RETAIN,
-    REMOVE
-  }
+  /** State-machine output consumed by {@link PPLAsyncQueryService}. */
+  sealed interface Transition {
+    /**
+     * The initial wait expired and the running job became retained.
+     *
+     * @param response response published with the retained job ID
+     */
+    record Retained(SnapshotSource.Running response) implements Transition {}
 
-  /**
-   * State-machine output consumed by {@link PPLAsyncQueryService}.
-   *
-   * @param response response to materialize and publish, or {@code null} when none is due
-   * @param retention registry action
-   * @param executionToClose execution handle detached by the transition
-   * @param taskToClose completed task registration detached by the transition
-   */
-  record Transition(
-      ResponseContext response,
-      Retention retention,
-      AsyncQueryExecution executionToClose,
-      JobTask taskToClose) {
+    /**
+     * Execution finished before retention and the initial request receives the final response.
+     *
+     * @param response successful or failed final response source
+     * @param task completed task registration to close
+     * @param executionToClose detached execution to close after materialization
+     */
+    record DirectResponse(
+        SnapshotSource response, JobTask task, Optional<AsyncQueryExecution> executionToClose)
+        implements Transition {}
 
-    private static Transition retain(ResponseContext response) {
-      return new Transition(response, Retention.RETAIN, null, null);
-    }
-
-    private static Transition returnDirect(
-        ResponseContext response, AsyncQueryExecution executionToClose, JobTask taskToClose) {
-      return new Transition(response, Retention.REMOVE, executionToClose, taskToClose);
-    }
-
-    private static Transition finishRetained(
-        AsyncQueryExecution executionToClose, JobTask taskToClose) {
-      return new Transition(null, Retention.RETAIN, executionToClose, taskToClose);
-    }
-
-    /** Returns whether this transition releases a running-query capacity slot. */
-    boolean releasesRunningSlot() {
-      return taskToClose != null;
-    }
+    /**
+     * A retained execution finished without producing an immediate response.
+     *
+     * @param task completed task registration to close
+     * @param executionToClose failed execution to close; successful execution remains retained
+     */
+    record ExecutionFinished(JobTask task, Optional<AsyncQueryExecution> executionToClose)
+        implements Transition {}
   }
 
   /** Result of an authorized GET attempt. */
@@ -394,37 +412,58 @@ final class PPLAsyncQueryJob {
     /**
      * GET result for a live retained job.
      *
-     * @param response current response context
+     * @param response current lifecycle source for result materialization
      */
-    record Found(ResponseContext response) implements GetResult {}
+    record Found(SnapshotSource response) implements GetResult {}
 
     /**
      * GET result when the lease expired before the request.
      *
      * @param removal cleanup required for the expired job
      */
-    record Expired(Removal removal) implements GetResult {}
+    record Expired(Removal.Expired removal) implements GetResult {}
   }
 
   /**
-   * Resources and accounting changes produced when a job leaves the registry.
+   * Task and execution handles detached when a job leaves the registry.
    *
-   * @param responseStatus status returned to DELETE when the job has not expired
-   * @param task running task to cancel
-   * @param execution execution handle to close
-   * @param reason cancellation or removal reason
-   * @param expired whether expiration caused the removal
+   * @param task running task to cancel, or {@code null} after execution already finished
+   * @param execution execution handle to close, or {@code null} before attachment
    */
-  record Removal(
-      PPLAsyncQueryService.Status responseStatus,
-      JobTask task,
-      AsyncQueryExecution execution,
-      String reason,
-      boolean expired) {
-
-    /** Returns whether this removal releases a running-query capacity slot. */
+  record DetachedResources(JobTask task, AsyncQueryExecution execution) {
+    /** Returns whether removing these resources releases a running-query capacity slot. */
     boolean releasesRunningSlot() {
       return task != null;
     }
+  }
+
+  /** Reason-specific removal consumed by {@link PPLAsyncQueryService}. */
+  sealed interface Removal {
+    /**
+     * Removal requested by DELETE.
+     *
+     * @param responseStatus status returned to the caller
+     * @param resources detached task and execution handles
+     * @param reason task cancellation reason
+     */
+    record Deleted(
+        PPLAsyncQueryService.Status responseStatus, DetachedResources resources, String reason)
+        implements Removal {}
+
+    /**
+     * Removal caused by lease expiration.
+     *
+     * @param resources detached task and execution handles
+     * @param reason task cancellation reason
+     */
+    record Expired(DetachedResources resources, String reason) implements Removal {}
+
+    /**
+     * Internal removal caused by startup failure or service shutdown.
+     *
+     * @param resources detached task and execution handles
+     * @param reason task cancellation reason
+     */
+    record Discarded(DetachedResources resources, String reason) implements Removal {}
   }
 }

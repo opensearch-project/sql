@@ -8,6 +8,7 @@ package org.opensearch.sql.plugin.transport.asyncquery;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
@@ -36,8 +37,7 @@ import org.opensearch.sql.plugin.transport.TransportPPLQueryRequest;
 import org.opensearch.sql.plugin.transport.asyncquery.PPLAsyncQueryJob.GetResult;
 import org.opensearch.sql.plugin.transport.asyncquery.PPLAsyncQueryJob.JobTask;
 import org.opensearch.sql.plugin.transport.asyncquery.PPLAsyncQueryJob.Removal;
-import org.opensearch.sql.plugin.transport.asyncquery.PPLAsyncQueryJob.ResponseContext;
-import org.opensearch.sql.plugin.transport.asyncquery.PPLAsyncQueryJob.Retention;
+import org.opensearch.sql.plugin.transport.asyncquery.PPLAsyncQueryJob.SnapshotSource;
 import org.opensearch.sql.plugin.transport.asyncquery.PPLAsyncQueryJob.Transition;
 import org.opensearch.tasks.CancellableTask;
 import org.opensearch.tasks.Task;
@@ -92,20 +92,76 @@ public final class PPLAsyncQueryService extends AbstractLifecycleComponent {
   }
 
   /**
-   * Immutable point-in-time response view of a job.
+   * Immutable point-in-time response produced after releasing the job lock.
    *
-   * <p>The formatter converts this internal model to the public JSON response. Query data is copied
-   * from the execution after releasing the job lock, so formatting never observes mutable job
-   * state.
-   *
-   * @param id opaque job ID, or {@code null} for a terminal response returned directly by POST
-   * @param status lifecycle state captured with the result
-   * @param response current query result, or {@code null} before a result is available
-   * @param failure client-visible failure for {@link Status#FAILED}, otherwise {@code null}
-   * @param tookMillis elapsed execution time, available for a completed job
+   * <p>Each implementation exposes only the data valid for its lifecycle state.
    */
-  public record JobSnapshot(
-      String id, Status status, QueryResponse response, Failure failure, long tookMillis) {}
+  public sealed interface JobSnapshot {
+    /**
+     * Returns the retained job ID.
+     *
+     * @return job ID, or empty for a final response returned directly by POST
+     */
+    Optional<String> id();
+
+    /**
+     * Returns the public lifecycle state.
+     *
+     * @return response status
+     */
+    Status status();
+
+    /**
+     * Snapshot of a retained query that is still running.
+     *
+     * @param jobId retained job ID
+     * @param response current result, or empty before a result is available
+     */
+    record Running(String jobId, Optional<QueryResponse> response) implements JobSnapshot {
+      /** {@inheritDoc} */
+      @Override
+      public Optional<String> id() {
+        return Optional.of(jobId);
+      }
+
+      /** {@inheritDoc} */
+      @Override
+      public Status status() {
+        return Status.RUNNING;
+      }
+    }
+
+    /**
+     * Snapshot of a successfully completed query.
+     *
+     * @param id retained job ID, or empty for a direct POST response
+     * @param response final query result
+     * @param tookMillis elapsed execution time
+     */
+    record Succeeded(Optional<String> id, QueryResponse response, long tookMillis)
+        implements JobSnapshot {
+      /** {@inheritDoc} */
+      @Override
+      public Status status() {
+        return Status.SUCCEEDED;
+      }
+    }
+
+    /**
+     * Snapshot of a failed query.
+     *
+     * @param id retained job ID, or empty for a direct POST response
+     * @param failure client-visible failure
+     * @param tookMillis elapsed execution time
+     */
+    record Failed(Optional<String> id, Failure failure, long tookMillis) implements JobSnapshot {
+      /** {@inheritDoc} */
+      @Override
+      public Status status() {
+        return Status.FAILED;
+      }
+    }
+  }
 
   /** Response model returned after DELETE removes a retained job. */
   record DeleteResult(String id, Status status) {}
@@ -371,16 +427,20 @@ public final class PPLAsyncQueryService extends AbstractLifecycleComponent {
     if (transition == null) {
       return;
     }
-    if (transition.response() == null) {
-      PPLQueryErrorHandler.recordFailure(failure);
-      applyTransition(job, transition, responseListener);
-      return;
+    switch (transition) {
+      case Transition.ExecutionFinished finished -> {
+        PPLQueryErrorHandler.recordFailure(failure);
+        applyTransition(job, finished, responseListener);
+      }
+      case Transition.DirectResponse direct ->
+          applyTransition(
+              job,
+              direct,
+              ActionListener.wrap(
+                  ignored -> responseListener.onFailure(failure), responseListener::onFailure));
+      case Transition.Retained retained ->
+          throw new IllegalStateException("Query failure cannot retain a job");
     }
-    applyTransition(
-        job,
-        transition,
-        ActionListener.wrap(
-            ignored -> responseListener.onFailure(failure), responseListener::onFailure));
   }
 
   /**
@@ -421,10 +481,12 @@ public final class PPLAsyncQueryService extends AbstractLifecycleComponent {
     job.owner().authorize(caller);
     Removal removal = job.delete(currentTimeMillis.getAsLong());
     applyRemoval(job, removal);
-    if (removal.expired()) {
-      throw notFound();
-    }
-    return new DeleteResult(id, removal.responseStatus());
+    return switch (removal) {
+      case Removal.Deleted deleted -> new DeleteResult(id, deleted.responseStatus());
+      case Removal.Expired expired -> throw notFound();
+      case Removal.Discarded discarded ->
+          throw new IllegalStateException("DELETE cannot discard a job");
+    };
   }
 
   void reapExpired() {
@@ -508,34 +570,33 @@ public final class PPLAsyncQueryService extends AbstractLifecycleComponent {
     if (transition == null) {
       return;
     }
-    if (transition.releasesRunningSlot()) {
-      releaseRunning();
-    }
-    if (transition.retention() == Retention.REMOVE && jobs.remove(job.id(), job)) {
-      releaseRetained();
-    }
-
-    JobSnapshot snapshot = null;
-    RuntimeException materializationFailure = null;
-    try {
-      if (transition.response() != null) {
-        snapshot = materialize(transition.response());
-      }
-    } catch (RuntimeException e) {
-      materializationFailure = e;
-    } finally {
-      closeExecution(transition.executionToClose());
-      closeTask(transition.taskToClose());
-    }
-
-    if (transition.response() != null) {
-      if (materializationFailure == null) {
-        responseListener.onResponse(snapshot);
-      } else {
-        if (transition.retention() == Retention.RETAIN) {
+    switch (transition) {
+      case Transition.Retained retained -> {
+        try {
+          responseListener.onResponse(materialize(retained.response()));
+        } catch (RuntimeException e) {
           applyRemoval(job, job.abort());
+          responseListener.onFailure(e);
         }
-        responseListener.onFailure(materializationFailure);
+      }
+      case Transition.DirectResponse direct -> {
+        releaseRunning();
+        if (jobs.remove(job.id(), job)) {
+          releaseRetained();
+        }
+        try {
+          responseListener.onResponse(materialize(direct.response()));
+        } catch (RuntimeException e) {
+          responseListener.onFailure(e);
+        } finally {
+          direct.executionToClose().ifPresent(PPLAsyncQueryService::closeExecution);
+          closeTask(direct.task());
+        }
+      }
+      case Transition.ExecutionFinished finished -> {
+        releaseRunning();
+        finished.executionToClose().ifPresent(PPLAsyncQueryService::closeExecution);
+        closeTask(finished.task());
       }
     }
   }
@@ -544,34 +605,51 @@ public final class PPLAsyncQueryService extends AbstractLifecycleComponent {
     if (removal == null) {
       return;
     }
+    switch (removal) {
+      case Removal.Deleted deleted -> applyRemoval(job, deleted.resources(), deleted.reason());
+      case Removal.Expired expired -> applyRemoval(job, expired.resources(), expired.reason());
+      case Removal.Discarded discarded ->
+          applyRemoval(job, discarded.resources(), discarded.reason());
+    }
+  }
+
+  private void applyRemoval(
+      PPLAsyncQueryJob job, PPLAsyncQueryJob.DetachedResources resources, String reason) {
     if (jobs.remove(job.id(), job)) {
-      if (removal.releasesRunningSlot()) {
+      if (resources.releasesRunningSlot()) {
         releaseRunning();
       }
       releaseRetained();
     }
-    cancel(removal.task(), removal.reason());
-    closeExecution(removal.execution());
+    cancel(resources.task(), reason);
+    closeExecution(resources.execution());
   }
 
-  private JobSnapshot materialize(ResponseContext context) {
-    QueryResponse response = null;
-    if (context.status() == Status.SUCCEEDED || context.status() == Status.RUNNING) {
-      response =
-          context.execution() == null
-              ? null
-              : context
+  private JobSnapshot materialize(SnapshotSource source) {
+    return switch (source) {
+      case SnapshotSource.Running running ->
+          new JobSnapshot.Running(
+              running.id(),
+              running
+                  .execution()
+                  .flatMap(AsyncQueryExecution::currentResult)
+                  .map(PPLAsyncQueryService::snapshotResponse));
+      case SnapshotSource.Succeeded succeeded ->
+          new JobSnapshot.Succeeded(
+              succeeded.id(),
+              succeeded
                   .execution()
                   .currentResult()
                   .map(PPLAsyncQueryService::snapshotResponse)
-                  .orElse(null);
-    }
-    if (context.status() == Status.SUCCEEDED && response == null) {
-      throw new IllegalStateException(
-          "Successful PPL asynchronous execution completed without a final result");
-    }
-    return new JobSnapshot(
-        context.id(), context.status(), response, context.failure(), context.tookMillis());
+                  .orElseThrow(
+                      () ->
+                          new IllegalStateException(
+                              "Successful PPL asynchronous execution completed without a final"
+                                  + " result")),
+              succeeded.tookMillis());
+      case SnapshotSource.Failed failed ->
+          new JobSnapshot.Failed(failed.id(), failed.failure(), failed.tookMillis());
+    };
   }
 
   private static void closeExecution(AsyncQueryExecution execution) {
