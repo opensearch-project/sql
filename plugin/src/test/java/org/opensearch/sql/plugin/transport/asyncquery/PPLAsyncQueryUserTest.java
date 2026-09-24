@@ -48,7 +48,7 @@ public class PPLAsyncQueryUserTest {
   public void missingIdentityRepresentsAnUnsecuredCaller() {
     ThreadContext context = new ThreadContext(Settings.EMPTY);
 
-    assertEquals(new PPLAsyncQueryUser(null, null, List.of()), PPLAsyncQueryUser.current(context));
+    assertEquals(PPLAsyncQueryUser.UNSECURED, PPLAsyncQueryUser.current(context));
   }
 
   @Test
@@ -71,12 +71,13 @@ public class PPLAsyncQueryUserTest {
 
   @Test
   public void unsecuredModeRequiresAnUnsecuredCaller() {
-    PPLAsyncQueryUser unsecured = new PPLAsyncQueryUser(null, null, List.of());
-    unsecured.authorize(new PPLAsyncQueryUser(null, null, List.of()));
+    PPLAsyncQueryUser.UNSECURED.authorize(PPLAsyncQueryUser.UNSECURED);
 
     assertThrows(
         OpenSearchSecurityException.class,
-        () -> unsecured.authorize(new PPLAsyncQueryUser("alice", null, List.of("role-a"))));
+        () ->
+            PPLAsyncQueryUser.UNSECURED.authorize(
+                new PPLAsyncQueryUser("alice", null, List.of("role-a"))));
   }
 
   private static ThreadContext contextWith(Object userInfo) {

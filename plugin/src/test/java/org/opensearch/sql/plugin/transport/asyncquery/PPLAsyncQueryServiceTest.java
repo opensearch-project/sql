@@ -55,7 +55,7 @@ import org.opensearch.tasks.CancellableTask;
 import org.opensearch.tasks.TaskManager;
 
 public class PPLAsyncQueryServiceTest {
-  private static final PPLAsyncQueryUser OWNER = new PPLAsyncQueryUser(null, null, List.of());
+  private static final PPLAsyncQueryUser OWNER = PPLAsyncQueryUser.UNSECURED;
   private static final TimeValue KEEP_ALIVE = TimeValue.timeValueMinutes(5);
 
   private final AtomicLong now = new AtomicLong(1_000);

@@ -23,6 +23,14 @@ import org.opensearch.core.rest.RestStatus;
 public record PPLAsyncQueryUser(String name, String requestedTenant, List<String> backendRoles) {
 
   /**
+   * Identity used when OpenSearch Security does not provide caller information.
+   *
+   * <p>This identity does not bypass job ownership checks. A job owned by {@code UNSECURED} can be
+   * accessed only by a caller represented by the same identity.
+   */
+  public static final PPLAsyncQueryUser UNSECURED = new PPLAsyncQueryUser(null, null, List.of());
+
+  /**
    * Creates an immutable asynchronous query identity.
    *
    * @param name authenticated principal, or {@code null} when no identity was supplied
@@ -49,7 +57,7 @@ public record PPLAsyncQueryUser(String name, String requestedTenant, List<String
       Object serialized =
           threadContext.getTransient(ConfigConstants.OPENSEARCH_SECURITY_USER_INFO_THREAD_CONTEXT);
       if (serialized == null) {
-        return new PPLAsyncQueryUser(null, null, List.of());
+        return UNSECURED;
       }
       User user =
           serialized instanceof User currentUser
