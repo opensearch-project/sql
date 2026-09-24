@@ -147,7 +147,10 @@ public class PPLAsyncQueryServiceTest {
 
     scenario.advanceMillis(KEEP_ALIVE.millis());
 
-    assertThrows(ResourceNotFoundException.class, scenario::get);
+    ResourceNotFoundException error = assertThrows(ResourceNotFoundException.class, scenario::get);
+
+    // Expiration removes the job, so the client sees the same response as any missing job.
+    assertEquals("PPL asynchronous query not found", error.getMessage());
     verify(task).cancel("PPL asynchronous query expired");
     scenario.assertExecutionReadCount(0).assertExecutionCloseCount(1).assertCapacity(0, 0);
   }
