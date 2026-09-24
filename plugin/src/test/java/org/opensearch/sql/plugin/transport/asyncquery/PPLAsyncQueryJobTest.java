@@ -155,13 +155,18 @@ public class PPLAsyncQueryJobTest {
     JobFixture fixture = retainedJob();
     long renewalTime = RETAINED_TIME + 500;
     TimeValue requestedKeepAlive = TimeValue.timeValueSeconds(1);
+    long renewedExpiration = renewalTime + requestedKeepAlive.millis();
 
-    // Renewal replaces the lease and the job expires exactly one requested keep-alive later.
-    assertTrue(fixture.job().get(renewalTime, requestedKeepAlive) instanceof GetResult.Found);
-    assertTrue(fixture.job().get(renewalTime + 999, null) instanceof GetResult.Found);
-    assertTrue(
-        fixture.job().get(renewalTime + requestedKeepAlive.millis(), null)
-            instanceof GetResult.Expired);
+    // At 2500ms, GET replaces the original lease with a one-second lease ending at 3500ms.
+    GetResult renewed = fixture.job().get(renewalTime, requestedKeepAlive);
+    // At 3499ms, the renewed lease has not expired.
+    GetResult beforeExpiration = fixture.job().get(renewedExpiration - 1, null);
+    // At 3500ms, the renewed lease expires.
+    GetResult atExpiration = fixture.job().get(renewedExpiration, null);
+
+    assertTrue(renewed instanceof GetResult.Found);
+    assertTrue(beforeExpiration instanceof GetResult.Found);
+    assertTrue(atExpiration instanceof GetResult.Expired);
   }
 
   @Test
