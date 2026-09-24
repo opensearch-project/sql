@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import org.junit.Test;
 import org.mockito.InOrder;
 import org.opensearch.OpenSearchSecurityException;
@@ -65,127 +66,90 @@ public class PPLAsyncQueryServiceTest {
 
   @Test
   public void fastSuccessReturnsDirectResultWithoutRetainingJob() {
-    AtomicReference<PPLAsyncQueryService.JobSnapshot> result = new AtomicReference<>();
-    AtomicInteger responses = new AtomicInteger();
-    TrackingExecution execution = new TrackingExecution(response(2));
-    startQuery(
-        service,
-        null,
-        TimeValue.timeValueSeconds(5),
-        execution,
-        listener(
-            snapshot -> {
-              result.set(snapshot);
-              responses.incrementAndGet();
-            }));
-    now.addAndGet(25);
-    execution.complete();
+    AsyncQueryScenario scenario =
+        scenario()
+            .withCurrentResult(response(2))
+            .withWaitForCompletion(TimeValue.timeValueSeconds(5))
+            .start();
 
-    assertEquals(1, responses.get());
-    assertEquals(
-        new PPLAsyncQueryService.JobSnapshot.Succeeded(Optional.empty(), response(2), 25),
-        result.get());
-    assertEquals(0, service.runningQueryCount());
-    assertEquals(0, service.retainedJobCount());
-    assertEquals(1, execution.reads.get());
-    assertEquals(1, execution.closes.get());
-    assertTrue(timeoutCancelled.get());
+    scenario.completeAfterMillis(25);
 
-    timeoutTask.get().run();
-    assertEquals(1, responses.get());
+    scenario
+        .assertDirectSuccess(response(2), 25)
+        .assertNotRetained()
+        .assertExecutionReadOnceAndClosed()
+        .assertTimeoutCancelled();
+
+    scenario.fireTimeout().assertResponseCount(1);
   }
 
   @Test
   public void timeoutReturnsIdAndLaterGetReturnsCompleteResult() {
-    AtomicReference<PPLAsyncQueryService.JobSnapshot> retainedResponse = new AtomicReference<>();
-    TrackingExecution execution = new TrackingExecution(null);
-    startQuery(
-        service, null, TimeValue.timeValueSeconds(5), execution, listener(retainedResponse::set));
+    AsyncQueryScenario scenario =
+        scenario()
+            .withWaitForCompletion(TimeValue.timeValueSeconds(5))
+            .start()
+            .fireTimeout()
+            .assertRetainedRunning(Optional.empty())
+            .assertCapacity(1, 1);
 
-    timeoutTask.get().run();
-
-    String id = retainedResponse.get().id().orElseThrow();
-    assertEquals(
-        new PPLAsyncQueryService.JobSnapshot.Running(id, Optional.empty()), retainedResponse.get());
-    assertEquals(1, service.runningQueryCount());
-    assertEquals(1, service.retainedJobCount());
-
-    now.addAndGet(25);
-    execution.succeed(response(2));
-    PPLAsyncQueryService.JobSnapshot completed = service.get(id, OWNER, null);
-
-    assertEquals(
-        new PPLAsyncQueryService.JobSnapshot.Succeeded(Optional.of(id), response(2), 25),
-        completed);
-    assertEquals(0, service.runningQueryCount());
-    assertEquals(1, service.retainedJobCount());
-    assertEquals(0, execution.closes.get());
+    scenario
+        .succeedAfterMillis(25, response(2))
+        .get()
+        .assertGetResponse(
+            new PPLAsyncQueryService.JobSnapshot.Succeeded(
+                Optional.of(scenario.id()), response(2), 25))
+        .assertCapacity(0, 1)
+        .assertExecutionReadCount(2)
+        .assertExecutionCloseCount(0);
   }
 
   @Test
   public void retentionWaitPreventsExpiryAndLeaseStartsWhenIdIsReturned() {
-    AtomicReference<PPLAsyncQueryService.JobSnapshot> retainedResponse = new AtomicReference<>();
-    startQuery(
-        service,
-        null,
-        TimeValue.timeValueSeconds(1),
-        TimeValue.timeValueSeconds(5),
-        new TrackingExecution(null),
-        listener(retainedResponse::set));
+    AsyncQueryScenario scenario =
+        scenario()
+            .withKeepAlive(TimeValue.timeValueSeconds(1))
+            .withWaitForCompletion(TimeValue.timeValueSeconds(5))
+            .start();
 
-    now.addAndGet(TimeValue.timeValueSeconds(2).millis());
-    service.reapExpired();
+    scenario
+        .advanceMillis(TimeValue.timeValueSeconds(2).millis())
+        .reapExpired()
+        .assertNoInitialResponse()
+        .assertCapacity(1, 1);
 
-    assertNull(retainedResponse.get());
-    assertEquals(1, service.runningQueryCount());
-    assertEquals(1, service.retainedJobCount());
+    scenario.fireTimeout().assertRetainedRunning(Optional.empty());
 
-    timeoutTask.get().run();
-    assertEquals(PPLAsyncQueryService.Status.RUNNING, retainedResponse.get().status());
-
-    now.addAndGet(TimeValue.timeValueSeconds(1).millis() + 1);
-    service.reapExpired();
-    assertEquals(0, service.runningQueryCount());
-    assertEquals(0, service.retainedJobCount());
+    scenario
+        .advanceMillis(TimeValue.timeValueSeconds(1).millis() + 1)
+        .reapExpired()
+        .assertCapacity(0, 0);
   }
 
   @Test
   public void fastFailureReturnsDirectFailureWithoutId() {
-    AtomicReference<Exception> failure = new AtomicReference<>();
-    TrackingExecution execution = new TrackingExecution(response(1));
-    startQuery(
-        service,
-        null,
-        TimeValue.timeValueSeconds(5),
-        execution,
-        ActionListener.wrap(
-            ignored -> {
-              throw new AssertionError("Expected direct query failure");
-            },
-            failure::set));
-
-    execution.fail(new IllegalStateException("boom"));
-
-    assertEquals("boom", failure.get().getMessage());
-    assertEquals(0, execution.reads.get());
-    assertEquals(1, execution.closes.get());
-    assertEquals(0, service.retainedJobCount());
+    scenario()
+        .withCurrentResult(response(1))
+        .withWaitForCompletion(TimeValue.timeValueSeconds(5))
+        .start()
+        .fail(new IllegalStateException("boom"))
+        .assertFailure(IllegalStateException.class, "boom")
+        .assertExecutionReadCount(0)
+        .assertExecutionCloseCount(1)
+        .assertCapacity(0, 0);
   }
 
   @Test
   public void expiredGetCancelsAndRemovesJob() {
     CancellableTask task = mock(CancellableTask.class);
     when(task.isCancelled()).thenReturn(false);
-    TrackingExecution execution = new TrackingExecution(null);
-    String id = startRetainedQuery(service, task, execution);
+    AsyncQueryScenario scenario = scenario().withTask(task).start();
 
-    now.addAndGet(KEEP_ALIVE.millis());
+    scenario.advanceMillis(KEEP_ALIVE.millis());
 
-    assertThrows(ResourceNotFoundException.class, () -> service.get(id, OWNER, null));
+    assertThrows(ResourceNotFoundException.class, scenario::get);
     verify(task).cancel("PPL asynchronous query expired");
-    assertEquals(1, execution.closes.get());
-    assertEquals(0, service.runningQueryCount());
-    assertEquals(0, service.retainedJobCount());
+    scenario.assertExecutionReadCount(0).assertExecutionCloseCount(1).assertCapacity(0, 0);
   }
 
   @Test
@@ -200,34 +164,23 @@ public class PPLAsyncQueryServiceTest {
   public void deleteCancelsRunningJobAndReleasesState() {
     CancellableTask task = mock(CancellableTask.class);
     when(task.isCancelled()).thenReturn(false);
-    TrackingExecution execution = new TrackingExecution(null);
-    String id = startRetainedQuery(service, task, execution);
+    AsyncQueryScenario scenario = scenario().withTask(task).start().delete();
 
-    PPLAsyncQueryService.DeleteResult result = service.delete(id, OWNER);
-
-    assertEquals(
-        new PPLAsyncQueryService.DeleteResult(id, PPLAsyncQueryService.Status.CANCELLED), result);
+    scenario.assertDeleteStatus(PPLAsyncQueryService.Status.CANCELLED);
     verify(task).cancel("PPL asynchronous query cancelled by user");
-    assertEquals(1, execution.closes.get());
-    assertThrows(ResourceNotFoundException.class, () -> service.get(id, OWNER, null));
-    assertEquals(0, service.runningQueryCount());
-    assertEquals(0, service.retainedJobCount());
+    scenario.assertExecutionReadCount(0).assertExecutionCloseCount(1).assertCapacity(0, 0);
+    assertThrows(ResourceNotFoundException.class, scenario::get);
   }
 
   @Test
   public void deleteReturnsExistingTerminalStatus() {
     CancellableTask task = mock(CancellableTask.class);
-    TrackingExecution execution = new TrackingExecution(response(1));
-    String id = startRetainedQuery(service, task, execution);
-    execution.complete();
+    AsyncQueryScenario scenario =
+        scenario().withTask(task).withCurrentResult(response(1)).start().complete().delete();
 
-    PPLAsyncQueryService.DeleteResult result = service.delete(id, OWNER);
-
-    assertEquals(
-        new PPLAsyncQueryService.DeleteResult(id, PPLAsyncQueryService.Status.SUCCEEDED), result);
+    scenario.assertDeleteStatus(PPLAsyncQueryService.Status.SUCCEEDED);
     verify(task, never()).cancel(org.mockito.ArgumentMatchers.anyString());
-    assertEquals(1, execution.closes.get());
-    assertEquals(0, service.retainedJobCount());
+    scenario.assertExecutionReadCount(0).assertExecutionCloseCount(1).assertCapacity(0, 0);
   }
 
   @Test
@@ -236,9 +189,7 @@ public class PPLAsyncQueryServiceTest {
     CancellableTask task = mock(CancellableTask.class);
     when(task.isCancelled()).thenReturn(false);
     service.attachTaskManager(taskManager);
-    String id = startRetainedQuery(service, task, new TrackingExecution(null));
-
-    service.delete(id, OWNER);
+    scenario().withTask(task).start().delete();
 
     verify(taskManager)
         .cancelTaskAndDescendants(
@@ -257,16 +208,11 @@ public class PPLAsyncQueryServiceTest {
     RequestTaskRegistration registration = registerRequestTask(taskManager, request, task);
     service.attachTaskManager(taskManager);
 
-    TrackingExecution execution = new TrackingExecution(null);
-    service.start(
-        OWNER,
-        KEEP_ALIVE,
-        TimeValue.ZERO,
-        request,
-        registration.requestTask(),
-        ignored -> execution,
-        listener(snapshot -> assertEquals(PPLAsyncQueryService.Status.RUNNING, snapshot.status())));
-    execution.succeed(response(1));
+    AsyncQueryScenario scenario =
+        scenario()
+            .start(request, registration.requestTask())
+            .assertRetainedRunning(Optional.empty())
+            .succeed(response(1));
 
     InOrder registrationOrder = inOrder(taskManager);
     registrationOrder
@@ -276,8 +222,7 @@ public class PPLAsyncQueryServiceTest {
     assertEquals(TaskId.EMPTY_TASK_ID, request.getParentTask());
     verify(taskManager).unregister(task);
     verify(registration.childNodeRegistration()).close();
-    assertEquals(0, service.runningQueryCount());
-    assertEquals(1, service.retainedJobCount());
+    scenario.assertCapacity(0, 1);
   }
 
   @Test
@@ -288,28 +233,21 @@ public class PPLAsyncQueryServiceTest {
         new TransportPPLQueryRequest("source=t", new org.json.JSONObject(), "/_plugins/_ppl");
     RequestTaskRegistration registration = registerRequestTask(taskManager, request, task);
     service.attachTaskManager(taskManager);
-    AtomicReference<Exception> failure = new AtomicReference<>();
 
-    service.start(
-        OWNER,
-        KEEP_ALIVE,
-        TimeValue.timeValueSeconds(5),
-        request,
-        registration.requestTask(),
-        ignored -> {
-          throw new IllegalStateException("execution did not start");
-        },
-        ActionListener.wrap(
-            ignored -> {
-              throw new AssertionError("Expected execution startup failure");
-            },
-            failure::set));
+    AsyncQueryScenario scenario =
+        scenario()
+            .withWaitForCompletion(TimeValue.timeValueSeconds(5))
+            .withExecutionStarter(
+                ignored -> {
+                  throw new IllegalStateException("execution did not start");
+                })
+            .start(request, registration.requestTask());
 
-    assertEquals("execution did not start", failure.get().getMessage());
+    scenario
+        .assertFailure(IllegalStateException.class, "execution did not start")
+        .assertCapacity(0, 0);
     verify(taskManager, times(1)).unregister(task);
     verify(registration.childNodeRegistration()).close();
-    assertEquals(0, service.runningQueryCount());
-    assertEquals(0, service.retainedJobCount());
   }
 
   @Test
@@ -333,18 +271,8 @@ public class PPLAsyncQueryServiceTest {
             org.mockito.ArgumentMatchers.eq(false),
             org.mockito.ArgumentMatchers.any());
     service.attachTaskManager(taskManager);
-    AtomicReference<String> id = new AtomicReference<>();
 
-    service.start(
-        OWNER,
-        KEEP_ALIVE,
-        TimeValue.ZERO,
-        request,
-        registration.requestTask(),
-        ignored -> new TrackingExecution(null),
-        listener(snapshot -> id.set(snapshot.id().orElseThrow())));
-
-    service.delete(id.get(), OWNER);
+    scenario().start(request, registration.requestTask()).delete();
 
     verify(taskManager)
         .cancelTaskAndDescendants(
@@ -376,25 +304,19 @@ public class PPLAsyncQueryServiceTest {
         new TransportPPLQueryRequest("source=t", new org.json.JSONObject(), "/_plugins/_ppl");
     RequestTaskRegistration registration = registerRequestTask(taskManager, request, task);
     abortingService.attachTaskManager(taskManager);
+    AsyncQueryScenario scenario =
+        scenario()
+            .withService(abortingService)
+            .withWaitForCompletion(TimeValue.timeValueSeconds(5));
 
     IllegalStateException failure =
         assertThrows(
-            IllegalStateException.class,
-            () ->
-                abortingService.start(
-                    OWNER,
-                    KEEP_ALIVE,
-                    TimeValue.timeValueSeconds(5),
-                    request,
-                    registration.requestTask(),
-                    ignored -> new TrackingExecution(null),
-                    listener(snapshot -> {})));
+            IllegalStateException.class, () -> scenario.start(request, registration.requestTask()));
 
     assertEquals("scheduler unavailable", failure.getMessage());
     verify(taskManager, times(1)).unregister(task);
     verify(registration.childNodeRegistration()).close();
-    assertEquals(0, abortingService.runningQueryCount());
-    assertEquals(0, abortingService.retainedJobCount());
+    scenario.assertCapacity(0, 0);
   }
 
   @Test
@@ -409,65 +331,36 @@ public class PPLAsyncQueryServiceTest {
     when(taskManager.registerChildNode(42L, localNode))
         .thenThrow(new IllegalStateException("channel closed"));
     service.attachTaskManager(taskManager);
+    AsyncQueryScenario scenario = scenario().withWaitForCompletion(TimeValue.timeValueSeconds(5));
 
-    assertThrows(
-        IllegalStateException.class,
-        () ->
-            service.start(
-                OWNER,
-                KEEP_ALIVE,
-                TimeValue.timeValueSeconds(5),
-                request,
-                requestTask,
-                ignored -> new TrackingExecution(null),
-                listener(snapshot -> {})));
+    assertThrows(IllegalStateException.class, () -> scenario.start(request, requestTask));
 
     verify(taskManager, never()).register("transport", PPLQueryAction.NAME, request);
-    assertEquals(0, service.runningQueryCount());
-    assertEquals(0, service.retainedJobCount());
+    scenario.assertCapacity(0, 0);
   }
 
   @Test
   public void rejectsUnauthorizedCallerWithoutRenewingOrDeleting() {
     PPLAsyncQueryUser securedOwner = new PPLAsyncQueryUser("alice", "tenant", List.of("role-a"));
     PPLAsyncQueryUser otherUser = new PPLAsyncQueryUser("bob", "tenant", List.of("role-a"));
-    AtomicReference<String> id = new AtomicReference<>();
-    service.start(
-        securedOwner,
-        KEEP_ALIVE,
-        TimeValue.ZERO,
-        jobTask(null),
-        ignored -> new TrackingExecution(null),
-        listener(snapshot -> id.set(snapshot.id().orElseThrow())));
+    AsyncQueryScenario scenario = scenario().withOwner(securedOwner).start();
 
-    assertThrows(OpenSearchSecurityException.class, () -> service.get(id.get(), otherUser, null));
-    assertThrows(OpenSearchSecurityException.class, () -> service.delete(id.get(), otherUser));
+    assertThrows(
+        OpenSearchSecurityException.class, () -> service.get(scenario.id(), otherUser, null));
+    assertThrows(OpenSearchSecurityException.class, () -> service.delete(scenario.id(), otherUser));
     assertEquals(
-        PPLAsyncQueryService.Status.RUNNING, service.get(id.get(), securedOwner, null).status());
+        PPLAsyncQueryService.Status.RUNNING,
+        service.get(scenario.id(), securedOwner, null).status());
   }
 
   @Test
   public void enforcesRunningAndRetainedCapacity() {
     PPLAsyncQueryService limited = service(1, 1);
-    limited.start(
-        OWNER,
-        KEEP_ALIVE,
-        TimeValue.ZERO,
-        jobTask(null),
-        ignored -> new TrackingExecution(null),
-        listener(snapshot -> {}));
+    scenario().withService(limited).start();
 
     OpenSearchStatusException exception =
         assertThrows(
-            OpenSearchStatusException.class,
-            () ->
-                limited.start(
-                    OWNER,
-                    KEEP_ALIVE,
-                    TimeValue.ZERO,
-                    jobTask(null),
-                    ignored -> new TrackingExecution(null),
-                    listener(snapshot -> {})));
+            OpenSearchStatusException.class, () -> scenario().withService(limited).start());
 
     assertEquals(429, exception.status().getStatus());
   }
@@ -483,68 +376,54 @@ public class PPLAsyncQueryServiceTest {
             () -> 1,
             () -> TimeValue.timeValueSeconds(60),
             () -> TimeValue.timeValueHours(24));
+    AsyncQueryScenario scenario = scenario().withService(missingOwnerNode);
 
-    assertThrows(
-        NullPointerException.class,
-        () ->
-            missingOwnerNode.start(
-                OWNER,
-                KEEP_ALIVE,
-                TimeValue.ZERO,
-                jobTask(null),
-                ignored -> new TrackingExecution(null),
-                listener(snapshot -> {})));
+    assertThrows(NullPointerException.class, scenario::start);
 
-    assertEquals(0, missingOwnerNode.runningQueryCount());
-    assertEquals(0, missingOwnerNode.retainedJobCount());
+    scenario.assertCapacity(0, 0);
   }
 
   @Test
   public void finalSnapshotDefensivelyCopiesRows() {
-    AtomicReference<PPLAsyncQueryService.JobSnapshot> result = new AtomicReference<>();
     List<org.opensearch.sql.data.model.ExprValue> rows = new ArrayList<>();
     rows.add(ExprValueUtils.stringValue("first"));
     QueryResponse response =
         new QueryResponse(
             new Schema(List.of(new Column("state", null, ExprCoreType.STRING))), rows, null);
 
-    TrackingExecution execution = new TrackingExecution(response);
-    startQuery(service, null, TimeValue.timeValueSeconds(5), execution, listener(result::set));
-    execution.complete();
+    AsyncQueryScenario scenario =
+        scenario()
+            .withCurrentResult(response)
+            .withWaitForCompletion(TimeValue.timeValueSeconds(5))
+            .start()
+            .complete();
     rows.add(ExprValueUtils.stringValue("second"));
 
-    assertTrue(result.get() instanceof PPLAsyncQueryService.JobSnapshot.Succeeded);
-    PPLAsyncQueryService.JobSnapshot.Succeeded succeeded =
-        (PPLAsyncQueryService.JobSnapshot.Succeeded) result.get();
-    assertEquals(1, succeeded.response().getResults().size());
+    scenario.assertSucceededRowCount(1);
   }
 
   @Test
   public void completedExecutionCanBeAttachedBeforeCompletionIsObserved() {
-    AtomicReference<PPLAsyncQueryService.JobSnapshot> result = new AtomicReference<>();
-    TrackingExecution execution = new TrackingExecution(null);
-
-    execution.succeed(response(2));
-    startQuery(service, null, TimeValue.timeValueSeconds(5), execution, listener(result::set));
-
-    assertEquals(
-        new PPLAsyncQueryService.JobSnapshot.Succeeded(Optional.empty(), response(2), 0),
-        result.get());
-    assertEquals(1, execution.closes.get());
+    scenario()
+        .succeed(response(2))
+        .withWaitForCompletion(TimeValue.timeValueSeconds(5))
+        .start()
+        .assertDirectSuccess(response(2), 0)
+        .assertExecutionReadOnceAndClosed();
   }
 
   @Test
   public void runningGetMaterializesCurrentResultOutsideJob() {
-    TrackingExecution execution = new TrackingExecution(response(1));
-    String id = startRetainedQuery(service, null, execution);
+    AsyncQueryScenario scenario = scenario().withCurrentResult(response(1)).start().get();
 
-    PPLAsyncQueryService.JobSnapshot first = service.get(id, OWNER, null);
-    execution.setCurrent(response(3));
-    PPLAsyncQueryService.JobSnapshot second = service.get(id, OWNER, null);
+    scenario.assertGetResponse(
+        new PPLAsyncQueryService.JobSnapshot.Running(scenario.id(), Optional.of(response(1))));
 
-    assertEquals(new PPLAsyncQueryService.JobSnapshot.Running(id, Optional.of(response(1))), first);
-    assertEquals(
-        new PPLAsyncQueryService.JobSnapshot.Running(id, Optional.of(response(3))), second);
+    scenario
+        .withCurrentResult(response(3))
+        .get()
+        .assertGetResponse(
+            new PPLAsyncQueryService.JobSnapshot.Running(scenario.id(), Optional.of(response(3))));
   }
 
   @Test
@@ -553,20 +432,21 @@ public class PPLAsyncQueryServiceTest {
         new NumericMetric<>(MetricName.PPL_FAILED_REQ_COUNT_SYS.getName(), new BasicCounter());
     Metrics.getInstance().registerMetric(failures);
     try {
-      TrackingExecution execution = new TrackingExecution(response(1));
-      String id = startRetainedQuery(service, null, execution);
+      AsyncQueryScenario scenario =
+          scenario()
+              .withCurrentResult(response(1))
+              .start()
+              .fail(new IllegalStateException("boom"))
+              .get();
 
-      execution.fail(new IllegalStateException("boom"));
-      PPLAsyncQueryService.JobSnapshot failed = service.get(id, OWNER, null);
-
-      assertEquals(
-          new PPLAsyncQueryService.JobSnapshot.Failed(
-              Optional.of(id),
-              new PPLAsyncQueryService.Failure("IllegalStateException", "boom"),
-              0),
-          failed);
-      assertEquals(0, execution.reads.get());
-      assertEquals(1, execution.closes.get());
+      scenario
+          .assertGetResponse(
+              new PPLAsyncQueryService.JobSnapshot.Failed(
+                  Optional.of(scenario.id()),
+                  new PPLAsyncQueryService.Failure("IllegalStateException", "boom"),
+                  0))
+          .assertExecutionReadCount(0)
+          .assertExecutionCloseCount(1);
     } finally {
       Metrics.getInstance().unregisterMetric(failures.getName());
     }
@@ -578,10 +458,7 @@ public class PPLAsyncQueryServiceTest {
         new NumericMetric<>(MetricName.PPL_FAILED_REQ_COUNT_CUS.getName(), new BasicCounter());
     Metrics.getInstance().registerMetric(failures);
     try {
-      TrackingExecution execution = new TrackingExecution(null);
-      startRetainedQuery(service, null, execution);
-
-      execution.fail(new IllegalArgumentException("invalid query"));
+      scenario().start().fail(new IllegalArgumentException("invalid query"));
 
       assertEquals(Long.valueOf(1), failures.getValue());
     } finally {
@@ -592,33 +469,29 @@ public class PPLAsyncQueryServiceTest {
   @Test
   public void deleteBeforeExecutionAttachmentClosesLateHandle() {
     TrackingExecution execution = new TrackingExecution(response(1));
-    AtomicReference<String> id = new AtomicReference<>();
-
-    service.start(
-        OWNER,
-        KEEP_ALIVE,
-        TimeValue.ZERO,
-        jobTask(null),
-        ignored -> {
-          service.delete(id.get(), OWNER);
-          return execution;
-        },
-        listener(snapshot -> id.set(snapshot.id().orElseThrow())));
+    AsyncQueryScenario scenario = scenario().withExecution(execution);
+    scenario
+        .withExecutionStarter(
+            ignored -> {
+              scenario.delete();
+              return execution;
+            })
+        .start();
 
     assertEquals(1, execution.closes.get());
-    assertThrows(ResourceNotFoundException.class, () -> service.get(id.get(), OWNER, null));
+    assertThrows(ResourceNotFoundException.class, scenario::get);
   }
 
   @Test
   public void concurrentGetDoesNotBlockDeleteOnResultMaterialization() throws Exception {
     BlockingExecution execution = new BlockingExecution(response(1));
-    String id = startRetainedQuery(service, null, execution);
+    AsyncQueryScenario scenario = scenario().withExecution(execution).start();
 
     CompletableFuture<PPLAsyncQueryService.JobSnapshot> get =
-        CompletableFuture.supplyAsync(() -> service.get(id, OWNER, null));
+        CompletableFuture.supplyAsync(() -> service.get(scenario.id(), OWNER, null));
     assertTrue(execution.readStarted.await(5, TimeUnit.SECONDS));
     CompletableFuture<PPLAsyncQueryService.DeleteResult> delete =
-        CompletableFuture.supplyAsync(() -> service.delete(id, OWNER));
+        CompletableFuture.supplyAsync(() -> service.delete(scenario.id(), OWNER));
 
     try {
       assertEquals(PPLAsyncQueryService.Status.CANCELLED, delete.get(5, TimeUnit.SECONDS).status());
@@ -628,60 +501,46 @@ public class PPLAsyncQueryServiceTest {
 
     assertEquals(PPLAsyncQueryService.Status.RUNNING, get.get(5, TimeUnit.SECONDS).status());
     assertEquals(1, execution.closes.get());
-    assertThrows(ResourceNotFoundException.class, () -> service.get(id, OWNER, null));
+    assertThrows(ResourceNotFoundException.class, scenario::get);
   }
 
   @Test
   public void shutdownClosesRetainedExecutionExactlyOnce() throws Exception {
-    TrackingExecution execution = new TrackingExecution(response(1));
-    startRetainedQuery(service, null, execution);
+    AsyncQueryScenario scenario = scenario().withCurrentResult(response(1)).start();
 
     service.close();
     service.close();
 
-    assertEquals(1, execution.closes.get());
-    assertEquals(0, service.runningQueryCount());
-    assertEquals(0, service.retainedJobCount());
+    scenario.assertExecutionReadCount(0).assertExecutionCloseCount(1).assertCapacity(0, 0);
   }
 
   @Test
   public void successfulCompletionRequiresFinalResultToBeVisible() {
-    AtomicReference<Exception> failure = new AtomicReference<>();
-    TrackingExecution execution = new TrackingExecution(null);
-    startQuery(
-        service,
-        null,
-        TimeValue.timeValueSeconds(5),
-        execution,
-        ActionListener.wrap(snapshot -> {}, failure::set));
-
-    execution.complete();
-
-    assertTrue(failure.get() instanceof IllegalStateException);
-    assertEquals(1, execution.closes.get());
-    assertEquals(0, service.retainedJobCount());
+    scenario()
+        .withWaitForCompletion(TimeValue.timeValueSeconds(5))
+        .start()
+        .complete()
+        .assertFailure(IllegalStateException.class)
+        .assertExecutionReadOnceAndClosed()
+        .assertCapacity(0, 0);
   }
 
   @Test
   public void retentionResponseMaterializationFailureAbortsUndeliverableJob() {
     CancellableTask task = mock(CancellableTask.class);
     when(task.isCancelled()).thenReturn(false);
-    AtomicReference<Exception> failure = new AtomicReference<>();
     ThrowingExecution execution = new ThrowingExecution();
-    startQuery(
-        service,
-        task,
-        TimeValue.timeValueSeconds(5),
-        execution,
-        ActionListener.wrap(snapshot -> {}, failure::set));
+    AsyncQueryScenario scenario =
+        scenario()
+            .withTask(task)
+            .withExecution(execution)
+            .withWaitForCompletion(TimeValue.timeValueSeconds(5))
+            .start()
+            .fireTimeout();
 
-    timeoutTask.get().run();
-
-    assertTrue(failure.get() instanceof IllegalStateException);
+    scenario.assertFailure(IllegalStateException.class).assertCapacity(0, 0);
     verify(task).cancel("PPL asynchronous query startup failed");
     assertEquals(1, execution.closes.get());
-    assertEquals(0, service.runningQueryCount());
-    assertEquals(0, service.retainedJobCount());
   }
 
   @Test
@@ -714,36 +573,8 @@ public class PPLAsyncQueryServiceTest {
         () -> TimeValue.timeValueHours(24));
   }
 
-  private String startRetainedQuery(
-      PPLAsyncQueryService targetService, CancellableTask task, AsyncQueryExecution execution) {
-    AtomicReference<String> id = new AtomicReference<>();
-    startQuery(
-        targetService,
-        task,
-        TimeValue.ZERO,
-        execution,
-        listener(snapshot -> id.set(snapshot.id().orElseThrow())));
-    return id.get();
-  }
-
-  private void startQuery(
-      PPLAsyncQueryService targetService,
-      CancellableTask task,
-      TimeValue waitForCompletion,
-      AsyncQueryExecution execution,
-      ActionListener<PPLAsyncQueryService.JobSnapshot> responseListener) {
-    startQuery(targetService, task, KEEP_ALIVE, waitForCompletion, execution, responseListener);
-  }
-
-  private void startQuery(
-      PPLAsyncQueryService targetService,
-      CancellableTask task,
-      TimeValue keepAlive,
-      TimeValue waitForCompletion,
-      AsyncQueryExecution execution,
-      ActionListener<PPLAsyncQueryService.JobSnapshot> responseListener) {
-    targetService.start(
-        OWNER, keepAlive, waitForCompletion, jobTask(task), ignored -> execution, responseListener);
+  private AsyncQueryScenario scenario() {
+    return new AsyncQueryScenario();
   }
 
   private static PPLAsyncQueryJob.JobTask jobTask(CancellableTask task) {
@@ -771,15 +602,6 @@ public class PPLAsyncQueryServiceTest {
   private record RequestTaskRegistration(
       PPLQueryTask requestTask, DiscoveryNode localNode, Releasable childNodeRegistration) {}
 
-  private static ActionListener<PPLAsyncQueryService.JobSnapshot> listener(
-      java.util.function.Consumer<PPLAsyncQueryService.JobSnapshot> consumer) {
-    return ActionListener.wrap(
-        snapshot -> consumer.accept(snapshot),
-        failure -> {
-          throw new AssertionError(failure);
-        });
-  }
-
   private static QueryResponse response(int rowCount) {
     Schema schema = new Schema(List.of(new Column("state", null, ExprCoreType.STRING)));
     return new QueryResponse(
@@ -788,6 +610,234 @@ public class PPLAsyncQueryServiceTest {
             .mapToObj(i -> ExprValueUtils.stringValue("state-" + i))
             .toList(),
         null);
+  }
+
+  private final class AsyncQueryScenario {
+    private PPLAsyncQueryService targetService = service;
+    private PPLAsyncQueryUser owner = OWNER;
+    private TimeValue keepAlive = KEEP_ALIVE;
+    private TimeValue waitForCompletion = TimeValue.ZERO;
+    private CancellableTask task;
+    private TrackingExecution trackingExecution = new TrackingExecution(null);
+    private AsyncQueryExecution execution = trackingExecution;
+    private Function<CancellableTask, AsyncQueryExecution> executionStarter = ignored -> execution;
+    private final AtomicReference<PPLAsyncQueryService.JobSnapshot> initialResponse =
+        new AtomicReference<>();
+    private final AtomicReference<Exception> failure = new AtomicReference<>();
+    private final AtomicInteger responseCount = new AtomicInteger();
+    private PPLAsyncQueryService.JobSnapshot getResponse;
+    private PPLAsyncQueryService.DeleteResult deleteResponse;
+
+    private AsyncQueryScenario withService(PPLAsyncQueryService service) {
+      targetService = service;
+      return this;
+    }
+
+    private AsyncQueryScenario withOwner(PPLAsyncQueryUser owner) {
+      this.owner = owner;
+      return this;
+    }
+
+    private AsyncQueryScenario withKeepAlive(TimeValue keepAlive) {
+      this.keepAlive = keepAlive;
+      return this;
+    }
+
+    private AsyncQueryScenario withWaitForCompletion(TimeValue waitForCompletion) {
+      this.waitForCompletion = waitForCompletion;
+      return this;
+    }
+
+    private AsyncQueryScenario withTask(CancellableTask task) {
+      this.task = task;
+      return this;
+    }
+
+    private AsyncQueryScenario withCurrentResult(QueryResponse response) {
+      trackingExecution.setCurrent(response);
+      return this;
+    }
+
+    private AsyncQueryScenario withExecution(AsyncQueryExecution execution) {
+      this.execution = execution;
+      trackingExecution = execution instanceof TrackingExecution tracking ? tracking : null;
+      executionStarter = ignored -> this.execution;
+      return this;
+    }
+
+    private AsyncQueryScenario withExecutionStarter(
+        Function<CancellableTask, AsyncQueryExecution> executionStarter) {
+      this.executionStarter = executionStarter;
+      return this;
+    }
+
+    private AsyncQueryScenario start() {
+      targetService.start(
+          owner, keepAlive, waitForCompletion, jobTask(task), executionStarter, responseListener());
+      return this;
+    }
+
+    private AsyncQueryScenario start(TransportPPLQueryRequest request, PPLQueryTask requestTask) {
+      targetService.start(
+          owner,
+          keepAlive,
+          waitForCompletion,
+          request,
+          requestTask,
+          executionStarter,
+          responseListener());
+      return this;
+    }
+
+    private ActionListener<PPLAsyncQueryService.JobSnapshot> responseListener() {
+      return ActionListener.wrap(
+          snapshot -> {
+            initialResponse.set(snapshot);
+            responseCount.incrementAndGet();
+          },
+          failure::set);
+    }
+
+    private AsyncQueryScenario completeAfterMillis(long elapsedMillis) {
+      now.addAndGet(elapsedMillis);
+      trackingExecution.complete();
+      return this;
+    }
+
+    private AsyncQueryScenario succeedAfterMillis(long elapsedMillis, QueryResponse response) {
+      now.addAndGet(elapsedMillis);
+      trackingExecution.succeed(response);
+      return this;
+    }
+
+    private AsyncQueryScenario complete() {
+      trackingExecution.complete();
+      return this;
+    }
+
+    private AsyncQueryScenario succeed(QueryResponse response) {
+      trackingExecution.succeed(response);
+      return this;
+    }
+
+    private AsyncQueryScenario fail(Exception failure) {
+      trackingExecution.fail(failure);
+      return this;
+    }
+
+    private AsyncQueryScenario advanceMillis(long elapsedMillis) {
+      now.addAndGet(elapsedMillis);
+      return this;
+    }
+
+    private AsyncQueryScenario reapExpired() {
+      targetService.reapExpired();
+      return this;
+    }
+
+    private AsyncQueryScenario assertDirectSuccess(
+        QueryResponse expectedResponse, long expectedTookMillis) {
+      assertEquals(
+          new PPLAsyncQueryService.JobSnapshot.Succeeded(
+              Optional.empty(), expectedResponse, expectedTookMillis),
+          initialResponse.get());
+      return this;
+    }
+
+    private AsyncQueryScenario assertSucceededRowCount(int expected) {
+      assertTrue(initialResponse.get() instanceof PPLAsyncQueryService.JobSnapshot.Succeeded);
+      PPLAsyncQueryService.JobSnapshot.Succeeded succeeded =
+          (PPLAsyncQueryService.JobSnapshot.Succeeded) initialResponse.get();
+      assertEquals(expected, succeeded.response().getResults().size());
+      return this;
+    }
+
+    private AsyncQueryScenario assertRetainedRunning(Optional<QueryResponse> expectedResponse) {
+      assertEquals(
+          new PPLAsyncQueryService.JobSnapshot.Running(id(), expectedResponse),
+          initialResponse.get());
+      return this;
+    }
+
+    private AsyncQueryScenario assertGetResponse(
+        PPLAsyncQueryService.JobSnapshot expectedResponse) {
+      assertEquals(expectedResponse, getResponse);
+      return this;
+    }
+
+    private AsyncQueryScenario assertNotRetained() {
+      return assertCapacity(0, 0);
+    }
+
+    private AsyncQueryScenario assertCapacity(int running, int retained) {
+      assertEquals(running, targetService.runningQueryCount());
+      assertEquals(retained, targetService.retainedJobCount());
+      return this;
+    }
+
+    private AsyncQueryScenario assertExecutionReadOnceAndClosed() {
+      return assertExecutionReadCount(1).assertExecutionCloseCount(1);
+    }
+
+    private AsyncQueryScenario assertExecutionReadCount(int expected) {
+      assertEquals(expected, trackingExecution.reads.get());
+      return this;
+    }
+
+    private AsyncQueryScenario assertExecutionCloseCount(int expected) {
+      assertEquals(expected, trackingExecution.closes.get());
+      return this;
+    }
+
+    private AsyncQueryScenario assertTimeoutCancelled() {
+      assertTrue(timeoutCancelled.get());
+      return this;
+    }
+
+    private AsyncQueryScenario assertNoInitialResponse() {
+      assertNull(initialResponse.get());
+      return this;
+    }
+
+    private AsyncQueryScenario assertFailure(Class<? extends Exception> type, String message) {
+      assertTrue(type.isInstance(failure.get()));
+      assertEquals(message, failure.get().getMessage());
+      return this;
+    }
+
+    private AsyncQueryScenario assertFailure(Class<? extends Exception> type) {
+      assertTrue(type.isInstance(failure.get()));
+      return this;
+    }
+
+    private AsyncQueryScenario fireTimeout() {
+      timeoutTask.get().run();
+      return this;
+    }
+
+    private AsyncQueryScenario assertResponseCount(int expected) {
+      assertEquals(expected, responseCount.get());
+      return this;
+    }
+
+    private AsyncQueryScenario get() {
+      getResponse = targetService.get(id(), owner, null);
+      return this;
+    }
+
+    private AsyncQueryScenario delete() {
+      deleteResponse = targetService.delete(id(), owner);
+      return this;
+    }
+
+    private AsyncQueryScenario assertDeleteStatus(PPLAsyncQueryService.Status status) {
+      assertEquals(new PPLAsyncQueryService.DeleteResult(id(), status), deleteResponse);
+      return this;
+    }
+
+    private String id() {
+      return initialResponse.get().id().orElseThrow();
+    }
   }
 
   private static final class TrackingExecution implements AsyncQueryExecution {
