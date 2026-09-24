@@ -7,9 +7,6 @@ package org.opensearch.sql.planner.physical;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -24,13 +21,12 @@ import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.parse.ParseExpression;
-import org.opensearch.sql.planner.SerializablePlan;
 
 /** Project the fields specified in {@link ProjectOperator#projectList} from input. */
 @ToString
 @EqualsAndHashCode(callSuper = false)
 @AllArgsConstructor
-public class ProjectOperator extends PhysicalPlan implements SerializablePlan {
+public class ProjectOperator extends PhysicalPlan {
   @Getter private PhysicalPlan input;
   @Getter private List<NamedExpression> projectList;
   @Getter private List<NamedExpression> namedParseExpressions;
@@ -97,24 +93,5 @@ public class ProjectOperator extends PhysicalPlan implements SerializablePlan {
                 expr -> // the column name is the delegated expression string from NamedExpression
                 new ExecutionEngine.Schema.Column(expr.getName(), expr.getAlias(), expr.type()))
             .collect(Collectors.toList()));
-  }
-
-  /** Don't use, it is for deserialization needs only. */
-  @Deprecated
-  public ProjectOperator() {}
-
-  @SuppressWarnings("unchecked")
-  @Override
-  public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-    projectList = (List<NamedExpression>) in.readObject();
-    // note: namedParseExpressions aren't serialized and deserialized
-    namedParseExpressions = List.of();
-    input = (PhysicalPlan) in.readObject();
-  }
-
-  @Override
-  public void writeExternal(ObjectOutput out) throws IOException {
-    out.writeObject(projectList);
-    out.writeObject(((SerializablePlan) input).getPlanForSerialization());
   }
 }

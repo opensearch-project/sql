@@ -24,6 +24,7 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.utils.DeserializationFilterUtil;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class DefaultExpressionSerializerTest {
@@ -102,6 +103,23 @@ class DefaultExpressionSerializerTest {
 
     // maxrefs=1 rejects the multi-object graph.
     var exception = assertThrows(IllegalStateException.class, () -> limited.deserialize(code));
+    assertTrue(exception.getMessage().contains("Failed to deserialize"));
+  }
+
+  @Test
+  public void deserialize_rejects_expression_stream_exceeding_byte_limit() {
+    Expression oversized = literal("x".repeat(DeserializationFilterUtil.DEFAULT_MAX_BYTES * 2));
+    String code = serializer.serialize(oversized);
+    assertTrue(
+        java.util.Base64.getDecoder().decode(code).length
+            > DeserializationFilterUtil.DEFAULT_MAX_BYTES);
+
+    var exception = assertThrows(IllegalStateException.class, () -> serializer.deserialize(code));
+
+    assertTrue(exception.getCause() instanceof IllegalArgumentException);
+    assertEquals(
+        "Serialized expression exceeds the configured byte limit",
+        exception.getCause().getMessage());
     assertTrue(exception.getMessage().contains("Failed to deserialize"));
   }
 

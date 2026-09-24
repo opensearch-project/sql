@@ -5,32 +5,22 @@
 
 package org.opensearch.sql.opensearch.storage.scan;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.Iterator;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.jetbrains.annotations.TestOnly;
 import org.opensearch.OpenSearchTimeoutException;
-import org.opensearch.common.io.stream.BytesStreamOutput;
-import org.opensearch.core.common.io.stream.BytesStreamInput;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.exception.NoCursorException;
-import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
-import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
-import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
-import org.opensearch.sql.planner.SerializablePlan;
 import org.opensearch.sql.storage.TableScanOperator;
 
 /** OpenSearch index scan operator. */
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @ToString(onlyExplicitlyIncluded = true)
-public class OpenSearchIndexScan extends TableScanOperator implements SerializablePlan {
+public class OpenSearchIndexScan extends TableScanOperator {
 
   /** OpenSearch client. */
   private OpenSearchClient client;
@@ -40,6 +30,24 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
 
   /** Largest number of rows allowed in the response. */
   @EqualsAndHashCode.Include @ToString.Include private int maxResponseSize;
+
+  /** Returns the search request. */
+  public OpenSearchRequest getRequest() {
+    return request;
+  }
+
+  /** Returns the maximum number of rows allowed in the response. */
+  public int getMaxResponseSize() {
+    return maxResponseSize;
+  }
+
+  /**
+   * Marks that this scan's PIT is represented by a successfully encoded cursor. Once marked, {@link
+   * #close()} preserves the PIT so the next page can resume from it.
+   */
+  public void markCursorSerialized() {
+    cursorSerialized = true;
+  }
 
   /** Number of rows returned. */
   private Integer queryCount;
@@ -139,61 +147,5 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
   @Override
   public String explain() {
     return request.toString();
-  }
-
-  /**
-   * No-args constructor.
-   *
-   * @deprecated Exists only to satisfy Java serialization API.
-   */
-  @Deprecated(since = "introduction")
-  public OpenSearchIndexScan() {}
-
-  @Override
-  public void readExternal(ObjectInput in) throws IOException {
-    int reqSize = in.readInt();
-    byte[] requestStream = new byte[reqSize];
-    int read = 0;
-    do {
-      int currentRead = in.read(requestStream, read, reqSize - read);
-      if (currentRead == -1) {
-        throw new IOException();
-      }
-      read += currentRead;
-    } while (read < reqSize);
-
-    var engine =
-        (OpenSearchStorageEngine)
-            ((PlanSerializer.CursorDeserializationStream) in).resolveObject("engine");
-
-    client = engine.getClient();
-    try (BytesStreamInput bsi = new BytesStreamInput(requestStream)) {
-      request = new OpenSearchQueryRequest(bsi, engine);
-    }
-    maxResponseSize = in.readInt();
-  }
-
-  @Override
-  public void writeExternal(ObjectOutput out) throws IOException {
-    if (!request.hasAnotherBatch()) {
-      throw new NoCursorException();
-    }
-    // request is not directly Serializable so..
-    // 1. Serialize request to an opensearch byte stream.
-    BytesStreamOutput reqOut = new BytesStreamOutput();
-    request.writeTo(reqOut);
-    reqOut.flush();
-
-    // 2. Extract byte[] from the opensearch byte stream
-    var reqAsBytes = reqOut.bytes().toBytesRef().bytes;
-
-    // 3. Write out the byte[] to object output stream.
-    out.writeInt(reqOut.size());
-    out.write(reqAsBytes, 0, reqOut.size());
-
-    out.writeInt(maxResponseSize);
-
-    // Mark that the PIT has been serialized into a cursor, so close() preserves it.
-    cursorSerialized = true;
   }
 }

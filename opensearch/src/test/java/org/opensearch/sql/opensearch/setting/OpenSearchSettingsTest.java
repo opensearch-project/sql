@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.AdditionalMatchers.not;
 import static org.mockito.AdditionalMatchers.or;
@@ -30,6 +31,7 @@ import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.core.common.unit.ByteSizeValue;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.utils.DeserializationFilterUtil;
 
 @ExtendWith(MockitoExtension.class)
@@ -147,9 +149,11 @@ class OpenSearchSettingsTest {
     Integer maxDepth = settings.getSettingValue(Settings.Key.DESERIALIZATION_MAX_DEPTH);
     Integer maxRefs = settings.getSettingValue(Settings.Key.DESERIALIZATION_MAX_REFS);
     Integer maxBytes = settings.getSettingValue(Settings.Key.DESERIALIZATION_MAX_BYTES);
+    Integer cursorMaxBytes = settings.getSettingValue(Settings.Key.CURSOR_MAX_BYTES);
     assertEquals(DeserializationFilterUtil.DEFAULT_MAX_DEPTH, maxDepth);
     assertEquals(DeserializationFilterUtil.DEFAULT_MAX_REFS, maxRefs);
     assertEquals(DeserializationFilterUtil.DEFAULT_MAX_BYTES, maxBytes);
+    assertEquals(PlanSerializer.DEFAULT_MAX_CURSOR_BYTES, cursorMaxBytes);
 
     // Dynamically updatable
     settings.new Updater(Settings.Key.DESERIALIZATION_MAX_REFS).accept(2000);
@@ -162,10 +166,20 @@ class OpenSearchSettingsTest {
     assertTrue(OpenSearchSettings.DESERIALIZATION_MAX_DEPTH_SETTING.isDynamic());
     assertTrue(OpenSearchSettings.DESERIALIZATION_MAX_REFS_SETTING.isDynamic());
     assertTrue(OpenSearchSettings.DESERIALIZATION_MAX_BYTES_SETTING.isDynamic());
+    assertTrue(OpenSearchSettings.CURSOR_MAX_BYTES_SETTING.isDynamic());
     List<Setting<?>> pluginSettings = OpenSearchSettings.pluginSettings();
     assertTrue(pluginSettings.contains(OpenSearchSettings.DESERIALIZATION_MAX_DEPTH_SETTING));
     assertTrue(pluginSettings.contains(OpenSearchSettings.DESERIALIZATION_MAX_REFS_SETTING));
     assertTrue(pluginSettings.contains(OpenSearchSettings.DESERIALIZATION_MAX_BYTES_SETTING));
+    assertTrue(pluginSettings.contains(OpenSearchSettings.CURSOR_MAX_BYTES_SETTING));
+
+    org.opensearch.common.settings.Settings aboveMaximum =
+        org.opensearch.common.settings.Settings.builder()
+            .put(Settings.Key.CURSOR_MAX_BYTES.getKeyValue(), PlanSerializer.MAX_CURSOR_BYTES + 1)
+            .build();
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> OpenSearchSettings.CURSOR_MAX_BYTES_SETTING.get(aboveMaximum));
   }
 
   @Test

@@ -7,9 +7,6 @@ package org.opensearch.sql.planner.physical;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +20,6 @@ import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
-import org.opensearch.sql.planner.SerializablePlan;
 
 public class PhysicalPlanTestBase {
 
@@ -294,7 +290,7 @@ public class PhysicalPlanTestBase {
     return new TestScan(inputs);
   }
 
-  protected static class TestScan extends PhysicalPlan implements SerializablePlan {
+  protected static class TestScan extends PhysicalPlan {
     private final Iterator<ExprValue> iterator;
 
     public TestScan() {
@@ -324,12 +320,6 @@ public class PhysicalPlanTestBase {
     public ExprValue next() {
       return iterator.next();
     }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {}
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {}
 
     public boolean equals(final Object o) {
       return o == this || o.hashCode() == hashCode();
