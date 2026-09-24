@@ -56,6 +56,7 @@ import org.opensearch.tasks.TaskManager;
 
 public class PPLAsyncQueryServiceTest {
   private static final PPLAsyncQueryUser OWNER = new PPLAsyncQueryUser(null, null, List.of());
+  private static final TimeValue KEEP_ALIVE = TimeValue.timeValueMinutes(5);
 
   private final AtomicLong now = new AtomicLong(1_000);
   private final AtomicReference<Runnable> timeoutTask = new AtomicReference<>();
@@ -281,8 +282,8 @@ public class PPLAsyncQueryServiceTest {
     TrackingExecution execution = new TrackingExecution(null);
     service.start(
         OWNER,
-        "5m",
-        "0s",
+        KEEP_ALIVE,
+        TimeValue.ZERO,
         request,
         registration.requestTask(),
         ignored -> execution,
@@ -313,8 +314,8 @@ public class PPLAsyncQueryServiceTest {
 
     service.start(
         OWNER,
-        "5m",
-        "5s",
+        KEEP_ALIVE,
+        TimeValue.timeValueSeconds(5),
         request,
         registration.requestTask(),
         ignored -> {
@@ -358,8 +359,8 @@ public class PPLAsyncQueryServiceTest {
 
     service.start(
         OWNER,
-        "5m",
-        "0s",
+        KEEP_ALIVE,
+        TimeValue.ZERO,
         request,
         registration.requestTask(),
         ignored -> new TrackingExecution(null),
@@ -404,8 +405,8 @@ public class PPLAsyncQueryServiceTest {
             () ->
                 abortingService.start(
                     OWNER,
-                    "5m",
-                    "5s",
+                    KEEP_ALIVE,
+                    TimeValue.timeValueSeconds(5),
                     request,
                     registration.requestTask(),
                     ignored -> new TrackingExecution(null),
@@ -436,8 +437,8 @@ public class PPLAsyncQueryServiceTest {
         () ->
             service.start(
                 OWNER,
-                "5m",
-                "5s",
+                KEEP_ALIVE,
+                TimeValue.timeValueSeconds(5),
                 request,
                 requestTask,
                 ignored -> new TrackingExecution(null),
@@ -455,7 +456,7 @@ public class PPLAsyncQueryServiceTest {
     AtomicReference<String> id = new AtomicReference<>();
     service.start(
         securedOwner,
-        PPLAsyncQueryService.DEFAULT_KEEP_ALIVE,
+        KEEP_ALIVE,
         TimeValue.ZERO,
         jobTask(null),
         ignored -> new TrackingExecution(null),
@@ -472,7 +473,7 @@ public class PPLAsyncQueryServiceTest {
     PPLAsyncQueryService limited = service(1, 1);
     limited.start(
         OWNER,
-        PPLAsyncQueryService.DEFAULT_KEEP_ALIVE,
+        KEEP_ALIVE,
         TimeValue.ZERO,
         jobTask(null),
         ignored -> new TrackingExecution(null),
@@ -484,7 +485,7 @@ public class PPLAsyncQueryServiceTest {
             () ->
                 limited.start(
                     OWNER,
-                    PPLAsyncQueryService.DEFAULT_KEEP_ALIVE,
+                    KEEP_ALIVE,
                     TimeValue.ZERO,
                     jobTask(null),
                     ignored -> new TrackingExecution(null),
@@ -510,7 +511,7 @@ public class PPLAsyncQueryServiceTest {
         () ->
             missingOwnerNode.start(
                 OWNER,
-                PPLAsyncQueryService.DEFAULT_KEEP_ALIVE,
+                KEEP_ALIVE,
                 TimeValue.ZERO,
                 jobTask(null),
                 ignored -> new TrackingExecution(null),
@@ -610,7 +611,7 @@ public class PPLAsyncQueryServiceTest {
 
     service.start(
         OWNER,
-        PPLAsyncQueryService.DEFAULT_KEEP_ALIVE,
+        KEEP_ALIVE,
         TimeValue.ZERO,
         jobTask(null),
         ignored -> {
@@ -746,13 +747,7 @@ public class PPLAsyncQueryServiceTest {
       TimeValue waitForCompletion,
       AsyncQueryExecution execution,
       ActionListener<PPLAsyncQueryService.JobSnapshot> responseListener) {
-    startQuery(
-        targetService,
-        task,
-        PPLAsyncQueryService.DEFAULT_KEEP_ALIVE,
-        waitForCompletion,
-        execution,
-        responseListener);
+    startQuery(targetService, task, KEEP_ALIVE, waitForCompletion, execution, responseListener);
   }
 
   private void startQuery(

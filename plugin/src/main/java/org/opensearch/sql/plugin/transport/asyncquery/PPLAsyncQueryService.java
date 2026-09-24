@@ -39,7 +39,6 @@ import org.opensearch.sql.plugin.transport.asyncquery.PPLAsyncQueryJob.Removal;
 import org.opensearch.sql.plugin.transport.asyncquery.PPLAsyncQueryJob.ResponseContext;
 import org.opensearch.sql.plugin.transport.asyncquery.PPLAsyncQueryJob.Retention;
 import org.opensearch.sql.plugin.transport.asyncquery.PPLAsyncQueryJob.Transition;
-import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.tasks.CancellableTask;
 import org.opensearch.tasks.Task;
 import org.opensearch.tasks.TaskManager;
@@ -64,13 +63,6 @@ import org.opensearch.threadpool.ThreadPool;
 public final class PPLAsyncQueryService extends AbstractLifecycleComponent {
   private static final Logger LOG = LogManager.getLogger(PPLAsyncQueryService.class);
 
-  static final TimeValue DEFAULT_WAIT_FOR_COMPLETION =
-      TimeValue.parseTimeValue(
-          PPLQueryRequest.DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT,
-          PPLQueryRequest.WAIT_FOR_COMPLETION_TIMEOUT_FIELD);
-  static final TimeValue DEFAULT_KEEP_ALIVE =
-      TimeValue.parseTimeValue(
-          PPLQueryRequest.DEFAULT_KEEP_ALIVE, PPLQueryRequest.KEEP_ALIVE_FIELD);
   private static final TimeValue REAPER_INTERVAL = TimeValue.timeValueMinutes(1);
   private static final TimeoutHandle NO_TIMEOUT = () -> {};
 
@@ -231,8 +223,8 @@ public final class PPLAsyncQueryService extends AbstractLifecycleComponent {
    * ID.
    *
    * @param owner submit caller retained with the job for later authorization
-   * @param requestedKeepAlive requested job lease
-   * @param requestedWaitForCompletion maximum time to wait for a direct result
+   * @param keepAlive requested job lease
+   * @param waitForCompletion maximum time to wait for a direct result
    * @param request transport request used to register the job task
    * @param requestTask task associated with the POST request
    * @param executionStarter starts execution using the job-owned cancellable task
@@ -240,17 +232,12 @@ public final class PPLAsyncQueryService extends AbstractLifecycleComponent {
    */
   public void start(
       PPLAsyncQueryUser owner,
-      String requestedKeepAlive,
-      String requestedWaitForCompletion,
+      TimeValue keepAlive,
+      TimeValue waitForCompletion,
       TransportPPLQueryRequest request,
       PPLQueryTask requestTask,
       Function<CancellableTask, AsyncQueryExecution> executionStarter,
       ActionListener<JobSnapshot> responseListener) {
-    TimeValue keepAlive =
-        TimeValue.parseTimeValue(requestedKeepAlive, PPLQueryRequest.KEEP_ALIVE_FIELD);
-    TimeValue waitForCompletion =
-        TimeValue.parseTimeValue(
-            requestedWaitForCompletion, PPLQueryRequest.WAIT_FOR_COMPLETION_TIMEOUT_FIELD);
     validateKeepAlive(keepAlive);
     validateWaitForCompletion(waitForCompletion);
     JobTask jobTask = registerJobTask(request, requestTask);

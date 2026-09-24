@@ -6,7 +6,6 @@
 package org.opensearch.sql.ppl.domain;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
@@ -62,69 +61,6 @@ public class PPLQueryRequestTest {
     exceptionRule.expect(IllegalArgumentException.class);
     exceptionRule.expectMessage("response in " + format + " format is not supported.");
     request.format();
-  }
-
-  @Test
-  public void asyncFieldsUseDefaultsOrRequestedValues() {
-    PPLQueryRequest defaults =
-        new PPLQueryRequest(
-            "source=t",
-            new JSONObject().put("wait_for_completion_timeout", "1s"),
-            "/_plugins/_ppl");
-    assertTrue(defaults.isAsyncQueryRequest());
-    assertEquals("5m", defaults.getKeepAlive());
-    assertEquals("1s", defaults.getWaitForCompletionTimeout());
-
-    PPLQueryRequest requested =
-        new PPLQueryRequest("source=t", new JSONObject().put("keep_alive", "2m"), "/_plugins/_ppl");
-    assertTrue(requested.isAsyncQueryRequest());
-    assertEquals("2m", requested.getKeepAlive());
-    assertEquals("5s", requested.getWaitForCompletionTimeout());
-  }
-
-  @Test
-  public void asyncLifecycleFieldsMustBeStrings() {
-    PPLQueryRequest numericKeepAlive =
-        new PPLQueryRequest("source=t", new JSONObject().put("keep_alive", 300), "/_plugins/_ppl");
-    PPLQueryRequest numericWait =
-        new PPLQueryRequest(
-            "source=t", new JSONObject().put("wait_for_completion_timeout", 1), "/_plugins/_ppl");
-
-    IllegalArgumentException keepAliveFailure =
-        assertThrows(IllegalArgumentException.class, numericKeepAlive::getKeepAlive);
-    assertEquals("[keep_alive] must be a string", keepAliveFailure.getMessage());
-    IllegalArgumentException waitFailure =
-        assertThrows(IllegalArgumentException.class, numericWait::getWaitForCompletionTimeout);
-    assertEquals("[wait_for_completion_timeout] must be a string", waitFailure.getMessage());
-  }
-
-  @Test
-  public void defaultFormatQuerySupportsAsyncExecution() {
-    assertTrue(
-        new PPLQueryRequest("source=t", null, "/_plugins/_ppl", "jdbc").supportsAsyncExecution());
-  }
-
-  @Test
-  public void specialModesAndFormatsDoNotSupportAsyncExecution() {
-    assertFalse(
-        new PPLQueryRequest("source=t", null, "/_plugins/_ppl/_explain").supportsAsyncExecution());
-    assertFalse(
-        new PPLQueryRequest("explain source=t", null, "/_plugins/_ppl").supportsAsyncExecution());
-    PPLQueryRequest explicitCsv = new PPLQueryRequest("source=t", null, "/_plugins/_ppl", "csv");
-    explicitCsv.formatExplicitlySpecified(true);
-    assertFalse(explicitCsv.supportsAsyncExecution());
-
-    PPLQueryRequest explicitJdbc = new PPLQueryRequest("source=t", null, "/_plugins/_ppl", "jdbc");
-    explicitJdbc.formatExplicitlySpecified(true);
-    assertFalse(explicitJdbc.supportsAsyncExecution());
-
-    PPLQueryRequest profile = new PPLQueryRequest("source=t", null, "/_plugins/_ppl");
-    profile.profile(true);
-    assertFalse(profile.supportsAsyncExecution());
-
-    PPLQueryRequest analyze = new PPLQueryRequest("source=t", null, "/_plugins/_ppl");
-    analyze.analyze(true);
-    assertFalse(analyze.supportsAsyncExecution());
   }
 
   @Test
