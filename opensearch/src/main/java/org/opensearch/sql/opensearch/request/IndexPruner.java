@@ -9,8 +9,12 @@ import static org.opensearch.action.search.SearchRequest.DEFAULT_INDICES_OPTIONS
 import static org.opensearch.sql.calcite.plan.OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP;
 
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.opensearch.action.admin.indices.resolve.ResolveIndexAction;
@@ -69,7 +73,24 @@ public class IndexPruner {
 
       String[] candidates = indexExpr.probeMatching(filter, timeField).getIndices();
       if (0 < candidates.length && indexExpr.isPrunedBy(candidates.length)) {
-        return new IndexName(String.join(",", candidates));
+        // Only now that indices would be dropped: an index whose shards are unavailable cannot be
+        // probed, and field caps reports no failure for it -- it is simply absent from the
+        // candidates, indistinguishable from an index proven to hold nothing in range. Dropping it
+        // would delete its documents from the answer with nothing left to report, because the
+        // search that runs then covers every shard it was given: neither the response's shard
+        // counts nor allow_partial_search_results would show anything amiss. Pruning may only drop
+        // what it proved empty, so keep those and let the search report them as missing shards.
+        Set<String> unsearchable = indexExpr.indicesNotProvenEmpty(timeField);
+        if (unsearchable.isEmpty()) {
+          return new IndexName(String.join(",", candidates));
+        }
+        Set<String> keep = new LinkedHashSet<>(Arrays.asList(candidates));
+        keep.addAll(unsearchable);
+        log.info("Index pruning kept unsearchable indices {}", unsearchable);
+        if (indexExpr.isPrunedBy(keep.size())) {
+          return new IndexName(String.join(",", keep));
+        }
+        return indexName;
       }
       log.info(
           "Index pruning declined: {} of {} indices matched",
@@ -134,13 +155,52 @@ public class IndexPruner {
     }
 
     FieldCapabilitiesResponse probeMatching(QueryBuilder filter, String timeField) {
+      return probe(filter, timeField);
+    }
+
+    /**
+     * Resolved indices the matching probe cannot have ruled out, so pruning must keep them: those
+     * absent from an unfiltered probe. A readable index reports its field caps whatever the time
+     * range, so absence there means the index could not be read at all -- which is what the
+     * filtered probe cannot distinguish from "holds nothing in range".
+     *
+     * <p>This holds regardless of what the cluster state believes, so it also covers the window
+     * after a node stops but before the cluster manager marks its shards unassigned -- seconds, and
+     * precisely when a dashboard refresh would otherwise lose the index silently.
+     *
+     * <p>Deliberately probe-based rather than reading the routing table: a cluster state request
+     * needs {@code cluster:monitor/state}, which an index-scoped role does not carry, so it would
+     * both disable pruning for those users and log a missing-privileges audit event on every query.
+     * The cost is that an index readable through its other shards while one shard is unassigned
+     * still looks prunable; its documents in range would have to live only on the missing shard,
+     * which takes custom routing to arrange.
+     *
+     * <p>An index that is readable but does not map {@code timeField} is also absent from the
+     * unfiltered probe, so it is kept too. That costs a shard in the search and no correctness.
+     */
+    Set<String> indicesNotProvenEmpty(String timeField) {
+      // Not Set.of: it rejects a duplicate or null name, which would turn a probe quirk into a
+      // lost optimization for the whole query.
+      Set<String> readable = new HashSet<>(Arrays.asList(probe(null, timeField).getIndices()));
+      Set<String> missing = new LinkedHashSet<>();
+      for (ResolveIndexAction.ResolvedIndex index : resolved().getIndices()) {
+        if (!readable.contains(index.getName())) {
+          missing.add(index.getName());
+        }
+      }
+      return missing;
+    }
+
+    private FieldCapabilitiesResponse probe(@Nullable QueryBuilder filter, String timeField) {
       FieldCapabilitiesRequest request =
           new FieldCapabilitiesRequest()
               .indices(indexName.getIndexNames())
               .fields(timeField)
-              .indexFilter(filter)
               // Must expand as the search will, or candidates describe a different index set.
               .indicesOptions(DEFAULT_INDICES_OPTIONS);
+      if (filter != null) {
+        request.indexFilter(filter);
+      }
       return node.fieldCaps(request).actionGet(PROBE_TIMEOUT);
     }
 

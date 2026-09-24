@@ -10,7 +10,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -22,9 +24,12 @@ import static org.opensearch.index.query.QueryBuilders.queryStringQuery;
 import static org.opensearch.index.query.QueryBuilders.rangeQuery;
 import static org.opensearch.sql.calcite.plan.OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -35,6 +40,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.action.admin.cluster.state.ClusterStateAction;
 import org.opensearch.action.admin.indices.resolve.ResolveIndexAction;
 import org.opensearch.action.fieldcaps.FieldCapabilitiesRequest;
 import org.opensearch.action.fieldcaps.FieldCapabilitiesResponse;
@@ -52,6 +58,10 @@ class IndexPrunerTest {
   @Mock private ActionFuture<FieldCapabilitiesResponse> matchFuture;
   @Mock private ActionFuture<ResolveIndexAction.Response> resolveFuture;
   @Mock private ResolveIndexAction.Response resolveResponse;
+  @Mock private ActionFuture<FieldCapabilitiesResponse> readableFuture;
+
+  /** What an unfiltered probe reports as readable; set when an expression is resolved. */
+  private String[] readable = new String[0];
 
   @Nested
   class FilterShapes {
@@ -166,14 +176,11 @@ class IndexPrunerTest {
     @Test
     void shouldProbeWithTheFilterExpressionAndTimestampField() {
       QueryBuilder filter = timeRange();
-      ArgumentCaptor<FieldCapabilitiesRequest> captor =
-          ArgumentCaptor.forClass(FieldCapabilitiesRequest.class);
       givenIndexExpression(indices("logs-*", 3), filter)
           .whenMatching("logs-a")
           .shouldPruneTo("logs-a");
-      verify(node).fieldCaps(captor.capture());
 
-      FieldCapabilitiesRequest probe = captor.getValue();
+      FieldCapabilitiesRequest probe = capturedMatchProbe();
       assertSame(filter, probe.indexFilter());
       assertArrayEquals(new String[] {"logs-*"}, probe.indices());
       assertEquals(
@@ -183,14 +190,11 @@ class IndexPrunerTest {
 
     @Test
     void shouldProbeEveryNameOfACommaSeparatedExpression() {
-      ArgumentCaptor<FieldCapabilitiesRequest> captor =
-          ArgumentCaptor.forClass(FieldCapabilitiesRequest.class);
       givenIndexExpression(indices("logs-a-*,logs-b-*", 3), timeRange())
           .whenMatching("logs-a-1")
           .shouldPruneTo("logs-a-1");
-      verify(node).fieldCaps(captor.capture());
 
-      assertArrayEquals(new String[] {"logs-a-*", "logs-b-*"}, captor.getValue().indices());
+      assertArrayEquals(new String[] {"logs-a-*", "logs-b-*"}, capturedMatchProbe().indices());
     }
   }
 
@@ -207,28 +211,22 @@ class IndexPrunerTest {
     /** The picker's field is the index pattern's, which is not always {@code @timestamp}. */
     @Test
     void shouldProbeTheBoundsOwnTimeField() {
-      ArgumentCaptor<FieldCapabilitiesRequest> captor =
-          ArgumentCaptor.forClass(FieldCapabilitiesRequest.class);
       givenIndexExpression(indices("logs-*", 3), timeRange("event_time"), "event_time")
           .whenMatching("logs-a")
           .shouldPruneTo("logs-a");
-      verify(node).fieldCaps(captor.capture());
 
-      assertArrayEquals(new String[] {"event_time"}, captor.getValue().fields());
+      assertArrayEquals(new String[] {"event_time"}, capturedMatchProbe().fields());
     }
 
     /** Forwarded untouched, so date math reaches the index's own parser. */
     @Test
     void shouldProbeWithTheFilterExactlyAsGiven() {
-      ArgumentCaptor<FieldCapabilitiesRequest> captor =
-          ArgumentCaptor.forClass(FieldCapabilitiesRequest.class);
       QueryBuilder range = timeRange("@timestamp");
       givenIndexExpression(indices("logs-*", 3), range, "@timestamp")
           .whenMatching("logs-a")
           .shouldPruneTo("logs-a");
-      verify(node).fieldCaps(captor.capture());
 
-      assertSame(range, captor.getValue().indexFilter());
+      assertSame(range, capturedMatchProbe().indexFilter());
     }
 
     @Test
@@ -260,6 +258,92 @@ class IndexPrunerTest {
     }
   }
 
+  @Nested
+  class UnsearchableIndices {
+
+    /**
+     * The probe cannot reach an index whose primary is unassigned, and field caps reports no
+     * failure for it, so it looks exactly like an index proven to hold nothing in range. Pruning it
+     * away would drop its documents with nothing left to report -- the search that runs then covers
+     * every shard it was given, so even allow_partial_search_results=false sees a complete search.
+     */
+    /**
+     * The node holding logs-down has just stopped: no probe can read the index, but the cluster
+     * manager has not marked its shards unassigned yet, so the routing table still looks healthy.
+     * Pruning it away here would lose its documents with nothing left to report.
+     */
+    @Test
+    void shouldKeepAnIndexNoProbeCanRead() {
+      givenIndexExpression(namedIndices("logs-*", "logs-a", "logs-b", "logs-down"), timeRange())
+          .whenMatching("logs-a")
+          .whenUnreadable("logs-down")
+          .shouldPruneTo("logs-a,logs-down");
+    }
+
+    @Test
+    void shouldPruneNormallyWhenEveryIndexIsSearchable() {
+      givenIndexExpression(namedIndices("logs-*", "logs-a", "logs-b", "logs-c"), timeRange())
+          .whenMatching("logs-a")
+          .shouldPruneTo("logs-a");
+    }
+
+    /** Keeping the unreadable index leaves nothing pruned, so read the expression as named. */
+    @Test
+    void shouldNotPruneWhenKeepingTheUnreadableIndexCoversEverything() {
+      givenIndexExpression(namedIndices("logs-*", "logs-a", "logs-down"), timeRange())
+          .whenMatching("logs-a")
+          .whenUnreadable("logs-down")
+          .shouldNotPrune();
+    }
+
+    /**
+     * Nothing matched, so pruning already declines before the availability check: the full
+     * expression is read and the search reports the missing shard itself.
+     */
+    @Test
+    void shouldNotPruneWhenNothingMatchedEvenWithAnUnreadableIndex() {
+      givenIndexExpression(namedIndices("logs-*", "logs-a", "logs-down"), timeRange())
+          .whenMatching()
+          .shouldNotPrune();
+    }
+
+    /** A readability probe failure must not cost correctness: fall back to the full expression. */
+    @Test
+    void shouldNotPruneWhenTheReadabilityProbeFails() {
+      Fixture fixture =
+          givenIndexExpression(namedIndices("logs-*", "logs-a", "logs-b", "logs-c"), timeRange())
+              .whenMatching("logs-a");
+      // Re-stub after whenMatching's readable default so the unfiltered probe throws instead.
+      when(readableFuture.actionGet(any(TimeValue.class))).thenThrow(new RuntimeException("boom"));
+      fixture.shouldNotPrune();
+    }
+
+    /**
+     * An index-scoped role carries no cluster:monitor/state, which is why readability is judged by
+     * a field caps probe the role already allows rather than by reading the routing table. A
+     * cluster state request would both disable pruning for those users and log a missing-privileges
+     * audit event on every query, so nothing may issue one.
+     */
+    @Test
+    void shouldJudgeReadabilityWithoutAPrivilegedRequest() {
+      givenIndexExpression(namedIndices("logs-*", "logs-a", "logs-b", "logs-c"), timeRange())
+          .whenMatching("logs-a")
+          .shouldPruneTo("logs-a");
+      verify(node, never()).execute(eq(ClusterStateAction.INSTANCE), any());
+    }
+  }
+
+  /** The matching probe, told apart from the readability probe by carrying the filter. */
+  private FieldCapabilitiesRequest capturedMatchProbe() {
+    ArgumentCaptor<FieldCapabilitiesRequest> captor =
+        ArgumentCaptor.forClass(FieldCapabilitiesRequest.class);
+    verify(node, atLeastOnce()).fieldCaps(captor.capture());
+    return captor.getAllValues().stream()
+        .filter(request -> request.indexFilter() != null)
+        .findFirst()
+        .orElseThrow();
+  }
+
   private static QueryBuilder timeRange() {
     return rangeQuery("@timestamp").gte("now-1d");
   }
@@ -275,12 +359,38 @@ class IndexPrunerTest {
       INDICES,
       ALIAS,
       DATA_STREAM,
-      FAILURE
+      FAILURE,
+      /** Already stubbed by {@code namedIndices}, so the fixture must not restub it. */
+      PRE_STUBBED
     }
   }
 
+  /** Generated names, so the readability probe has something to report for each resolved index. */
   private static Resolution indices(String expression, int indexCount) {
     return new Resolution(expression, indexCount, Resolution.Shape.INDICES);
+  }
+
+  private static String[] generatedNames(int count) {
+    return java.util.stream.IntStream.rangeClosed(1, count)
+        .mapToObj(i -> "resolved-" + i)
+        .toArray(String[]::new);
+  }
+
+  /** Resolved indices with real names, so the availability probe can be keyed on them. */
+  private Resolution namedIndices(String expression, String... names) {
+    when(node.execute(eq(ResolveIndexAction.INSTANCE), any())).thenReturn(resolveFuture);
+    when(resolveFuture.actionGet(any(TimeValue.class))).thenReturn(resolveResponse);
+    when(resolveResponse.getAliases()).thenReturn(List.of());
+    when(resolveResponse.getDataStreams()).thenReturn(List.of());
+    List<ResolveIndexAction.ResolvedIndex> resolvedIndices = new ArrayList<>();
+    for (String name : names) {
+      ResolveIndexAction.ResolvedIndex index = mock(ResolveIndexAction.ResolvedIndex.class);
+      lenient().when(index.getName()).thenReturn(name);
+      resolvedIndices.add(index);
+    }
+    lenient().when(resolveResponse.getIndices()).thenReturn(resolvedIndices);
+    readable = names;
+    return new Resolution(expression, names.length, Resolution.Shape.PRE_STUBBED);
   }
 
   private static Resolution alias(String expression) {
@@ -309,6 +419,9 @@ class IndexPrunerTest {
    * unread and Mockito rejects a stub nobody uses.
    */
   private Fixture givenIndexExpression(Resolution resolution, QueryBuilder filter) {
+    if (resolution.shape() == Resolution.Shape.PRE_STUBBED) {
+      return new Fixture(resolution.expression(), filter, (String) null);
+    }
     when(node.execute(eq(ResolveIndexAction.INSTANCE), any())).thenReturn(resolveFuture);
     switch (resolution.shape()) {
       case FAILURE ->
@@ -325,17 +438,21 @@ class IndexPrunerTest {
         when(resolveResponse.getDataStreams())
             .thenReturn(List.of(mock(ResolveIndexAction.ResolvedDataStream.class)));
       }
+      case PRE_STUBBED -> throw new IllegalStateException("handled above");
       case INDICES -> {
         whenResolved();
         when(resolveResponse.getAliases()).thenReturn(List.of());
         when(resolveResponse.getDataStreams()).thenReturn(List.of());
         // Lenient because the count is read only once a match list exists, so a test whose probe
         // throws or matches nothing never consumes it.
-        lenient()
-            .when(resolveResponse.getIndices())
-            .thenReturn(
-                Collections.nCopies(
-                    resolution.indexCount(), mock(ResolveIndexAction.ResolvedIndex.class)));
+        List<ResolveIndexAction.ResolvedIndex> generated = new ArrayList<>();
+        for (String name : generatedNames(resolution.indexCount())) {
+          ResolveIndexAction.ResolvedIndex index = mock(ResolveIndexAction.ResolvedIndex.class);
+          lenient().when(index.getName()).thenReturn(name);
+          generated.add(index);
+        }
+        lenient().when(resolveResponse.getIndices()).thenReturn(generated);
+        readable = generatedNames(resolution.indexCount());
       }
     }
     return new Fixture(resolution.expression(), filter, (String) null);
@@ -365,14 +482,37 @@ class IndexPrunerTest {
     }
 
     Fixture whenMatching(String... matching) {
-      when(node.fieldCaps(any())).thenReturn(matchFuture);
+      // Default to a cluster where every index is readable; whenUnreadable narrows that. The two
+      // probes differ only by carrying the filter.
+      lenient()
+          .when(
+              node.fieldCaps(argThat(request -> request != null && request.indexFilter() == null)))
+          .thenReturn(readableFuture);
+      lenient()
+          .when(readableFuture.actionGet(any(TimeValue.class)))
+          .thenReturn(new FieldCapabilitiesResponse(readable, Collections.emptyMap()));
+      when(node.fieldCaps(argThat(request -> request != null && request.indexFilter() != null)))
+          .thenReturn(matchFuture);
       when(matchFuture.actionGet(any(TimeValue.class)))
           .thenReturn(new FieldCapabilitiesResponse(matching, Collections.emptyMap()));
       return this;
     }
 
+    /** {@code unreadable} indices answer no probe at all, as when their node has just stopped. */
+    Fixture whenUnreadable(String... unreadable) {
+      Set<String> stillReadable = new LinkedHashSet<>(Arrays.asList(readable));
+      Arrays.asList(unreadable).forEach(stillReadable::remove);
+      lenient()
+          .when(readableFuture.actionGet(any(TimeValue.class)))
+          .thenReturn(
+              new FieldCapabilitiesResponse(
+                  stillReadable.toArray(String[]::new), Collections.emptyMap()));
+      return this;
+    }
+
     Fixture whenMatchProbeFails() {
-      when(node.fieldCaps(any())).thenReturn(matchFuture);
+      when(node.fieldCaps(argThat(request -> request != null && request.indexFilter() != null)))
+          .thenReturn(matchFuture);
       when(matchFuture.actionGet(any(TimeValue.class))).thenThrow(new RuntimeException("boom"));
       return this;
     }
