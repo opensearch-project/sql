@@ -344,6 +344,21 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testRandWithArithmeticSeed() throws IOException {
+    // RAND with an arithmetic seed. PPL arithmetic widens 1 + 1 to BIGINT, but RAND's seed is a
+    // Java int parameter — the seed must be narrowed to INTEGER or codegen fails.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval rand = rand(1 + 1) | where rand >= 0 | where rand < 1 | fields"
+                    + " name",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(actual, schema("name", "string"));
+    verifyDataRows(actual, rows("Jake"), rows("Hello"), rows("Jane"), rows("John"));
+  }
+
+  @Test
   public void testPowInvalidArgShouldReturnNull() throws IOException {
     JSONObject actual =
         executeQuery(

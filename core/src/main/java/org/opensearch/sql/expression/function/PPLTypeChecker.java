@@ -67,6 +67,40 @@ public interface PPLTypeChecker {
    */
   List<List<RelDataType>> getParameterTypes();
 
+  /**
+   * Returns true when the operand at {@code position} strictly requires the {@link
+   * SqlTypeFamily#INTEGER} family — i.e. INTEGER is the only numeric type accepted there. This is
+   * used to decide whether a widened BIGINT argument must be narrowed back to INTEGER for operators
+   * whose runtime implementation takes a Java {@code int} (see {@code
+   * PPLFuncImpTable#narrowBigintArgs}).
+   *
+   * <p>The check reasons over the type families the checker already declares: a position qualifies
+   * when at least one allowed combination is in the INTEGER family and none permits a wider numeric
+   * family (BIGINT or DOUBLE — i.e. {@code NUMERIC}, which maps to {@code [INTEGER, DOUBLE]}).
+   * Non-numeric families (ANY, ARRAY, CHARACTER, ...) belong to alternate operand shapes and are
+   * ignored, so composite/OR checkers like {@code ITEM} ({@code [ARRAY, INTEGER] | [MAP, ANY]}) are
+   * handled correctly.
+   */
+  default boolean expectsIntegerFamilyAt(int position) {
+    List<List<RelDataType>> parameterTypes = getParameterTypes();
+    if (parameterTypes == null || parameterTypes.isEmpty()) {
+      return false;
+    }
+    boolean sawInteger = false;
+    for (List<RelDataType> combination : parameterTypes) {
+      if (position >= combination.size()) {
+        continue;
+      }
+      SqlTypeName typeName = combination.get(position).getSqlTypeName();
+      if (typeName == SqlTypeName.INTEGER) {
+        sawInteger = true;
+      } else if (typeName == SqlTypeName.BIGINT || typeName == SqlTypeName.DOUBLE) {
+        return false;
+      }
+    }
+    return sawInteger;
+  }
+
   private static boolean validateOperands(
       List<SqlTypeFamily> funcTypeFamilies, List<RelDataType> operandTypes) {
     // If the number of actual operands does not match expectation, return false

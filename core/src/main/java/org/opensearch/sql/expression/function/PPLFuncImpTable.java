@@ -648,7 +648,9 @@ public class PPLFuncImpTable {
     try {
       for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
         if (implement.getKey().match(functionName.getName(), argTypes)) {
-          return implement.getValue().resolve(builder, args);
+          RexNode[] narrowedArgs =
+              narrowBigintArgs(builder, implement.getKey().typeChecker(), args);
+          return implement.getValue().resolve(builder, narrowedArgs);
         }
       }
 
@@ -732,6 +734,54 @@ public class PPLFuncImpTable {
       return call.getOperands().stream().anyMatch(PPLFuncImpTable::containsSubQuery);
     }
     return false;
+  }
+
+  /**
+   * Narrows BIGINT arguments to INTEGER at operand positions where the matched type checker
+   * strictly requires the INTEGER family.
+   *
+   * <p>PPL's integer arithmetic widening (#5603) makes all integer expressions produce BIGINT.
+   * However, many Calcite runtime methods ({@code SqlFunctions.arrayItemOptional}, {@code left},
+   * {@code right}, {@code round}, {@code truncate}, etc.) require Java {@code int} parameters.
+   * Since {@code SqlTypeFamily.INTEGER} accepts BIGINT at the type-checking level, the call passes
+   * validation but code generation fails when the JVM cannot auto-narrow {@code long} to {@code
+   * int}.
+   *
+   * <p>The int-domain positions are derived from the operator's own registered type checker (see
+   * {@link PPLTypeChecker#expectsIntegerFamilyAt}) rather than a hardcoded per-function list, so
+   * value positions that legitimately accept a wider numeric type (e.g. {@code round(bigint, 2)}'s
+   * first operand) are never narrowed.
+   */
+  private static RexNode[] narrowBigintArgs(
+      RexBuilder builder, PPLTypeChecker typeChecker, RexNode... args) {
+    if (typeChecker == null) {
+      return args;
+    }
+    RexNode[] narrowed = null;
+    for (int pos = 0; pos < args.length; pos++) {
+      if (args[pos].getType().getSqlTypeName() != SqlTypeName.BIGINT) {
+        continue;
+      }
+      boolean expectsInteger;
+      try {
+        expectsInteger = typeChecker.expectsIntegerFamilyAt(pos);
+      } catch (IllegalArgumentException e) {
+        // A type checker whose composition is not purely family-based cannot enumerate per-position
+        // families. We cannot reason about int-domain positions, so skip narrowing rather than
+        // fail an otherwise-valid query.
+        return args;
+      }
+      if (expectsInteger) {
+        if (narrowed == null) {
+          narrowed = args.clone();
+        }
+        RelDataType intType =
+            TYPE_FACTORY.createTypeWithNullability(
+                TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER), args[pos].getType().isNullable());
+        narrowed[pos] = builder.makeCast(intType, args[pos]);
+      }
+    }
+    return narrowed != null ? narrowed : args;
   }
 
   /**
@@ -971,7 +1021,14 @@ public class PPLFuncImpTable {
           PPLTypeChecker.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME));
       registerWideningIntegerOperator(MULTIPLY, SqlStdOperatorTable.MULTIPLY);
       registerWideningIntegerOperator(MULTIPLYFUNCTION, SqlStdOperatorTable.MULTIPLY);
-      registerOperator(TRUNCATE, SqlStdOperatorTable.TRUNCATE);
+      registerOperator(
+          TRUNCATE,
+          SqlStdOperatorTable.TRUNCATE,
+          PPLTypeChecker.wrapComposite(
+              (CompositeOperandTypeChecker)
+                  OperandTypes.NUMERIC.or(
+                      OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.INTEGER)),
+              false));
       registerOperator(ASCII, SqlStdOperatorTable.ASCII);
       registerOperator(LENGTH, SqlStdOperatorTable.CHAR_LENGTH);
       registerOperator(LOWER, SqlStdOperatorTable.LOWER);
@@ -1069,7 +1126,13 @@ public class PPLFuncImpTable {
       registerOperator(POW, SqlStdOperatorTable.POWER);
       registerOperator(POWER, SqlStdOperatorTable.POWER);
       registerOperator(RADIANS, SqlStdOperatorTable.RADIANS);
-      registerOperator(RAND, SqlStdOperatorTable.RAND);
+      registerOperator(
+          RAND,
+          SqlStdOperatorTable.RAND,
+          PPLTypeChecker.wrapComposite(
+              (CompositeOperandTypeChecker)
+                  OperandTypes.NILADIC.or(OperandTypes.family(SqlTypeFamily.INTEGER)),
+              false));
       // TODO, workaround to support sequence CompositeOperandTypeChecker.
       registerOperator(
           ROUND,
@@ -1300,7 +1363,10 @@ public class PPLFuncImpTable {
       registerOperator(MAP_CONCAT, SqlLibraryOperators.MAP_CONCAT);
       registerOperator(MAP_REMOVE, PPLBuiltinOperators.MAP_REMOVE);
       registerOperator(ARRAY_LENGTH, SqlLibraryOperators.ARRAY_LENGTH);
-      registerOperator(ARRAY_SLICE, SqlLibraryOperators.ARRAY_SLICE);
+      registerOperator(
+          ARRAY_SLICE,
+          SqlLibraryOperators.ARRAY_SLICE,
+          PPLTypeChecker.family(SqlTypeFamily.ARRAY, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER));
       registerOperator(ARRAY_COMPACT, SqlLibraryOperators.ARRAY_COMPACT);
       registerOperator(FORALL, PPLBuiltinOperators.FORALL);
       registerOperator(EXISTS, PPLBuiltinOperators.EXISTS);
