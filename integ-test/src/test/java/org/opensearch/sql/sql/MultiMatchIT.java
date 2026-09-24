@@ -113,6 +113,7 @@ public class MultiMatchIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FULLTEXT_RELEVANCE_FUNC)
   public void test_wildcard_multi_match_alternate_parameter_syntax() {
     String query =
         "SELECT Body FROM "

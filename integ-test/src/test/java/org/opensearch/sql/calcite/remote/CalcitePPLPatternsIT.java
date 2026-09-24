@@ -236,6 +236,7 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(PATTERNS_BRAIN_MODE)
   public void testBrainLabelMode_NotShowNumberedToken() throws IOException {
     JSONObject result =
         executeQuery(
@@ -475,6 +476,7 @@ public class CalcitePPLPatternsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(PATTERNS_BRAIN_MODE)
   public void testBrainParseWithUUID_NotShowNumberedToken() throws IOException {
     JSONObject result =
         executeQuery(
