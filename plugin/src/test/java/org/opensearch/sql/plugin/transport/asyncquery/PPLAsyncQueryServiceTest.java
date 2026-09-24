@@ -182,6 +182,7 @@ public class PPLAsyncQueryServiceTest {
         scenario().withTask(task).withCurrentResult(response(1)).start().complete().delete();
 
     scenario.assertDeleteStatus(PPLAsyncQueryService.Status.SUCCEEDED);
+    // DELETE removes the retained result without cancelling an already completed task.
     verify(task, never()).cancel(org.mockito.ArgumentMatchers.anyString());
     scenario.assertExecutionReadCount(0).assertExecutionCloseCount(1).assertCapacity(0, 0);
   }
