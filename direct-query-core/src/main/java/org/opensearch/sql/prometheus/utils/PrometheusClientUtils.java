@@ -59,20 +59,19 @@ public class PrometheusClientUtils {
         new URIValidatorInterceptor(
             settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST)));
     if (config.get(AUTH_TYPE) != null) {
-      AuthenticationType authenticationType =
-          AuthenticationType.get(config.get(AUTH_TYPE));
+      AuthenticationType authenticationType = AuthenticationType.get(config.get(AUTH_TYPE));
       if (AuthenticationType.BASICAUTH.equals(authenticationType)) {
         okHttpClient.addInterceptor(
-            new BasicAuthenticationInterceptor(
-                config.get(USERNAME), config.get(PASSWORD)));
+            new BasicAuthenticationInterceptor(config.get(USERNAME), config.get(PASSWORD)));
       } else if (AuthenticationType.AWSSIGV4AUTH.equals(authenticationType)) {
         okHttpClient.addInterceptor(
             new AwsSigningInterceptor(
                 new AWSStaticCredentialsProvider(
-                    new BasicAWSCredentials(
-                        config.get(ACCESS_KEY), config.get(SECRET_KEY))),
+                    new BasicAWSCredentials(config.get(ACCESS_KEY), config.get(SECRET_KEY))),
                 config.get(REGION),
                 "aps"));
+      } else if (AuthenticationType.OAUTH2.equals(authenticationType)) {
+        PrometheusOAuth2Support.addOAuth2Interceptor(okHttpClient, config, settings);
       } else {
         throw new IllegalArgumentException(
             String.format(
@@ -104,6 +103,8 @@ public class PrometheusClientUtils {
           alertmanagerProperties.put(ACCESS_KEY, properties.get(ALERTMANAGER_ACCESS_KEY));
           alertmanagerProperties.put(SECRET_KEY, properties.get(ALERTMANAGER_SECRET_KEY));
           alertmanagerProperties.put(REGION, properties.get(ALERTMANAGER_REGION));
+        } else if (authType.equalsIgnoreCase(AuthenticationType.OAUTH2.getName())) {
+          PrometheusOAuth2Support.mapOAuth2AlertmanagerConfig(properties, alertmanagerProperties);
         }
       }
     }
