@@ -41,6 +41,7 @@ public class PPLAsyncQueryJobTest {
 
     Transition transition = fixture.job().retain(RETAINED_TIME);
 
+    // Retention publishes the job ID once; later retention events are ignored.
     assertEquals(
         new Transition.Retained(new SnapshotSource.Running(ID, Optional.of(fixture.execution()))),
         transition);
@@ -54,6 +55,7 @@ public class PPLAsyncQueryJobTest {
 
     Transition transition = fixture.job().complete(COMPLETION_TIME);
 
+    // A direct response removes the job: duplicate completion is ignored and GET returns not found.
     assertTrue(transition instanceof Transition.DirectResponse);
     Transition.DirectResponse direct = (Transition.DirectResponse) transition;
     assertEquals(
@@ -74,6 +76,7 @@ public class PPLAsyncQueryJobTest {
 
     Transition transition = fixture.job().fail(failure, COMPLETION_TIME);
 
+    // A failure before retention returns without an ID and detaches all execution resources.
     assertTrue(transition instanceof Transition.DirectResponse);
     Transition.DirectResponse direct = (Transition.DirectResponse) transition;
     assertEquals(
@@ -89,6 +92,7 @@ public class PPLAsyncQueryJobTest {
 
     Transition transition = fixture.job().complete(COMPLETION_TIME);
 
+    // Retained success closes the task but keeps the execution readable until DELETE.
     assertEquals(new Transition.ExecutionFinished(fixture.task(), Optional.empty()), transition);
 
     GetResult result = fixture.job().get(COMPLETION_TIME, null);
@@ -114,6 +118,7 @@ public class PPLAsyncQueryJobTest {
 
     Transition transition = fixture.job().fail(failure, COMPLETION_TIME);
 
+    // Retained failure closes its execution and keeps only the failure snapshot readable.
     assertEquals(
         new Transition.ExecutionFinished(fixture.task(), Optional.of(fixture.execution())),
         transition);
@@ -133,6 +138,7 @@ public class PPLAsyncQueryJobTest {
     assertTrue(fixture.job().get(expirationTime - 1, null) instanceof GetResult.Found);
     GetResult result = fixture.job().get(expirationTime, null);
 
+    // Without renewal, the lease remains valid before but not at its expiration boundary.
     assertTrue(result instanceof GetResult.Expired);
     Removal.Expired removal = ((GetResult.Expired) result).removal();
     assertSame(fixture.task(), removal.resources().task());
@@ -146,6 +152,7 @@ public class PPLAsyncQueryJobTest {
     long renewalTime = RETAINED_TIME + 500;
     TimeValue requestedKeepAlive = TimeValue.timeValueSeconds(1);
 
+    // Renewal replaces the lease and the job expires exactly one requested keep-alive later.
     assertTrue(fixture.job().get(renewalTime, requestedKeepAlive) instanceof GetResult.Found);
     assertTrue(fixture.job().get(renewalTime + 999, null) instanceof GetResult.Found);
     assertTrue(
@@ -159,6 +166,7 @@ public class PPLAsyncQueryJobTest {
     assertTrue(fixture.job().tryAttachExecution(fixture.execution()));
     long retainedTime = START_TIME + KEEP_ALIVE_MILLIS + 1;
 
+    // Keep-alive starts when the ID is retained, not when the unretained job is created.
     assertNull(fixture.job().expire(retainedTime - 1));
     fixture.job().retain(retainedTime);
     assertNull(fixture.job().expire(retainedTime + KEEP_ALIVE_MILLIS - 1));
@@ -176,6 +184,8 @@ public class PPLAsyncQueryJobTest {
 
     Removal removal = fixture.job().delete(RETAINED_TIME + 1);
 
+    // DELETE cancels a running job, transfers its resources, and makes later DELETE return not
+    // found.
     assertTrue(removal instanceof Removal.Deleted);
     Removal.Deleted deleted = (Removal.Deleted) removal;
     assertEquals(Status.CANCELLED, deleted.responseStatus());
@@ -192,6 +202,8 @@ public class PPLAsyncQueryJobTest {
     assertTrue(fixture.job().tryAttachExecution(fixture.execution()));
 
     Removal removal = fixture.job().abort();
+
+    // Abort transfers resource ownership once; repeated abort calls have no transition.
     assertTrue(removal instanceof Removal.Discarded);
     Removal.Discarded discarded = (Removal.Discarded) removal;
     assertSame(fixture.task(), discarded.resources().task());
@@ -205,6 +217,8 @@ public class PPLAsyncQueryJobTest {
     JobFixture fixture = retainedJob();
 
     Removal removal = fixture.job().close("service closing");
+
+    // Close transfers resource ownership once; repeated close calls have no transition.
     assertTrue(removal instanceof Removal.Discarded);
     Removal.Discarded discarded = (Removal.Discarded) removal;
     assertSame(fixture.task(), discarded.resources().task());
@@ -218,6 +232,7 @@ public class PPLAsyncQueryJobTest {
     JobFixture fixture = newJob();
     fixture.job().abort();
 
+    // Removal wins the race, so a late execution handle remains owned by the caller.
     assertFalse(fixture.job().tryAttachExecution(fixture.execution()));
   }
 
@@ -225,6 +240,7 @@ public class PPLAsyncQueryJobTest {
   public void successfulCompletionRequiresAttachedExecution() {
     JobFixture fixture = newJob();
 
+    // Success cannot be published until an execution handle can provide the final result.
     assertThrows(IllegalStateException.class, () -> fixture.job().complete(COMPLETION_TIME));
   }
 
