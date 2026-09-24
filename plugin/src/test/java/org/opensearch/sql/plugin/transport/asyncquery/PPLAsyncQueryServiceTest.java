@@ -82,10 +82,10 @@ public class PPLAsyncQueryServiceTest {
     execution.complete();
 
     assertEquals(1, responses.get());
-    assertNull(result.get().id());
-    assertEquals(PPLAsyncQueryService.Status.SUCCEEDED, result.get().status());
-    assertEquals(2, result.get().response().getResults().size());
-    assertEquals(25, result.get().tookMillis());
+    assertEquals(
+        new PPLAsyncQueryService.JobSnapshot(
+            null, PPLAsyncQueryService.Status.SUCCEEDED, response(2), null, 25),
+        result.get());
     assertEquals(0, service.runningQueryCount());
     assertEquals(0, service.retainedJobCount());
     assertEquals(1, execution.reads.get());
@@ -106,8 +106,10 @@ public class PPLAsyncQueryServiceTest {
     timeoutTask.get().run();
 
     String id = retainedResponse.get().id();
-    assertEquals(PPLAsyncQueryService.Status.RUNNING, retainedResponse.get().status());
-    assertNull(retainedResponse.get().response());
+    assertEquals(
+        new PPLAsyncQueryService.JobSnapshot(
+            id, PPLAsyncQueryService.Status.RUNNING, null, null, -1),
+        retainedResponse.get());
     assertEquals(1, service.runningQueryCount());
     assertEquals(1, service.retainedJobCount());
 
@@ -115,9 +117,10 @@ public class PPLAsyncQueryServiceTest {
     execution.succeed(response(2));
     PPLAsyncQueryService.JobSnapshot completed = service.get(id, OWNER, null);
 
-    assertEquals(id, completed.id());
-    assertEquals(PPLAsyncQueryService.Status.SUCCEEDED, completed.status());
-    assertEquals(2, completed.response().getResults().size());
+    assertEquals(
+        new PPLAsyncQueryService.JobSnapshot(
+            id, PPLAsyncQueryService.Status.SUCCEEDED, response(2), null, 25),
+        completed);
     assertEquals(0, service.runningQueryCount());
     assertEquals(1, service.retainedJobCount());
     assertEquals(0, execution.closes.get());
@@ -174,41 +177,19 @@ public class PPLAsyncQueryServiceTest {
   }
 
   @Test
-  public void getWithoutKeepAliveDoesNotRenewLease() {
+  public void expiredGetCancelsAndRemovesJob() {
     CancellableTask task = mock(CancellableTask.class);
     when(task.isCancelled()).thenReturn(false);
     TrackingExecution execution = new TrackingExecution(null);
     String id = startRetainedQuery(service, task, execution);
 
-    now.addAndGet(TimeValue.timeValueMinutes(4).millis());
-    assertEquals(PPLAsyncQueryService.Status.RUNNING, service.get(id, OWNER, null).status());
+    now.addAndGet(KEEP_ALIVE.millis());
 
-    now.addAndGet(TimeValue.timeValueMinutes(1).millis() + 1);
     assertThrows(ResourceNotFoundException.class, () -> service.get(id, OWNER, null));
     verify(task).cancel("PPL asynchronous query expired");
     assertEquals(1, execution.closes.get());
     assertEquals(0, service.runningQueryCount());
     assertEquals(0, service.retainedJobCount());
-  }
-
-  @Test
-  public void getWithKeepAliveRenewsLease() {
-    CancellableTask task = mock(CancellableTask.class);
-    when(task.isCancelled()).thenReturn(false);
-    TrackingExecution execution = new TrackingExecution(null);
-    String id = startRetainedQuery(service, task, execution);
-
-    now.addAndGet(TimeValue.timeValueMinutes(4).millis());
-    assertEquals(
-        PPLAsyncQueryService.Status.RUNNING,
-        service.get(id, OWNER, TimeValue.timeValueMinutes(5)).status());
-
-    now.addAndGet(TimeValue.timeValueMinutes(4).millis());
-    assertEquals(PPLAsyncQueryService.Status.RUNNING, service.get(id, OWNER, null).status());
-
-    now.addAndGet(TimeValue.timeValueMinutes(1).millis() + 1);
-    assertThrows(ResourceNotFoundException.class, () -> service.get(id, OWNER, null));
-    verify(task).cancel("PPL asynchronous query expired");
   }
 
   @Test
@@ -228,8 +209,8 @@ public class PPLAsyncQueryServiceTest {
 
     PPLAsyncQueryService.DeleteResult result = service.delete(id, OWNER);
 
-    assertEquals(id, result.id());
-    assertEquals(PPLAsyncQueryService.Status.CANCELLED, result.status());
+    assertEquals(
+        new PPLAsyncQueryService.DeleteResult(id, PPLAsyncQueryService.Status.CANCELLED), result);
     verify(task).cancel("PPL asynchronous query cancelled by user");
     assertEquals(1, execution.closes.get());
     assertThrows(ResourceNotFoundException.class, () -> service.get(id, OWNER, null));
@@ -246,7 +227,8 @@ public class PPLAsyncQueryServiceTest {
 
     PPLAsyncQueryService.DeleteResult result = service.delete(id, OWNER);
 
-    assertEquals(PPLAsyncQueryService.Status.SUCCEEDED, result.status());
+    assertEquals(
+        new PPLAsyncQueryService.DeleteResult(id, PPLAsyncQueryService.Status.SUCCEEDED), result);
     verify(task, never()).cancel(org.mockito.ArgumentMatchers.anyString());
     assertEquals(1, execution.closes.get());
     assertEquals(0, service.retainedJobCount());
@@ -546,8 +528,10 @@ public class PPLAsyncQueryServiceTest {
     execution.succeed(response(2));
     startQuery(service, null, TimeValue.timeValueSeconds(5), execution, listener(result::set));
 
-    assertEquals(PPLAsyncQueryService.Status.SUCCEEDED, result.get().status());
-    assertEquals(2, result.get().response().getResults().size());
+    assertEquals(
+        new PPLAsyncQueryService.JobSnapshot(
+            null, PPLAsyncQueryService.Status.SUCCEEDED, response(2), null, 0),
+        result.get());
     assertEquals(1, execution.closes.get());
   }
 
@@ -560,9 +544,14 @@ public class PPLAsyncQueryServiceTest {
     execution.setCurrent(response(3));
     PPLAsyncQueryService.JobSnapshot second = service.get(id, OWNER, null);
 
-    assertEquals(PPLAsyncQueryService.Status.RUNNING, first.status());
-    assertEquals(1, first.response().getResults().size());
-    assertEquals(3, second.response().getResults().size());
+    assertEquals(
+        new PPLAsyncQueryService.JobSnapshot(
+            id, PPLAsyncQueryService.Status.RUNNING, response(1), null, -1),
+        first);
+    assertEquals(
+        new PPLAsyncQueryService.JobSnapshot(
+            id, PPLAsyncQueryService.Status.RUNNING, response(3), null, -1),
+        second);
   }
 
   @Test
@@ -577,9 +566,14 @@ public class PPLAsyncQueryServiceTest {
       execution.fail(new IllegalStateException("boom"));
       PPLAsyncQueryService.JobSnapshot failed = service.get(id, OWNER, null);
 
-      assertEquals(PPLAsyncQueryService.Status.FAILED, failed.status());
-      assertEquals("boom", failed.failure().reason());
-      assertNull(failed.response());
+      assertEquals(
+          new PPLAsyncQueryService.JobSnapshot(
+              id,
+              PPLAsyncQueryService.Status.FAILED,
+              null,
+              new PPLAsyncQueryService.Failure("IllegalStateException", "boom"),
+              0),
+          failed);
       assertEquals(0, execution.reads.get());
       assertEquals(1, execution.closes.get());
     } finally {
