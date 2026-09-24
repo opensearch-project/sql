@@ -168,6 +168,7 @@ dependencies {
     api project(':datasources')
     api project(':async-query')
     api project(':direct-query')
+    implementation "org.opensearch:common-utils:${opensearch_build}"
 
     testImplementation group: 'net.bytebuddy', name: 'byte-buddy-agent', version: '1.15.11'
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: "${hamcrest_version}"

@@ -36,6 +36,8 @@ import org.opensearch.sql.utils.DeserializationFilterUtil;
 /** Setting implementation on OpenSearch. */
 @Log4j2
 public class OpenSearchSettings extends Settings {
+  private static final TimeValue MAX_PPL_ASYNC_KEEP_ALIVE = TimeValue.timeValueHours(24);
+
   /** Default settings. */
   private final Map<Settings.Key, Setting<?>> defaultSettings;
 
@@ -83,6 +85,42 @@ public class OpenSearchSettings extends Settings {
       Setting.positiveTimeSetting(
           Key.PPL_QUERY_TIMEOUT.getKeyValue(),
           TimeValue.timeValueSeconds(300),
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  /** Maximum number of asynchronous PPL queries running concurrently on one node. */
+  public static final Setting<Integer> PPL_ASYNC_NODE_CONCURRENT_RUNNING_QUERIES_SETTING =
+      Setting.intSetting(
+          Key.PPL_ASYNC_NODE_CONCURRENT_RUNNING_QUERIES.getKeyValue(),
+          20,
+          1,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  /** Maximum number of asynchronous PPL jobs retained on one node. */
+  public static final Setting<Integer> PPL_ASYNC_MAX_RETAINED_JOBS_SETTING =
+      Setting.intSetting(
+          Key.PPL_ASYNC_MAX_RETAINED_JOBS.getKeyValue(),
+          100,
+          1,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  /** Maximum accepted submit wait-for-completion timeout. */
+  public static final Setting<TimeValue> PPL_ASYNC_MAX_WAIT_FOR_COMPLETION_TIMEOUT_SETTING =
+      Setting.positiveTimeSetting(
+          Key.PPL_ASYNC_MAX_WAIT_FOR_COMPLETION_TIMEOUT.getKeyValue(),
+          TimeValue.timeValueSeconds(60),
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  /** Configurable asynchronous PPL job lease limit, capped at 24 hours. */
+  public static final Setting<TimeValue> PPL_ASYNC_MAX_KEEP_ALIVE_SETTING =
+      Setting.timeSetting(
+          Key.PPL_ASYNC_MAX_KEEP_ALIVE.getKeyValue(),
+          MAX_PPL_ASYNC_KEEP_ALIVE,
+          TimeValue.ZERO,
+          MAX_PPL_ASYNC_KEEP_ALIVE,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
@@ -447,6 +485,30 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.PPL_ASYNC_NODE_CONCURRENT_RUNNING_QUERIES,
+        PPL_ASYNC_NODE_CONCURRENT_RUNNING_QUERIES_SETTING,
+        new Updater(Key.PPL_ASYNC_NODE_CONCURRENT_RUNNING_QUERIES));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.PPL_ASYNC_MAX_RETAINED_JOBS,
+        PPL_ASYNC_MAX_RETAINED_JOBS_SETTING,
+        new Updater(Key.PPL_ASYNC_MAX_RETAINED_JOBS));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.PPL_ASYNC_MAX_WAIT_FOR_COMPLETION_TIMEOUT,
+        PPL_ASYNC_MAX_WAIT_FOR_COMPLETION_TIMEOUT_SETTING,
+        new Updater(Key.PPL_ASYNC_MAX_WAIT_FOR_COMPLETION_TIMEOUT));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.PPL_ASYNC_MAX_KEEP_ALIVE,
+        PPL_ASYNC_MAX_KEEP_ALIVE_SETTING,
+        new Updater(Key.PPL_ASYNC_MAX_KEEP_ALIVE));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.PPL_SYNTAX_LEGACY_PREFERRED,
         PPL_SYNTAX_LEGACY_PREFERRED_SETTING,
         new Updater(Key.PPL_SYNTAX_LEGACY_PREFERRED));
@@ -767,6 +829,10 @@ public class OpenSearchSettings extends Settings {
         .add(DESERIALIZATION_MAX_BYTES_SETTING)
         .add(PPL_ENABLED_SETTING)
         .add(PPL_QUERY_TIMEOUT_SETTING)
+        .add(PPL_ASYNC_NODE_CONCURRENT_RUNNING_QUERIES_SETTING)
+        .add(PPL_ASYNC_MAX_RETAINED_JOBS_SETTING)
+        .add(PPL_ASYNC_MAX_WAIT_FOR_COMPLETION_TIMEOUT_SETTING)
+        .add(PPL_ASYNC_MAX_KEEP_ALIVE_SETTING)
         .add(PPL_SYNTAX_LEGACY_PREFERRED_SETTING)
         .add(CALCITE_ENGINE_ENABLED_SETTING)
         .add(CALCITE_FALLBACK_ALLOWED_SETTING)

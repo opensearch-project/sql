@@ -20,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.executor.AsyncQueryExecution;
 import org.opensearch.sql.executor.DefaultQueryManager;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
@@ -113,6 +114,27 @@ public class PPLServiceTest {
         new PPLQueryRequest("search source=t a=1", null, QUERY),
         getQueryListener(false),
         getExplainListener(false));
+  }
+
+  @Test
+  public void testExecuteAsyncReturnsCompletedFinalResult() {
+    QueryResponse response = new QueryResponse(schema, Collections.emptyList(), Cursor.None);
+    doAnswer(
+            invocation -> {
+              ResponseListener<QueryResponse> listener = invocation.getArgument(4);
+              listener.onResponse(response);
+              return null;
+            })
+        .when(queryService)
+        .execute(any(), any(), any(), anyBoolean(), any());
+
+    AsyncQueryExecution execution =
+        pplService.executeAsync(
+            new PPLQueryRequest("search source=t a=1", null, QUERY),
+            PPLService.NO_ANONYMIZED_QUERY_SINK);
+
+    execution.completion().toCompletableFuture().join();
+    Assert.assertSame(response, execution.currentResult().orElseThrow());
   }
 
   @Test
