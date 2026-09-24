@@ -84,6 +84,10 @@ public class PPLAsyncQueryJobTest {
         direct.response());
     assertSame(fixture.task(), direct.task());
     assertEquals(Optional.of(fixture.execution()), direct.executionToClose());
+
+    // A direct failure removes the job: later completion is ignored and GET returns not found.
+    assertNull(fixture.job().complete(COMPLETION_TIME + 1));
+    assertThrows(ResourceNotFoundException.class, () -> fixture.job().get(COMPLETION_TIME, null));
   }
 
   @Test
