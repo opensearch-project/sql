@@ -864,6 +864,11 @@ public enum Capability {
       "Request-level time-bounds index pruning before schema resolution is applied on the"
           + " OpenSearch route only; the analytics-engine route resolves the unpruned pattern."),
 
+  /** GeoIP enrichment is not supported on the analytics-engine (Mustang) route. */
+  ANALYTICS_GEOIP_DATASOURCE(
+      "GeoIP enrichment is unavailable on the analytics-engine (Mustang) route because that"
+          + " runtime does not support the geospatial/ip2geo datasource."),
+
   /** Combining the result rows of two or more queries with a SQL set operator. */
   SET_OPERATION("SQL set operations are unsupported.");
 
