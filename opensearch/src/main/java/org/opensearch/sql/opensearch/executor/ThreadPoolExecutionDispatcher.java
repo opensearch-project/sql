@@ -42,6 +42,8 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
 
   private static final Logger LOG = LogManager.getLogger(ThreadPoolExecutionDispatcher.class);
 
+  private static final String QUERY_INSIGHTS_PARENT_HEADER = "X-Query-Insights-Parent";
+
   private final ThreadPool threadPool;
   private final Settings settings;
 
@@ -69,6 +71,8 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
       // Capture thread-local state to propagate across thread boundary
       Map<String, String> ctx = ThreadContext.getImmutableContext();
       CancellableTask cancellableTask = OpenSearchQueryManager.getCancellableTask();
+      // Carry the parent-marker header to the complex-worker thread, else join scans go untagged.
+      String parentMarker = threadPool.getThreadContext().getHeader(QUERY_INSIGHTS_PARENT_HEADER);
       ProfileContext profileContext = QueryProfiling.current();
       CalcitePlanContext.ThreadLocalSnapshot snapshot = CalcitePlanContext.snapshotThreadLocals();
       @Nullable JaninoRelMetadataProvider metadataProvider =
@@ -91,10 +95,18 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
                     ThreadPool.Names.GENERIC);
             Cancellable cancelPoller = scheduleCancellationPoller(cancellableTask, executionThread);
             Hook.Closeable hookHandle = null;
+            boolean trackResources = false;
+            long trackedThreadId = -1L;
+            boolean trackingStarted = false;
             try {
               // Restore state from caller thread
               ThreadContext.putAll(ctx);
               OpenSearchQueryManager.setCancellableTask(cancellableTask);
+              if (parentMarker != null
+                  && threadPool.getThreadContext().getHeader(QUERY_INSIGHTS_PARENT_HEADER)
+                      == null) {
+                threadPool.getThreadContext().putHeader(QUERY_INSIGHTS_PARENT_HEADER, parentMarker);
+              }
               QueryProfiling.set(profileContext);
               CalcitePlanContext.restoreThreadLocals(snapshot);
               // Override execution pool to indicate complex pool
@@ -106,6 +118,14 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
                 hookHandle =
                     Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(currentTime));
               }
+              // Script plans do their real work on this thread, so bracket tracking here.
+              trackResources =
+                  cancellableTask != null && cancellableTask.supportsResourceTracking();
+              trackedThreadId = Thread.currentThread().getId();
+              trackingStarted =
+                  trackResources
+                      && OpenSearchQueryManager.startThreadResourceTracking(
+                          cancellableTask, trackedThreadId);
               task.run();
             } catch (Exception e) {
               LOG.error("Exception during task execution on complex pool", e);
@@ -118,6 +138,9 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
               Thread.interrupted();
               if (hookHandle != null) {
                 hookHandle.close();
+              }
+              if (trackingStarted) {
+                OpenSearchQueryManager.stopThreadResourceTracking(cancellableTask, trackedThreadId);
               }
               OpenSearchQueryManager.clearCancellableTask();
               RelMetadataQueryBase.THREAD_PROVIDERS.remove();
