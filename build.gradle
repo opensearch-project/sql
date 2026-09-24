@@ -137,6 +137,12 @@ allprojects {
             sourceCompatibility = JavaVersion.VERSION_21
             targetCompatibility = JavaVersion.VERSION_21
         }
+
+        // Pin source-file encoding so multi-byte characters (e.g. CJK/emoji in tests) are decoded
+        // deterministically regardless of the build host's default charset.
+        tasks.withType(JavaCompile).configureEach {
+            options.encoding = 'UTF-8'
+        }
     }
 
     tasks.withType(Test) {

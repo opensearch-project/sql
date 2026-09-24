@@ -643,6 +643,13 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
         "source=EMP | eval label = '你好', tag = 'ok' | where ENAME = 'MILLER' | fields ENAME,"
             + " label, tag";
     RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(ENAME=[$1], label=[$8], tag=[$9])\n"
+            + "  LogicalFilter(condition=[=($1, 'MILLER':VARCHAR)])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], label=['你好':VARCHAR], tag=['ok':VARCHAR])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
     verifyResultCount(root, 1);
   }
 
@@ -654,6 +661,13 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
         "source=EMP | eval label = if(SAL > 2000, '高', 'low') | where ENAME = 'MILLER' | fields"
             + " label";
     RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(label=[$8])\n"
+            + "  LogicalFilter(condition=[=($1, 'MILLER':VARCHAR)])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], label=[CASE(>($5, 2000), '高', 'low':VARCHAR)])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
     verifyResultCount(root, 1);
   }
 
@@ -663,6 +677,11 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
     String ppl =
         "source=EMP | where ENAME = 'MILLER' | eval label = concat(ENAME, '・你好') | fields label";
     RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(label=[CONCAT($1, '・你好':VARCHAR)])\n"
+            + "  LogicalFilter(condition=[=($1, 'MILLER':VARCHAR)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
     verifyResultCount(root, 1);
   }
 }
