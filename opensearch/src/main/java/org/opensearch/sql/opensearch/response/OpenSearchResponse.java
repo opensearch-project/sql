@@ -60,6 +60,13 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
 
   private final boolean isCountAgg;
 
+  /**
+   * Shard-level outcome of the search that produced this response, so a consumer can tell a
+   * complete answer from one covering only the shards that replied. Excluded from equality: it
+   * describes how the rows were obtained, not what they are.
+   */
+  @Getter @EqualsAndHashCode.Exclude private final ShardStats shardStats;
+
   /** OpenSearchExprValueFactory used to build ExprValue from search result. */
   @EqualsAndHashCode.Exclude private final OpenSearchExprValueFactory exprValueFactory;
 
@@ -87,6 +94,7 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
     this.exprValueFactory = exprValueFactory;
     this.includes = includes;
     this.isCountAgg = isCountAgg;
+    this.shardStats = ShardStats.from(searchResponse);
   }
 
   /** Constructor of OpenSearchResponse with SearchHits. */
@@ -100,6 +108,8 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
     this.exprValueFactory = exprValueFactory;
     this.includes = includes;
     this.isCountAgg = isCountAgg;
+    // No SearchResponse to read the shard outcome from (an exhausted or synthesized page).
+    this.shardStats = ShardStats.UNKNOWN;
   }
 
   /**
