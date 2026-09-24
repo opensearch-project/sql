@@ -23,7 +23,10 @@ jobs:
     needs: Get-CI-Image-Tag
     runs-on: ubuntu-latest
     container:
-      image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
+      # The analytics-engine native library (libopensearch_native.so from the feature-datafusion
+      # build) is compiled against glibc 2.28 and cannot dlopen on the default al2 ci-runner
+      # (glibc 2.26). Pin the almalinux8 ci-runner (glibc 2.28) so the node can load it at boot.
+      image: public.ecr.aws/opensearchstaging/ci-runner:ci-runner-almalinux8-opensearch-build-v1.14
       options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}
 
     steps:
