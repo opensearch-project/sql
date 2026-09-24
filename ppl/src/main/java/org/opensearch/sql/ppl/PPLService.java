@@ -18,6 +18,7 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.executor.AnalyzeResponse;
+import org.opensearch.sql.executor.AsyncQueryExecution;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.QueryType;
@@ -86,6 +87,40 @@ public class PPLService {
     } catch (Exception e) {
       queryListener.onFailure(e);
     }
+  }
+
+  /**
+   * Starts query execution and immediately returns its lifecycle-facing handle.
+   *
+   * <p>The existing callback execution remains internal to the PPL execution module. This
+   * final-only implementation exposes no current result until the callback publishes the
+   * authoritative response.
+   *
+   * @param request PPL query request
+   * @param anonymizedQuerySink receives anonymized query text for metrics
+   * @return lifecycle-facing asynchronous execution handle
+   */
+  public AsyncQueryExecution executeAsync(
+      PPLQueryRequest request, Consumer<String> anonymizedQuerySink) {
+    DefaultAsyncQueryExecution execution = new DefaultAsyncQueryExecution();
+    execute(
+        request,
+        execution,
+        new ResponseListener<>() {
+          @Override
+          public void onResponse(ExplainResponse response) {
+            execution.onFailure(
+                new IllegalStateException(
+                    "Asynchronous query execution received an explain response"));
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            execution.onFailure(e);
+          }
+        },
+        anonymizedQuerySink);
+    return execution;
   }
 
   /**

@@ -38,6 +38,18 @@ public abstract class Settings {
     PPL_JOIN_SUBSEARCH_MAXOUT("plugins.ppl.join.subsearch_maxout"),
     PPL_REST_ALLOWED_ENDPOINTS("plugins.ppl.rest.allowed_endpoints"),
 
+    /** Maximum number of asynchronous PPL queries running concurrently on one node. */
+    PPL_ASYNC_NODE_CONCURRENT_RUNNING_QUERIES("plugins.ppl.async.node_concurrent_running_queries"),
+
+    /** Maximum number of asynchronous PPL jobs retained on one node. */
+    PPL_ASYNC_MAX_RETAINED_JOBS("plugins.ppl.async.max_retained_jobs"),
+
+    /** Maximum accepted submit wait-for-completion timeout. */
+    PPL_ASYNC_MAX_WAIT_FOR_COMPLETION_TIMEOUT("plugins.ppl.async.max_wait_for_completion_timeout"),
+
+    /** Maximum accepted asynchronous PPL job lease. */
+    PPL_ASYNC_MAX_KEEP_ALIVE("plugins.ppl.async.max_keep_alive"),
+
     /** Enable Calcite as execution engine */
     CALCITE_ENGINE_ENABLED("plugins.calcite.enabled"),
     CALCITE_FALLBACK_ALLOWED("plugins.calcite.fallback.allowed"),
