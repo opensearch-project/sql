@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -152,7 +153,12 @@ public class QualifiedNameResolver {
 
         Optional<RexNode> fieldNode = tryToResolveField(alias, field, context, inputCount);
         if (fieldNode.isPresent()) {
-          return Optional.of(resolveFieldAccess(context, parts, 1, length, fieldNode.get(), false));
+          RexNode resolved = resolveFieldAccess(context, parts, 1, length, fieldNode.get(), false);
+          if (resolved != null) {
+            return Optional.of(resolved);
+          }
+          // Null on a failed descent; keep walking shorter prefixes, as resolveFromParts does.
+          // Wrapping it in Optional.of here threw an NPE on `source=t as d | fields d.city.nope`.
         }
       }
     }
@@ -203,7 +209,12 @@ public class QualifiedNameResolver {
     // would silently resolve it again and return null instead of reporting the field as gone.
     List<String> split = new ArrayList<>(parts.size());
     for (String part : parts) {
-      split.addAll(List.of(part.split("\\.")));
+      for (String segment : part.split("\\.")) {
+        // `a..b` or a trailing dot yields empty segments, which can never name a field.
+        if (!segment.isEmpty()) {
+          split.add(segment);
+        }
+      }
     }
     if (split.size() != parts.size()) {
       return resolveFromParts(split, context, inputCount, inputFieldNames, true);
@@ -326,7 +337,12 @@ public class QualifiedNameResolver {
                   log.debug("resolveCorrelationField() trying fieldName={}", fieldName);
                   if (fieldNameList.contains(fieldName)) {
                     RexNode field = context.relBuilder.field(correlation, fieldName);
-                    return resolveFieldAccess(context, parts, start, length, field, false);
+                    RexNode resolved =
+                        resolveFieldAccess(context, parts, start, length, field, false);
+                    if (resolved != null) {
+                      return resolved;
+                    }
+                    // Null on a failed descent; keep trying shorter prefixes.
                   }
                 }
               }
@@ -380,6 +396,12 @@ public class QualifiedNameResolver {
       // "Field [...] not found" instead.
       return null;
     }
+    if (!supportsItemAccess(current.getType())) {
+      // The path ran past the end of the object: `city.name` is a VARCHAR, and an ITEM key on one
+      // throws the same AssertionError. Narrower than rejecting any leftover once a ROW was
+      // entered, so a flat_object map inside an object can still be keyed into.
+      return null;
+    }
     if (structDescentOnly) {
       // Reached only from the split retry of a quoted dotted name. The leftover would become a map
       // key, which is not what the quoted name asked for, so report it unresolved.
@@ -387,6 +409,20 @@ public class QualifiedNameResolver {
     }
     return createItemAccess(
         current, joinParts(parts, remaining, parts.size() - remaining), context);
+  }
+
+  /** The types {@code SqlItemOperator} accepts; on anything else it throws an {@code Error}. */
+  private static boolean supportsItemAccess(RelDataType type) {
+    switch (type.getSqlTypeName()) {
+      case ARRAY:
+      case MAP:
+      case ROW:
+      case ANY:
+      case DYNAMIC_STAR:
+        return true;
+      default:
+        return false;
+    }
   }
 
   private static RexNode createItemAccess(

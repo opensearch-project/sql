@@ -40,6 +40,7 @@ public class CalcitePPLStructFieldTest extends CalcitePPLAbstractTest {
     SchemaPlus root = Frameworks.createRootSchema(true);
     SchemaPlus schema = root.add("structs", new ReflectiveSchema(new Docs()));
     schema.add("maps", new TableWithMap());
+    schema.add("structmaps", new TableWithStructAndMap());
     return Frameworks.newConfigBuilder()
         .parserConfig(SqlParser.Config.DEFAULT)
         .defaultSchema(schema)
@@ -162,6 +163,85 @@ public class CalcitePPLStructFieldTest extends CalcitePPLAbstractTest {
     assertTrue(
         "expected a not-found for the quoted name, got: " + thrown,
         String.valueOf(thrown.getMessage()).contains("data.custom"));
+  }
+
+  /**
+   * A path that continues past the end of the object is a not-found, not a 500.
+   *
+   * <p>{@code city.name} is a VARCHAR, so descent stops having left the ROW behind. Rejecting the
+   * leftover only while still standing on a ROW let this fall through to {@code ITEM(VARCHAR,
+   * 'bogus')}, and {@code SqlItemOperator} accepts only ARRAY / MAP / ROW / ANY / VARIANT --
+   * anything else throws a bare {@code AssertionError}, which escapes {@code catch (Exception)} as
+   * a 500.
+   */
+  @Test
+  public void testLeftoverPathAfterLeavingTheStructIsNotFound() {
+    Throwable thrown =
+        assertThrows(Throwable.class, () -> getRelNode("source=docs | fields city.name.bogus"));
+    assertFalse(
+        "a path running past a scalar must not surface as an AssertionError, got: " + thrown,
+        thrown instanceof AssertionError);
+    assertTrue(
+        "expected a not-found naming the field, got: " + thrown,
+        String.valueOf(thrown.getMessage()).contains("city.name.bogus"));
+  }
+
+  /**
+   * The guard above is deliberately narrower than "reject any leftover once a ROW was entered".
+   *
+   * <p>A {@code flat_object} inside an {@code object} is a MAP child of the struct, so the path
+   * legitimately descends the ROW and then keys into the map. The rule is "reject a leftover the
+   * type cannot address", not "reject any leftover".
+   */
+  @Test
+  public void testMapInsideAStructStillTakesTheRemainderAsAnItemKey() {
+    RelNode root = getRelNode("source=structmaps | fields city.meta.region");
+    verifyLogical(
+        root,
+        ""
+            + "LogicalProject(city.meta.region=[ITEM($1.meta, 'region')])\n"
+            + "  LogicalTableScan(table=[[structs, structmaps]])\n");
+  }
+
+  /**
+   * A failed descent reached through a table alias is a not-found, not an NPE.
+   *
+   * <p>{@code resolveFieldAccess} returns null for a path that stops inside a ROW. The alias branch
+   * wrapped its result in {@code Optional.of} regardless, so a qualified miss threw. The alias
+   * branch runs before the unqualified walk, so it is the one a qualified path hits first.
+   */
+  @Test
+  public void testFailedDescentThroughTheAliasPathIsNotFound() {
+    Throwable thrown =
+        assertThrows(Throwable.class, () -> getRelNode("source=docs as d | fields d.city.nope"));
+    assertFalse(
+        "a failed descent through an alias must not surface as an NPE, got: " + thrown,
+        thrown instanceof NullPointerException);
+    assertTrue(
+        "expected a not-found naming the field, got: " + thrown,
+        String.valueOf(thrown.getMessage()).contains("city.nope"));
+  }
+
+  /** A struct with a MAP child, which is how a {@code flat_object} inside an object is declared. */
+  private static class TableWithStructAndMap extends AbstractTable {
+    @Override
+    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      RelDataType varchar = typeFactory.createSqlType(SqlTypeName.VARCHAR);
+      RelDataType city =
+          typeFactory
+              .builder()
+              .add("name", varchar)
+              .add(
+                  "meta",
+                  typeFactory.createTypeWithNullability(
+                      typeFactory.createMapType(varchar, varchar), true))
+              .build();
+      return typeFactory
+          .builder()
+          .add("id", typeFactory.createSqlType(SqlTypeName.INTEGER))
+          .add("city", typeFactory.createTypeWithNullability(city, true))
+          .build();
+    }
   }
 
   /** A table with a MAP column, the shape the ReflectiveSchema fixture above cannot express. */
