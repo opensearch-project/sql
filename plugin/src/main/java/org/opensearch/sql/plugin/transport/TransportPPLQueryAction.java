@@ -194,13 +194,6 @@ public class TransportPPLQueryAction
     // in order to use PPL service, we need to convert TransportPPLQueryRequest to PPLQueryRequest
     PPLQueryRequest transformedRequest = transportRequest.toPPLQueryRequest();
     QueryContext.setProfile(transformedRequest.profile());
-    // Only the JSON shape carries warnings; gate partial results on it so CSV/RAW/VIZ never drop
-    // data silently. Carried on the request (not Log4j ThreadContext) so it survives the
-    // transport→worker handoff, which the security plugin's interceptor does not preserve.
-    transformedRequest.warningsSupported(warningsSupported(transformedRequest));
-    // The per-request partial-result override (e.g. a Dashboards toggle) rides on the request →
-    // plan → worker thread (see PPLService/QueryPlan), not Log4j ThreadContext, for the same
-    // handoff-survival reason as warningsSupported. null defers to the cluster setting.
 
     // Start root span with OTel DB semantic convention attributes
     Span rootSpan =
@@ -404,22 +397,6 @@ public class TransportPPLQueryAction
       throw new IllegalArgumentException(
           String.format(Locale.ROOT, "response in %s format is not supported.", format));
     }
-  }
-
-  /**
-   * Whether the requested response format carries a warnings channel. Only the JSON shape (built by
-   * {@code SimpleJsonResponseFormatter} -- the fallback for anything that is not CSV/RAW/VIZ) emits
-   * warnings; the others have no slot for them. Mirrors the format branching in {@link
-   * #createListener}. Explain requests are excluded up front: their {@code format} is an
-   * explain-only value (e.g. {@code json}/{@code yaml}) that {@link #format} cannot resolve, and an
-   * explain response never carries query warnings.
-   */
-  private boolean warningsSupported(PPLQueryRequest pplRequest) {
-    if (pplRequest.isExplainRequest()) {
-      return false;
-    }
-    Format format = format(pplRequest);
-    return !(format.equals(Format.CSV) || format.equals(Format.RAW) || format.equals(Format.VIZ));
   }
 
   private ActionListener<TransportPPLQueryResponse> wrapWithProfilingClear(
