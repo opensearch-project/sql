@@ -13,13 +13,9 @@ import static org.opensearch.sql.util.TestUtils.isIndexExist;
 import static org.opensearch.sql.util.TestUtils.performRequest;
 
 import java.io.IOException;
-import java.util.Locale;
-import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Test;
 import org.opensearch.client.Request;
-import org.opensearch.client.RequestOptions;
-import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.util.ClusterPlugins;
@@ -155,29 +151,6 @@ public class TimeBoundsPruningSecurityIT extends SecurityTestBase {
             + " | stats count()";
 
     verifyDataRows(executeQueryAsUserWithBounds(wide, USER, "ts", from, to), rows(3));
-  }
-
-  /** Like {@link #executeQueryAsUser}, but also sends the per-request time bounds. */
-  private JSONObject executeQueryAsUserWithBounds(
-      String query, String username, String timeField, String start, String end)
-      throws IOException {
-    Request request = new Request("POST", "/_plugins/_ppl");
-    request.setJsonEntity(
-        String.format(
-            Locale.ROOT,
-            "{ \"query\": \"%s\", \"time_field\": \"%s\", \"start_time\": \"%s\","
-                + " \"end_time\": \"%s\" }",
-            query,
-            timeField,
-            start,
-            end));
-    RequestOptions.Builder options = RequestOptions.DEFAULT.toBuilder();
-    options.addHeader("Content-Type", "application/json");
-    options.addHeader("Authorization", createBasicAuthHeader(username, STRONG_PASSWORD));
-    request.setOptions(options);
-    Response response = client().performRequest(request);
-    assertEquals(200, response.getStatusLine().getStatusCode());
-    return new JSONObject(org.opensearch.sql.legacy.TestUtils.getResponseBody(response, true));
   }
 
   private void setPruning(boolean enabled) throws IOException {

@@ -23,6 +23,12 @@ public class Warning {
    */
   public static final String TYPE_PARTIAL_RESULT = "PARTIAL_RESULT";
 
+  /**
+   * The result covers only the shards that responded. Distinct from {@link #TYPE_PARTIAL_RESULT}:
+   * the engine narrowed nothing, so the remedy is retry rather than rerun-without-partial.
+   */
+  public static final String TYPE_PARTIAL_RESULT_SHARD_FAILURE = "PARTIAL_RESULT_SHARD_FAILURE";
+
   /** Machine-readable category, e.g. {@link #TYPE_PARTIAL_RESULT}. */
   private final String type;
 
