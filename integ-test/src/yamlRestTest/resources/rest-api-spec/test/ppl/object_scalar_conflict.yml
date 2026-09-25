@@ -1,0 +1,176 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  # `labels.zone` is a keyword in one index and an object in the other, as happens when a
+  # mapping changes at a rollover boundary. The wildcard below spans both, so the merge has to
+  # pick one type; it must pick the same one on every node and every request.
+  - do:
+      indices.create:
+        index: conflict_scalar
+        body:
+          mappings:
+            properties:
+              "@timestamp":
+                type: date
+              labels:
+                properties:
+                  zone:
+                    type: keyword
+  - do:
+      indices.create:
+        index: conflict_object
+        body:
+          mappings:
+            properties:
+              "@timestamp":
+                type: date
+              labels:
+                properties:
+                  zone:
+                    properties:
+                      name:
+                        type: keyword
+  - do:
+      indices.create:
+        index: zone_text_only
+        body:
+          mappings:
+            properties:
+              "@timestamp":
+                type: date
+              labels:
+                properties:
+                  zone:
+                    type: text
+  - do:
+      bulk:
+        index: zone_text_only
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"@timestamp": "2026-01-01T00:03:00Z", "labels": {"zone": "z4"}}'
+  - do:
+      bulk:
+        index: conflict_scalar
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"@timestamp": "2026-01-01T00:01:00Z", "labels": {"zone": "z1"}}'
+          - '{"index": {}}'
+          - '{"@timestamp": "2026-01-01T00:01:30Z", "labels": {"zone": "z2"}}'
+  - do:
+      bulk:
+        index: conflict_object
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"@timestamp": "2026-01-01T00:02:00Z", "labels": {"zone": {"name": "z3"}}}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+  - do:
+      indices.delete:
+        index: conflict_scalar
+        ignore: 404
+  - do:
+      indices.delete:
+        index: conflict_object
+        ignore: 404
+  - do:
+      indices.delete:
+        index: zone_text_only
+        ignore: 404
+
+---
+"a path that is an object in one index and a scalar in another resolves to the scalar":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=conflict_* | sort `@timestamp` | fields `labels.zone`"
+  - match: {"schema": [{"name": "labels.zone", "type": "string"}]}
+  - match: {"total": 3}
+  - match: {"datarows.0": ["z1"]}
+  - match: {"datarows.1": ["z2"]}
+
+---
+"grouping by the conflicting path returns the scalar values, with the object side in the missing bucket":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=conflict_* | stats count() by `labels.zone` | sort `labels.zone`"
+  - match: {"schema": [{"name": "count()", "type": "bigint"}, {"name": "labels.zone", "type": "string"}]}
+  - match: {"datarows": [[1, null], [1, "z1"], [1, "z2"]]}
+
+---
+"timechart can split by the conflicting path":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=conflict_* | timechart span=1m count() by `labels.zone`"
+  - match: {"schema": [{"name": "@timestamp", "type": "timestamp"}, {"name": "labels.zone", "type": "string"}, {"name": "count()", "type": "bigint"}]}
+  - match: {"total": 3}
+
+---
+"the sub-fields of the object side are dropped with it":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=conflict_* | fields `labels.zone.name`"
+  - match: {"$body": "/Field\\s+.labels.zone.name.\\s+not\\s+found/"}
+
+---
+"the sub-fields are still available when the object-mapped index is queried directly":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=conflict_object | fields `labels.zone.name`"
+  - match: {"schema": [{"name": "labels.zone.name", "type": "string"}]}
+  - match: {"datarows": [["z3"]]}
+
+---
+"a text mapping also wins the path against an object":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=zone_text_only,conflict_object | fields `labels.zone`"
+  - match: {"schema": [{"name": "labels.zone", "type": "string"}]}
+  - match: {"total": 2}
