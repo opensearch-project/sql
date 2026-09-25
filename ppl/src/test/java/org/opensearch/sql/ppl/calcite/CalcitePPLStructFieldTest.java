@@ -13,8 +13,12 @@ import java.util.List;
 import org.apache.calcite.adapter.java.ReflectiveSchema;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.CalciteAssert;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
@@ -35,6 +39,7 @@ public class CalcitePPLStructFieldTest extends CalcitePPLAbstractTest {
   protected Frameworks.ConfigBuilder config(CalciteAssert.SchemaSpec... schemaSpecs) {
     SchemaPlus root = Frameworks.createRootSchema(true);
     SchemaPlus schema = root.add("structs", new ReflectiveSchema(new Docs()));
+    schema.add("maps", new TableWithMap());
     return Frameworks.newConfigBuilder()
         .parserConfig(SqlParser.Config.DEFAULT)
         .defaultSchema(schema)
@@ -117,6 +122,54 @@ public class CalcitePPLStructFieldTest extends CalcitePPLAbstractTest {
     assertTrue(
         "expected a not-found naming the field, got: " + thrown,
         String.valueOf(thrown.getMessage()).contains("city.nonexistent"));
+  }
+
+  /**
+   * An unquoted dotted path over a MAP still becomes one ITEM key, which is what the v2 path needs
+   * since it stores objects flattened.
+   */
+  @Test
+  public void testDottedPathOverAMapIsStillOneItemKey() {
+    RelNode root = getRelNode("source=maps | fields data.custom");
+    verifyLogical(
+        root,
+        ""
+            + "LogicalProject(data.custom=[ITEM($1, 'custom')])\n"
+            + "  LogicalTableScan(table=[[structs, maps]])\n");
+  }
+
+  /**
+   * A quoted dotted name over a MAP must stay unresolved rather than being split into a map key.
+   *
+   * <p>Splitting is for reaching into a ROW, where a dotted name is a path. Over a MAP the literal
+   * lookup is already the right question, and code above relies on the negative answer: when a
+   * container column is rebuilt its dotted subtree is shed, so a `data.custom` created in between
+   * is meant to be gone. Splitting it back into {@code ITEM(data, 'custom')} would resolve it again
+   * and quietly return null instead of reporting the field as missing.
+   */
+  @Test
+  public void testQuotedDottedNameOverAMapIsNotSplit() {
+    Throwable thrown =
+        assertThrows(Throwable.class, () -> getRelNode("source=maps | fields `data.custom`"));
+    assertTrue(
+        "expected a not-found for the quoted name, got: " + thrown,
+        String.valueOf(thrown.getMessage()).contains("data.custom"));
+  }
+
+  /** A table with a MAP column, the shape the ReflectiveSchema fixture above cannot express. */
+  private static class TableWithMap extends AbstractTable {
+    @Override
+    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      RelDataType varchar = typeFactory.createSqlType(SqlTypeName.VARCHAR);
+      return typeFactory
+          .builder()
+          .add("id", typeFactory.createSqlType(SqlTypeName.INTEGER))
+          .add(
+              "data",
+              typeFactory.createTypeWithNullability(
+                  typeFactory.createMapType(varchar, varchar), true))
+          .build();
+    }
   }
 
   /** Test fixtures: a document with a nested object, which ReflectiveSchema declares as a ROW. */

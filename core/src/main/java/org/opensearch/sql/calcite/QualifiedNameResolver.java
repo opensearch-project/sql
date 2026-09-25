@@ -152,7 +152,8 @@ public class QualifiedNameResolver {
 
         Optional<RexNode> fieldNode = tryToResolveField(alias, field, context, inputCount);
         if (fieldNode.isPresent()) {
-          return Optional.of(resolveFieldAccess(context, parts, 1, length, fieldNode.get()));
+          return Optional.of(
+              resolveFieldAccess(context, parts, 1, length, fieldNode.get(), false));
         }
       }
     }
@@ -182,7 +183,8 @@ public class QualifiedNameResolver {
     List<Set<String>> inputFieldNames = collectInputFieldNames(context, inputCount);
 
     List<String> parts = nameNode.getParts();
-    Optional<RexNode> resolved = resolveFromParts(parts, context, inputCount, inputFieldNames);
+    Optional<RexNode> resolved =
+        resolveFromParts(parts, context, inputCount, inputFieldNames, false);
     if (resolved.isPresent()) {
       return resolved;
     }
@@ -192,27 +194,37 @@ public class QualifiedNameResolver {
     // so
     // there such a column really exists; where an object is a struct instead, the same name means
     // the
-    // path into it. Split and retry, but only after the literal lookup failed, so a column
-    // named
+    // path into it. Split and retry, but only after the literal lookup failed, so a column named
     // with dots still wins.
+    //
+    // The retry only accepts a resolution that descends a ROW (structDescentOnly). A quoted dotted
+    // name must not turn into a map key: a column whose dotted subtree was shed -- as happens when
+    // a container column is rebuilt, e.g. a second `spath output=data` dropping a `data.custom`
+    // created in between -- is meant to be unreachable, and splitting it into ITEM(data, 'custom')
+    // would silently resolve it again and return null instead of reporting the field as gone.
     List<String> split = new ArrayList<>(parts.size());
     for (String part : parts) {
       split.addAll(List.of(part.split("\\.")));
     }
     if (split.size() != parts.size()) {
-      return resolveFromParts(split, context, inputCount, inputFieldNames);
+      return resolveFromParts(split, context, inputCount, inputFieldNames, true);
     }
     return Optional.empty();
   }
 
   /**
    * Longest-prefix match over {@code parts}, descending whatever is left into the matched field.
+   *
+   * @param structDescentOnly accept a match only when the leftover path is consumed by descending a
+   *     ROW, never by becoming an ITEM key. Set when retrying a quoted dotted name that was split,
+   *     where turning the name into a map key would resolve a field that is meant to be gone.
    */
   private static Optional<RexNode> resolveFromParts(
       List<String> parts,
       CalcitePlanContext context,
       int inputCount,
-      List<Set<String>> inputFieldNames) {
+      List<Set<String>> inputFieldNames,
+      boolean structDescentOnly) {
     for (int length = parts.size(); 1 <= length; length--) {
       String fieldName = joinParts(parts, 0, length);
       log.debug("resolveFromParts() trying fieldName={} with length={}", fieldName, length);
@@ -220,7 +232,8 @@ public class QualifiedNameResolver {
       int foundInput = findInputContainingFieldName(inputCount, inputFieldNames, fieldName);
       if (foundInput != -1) {
         RexNode fieldNode = context.relBuilder.field(inputCount, foundInput, fieldName);
-        RexNode resolved = resolveFieldAccess(context, parts, 0, length, fieldNode);
+        RexNode resolved =
+            resolveFieldAccess(context, parts, 0, length, fieldNode, structDescentOnly);
         if (resolved != null) {
           return Optional.of(resolved);
         }
@@ -314,7 +327,7 @@ public class QualifiedNameResolver {
                   log.debug("resolveCorrelationField() trying fieldName={}", fieldName);
                   if (fieldNameList.contains(fieldName)) {
                     RexNode field = context.relBuilder.field(correlation, fieldName);
-                    return resolveFieldAccess(context, parts, start, length, field);
+                    return resolveFieldAccess(context, parts, start, length, field, false);
                   }
                 }
               }
@@ -341,7 +354,12 @@ public class QualifiedNameResolver {
    *     names no field of it, which is an unresolved path rather than a usable node
    */
   private static RexNode resolveFieldAccess(
-      CalcitePlanContext context, List<String> parts, int start, int length, RexNode field) {
+      CalcitePlanContext context,
+      List<String> parts,
+      int start,
+      int length,
+      RexNode field,
+      boolean structDescentOnly) {
     int remaining = length + start;
     RexNode current = field;
     while (remaining < parts.size() && current.getType().isStruct()) {
@@ -361,6 +379,11 @@ public class QualifiedNameResolver {
       // makes SqlItemOperator throw the AssertionError described above, which escapes the caller's
       // catch (Exception) as a 500. Report it as unresolved so it reaches the ordinary
       // "Field [...] not found" instead.
+      return null;
+    }
+    if (structDescentOnly) {
+      // Reached only from the split retry of a quoted dotted name. The leftover would become a map
+      // key, which is not what the quoted name asked for, so report it unresolved.
       return null;
     }
     return createItemAccess(
