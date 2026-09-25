@@ -7,7 +7,6 @@ package org.opensearch.sql.executor.execution;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
@@ -23,22 +22,6 @@ public abstract class AbstractPlan {
   @Getter private final QueryId queryId;
 
   @Getter protected final QueryType queryType;
-
-  /**
-   * Whether the response format can carry a warnings channel. Set from the request on the transport
-   * thread and read on the worker (see {@code QueryPlan#execute}), so a feature that returns a
-   * partial result never silently drops data into a warnings-incapable format across a thread
-   * handoff. Defaults to false.
-   */
-  @Getter @Setter private boolean warningsSupported = false;
-
-  /**
-   * Per-request partial-result override, carried from the request the same way as {@link
-   * #warningsSupported}. {@code null} defers to the cluster setting; {@code true}/{@code false}
-   * force partial mode on/off. Set on the transport thread, applied on the worker (see {@code
-   * QueryPlan#execute}) so it survives the security transport→worker handoff.
-   */
-  @Getter @Setter private Boolean partialResultOverride = null;
 
   /** Start query execution. */
   public abstract void execute();
