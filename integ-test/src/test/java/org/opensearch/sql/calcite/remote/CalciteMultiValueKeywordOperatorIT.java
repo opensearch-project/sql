@@ -328,42 +328,12 @@ public class CalciteMultiValueKeywordOperatorIT extends PPLIntegTestCase {
   }
 
   // ==================== PPL: lambda predicates (exists / forall / filter) ====================
-
-  @Test
-  public void testPplExistsOnMv() throws IOException {
-    // exists: does any element satisfy the predicate. d3 -> [prod, blue] contains 'blue'.
-    JSONObject r =
-        ppl(
-            String.format(
-                "source=%s | where id='d3' | eval hit = exists(tags, x -> x = 'blue') | fields hit",
-                INDEX));
-    verifyDataRows(r, rows(true));
-  }
-
-  @Test
-  public void testPplForallOnMv() throws IOException {
-    // forall: do all elements satisfy the predicate. d4 -> [green, prod, green], not all ==
-    // 'green'.
-    JSONObject r =
-        ppl(
-            String.format(
-                "source=%s | where id='d4' | eval allGreen = forall(tags, x -> x = 'green') |"
-                    + " fields allGreen",
-                INDEX));
-    verifyDataRows(r, rows(false));
-  }
-
-  @Test
-  public void testPplFilterOnMv() throws IOException {
-    // filter: keep only elements satisfying the predicate. d4 -> [green, prod, green] keep 'green'.
-    JSONObject r =
-        ppl(
-            String.format(
-                "source=%s | where id='d4' | eval greens = filter(tags, x -> x = 'green') |"
-                    + " fields greens",
-                INDEX));
-    verifyDataRows(r, rows(List.of("green", "green")));
-  }
+  // NOTE: higher-order lambda functions (exists/forall/filter/transform/reduce) are NOT supported
+  // on the analytics-engine route — the backend rejects them with "Function [exists] is not
+  // currently supported as a scalar function". CalciteArrayFunctionIT gates them behind
+  // @RequiresCapability(ARRAY_HIGHER_ORDER_FUNC) for the non-AE engine. They are intentionally not
+  // exercised here; enabling lambda predicates on the AE path is a separate feature, not part of
+  // multi_value keyword support.
 
   // ==================== Dynamic mapping (no explicit multi_value) ====================
   // A customer indexes array documents with NO declared mapping; the field must auto-promote to
