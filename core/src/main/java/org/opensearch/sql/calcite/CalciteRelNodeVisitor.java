@@ -5121,6 +5121,24 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         .project(List.of(correlArrayFieldAccess), List.of(arrayFieldName))
         .uncollect(List.of(), false);
 
+    // Uncollect explodes a *record* element into one column per record field, so an
+    // ARRAY<ROW<..>> loses the expanded column's identity: the row type becomes the element's
+    // field names and the `relBuilder.field(arrayFieldName)` below cannot find it. Re-wrap the
+    // exploded columns into a single ROW column named after the array so the expanded column
+    // keeps its name and stays addressable as `<array>.<leaf>` downstream. An element type that
+    // is not a record (ARRAY<scalar>, and the ARRAY<ANY> that a `nested` mapping declares)
+    // already yields exactly one column carrying that name, so it needs no rewrap.
+    RelDataType elementType = arrayFieldRex.getType().getComponentType();
+    if (elementType != null && elementType.isStruct()) {
+      RexNode element =
+          context.rexBuilder.makeCall(
+              elementType, SqlStdOperatorTable.ROW, context.relBuilder.fields());
+      // force=true: the projection is an identity on field *references*, so RelBuilder would
+      // otherwise elide it and drop the rewrap (the same Calcite quirk tryToRemoveNestedFields
+      // works around).
+      context.relBuilder.project(List.of(element), List.of(arrayFieldName), true);
+    }
+
     if (perDocLimit != null) {
       context.relBuilder.limit(0, perDocLimit);
     }
