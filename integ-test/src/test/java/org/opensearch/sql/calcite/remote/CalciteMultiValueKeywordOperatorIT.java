@@ -36,11 +36,15 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
 public class CalciteMultiValueKeywordOperatorIT extends PPLIntegTestCase {
 
   private static final String INDEX = "mv_kw_ops";
+  private static final String DYNAMIC_INDEX = "mv_kw_dynamic";
 
   @Override
   public void init() throws Exception {
     super.init();
-    enableCalcite();
+    // NOTE: intentionally NOT calling enableCalcite() — the analytics-engine path requires the
+    // Calcite engine, and this IT verifies the feature works with the cluster's default settings
+    // (mirroring a customer who never flips plugins.calcite.enabled). If Calcite is not default-on
+    // for the target version this will surface here rather than being masked by an explicit opt-in.
     provisionMultiValueIndex();
   }
 
@@ -85,6 +89,58 @@ public class CalciteMultiValueKeywordOperatorIT extends PPLIntegTestCase {
     r.setJsonEntity(body);
     r.addParameter("refresh", "true");
     client().performRequest(r);
+  }
+
+  /**
+   * Provisions a composite/parquet index with NO explicit {@code multi_value} mapping for {@code
+   * tags}. The field is dynamically mapped, and because the first document supplies multiple values
+   * the pluggable-dataformat parser auto-promotes it to a {@code multi_value} (LIST) field. This
+   * exercises the dynamic-mapping path a customer hits when they index arrays without declaring the
+   * field up front.
+   */
+  private void provisionDynamicIndex() throws IOException {
+    try {
+      client().performRequest(new Request("DELETE", "/" + DYNAMIC_INDEX));
+    } catch (Exception ignored) {
+    }
+    // Composite/parquet settings are required for the analytics-engine path and for multi_value
+    // auto-promotion, but NO "properties" mapping is declared — tags is dynamically mapped.
+    String settings =
+        "{\"settings\":{\"number_of_shards\":1,\"number_of_replicas\":0,"
+            + "\"index.pluggable.dataformat.enabled\":true,"
+            + "\"index.pluggable.dataformat\":\"composite\","
+            + "\"index.composite.primary_data_format\":\"parquet\","
+            + "\"index.composite.secondary_data_formats\":[\"lucene\"]}}";
+    Request create = new Request("PUT", "/" + DYNAMIC_INDEX);
+    create.setJsonEntity(settings);
+    client().performRequest(create);
+
+    Request health = new Request("GET", "/_cluster/health/" + DYNAMIC_INDEX);
+    health.addParameter("wait_for_status", "green");
+    health.addParameter("timeout", "30s");
+    client().performRequest(health);
+
+    // First doc supplies MULTIPLE values so the pluggable parser promotes tags to LIST
+    // (multi_value)
+    // on dynamic mapping. Same fixture shape as the explicit index so operator assertions match.
+    Request r = new Request("POST", "/" + DYNAMIC_INDEX + "/_bulk");
+    r.setJsonEntity(
+        "{\"index\":{}}\n{\"id\":\"d3\",\"tags\":[\"prod\",\"blue\"]}\n"
+            + "{\"index\":{}}\n{\"id\":\"d1\",\"tags\":[\"prod\"]}\n"
+            + "{\"index\":{}}\n{\"id\":\"d2\",\"tags\":[\"blue\"]}\n"
+            + "{\"index\":{}}\n{\"id\":\"d4\",\"tags\":[\"green\",\"prod\",\"green\"]}\n");
+    r.addParameter("refresh", "true");
+    client().performRequest(r);
+    client().performRequest(new Request("POST", "/" + DYNAMIC_INDEX + "/_flush?force=true"));
+  }
+
+  /** Returns the {@code _mapping} of the given index as a parsed JSON object. */
+  private JSONObject getMapping(String index) throws IOException {
+    Request req = new Request("GET", "/" + index + "/_mapping");
+    org.opensearch.client.Response resp = client().performRequest(req);
+    return new JSONObject(
+        new String(
+            resp.getEntity().getContent().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
   }
 
   private JSONObject ppl(String query) throws IOException {
@@ -214,11 +270,149 @@ public class CalciteMultiValueKeywordOperatorIT extends PPLIntegTestCase {
     verifyDataRowsInOrder(r, rows(2, "blue"), rows(2, "green"), rows(3, "prod"));
   }
 
+  // ==================== PPL: implicit group-by on a multi_value field ====================
+  // Unlike testPplMvexpandGroupByUseCase (which explicitly expands first), these group directly by
+  // the multi_value field with NO mvexpand. The analytics engine expands array elements into
+  // per-element buckets, so each element of every document's tags contributes to its own bucket.
+  // Element occurrences: prod -> d1,d3,d4 (3); blue -> d2,d3 (2); green -> d4 twice (2).
+
+  @Test
+  public void testPplImplicitGroupByMv() throws IOException {
+    JSONObject r = ppl(String.format("source=%s | stats count() as c by tags | sort tags", INDEX));
+    verifyDataRowsInOrder(r, rows(2, "blue"), rows(2, "green"), rows(3, "prod"));
+  }
+
+  @Test
+  public void testPplImplicitGroupByMvDistinctCount() throws IOException {
+    // Distinct documents per element (green occurs twice in d4 but is one distinct doc).
+    JSONObject r =
+        ppl(String.format("source=%s | stats dc(id) as docs by tags | sort tags", INDEX));
+    verifyDataRowsInOrder(r, rows(2, "blue"), rows(1, "green"), rows(3, "prod"));
+  }
+
   // ==================== PPL: mvzip ====================
+
+  @Test
+  public void testPplMvzip() throws IOException {
+    // Zip the multi_value field against an inline array positionally. d3 -> [prod, blue].
+    JSONObject r =
+        ppl(
+            String.format(
+                "source=%s | where id='d3' | eval z = mvzip(tags, array('a', 'b')) | fields z",
+                INDEX));
+    verifyDataRows(r, rows(List.of("prod,a", "blue,b")));
+  }
+
+  @Test
+  public void testPplMvzipCustomDelimiter() throws IOException {
+    JSONObject r =
+        ppl(
+            String.format(
+                "source=%s | where id='d3' | eval z = mvzip(tags, array('a', 'b'), '|') | fields z",
+                INDEX));
+    verifyDataRows(r, rows(List.of("prod|a", "blue|b")));
+  }
 
   // ==================== PPL: split (string -> array) ====================
 
+  @Test
+  public void testPplSplit() throws IOException {
+    // split() produces an array from a scalar string; independent of the mv field but exercises the
+    // array-producing path on the AE route.
+    JSONObject r =
+        ppl(
+            String.format(
+                "source=%s | where id='d1' | eval parts = split('a-b-c', '-') | fields parts",
+                INDEX));
+    verifyDataRows(r, rows(List.of("a", "b", "c")));
+  }
+
   // ==================== PPL: lambda predicates (exists / forall / filter) ====================
+
+  @Test
+  public void testPplExistsOnMv() throws IOException {
+    // exists: does any element satisfy the predicate. d3 -> [prod, blue] contains 'blue'.
+    JSONObject r =
+        ppl(
+            String.format(
+                "source=%s | where id='d3' | eval hit = exists(tags, x -> x = 'blue') | fields hit",
+                INDEX));
+    verifyDataRows(r, rows(true));
+  }
+
+  @Test
+  public void testPplForallOnMv() throws IOException {
+    // forall: do all elements satisfy the predicate. d4 -> [green, prod, green], not all ==
+    // 'green'.
+    JSONObject r =
+        ppl(
+            String.format(
+                "source=%s | where id='d4' | eval allGreen = forall(tags, x -> x = 'green') |"
+                    + " fields allGreen",
+                INDEX));
+    verifyDataRows(r, rows(false));
+  }
+
+  @Test
+  public void testPplFilterOnMv() throws IOException {
+    // filter: keep only elements satisfying the predicate. d4 -> [green, prod, green] keep 'green'.
+    JSONObject r =
+        ppl(
+            String.format(
+                "source=%s | where id='d4' | eval greens = filter(tags, x -> x = 'green') |"
+                    + " fields greens",
+                INDEX));
+    verifyDataRows(r, rows(List.of("green", "green")));
+  }
+
+  // ==================== Dynamic mapping (no explicit multi_value) ====================
+  // A customer indexes array documents with NO declared mapping; the field must auto-promote to
+  // multi_value and behave identically to an explicitly-declared one.
+
+  @Test
+  public void testDynamicMappingReportsMultiValue() throws IOException {
+    provisionDynamicIndex();
+    JSONObject mapping = getMapping(DYNAMIC_INDEX);
+    JSONObject tags =
+        mapping
+            .getJSONObject(DYNAMIC_INDEX)
+            .getJSONObject("mappings")
+            .getJSONObject("properties")
+            .getJSONObject("tags");
+    // The dynamically-mapped field must carry multi_value:true after ingesting multi-element
+    // arrays.
+    org.junit.jupiter.api.Assertions.assertTrue(
+        tags.optBoolean("multi_value", false),
+        "dynamically-mapped tags should be multi_value:true, mapping was: " + tags);
+  }
+
+  @Test
+  public void testDynamicMappingProjectionReturnsArray() throws IOException {
+    provisionDynamicIndex();
+    JSONObject r = ppl(String.format("source=%s | where id='d3' | fields tags", DYNAMIC_INDEX));
+    // A projected multi_value field returns the array value, not a scalar.
+    verifyDataRows(r, rows(List.of("prod", "blue")));
+  }
+
+  @Test
+  public void testDynamicMappingArrayLength() throws IOException {
+    provisionDynamicIndex();
+    JSONObject r =
+        ppl(
+            String.format(
+                "source=%s | where id='d4' | eval n = array_length(tags) | fields n",
+                DYNAMIC_INDEX));
+    // d4 -> [green, prod, green] has 3 elements.
+    verifyDataRows(r, rows(3));
+  }
+
+  @Test
+  public void testDynamicMappingImplicitGroupBy() throws IOException {
+    provisionDynamicIndex();
+    JSONObject r =
+        ppl(String.format("source=%s | stats count() as c by tags | sort tags", DYNAMIC_INDEX));
+    verifyDataRowsInOrder(r, rows(2, "blue"), rows(2, "green"), rows(3, "prod"));
+  }
 
   // ==================== PPL: mvexpand edge cases ====================
 
