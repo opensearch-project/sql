@@ -20,7 +20,7 @@ import org.opensearch.core.rest.RestStatus;
  * @param requestedTenant requested security tenant
  * @param backendRoles backend roles captured when the job starts
  */
-public record PPLAsyncQueryUser(String name, String requestedTenant, List<String> backendRoles) {
+public record QueryJobOwner(String name, String requestedTenant, List<String> backendRoles) {
 
   /**
    * Identity used when OpenSearch Security does not provide caller information.
@@ -28,7 +28,7 @@ public record PPLAsyncQueryUser(String name, String requestedTenant, List<String
    * <p>This identity does not bypass job ownership checks. A job owned by {@code UNSECURED} can be
    * accessed only by a caller represented by the same identity.
    */
-  public static final PPLAsyncQueryUser UNSECURED = new PPLAsyncQueryUser(null, null, List.of());
+  public static final QueryJobOwner UNSECURED = new QueryJobOwner(null, null, List.of());
 
   /**
    * Creates an immutable asynchronous query identity.
@@ -38,7 +38,7 @@ public record PPLAsyncQueryUser(String name, String requestedTenant, List<String
    * @param backendRoles backend roles captured when the job starts
    * @throws IllegalArgumentException if {@code name} is blank
    */
-  public PPLAsyncQueryUser {
+  public QueryJobOwner {
     backendRoles = backendRoles == null ? List.of() : List.copyOf(backendRoles);
     if (name != null && name.isBlank()) {
       throw new IllegalArgumentException("PPL asynchronous query user must not be blank");
@@ -52,7 +52,7 @@ public record PPLAsyncQueryUser(String name, String requestedTenant, List<String
    * @return immutable caller identity
    * @throws OpenSearchSecurityException if the security identity cannot be parsed
    */
-  public static PPLAsyncQueryUser current(ThreadContext threadContext) {
+  public static QueryJobOwner current(ThreadContext threadContext) {
     try {
       Object serialized =
           threadContext.getTransient(ConfigConstants.OPENSEARCH_SECURITY_USER_INFO_THREAD_CONTEXT);
@@ -66,8 +66,7 @@ public record PPLAsyncQueryUser(String name, String requestedTenant, List<String
       if (user == null) {
         throw forbidden();
       }
-      return new PPLAsyncQueryUser(
-          user.getName(), user.getRequestedTenant(), user.getBackendRoles());
+      return new QueryJobOwner(user.getName(), user.getRequestedTenant(), user.getBackendRoles());
     } catch (RuntimeException e) {
       throw forbidden();
     }
@@ -79,7 +78,7 @@ public record PPLAsyncQueryUser(String name, String requestedTenant, List<String
    * @param caller identity of the caller requesting access
    * @throws OpenSearchSecurityException if the caller does not match the owner identity
    */
-  void authorize(PPLAsyncQueryUser caller) {
+  public void authorize(QueryJobOwner caller) {
     if (!Objects.equals(name, caller.name)
         || !Objects.equals(requestedTenant, caller.requestedTenant)
         || !caller.backendRoles.containsAll(backendRoles)) {

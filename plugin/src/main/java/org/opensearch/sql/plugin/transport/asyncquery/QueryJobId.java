@@ -36,13 +36,18 @@ import java.util.UUID;
  * @param ownerNodeId node that owns the in-memory job
  * @param contextId random identifier for one job on the owner node
  */
-record PPLAsyncQueryJobId(String ownerNodeId, String contextId) {
+public record QueryJobId(String ownerNodeId, String contextId) {
   private static final int FORMAT_VERSION = 1;
   private static final int MAX_ENCODED_LENGTH = 2_048;
   private static final int MAX_OWNER_NODE_ID_BYTES = 1_024;
   private static final int MAX_CONTEXT_ID_BYTES = 128;
 
-  PPLAsyncQueryJobId {
+  /**
+   * Validates the component strings.
+   *
+   * @throws IllegalArgumentException when either component is null or blank
+   */
+  public QueryJobId {
     if (ownerNodeId == null || ownerNodeId.isBlank()) {
       throw new IllegalArgumentException("PPL asynchronous query owner node must not be empty");
     }
@@ -57,8 +62,8 @@ record PPLAsyncQueryJobId(String ownerNodeId, String contextId) {
    * @param ownerNodeId node that will own the job
    * @return unencoded job ID with a random context ID
    */
-  static PPLAsyncQueryJobId create(String ownerNodeId) {
-    return new PPLAsyncQueryJobId(ownerNodeId, UUID.randomUUID().toString());
+  public static QueryJobId create(String ownerNodeId) {
+    return new QueryJobId(ownerNodeId, UUID.randomUUID().toString());
   }
 
   /**
@@ -66,7 +71,7 @@ record PPLAsyncQueryJobId(String ownerNodeId, String contextId) {
    *
    * @return opaque value returned by the asynchronous PPL API
    */
-  String encode() {
+  public String encode() {
     try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         DataOutputStream output = new DataOutputStream(bytes)) {
       output.writeInt(FORMAT_VERSION);
@@ -90,7 +95,7 @@ record PPLAsyncQueryJobId(String ownerNodeId, String contextId) {
    * @return decoded owner node and context IDs
    * @throws IllegalArgumentException when the value is not a valid job ID
    */
-  static PPLAsyncQueryJobId parse(String encoded) {
+  public static QueryJobId parse(String encoded) {
     try {
       if (encoded == null || encoded.isBlank() || encoded.length() > MAX_ENCODED_LENGTH) {
         throw new IllegalArgumentException("Invalid PPL asynchronous query ID length");
@@ -102,8 +107,8 @@ record PPLAsyncQueryJobId(String ownerNodeId, String contextId) {
           throw new IllegalArgumentException(
               "Unsupported PPL asynchronous query ID version [" + version + "]");
         }
-        PPLAsyncQueryJobId id =
-            new PPLAsyncQueryJobId(
+        QueryJobId id =
+            new QueryJobId(
                 readString(input, MAX_OWNER_NODE_ID_BYTES),
                 readString(input, MAX_CONTEXT_ID_BYTES));
         if (input.available() != 0) {

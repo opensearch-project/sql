@@ -16,15 +16,15 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.commons.ConfigConstants;
 import org.opensearch.commons.authuser.User;
 
-public class PPLAsyncQueryUserTest {
+public class QueryJobOwnerTest {
 
   @Test
   public void capturesSecurityIdentity() {
     ThreadContext context = contextWith("alice|backend-a|ppl-role|tenant-a");
 
     assertEquals(
-        new PPLAsyncQueryUser("alice", "tenant-a", List.of("backend-a")),
-        PPLAsyncQueryUser.current(context));
+        new QueryJobOwner("alice", "tenant-a", List.of("backend-a")),
+        QueryJobOwner.current(context));
   }
 
   @Test
@@ -33,51 +33,48 @@ public class PPLAsyncQueryUserTest {
         contextWith(new User("alice", List.of("backend-a"), List.of("ppl-role"), null, "tenant-a"));
 
     assertEquals(
-        new PPLAsyncQueryUser("alice", "tenant-a", List.of("backend-a")),
-        PPLAsyncQueryUser.current(context));
+        new QueryJobOwner("alice", "tenant-a", List.of("backend-a")),
+        QueryJobOwner.current(context));
   }
 
   @Test
   public void rejectsUnknownSecurityContext() {
     assertThrows(
-        OpenSearchSecurityException.class,
-        () -> PPLAsyncQueryUser.current(contextWith(new Object())));
+        OpenSearchSecurityException.class, () -> QueryJobOwner.current(contextWith(new Object())));
   }
 
   @Test
   public void missingIdentityRepresentsAnUnsecuredCaller() {
     ThreadContext context = new ThreadContext(Settings.EMPTY);
 
-    assertEquals(PPLAsyncQueryUser.UNSECURED, PPLAsyncQueryUser.current(context));
+    assertEquals(QueryJobOwner.UNSECURED, QueryJobOwner.current(context));
   }
 
   @Test
   public void requiresSamePrincipalTenantAndOriginalBackendRoles() {
-    PPLAsyncQueryUser owner = new PPLAsyncQueryUser("alice", "tenant-a", List.of("role-a"));
+    QueryJobOwner owner = new QueryJobOwner("alice", "tenant-a", List.of("role-a"));
 
-    owner.authorize(
-        new PPLAsyncQueryUser("alice", "tenant-a", List.of("role-a", "newly-added-role")));
+    owner.authorize(new QueryJobOwner("alice", "tenant-a", List.of("role-a", "newly-added-role")));
 
     assertThrows(
         OpenSearchSecurityException.class,
-        () -> owner.authorize(new PPLAsyncQueryUser("bob", "tenant-a", List.of("role-a"))));
+        () -> owner.authorize(new QueryJobOwner("bob", "tenant-a", List.of("role-a"))));
     assertThrows(
         OpenSearchSecurityException.class,
-        () -> owner.authorize(new PPLAsyncQueryUser("alice", "tenant-b", List.of("role-a"))));
+        () -> owner.authorize(new QueryJobOwner("alice", "tenant-b", List.of("role-a"))));
     assertThrows(
         OpenSearchSecurityException.class,
-        () -> owner.authorize(new PPLAsyncQueryUser("alice", "tenant-a", List.of())));
+        () -> owner.authorize(new QueryJobOwner("alice", "tenant-a", List.of())));
   }
 
   @Test
   public void unsecuredModeRequiresAnUnsecuredCaller() {
-    PPLAsyncQueryUser.UNSECURED.authorize(PPLAsyncQueryUser.UNSECURED);
+    QueryJobOwner.UNSECURED.authorize(QueryJobOwner.UNSECURED);
 
     assertThrows(
         OpenSearchSecurityException.class,
         () ->
-            PPLAsyncQueryUser.UNSECURED.authorize(
-                new PPLAsyncQueryUser("alice", null, List.of("role-a"))));
+            QueryJobOwner.UNSECURED.authorize(new QueryJobOwner("alice", null, List.of("role-a"))));
   }
 
   private static ThreadContext contextWith(Object userInfo) {
