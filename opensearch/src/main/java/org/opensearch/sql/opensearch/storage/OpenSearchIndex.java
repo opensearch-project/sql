@@ -29,7 +29,6 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
-import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.monitor.OpenSearchMemoryHealthy;
 import org.opensearch.sql.opensearch.monitor.OpenSearchResourceMonitor;
 import org.opensearch.sql.opensearch.planner.physical.ADOperator;
@@ -97,7 +96,6 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
    * resolving {@link #cachedFieldOpenSearchTypes}, since merging those types discards which index
    * mapped a field which way.
    */
-  private Map<String, IndexMapping> cachedIndexMappings = null;
 
   /** The cached max result window setting of index. */
   private Integer cachedMaxResultWindow = null;
@@ -190,24 +188,12 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
     return cachedFieldOpenSearchTypes;
   }
 
-  /**
-   * The per-index field mappings behind this index's merged types, keyed by concrete index name
-   * (the wildcard, if any, is already resolved). Needed by callers that must know which index
-   * mapped a field which way -- the merged view in {@link #getFieldOpenSearchTypes()} discards
-   * that. Shares the mapping fetch with the merged types, so this costs no extra round trip.
-   */
-  public Map<String, IndexMapping> getIndexMappings() {
-    resolveFieldOpenSearchTypes();
-    return cachedIndexMappings;
-  }
-
-  /** Fetch and cache the merged field types, retaining the per-index mappings behind them. */
+  /** Fetch and cache the merged field types. */
   private void resolveFieldOpenSearchTypes() {
     if (cachedFieldOpenSearchTypes == null) {
       OpenSearchDescribeIndexRequest request =
           new OpenSearchDescribeIndexRequest(client, indexName);
       cachedFieldOpenSearchTypes = request.getFieldTypes();
-      cachedIndexMappings = request.getLastIndexMappings();
     }
   }
 

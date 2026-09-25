@@ -73,25 +73,6 @@ public class PPLQueryRequest {
   @Accessors(fluent = true)
   private String queryId = null;
 
-  /**
-   * Per-request override for partial-result mode. {@code null} means the request expressed no
-   * preference and the cluster setting decides; non-null forces partial mode on/off for this query.
-   */
-  @Setter
-  @Getter
-  @Accessors(fluent = true)
-  private Boolean partialResult = null;
-
-  /**
-   * Whether the requested response format can carry a warnings channel. Derived from the format on
-   * the transport thread and threaded to the worker via the plan, so the partial-result gate does
-   * not rely on Log4j ThreadContext (dropped across the security plugin's thread handoff).
-   */
-  @Setter
-  @Getter
-  @Accessors(fluent = true)
-  private boolean warningsSupported = false;
-
   public PPLQueryRequest(String pplQuery, JSONObject jsonContent, String path) {
     this(pplQuery, jsonContent, path, "");
   }
