@@ -47,13 +47,21 @@ public class CalcitePPLStructFieldTest extends CalcitePPLAbstractTest {
         .programs(Programs.heuristicJoinOrder(Programs.RULE_SET, true, 2));
   }
 
-  /** One segment left over: field access on the ROW, not an ITEM lookup. */
+  /**
+   * One segment left over: field access on the ROW, not an ITEM lookup.
+   *
+   * <p>The projected column keeps the dotted name. A field access carries no name of its own, so
+   * without the alias Calcite derives {@code $f0} and the response schema no longer reports the
+   * field the user asked for.
+   */
   @Test
   public void testLeafOfAStruct() {
     RelNode root = getRelNode("source=docs | fields city.name");
     verifyLogical(
         root,
-        "" + "LogicalProject($f0=[$1.name])\n" + "  LogicalTableScan(table=[[structs, docs]])\n");
+        ""
+            + "LogicalProject(city.name=[$1.name])\n"
+            + "  LogicalTableScan(table=[[structs, docs]])\n");
   }
 
   /** Two segments: one access per level, which a single joined ITEM key cannot express. */
@@ -63,7 +71,7 @@ public class CalcitePPLStructFieldTest extends CalcitePPLAbstractTest {
     verifyLogical(
         root,
         ""
-            + "LogicalProject($f0=[$1.geo.lat])\n"
+            + "LogicalProject(city.geo.lat=[$1.geo.lat])\n"
             + "  LogicalTableScan(table=[[structs, docs]])\n");
   }
 
@@ -98,7 +106,7 @@ public class CalcitePPLStructFieldTest extends CalcitePPLAbstractTest {
     verifyLogical(
         root,
         ""
-            + "LogicalProject($f0=[$1.geo.lat])\n"
+            + "LogicalProject(city.geo.lat=[$1.geo.lat])\n"
             + "  LogicalTableScan(table=[[structs, docs]])\n");
   }
 
