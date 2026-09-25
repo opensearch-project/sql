@@ -665,7 +665,12 @@ testClusters.analyticsEngineSecurityIT {
 
 configureSecurityPlugin(testClusters.analyticsEngineSecurityIT)
 
-task analyticsEngineProfileIT(type: RestIntegTestTask) {
+// General analytics-engine query IT: runs the non-security analytics-engine ITs against the full
+// analytics-engine stack (composite + parquet + datafusion + real opensearch-sql plugin) on one
+// shared base cluster. Add new non-security AE query IT classes to the filter below rather than
+// spinning up a separate task+cluster with an identical configuration.
+// Pass -PnativeLibPath=/abs/release/ for the DataFusion native library.
+task analyticsEngineQueryIT(type: RestIntegTestTask) {
     dependsOn downloadAnalyticsEngineZip, downloadArrowFlightRpcZip, downloadArrowBaseZip, downloadAnalyticsBackendLuceneZip, downloadParquetDataFormatZip, downloadCompositeEngineZip, downloadAnalyticsBackendDatafusionZip
     dependsOn downloadNativeLib
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
@@ -674,6 +679,8 @@ task analyticsEngineProfileIT(type: RestIntegTestTask) {
 
     filter {
         includeTestsMatching 'org.opensearch.sql.analytics.AnalyticsEngineProfileIT'
+        includeTestsMatching 'org.opensearch.sql.calcite.remote.CalciteMultiValueKeywordOperatorIT'
+        includeTestsMatching 'org.opensearch.sql.calcite.remote.CalciteMultiValueDistributedIT'
     }
 
     // Surface per-test results in the CI log so this suite's execution is visible (these AE ITs
@@ -687,7 +694,7 @@ task analyticsEngineProfileIT(type: RestIntegTestTask) {
     }
 }
 
-testClusters.analyticsEngineProfileIT {
+testClusters.analyticsEngineQueryIT {
     testDistribution = 'archive'
     plugin(getJobSchedulerPlugin())
     plugin(getArrowBasePlugin())
@@ -914,6 +921,12 @@ integTest {
 
     // Exclude tests that require the analytics engine plugin stack (run separately via dedicated tasks)
     exclude 'org/opensearch/sql/analytics/AnalyticsEngineProfileIT.class'
+
+    // Multi-value keyword ITs need the composite/parquet analytics-engine cluster; they run in the
+    // dedicated :analyticsEngineQueryIT task. Running them here (plain integTest cluster has no
+    // composite data format) fails at index creation with "unknown setting [index.composite.*]".
+    exclude 'org/opensearch/sql/calcite/remote/CalciteMultiValueKeywordOperatorIT.class'
+    exclude 'org/opensearch/sql/calcite/remote/CalciteMultiValueDistributedIT.class'
 
     exclude 'org/opensearch/sql/calcite/tracing/**'
 
@@ -1557,7 +1570,7 @@ task integTestRemote(type: RestIntegTestTask) {
             // opensearch.experimental.feature.pluggable.dataformat.enabled and
             // opensearch.experimental.feature.transport.stream.enabled. Each already has a
             // dedicated task whose testClusters block provisions that stack --
-            // :analyticsEngineCompatIT, :analyticsEngineSecurityIT and :analyticsEngineProfileIT --
+            // :analyticsEngineCompatIT, :analyticsEngineSecurityIT and :analyticsEngineQueryIT --
             // whereas integTestRemote runs against an externally provided cluster and can neither
             // install plugins nor set node settings, so they fail during setup instead of being
             // skipped. Gated here rather than listed with the exclusions below so that all
@@ -1565,6 +1578,8 @@ task integTestRemote(type: RestIntegTestTask) {
             excludeTestsMatching 'org.opensearch.sql.plugin.AnalyticsEngineCompatIT'
             excludeTestsMatching 'org.opensearch.sql.security.AnalyticsEngineSecurityIT'
             excludeTestsMatching 'org.opensearch.sql.analytics.AnalyticsEngineProfileIT'
+            excludeTestsMatching 'org.opensearch.sql.calcite.remote.CalciteMultiValueKeywordOperatorIT'
+            excludeTestsMatching 'org.opensearch.sql.calcite.remote.CalciteMultiValueDistributedIT'
         }
     }
 
@@ -1597,3 +1612,4 @@ task integTestRemote(type: RestIntegTestTask) {
     exclude 'org/opensearch/sql/datasource/DataSourceAPIsIT.class'
     exclude 'org/opensearch/sql/datasource/DataSourceEnabledIT.class'
 }
+

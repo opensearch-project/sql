@@ -18,6 +18,10 @@ jobs:
     uses: opensearch-project/opensearch-build/.github/workflows/get-ci-image-tag.yml@761e093b8c1349cc07f21c1d681d3b30bf9e1999 # main
     with:
       product: opensearch
+      # The analytics-engine native library (libopensearch_native.so from the feature-datafusion
+      # build) is compiled against glibc 2.28 and cannot dlopen on the default al2 ci-runner
+      # (glibc 2.26). almalinux8 ships glibc 2.28 and lets the node load it at boot.
+      platform: almalinux8
 
   analytics-engine-compat:
     needs: Get-CI-Image-Tag
@@ -64,6 +68,6 @@ jobs:
         run: |
           su `id -un 1000` -c "./gradlew :integ-test:analyticsEngineSecurityIT"
 
-      - name: Run analytics-engine profile IT
+      - name: Run analytics-engine query IT
         run: |
-          su `id -un 1000` -c "./gradlew :integ-test:analyticsEngineProfileIT"
+          su `id -un 1000` -c "./gradlew :integ-test:analyticsEngineQueryIT"
