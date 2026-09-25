@@ -71,15 +71,10 @@ public class IndexPruner {
         return indexName;
       }
 
-      String[] candidates = indexExpr.probeMatching(filter, timeField).getIndices();
+      String[] candidates = indexExpr.probe(filter, timeField).getIndices();
       if (0 < candidates.length && indexExpr.isPrunedBy(candidates.length)) {
-        // Only now that indices would be dropped: an index whose shards are unavailable cannot be
-        // probed, and field caps reports no failure for it -- it is simply absent from the
-        // candidates, indistinguishable from an index proven to hold nothing in range. Dropping it
-        // would delete its documents from the answer with nothing left to report, because the
-        // search that runs then covers every shard it was given: neither the response's shard
-        // counts nor allow_partial_search_results would show anything amiss. Pruning may only drop
-        // what it proved empty, so keep those and let the search report them as missing shards.
+        // Only once indices would be dropped: an unreachable index is absent from the probe for
+        // the same reason an empty one is, so keep it and let the search report the missing shard.
         Set<String> unsearchable = indexExpr.indicesNotProvenEmpty(timeField);
         if (unsearchable.isEmpty()) {
           return new IndexName(String.join(",", candidates));
@@ -154,33 +149,15 @@ public class IndexPruner {
       return candidateCount < resolved().getIndices().size();
     }
 
-    FieldCapabilitiesResponse probeMatching(QueryBuilder filter, String timeField) {
-      return probe(filter, timeField);
-    }
-
     /**
-     * Resolved indices the matching probe cannot have ruled out, so pruning must keep them: those
-     * absent from an unfiltered probe. A readable index reports its field caps whatever the time
-     * range, so absence there means the index could not be read at all -- which is what the
-     * filtered probe cannot distinguish from "holds nothing in range".
-     *
-     * <p>This holds regardless of what the cluster state believes, so it also covers the window
-     * after a node stops but before the cluster manager marks its shards unassigned -- seconds, and
-     * precisely when a dashboard refresh would otherwise lose the index silently.
-     *
-     * <p>Deliberately probe-based rather than reading the routing table: a cluster state request
-     * needs {@code cluster:monitor/state}, which an index-scoped role does not carry, so it would
-     * both disable pruning for those users and log a missing-privileges audit event on every query.
-     * The cost is that an index readable through its other shards while one shard is unassigned
-     * still looks prunable; its documents in range would have to live only on the missing shard,
-     * which takes custom routing to arrange.
-     *
-     * <p>An index that is readable but does not map {@code timeField} is also absent from the
-     * unfiltered probe, so it is kept too. That costs a shard in the search and no correctness.
+     * Resolved indices the filtered probe cannot have ruled out: those an unfiltered probe cannot
+     * read either. A readable index answers an unfiltered probe whatever the time range, so absence
+     * there means unreadable rather than empty -- and unlike the routing table, that holds while a
+     * stopped node's shards are still marked assigned. Probe-based rather than a cluster state read
+     * because the latter needs a privilege index-scoped roles lack (see
+     * ShardFailureWarningSecurityIT).
      */
     Set<String> indicesNotProvenEmpty(String timeField) {
-      // Not Set.of: it rejects a duplicate or null name, which would turn a probe quirk into a
-      // lost optimization for the whole query.
       Set<String> readable = new HashSet<>(Arrays.asList(probe(null, timeField).getIndices()));
       Set<String> missing = new LinkedHashSet<>();
       for (ResolveIndexAction.ResolvedIndex index : resolved().getIndices()) {
@@ -191,7 +168,7 @@ public class IndexPruner {
       return missing;
     }
 
-    private FieldCapabilitiesResponse probe(@Nullable QueryBuilder filter, String timeField) {
+    FieldCapabilitiesResponse probe(@Nullable QueryBuilder filter, String timeField) {
       FieldCapabilitiesRequest request =
           new FieldCapabilitiesRequest()
               .indices(indexName.getIndexNames())

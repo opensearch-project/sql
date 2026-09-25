@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -296,10 +297,7 @@ class IndexPrunerTest {
           .shouldNotPrune();
     }
 
-    /**
-     * Nothing matched, so pruning already declines before the availability check: the full
-     * expression is read and the search reports the missing shard itself.
-     */
+    /** Nothing matched, so pruning declines before the readability check. */
     @Test
     void shouldNotPruneWhenNothingMatchedEvenWithAnUnreadableIndex() {
       givenIndexExpression(namedIndices("logs-*", "logs-a", "logs-down"), timeRange())
@@ -360,23 +358,21 @@ class IndexPrunerTest {
       ALIAS,
       DATA_STREAM,
       FAILURE,
-      /** Already stubbed by {@code namedIndices}, so the fixture must not restub it. */
+      /** Stubbed by {@code namedIndices}; the fixture must not restub it. */
       PRE_STUBBED
     }
   }
 
-  /** Generated names, so the readability probe has something to report for each resolved index. */
+  /** Generated names, so the readability probe can report on each resolved index. */
   private static Resolution indices(String expression, int indexCount) {
     return new Resolution(expression, indexCount, Resolution.Shape.INDICES);
   }
 
   private static String[] generatedNames(int count) {
-    return java.util.stream.IntStream.rangeClosed(1, count)
-        .mapToObj(i -> "resolved-" + i)
-        .toArray(String[]::new);
+    return IntStream.rangeClosed(1, count).mapToObj(i -> "resolved-" + i).toArray(String[]::new);
   }
 
-  /** Resolved indices with real names, so the availability probe can be keyed on them. */
+  /** Resolved indices with real names, so probes can be keyed on them. */
   private Resolution namedIndices(String expression, String... names) {
     when(node.execute(eq(ResolveIndexAction.INSTANCE), any())).thenReturn(resolveFuture);
     when(resolveFuture.actionGet(any(TimeValue.class))).thenReturn(resolveResponse);
@@ -438,7 +434,6 @@ class IndexPrunerTest {
         when(resolveResponse.getDataStreams())
             .thenReturn(List.of(mock(ResolveIndexAction.ResolvedDataStream.class)));
       }
-      case PRE_STUBBED -> throw new IllegalStateException("handled above");
       case INDICES -> {
         whenResolved();
         when(resolveResponse.getAliases()).thenReturn(List.of());

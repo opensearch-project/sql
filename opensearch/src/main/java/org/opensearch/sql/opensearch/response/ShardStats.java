@@ -5,39 +5,28 @@
 
 package org.opensearch.sql.opensearch.response;
 
-import java.util.Arrays;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
+import org.opensearch.action.search.CreatePitResponse;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.ShardSearchFailure;
 import org.opensearch.sql.executor.Warning;
 
 /**
- * The shard-level outcome of one search, captured off the {@link SearchResponse} so a scan can tell
- * whether the rows it is about to return cover every shard of the queried indices.
- *
- * <p>OpenSearch answers with HTTP 200 as long as one shard responded ({@code
- * search.default_allow_partial_results} defaults to true), so a result built from {@code hits} and
- * {@code aggregations} alone can silently omit whole shards. Three outcomes make a result partial,
- * and only the first sets {@code failed}: a shard returned an error, a shard had no available copy
- * (the counts do not add up to {@code total}), or the search timed out before every shard replied.
- *
- * <p>Note the counters are not disjoint: a shard skipped by the can-match phase is reported in both
- * {@code skipped} and {@code successful}, so the invariant is {@code total = successful + failed +
- * missing} and {@code skipped} plays no part in deciding completeness. See {@link #missing()}.
+ * Shard-level outcome of one search, so a scan can tell whether its rows cover every shard. A
+ * search returns 200 once any shard responds, so three outcomes make a result partial: a shard
+ * failed, a shard had no available copy, or the search timed out.
  */
 public record ShardStats(
     int total, int successful, int skipped, int failed, boolean timedOut, List<String> failures) {
 
-  /** Used where the shard outcome is unknown, e.g. a response synthesized from bare hits. */
+  /** No SearchResponse to read, e.g. a page synthesized from bare hits. */
   public static final ShardStats UNKNOWN = new ShardStats(0, 0, 0, 0, false, List.of());
 
-  /**
-   * Max distinct failure reasons to spell out in a warning; the rest are summarized as "N more".
-   */
+  /** Reasons to spell out in a warning; the rest are summarized as "N more". */
   static final int MAX_REASONS = 3;
 
   public static ShardStats from(SearchResponse searchResponse) {
@@ -51,36 +40,40 @@ public record ShardStats(
   }
 
   /**
-   * Shards the search never reached, e.g. no copy was available.
-   *
-   * <p>Counted as {@code total - successful - failed}, because a shard skipped by the can-match
-   * phase is reported in {@code skipped} <em>and</em> in {@code successful} -- verified against a
-   * live cluster: one unassigned shard, one skipped and one searched reports {@code total: 3,
-   * successful: 2, skipped: 1}. Subtracting {@code skipped} a second time would hide a missing
-   * shard behind every skipped one, which is the norm for a time-filtered query over many shards.
+   * A PIT created over only some of its shards pins that subset, so every search against it looks
+   * complete. The gap is only visible here, at creation.
+   */
+  public static ShardStats from(CreatePitResponse pitResponse) {
+    return new ShardStats(
+        pitResponse.getTotalShards(),
+        pitResponse.getSuccessfulShards(),
+        pitResponse.getSkippedShards(),
+        pitResponse.getFailedShards(),
+        false,
+        describeFailures(pitResponse.getShardFailures()));
+  }
+
+  /**
+   * Shards the search never reached. Not {@code - skipped}: a can-match skipped shard is counted in
+   * both {@code skipped} and {@code successful}, so subtracting it twice hides a missing shard.
    */
   public int missing() {
     return Math.max(0, total - successful - failed);
   }
 
-  /** Whether the rows produced alongside these stats cover every shard. */
   public boolean isComplete() {
     return !timedOut && failed == 0 && missing() == 0;
   }
 
-  /**
-   * The warning to attach to the response, or empty when the search covered every shard. Built here
-   * rather than at the call site so every scan reports the same outcome identically.
-   */
+  /** The warning to attach, or empty when the search covered every shard. */
   public Optional<Warning> toWarning() {
-    if (total == 0 || isComplete()) {
+    if (isComplete()) {
       return Optional.empty();
     }
     return Optional.of(
         new Warning(Warning.TYPE_PARTIAL_RESULT_SHARD_FAILURE, buildMessage(), buildDetail()));
   }
 
-  /** Leads with the consequence, then the counts, mirroring how the DSL clients phrase it. */
   private String buildMessage() {
     if (failed > 0) {
       return String.format("Results are partial: %d of %d shards failed.", failed, total);
@@ -120,32 +113,34 @@ public record ShardStats(
   }
 
   /**
-   * Summarize per-shard failures the way the DSL response does (index, shard, reason), keeping each
-   * distinct reason once so one cause repeated across many shards is reported once.
+   * One line per distinct reason, keyed on the reason alone so one cause spanning many shards is
+   * reported once, labelled with the first shard that hit it.
    */
   private static List<String> describeFailures(ShardSearchFailure[] shardFailures) {
     if (shardFailures == null || shardFailures.length == 0) {
       return List.of();
     }
-    Set<String> distinct =
-        Arrays.stream(shardFailures)
-            .map(ShardStats::describeFailure)
-            .collect(Collectors.toCollection(LinkedHashSet::new));
-    return List.copyOf(distinct);
+    Map<String, String> byReason = new LinkedHashMap<>();
+    for (ShardSearchFailure failure : shardFailures) {
+      byReason.putIfAbsent(reasonOf(failure), location(failure) + " " + reasonOf(failure));
+    }
+    return List.copyOf(byReason.values());
   }
 
-  private static String describeFailure(ShardSearchFailure failure) {
-    String location =
-        failure.index() == null
-            ? "unknown shard"
-            : String.format("[%s][%d]", failure.index(), failure.shardId());
+  private static String reasonOf(ShardSearchFailure failure) {
     Throwable cause = failure.getCause();
     if (cause == null) {
-      return String.format("%s %s", location, failure.reason());
+      return failure.reason();
     }
     String message = cause.getMessage();
     return message == null
-        ? String.format("%s %s", location, cause.getClass().getSimpleName())
-        : String.format("%s %s: %s", location, cause.getClass().getSimpleName(), message);
+        ? cause.getClass().getSimpleName()
+        : cause.getClass().getSimpleName() + ": " + message;
+  }
+
+  private static String location(ShardSearchFailure failure) {
+    return failure.index() == null
+        ? "unknown shard"
+        : String.format("[%s][%d]", failure.index(), failure.shardId());
   }
 }

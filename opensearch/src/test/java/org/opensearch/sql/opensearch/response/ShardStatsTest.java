@@ -112,7 +112,6 @@ class ShardStatsTest {
 
   @Test
   void skipped_shards_alone_never_make_a_result_partial() {
-    // Every shard answered; three of them were skipped by can-match, which is not a gap.
     ShardStats stats = ShardStats.from(searchResponse(5, 5, 3, 0, false));
 
     assertTrue(stats.isComplete());
@@ -142,8 +141,9 @@ class ShardStatsTest {
                 2,
                 false,
                 failure("logs", 0, "too many buckets"),
-                failure("logs", 0, "too many buckets")));
+                failure("logs", 1, "too many buckets")));
 
+    // Same cause on two different shards collapses to one line, labelled with the first.
     assertEquals(List.of("[logs][0] IllegalStateException: too many buckets"), stats.failures());
   }
 

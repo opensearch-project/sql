@@ -24,11 +24,8 @@ public class Warning {
   public static final String TYPE_PARTIAL_RESULT = "PARTIAL_RESULT";
 
   /**
-   * The result covers only the shards that responded: one or more shards failed, had no available
-   * copy, or had not replied when the search timed out. Kept distinct from {@link
-   * #TYPE_PARTIAL_RESULT} because the engine did not choose to narrow anything here -- the search
-   * came back incomplete -- so a consumer's remedy differs (retry, or reject partial results
-   * outright) and must not be presented as the index-subset case.
+   * The result covers only the shards that responded. Distinct from {@link #TYPE_PARTIAL_RESULT}:
+   * the engine narrowed nothing, so the remedy is retry rather than rerun-without-partial.
    */
   public static final String TYPE_PARTIAL_RESULT_SHARD_FAILURE = "PARTIAL_RESULT_SHARD_FAILURE";
 

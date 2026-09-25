@@ -12,32 +12,21 @@ import static org.opensearch.sql.util.TestUtils.isIndexExist;
 import static org.opensearch.sql.util.TestUtils.performRequest;
 
 import java.io.IOException;
-import java.util.Locale;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Test;
 import org.opensearch.client.Request;
-import org.opensearch.client.RequestOptions;
-import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.util.ClusterPlugins;
 
 /**
- * Runs the shard-failure warning path with the security plugin installed, for a user whose role is
- * index-scoped rather than an admin.
+ * The shard-failure warning under the security plugin, for an index-scoped role. Two things only
+ * break here: the warning crossing the transport-to-worker handoff (#5739), and judging readability
+ * with an API the role allows -- a routing-table read needs cluster:monitor/state, which it lacks.
  *
- * <p>Two things can only break under security, and both are guarded here. First, the warning
- * travels the same response channel that #5739 showed the security transport interceptor can drop
- * on the transport-to-worker handoff. Second, deciding whether an index was readable must use an
- * API the role already allows: judging it from the routing table needs {@code
- * cluster:monitor/state}, which an index-scoped role does not carry, so it would silently disable
- * pruning for exactly these users and log a missing-privileges audit event on every query.
- *
- * <p>The fixture holds three indices in one pattern: one in range, one out of range carrying a
- * field of its own, and one whose shard can never be allocated. A query with request-level bounds
- * must therefore prune the out-of-range index (its field stops resolving) while keeping the
- * unreadable one (the response carries a shard-failure warning).
+ * <p>Three indices in one pattern: one in range, one out of range with a field of its own, one
+ * whose shard can never be allocated. A bounded query must prune the second and keep the third.
  */
 public class ShardFailureWarningSecurityIT extends SecurityTestBase {
 
@@ -54,7 +43,7 @@ public class ShardFailureWarningSecurityIT extends SecurityTestBase {
 
   private static final String TO = "2026-12-31 00:00:00";
 
-  private boolean usersInitialized = false;
+  private static boolean usersInitialized = false;
 
   @Override
   protected void init() throws Exception {
@@ -72,13 +61,12 @@ public class ShardFailureWarningSecurityIT extends SecurityTestBase {
     createTestIndices();
   }
 
-  /**
-   * Drop the unallocatable index between tests so no other class in the suite inherits a red
-   * cluster. {@code init()} runs before every test, so the fixture is rebuilt each time.
-   */
+  /** Drop it between tests so no other class inherits a red cluster; init() rebuilds it. */
   @After
   public void removeUnreadableIndex() throws IOException {
-    performRequest(client(), new Request("DELETE", "/" + UNREADABLE_INDEX));
+    if (isIndexExist(client(), UNREADABLE_INDEX)) {
+      performRequest(client(), new Request("DELETE", "/" + UNREADABLE_INDEX));
+    }
   }
 
   private void createTestIndices() throws IOException {
@@ -127,11 +115,7 @@ public class ShardFailureWarningSecurityIT extends SecurityTestBase {
     assertShardFailureWarning(result);
   }
 
-  /**
-   * The bounds a dashboard sends activate pruning, which is where the warning was lost: the
-   * unreadable index was dropped from the expression, leaving a search that covered every shard it
-   * was given and so had nothing to report.
-   */
+  /** The bounds a dashboard sends activate pruning, which is where the warning was lost. */
   @Test
   public void shardFailureWarningSurvivesPruningUnderSecurity() throws IOException {
     JSONObject result =
@@ -143,12 +127,7 @@ public class ShardFailureWarningSecurityIT extends SecurityTestBase {
     assertShardFailureWarning(result);
   }
 
-  /**
-   * Keeping the unreadable index must not cost pruning for an index-scoped role: the out-of-range
-   * index is still dropped, so its field stops resolving. Judging readability from the routing
-   * table broke this, because the role carries no {@code cluster:monitor/state} and the denied
-   * request made pruning decline altogether.
-   */
+  /** Keeping the unreadable index must not cost pruning: the out-of-range one still goes. */
   @Test
   public void pruningStillNarrowsForAnIndexScopedRole() {
     ResponseException e =
@@ -189,28 +168,5 @@ public class ShardFailureWarningSecurityIT extends SecurityTestBase {
     assertTrue(
         "warning should say the numbers may be undercounted: " + warning.getString("detail"),
         warning.getString("detail").contains("may be undercounted"));
-  }
-
-  /** Like {@link #executeQueryAsUser}, but also sends the per-request time bounds. */
-  private JSONObject executeQueryAsUserWithBounds(
-      String query, String username, String timeField, String start, String end)
-      throws IOException {
-    Request request = new Request("POST", "/_plugins/_ppl");
-    request.setJsonEntity(
-        String.format(
-            Locale.ROOT,
-            "{ \"query\": \"%s\", \"time_field\": \"%s\", \"start_time\": \"%s\","
-                + " \"end_time\": \"%s\" }",
-            query,
-            timeField,
-            start,
-            end));
-    RequestOptions.Builder options = RequestOptions.DEFAULT.toBuilder();
-    options.addHeader("Content-Type", "application/json");
-    options.addHeader("Authorization", createBasicAuthHeader(username, STRONG_PASSWORD));
-    request.setOptions(options);
-    Response response = client().performRequest(request);
-    assertEquals(200, response.getStatusLine().getStatusCode());
-    return new JSONObject(org.opensearch.sql.legacy.TestUtils.getResponseBody(response, true));
   }
 }

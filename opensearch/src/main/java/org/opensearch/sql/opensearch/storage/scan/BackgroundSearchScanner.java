@@ -157,8 +157,8 @@ public class BackgroundSearchScanner {
    */
   public SearchBatchResult fetchNextBatch(OpenSearchRequest request) {
     OpenSearchResponse response = getCurrentResponse(request);
-    // Record here, on the query thread: the search itself may have run on the background pool,
-    // whose thread the warning sink (a thread-local drained by the execution engine) cannot see.
+    // On the query thread: the search may have run on the background pool, whose thread the
+    // thread-local warning sink cannot reach.
     response.getShardStats().toWarning().ifPresent(CalcitePlanContext::addWarning);
 
     // Determine if we need future batches

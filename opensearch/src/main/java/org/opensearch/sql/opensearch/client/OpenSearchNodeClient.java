@@ -31,6 +31,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.tasks.TaskId;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.IndexSettings;
+import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.common.error.ErrorCode;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
@@ -38,6 +39,7 @@ import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
+import org.opensearch.sql.opensearch.response.ShardStats;
 import org.opensearch.tasks.CancellableTask;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -269,6 +271,7 @@ public class OpenSearchNodeClient implements OpenSearchClient {
         this.client.execute(CreatePitAction.INSTANCE, createPitRequest);
     try {
       CreatePitResponse pitResponse = execute.get();
+      ShardStats.from(pitResponse).toWarning().ifPresent(CalcitePlanContext::addWarning);
       return pitResponse.getId();
     } catch (ExecutionException e) {
       if (e.getCause() instanceof OpenSearchSecurityException) {

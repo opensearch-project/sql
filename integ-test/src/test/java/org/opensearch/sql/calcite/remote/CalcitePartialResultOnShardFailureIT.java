@@ -45,13 +45,12 @@ public class CalcitePartialResultOnShardFailureIT extends PPLIntegTestCase {
     createTestIndices();
   }
 
-  /**
-   * Drop the unassignable index between tests so no other test class inherits a red cluster. {@code
-   * init()} runs before every test, so the fixture is rebuilt each time.
-   */
+  /** Drop it between tests so no other class inherits a red cluster; init() rebuilds it. */
   @After
   public void removeUnassignableIndex() throws IOException {
-    performRequest(client(), new Request("DELETE", "/" + UNASSIGNABLE_INDEX));
+    if (isIndexExist(client(), UNASSIGNABLE_INDEX)) {
+      performRequest(client(), new Request("DELETE", "/" + UNASSIGNABLE_INDEX));
+    }
   }
 
   private void createTestIndices() throws IOException {
@@ -120,7 +119,7 @@ public class CalcitePartialResultOnShardFailureIT extends PPLIntegTestCase {
         executeQuery(String.format("source=%s | stats count() as n", HEALTHY_INDEX));
 
     verifyDataRows(result, rows(3));
-    assertTrue("a complete result carries no warning", !result.has("warnings"));
+    assertFalse("a complete result carries no warning", result.has("warnings"));
   }
 
   @Test
@@ -130,6 +129,6 @@ public class CalcitePartialResultOnShardFailureIT extends PPLIntegTestCase {
             String.format("source=%s | where bytes >= 900 | stats count() as n", HEALTHY_INDEX));
 
     verifyDataRows(result, rows(2));
-    assertTrue("a complete result carries no warning", !result.has("warnings"));
+    assertFalse("a complete result carries no warning", result.has("warnings"));
   }
 }

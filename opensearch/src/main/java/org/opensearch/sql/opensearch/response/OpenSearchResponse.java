@@ -108,7 +108,6 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
     this.exprValueFactory = exprValueFactory;
     this.includes = includes;
     this.isCountAgg = isCountAgg;
-    // No SearchResponse to read the shard outcome from (an exhausted or synthesized page).
     this.shardStats = ShardStats.UNKNOWN;
   }
 
