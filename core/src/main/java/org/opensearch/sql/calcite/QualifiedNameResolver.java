@@ -152,8 +152,7 @@ public class QualifiedNameResolver {
 
         Optional<RexNode> fieldNode = tryToResolveField(alias, field, context, inputCount);
         if (fieldNode.isPresent()) {
-          return Optional.of(
-              resolveFieldAccess(context, parts, 1, length, fieldNode.get(), false));
+          return Optional.of(resolveFieldAccess(context, parts, 1, length, fieldNode.get(), false));
         }
       }
     }
