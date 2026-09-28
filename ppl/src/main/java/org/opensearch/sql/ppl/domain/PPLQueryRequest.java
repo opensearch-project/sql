@@ -73,6 +73,32 @@ public class PPLQueryRequest {
   @Accessors(fluent = true)
   private String queryId = null;
 
+  /**
+   * Raw {@code wait_for_completion_timeout} body value (e.g. {@code "5s"}, {@code "0"}). Presence
+   * of this field or {@link #keepAlive} switches the transport action to the asynchronous submit
+   * path; absence keeps the current synchronous behavior. Kept as a string so this domain class has
+   * no OpenSearch dependency; the transport layer parses it into a {@code TimeValue}.
+   */
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
+  private String waitForCompletionTimeout = null;
+
+  /**
+   * Raw {@code keep_alive} body value (e.g. {@code "5m"}). Presence of this field or {@link
+   * #waitForCompletionTimeout} switches the transport action to the asynchronous submit path. Kept
+   * as a string; parsed by the transport layer.
+   */
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
+  private String keepAlive = null;
+
+  /** Returns {@code true} when either async body field is present on the request. */
+  public boolean isAsync() {
+    return waitForCompletionTimeout != null || keepAlive != null;
+  }
+
   public PPLQueryRequest(String pplQuery, JSONObject jsonContent, String path) {
     this(pplQuery, jsonContent, path, "");
   }
