@@ -59,6 +59,33 @@ public class CalcitePPLMultiValueMinMaxTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testStatisticalAggregatesOverArrayAggregateElements() {
+    RelNode root =
+        getRelNode(
+            "source=DEPT | stats sum(EMPNOS) as s, avg(EMPNOS) as a, var_samp(EMPNOS) as v,"
+                + " stddev_pop(EMPNOS) as sd");
+    String plan = root.explain();
+    // Each aggregate reads the element marker, which the analytics engine reduces per row.
+    Assert.assertTrue(plan, plan.contains("MV_ELEMENTS($1)"));
+    // Same types as over a scalar INTEGER field: sum widens to BIGINT, avg/stddev are DOUBLE.
+    Assert.assertEquals(
+        SqlTypeName.BIGINT,
+        root.getRowType().getField("s", true, false).getType().getSqlTypeName());
+    Assert.assertEquals(
+        SqlTypeName.DOUBLE,
+        root.getRowType().getField("a", true, false).getType().getSqlTypeName());
+    Assert.assertEquals(
+        SqlTypeName.DOUBLE,
+        root.getRowType().getField("sd", true, false).getType().getSqlTypeName());
+  }
+
+  @Test
+  public void testSumOverScalarDoesNotUseMarker() {
+    RelNode root = getRelNode("source=DEPT | stats sum(DEPTNO) as s");
+    Assert.assertFalse(root.explain(), root.explain().contains("MV_ELEMENTS"));
+  }
+
+  @Test
   public void testMinMaxOverScalarIsUnchanged() {
     RelNode root = getRelNode("source=DEPT | stats max(DEPTNO) as mx, min(DEPTNO) as mn");
     String expectedLogical =

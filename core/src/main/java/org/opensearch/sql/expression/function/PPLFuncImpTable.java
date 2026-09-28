@@ -282,6 +282,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
@@ -300,6 +301,9 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -308,6 +312,7 @@ import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
 import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SameOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -540,6 +545,29 @@ public class PPLFuncImpTable {
     return validateFunctionArgs(implementation, functionName, field, argList, rexBuilder);
   }
 
+  /**
+   * Marker for "every element of this multi_value field", typed as the element. Only valid as the
+   * argument of an aggregate in {@link #ELEMENT_AGGREGATES}; the analytics engine
+   * (OpenSearchMultiValueAggregateRule) replaces it with per-row reductions.
+   */
+  static final SqlFunction MV_ELEMENTS =
+      new SqlFunction(
+          "MV_ELEMENTS",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TO_COLLECTION_ELEMENT_FORCE_NULLABLE,
+          null,
+          OperandTypes.ARRAY,
+          SqlFunctionCategory.USER_DEFINED_FUNCTION);
+
+  private static final Set<BuiltinFunctionName> ELEMENT_AGGREGATES =
+      Set.of(SUM, AVG, VARSAMP, VARPOP, STDDEV_SAMP, STDDEV_POP);
+
+  private static boolean isNumericArray(RelDataType type) {
+    return type.getSqlTypeName() == SqlTypeName.ARRAY
+        && type.getComponentType() != null
+        && SqlTypeUtil.isNumeric(type.getComponentType());
+  }
+
   public RelBuilder.AggCall resolveAgg(
       BuiltinFunctionName functionName,
       boolean distinct,
@@ -547,6 +575,15 @@ public class PPLFuncImpTable {
       List<RexNode> argList,
       CalcitePlanContext context) {
     var implementation = getImplementation(functionName);
+
+    // sum/avg/var/stddev over a multi_value field aggregate every element: lower the field to the
+    // MV_ELEMENTS marker (typed as the element) so validation and the handler see a numeric
+    // argument. The analytics engine replaces the marker with per-row reductions.
+    if (field != null
+        && ELEMENT_AGGREGATES.contains(functionName)
+        && isNumericArray(field.getType())) {
+      field = context.rexBuilder.makeCall(MV_ELEMENTS, field);
+    }
 
     // Validation is done based on original argument types to generate error from user perspective.
     List<RexNode> nodes =
