@@ -72,6 +72,24 @@ public class TransportPPLQueryRequest extends ActionRequest {
   @Accessors(fluent = true)
   private Boolean partialResult = null;
 
+  /**
+   * Raw {@code wait_for_completion_timeout} body value (e.g. {@code "5s"}). Presence of this field
+   * or {@link #keepAlive} switches the transport action to the asynchronous submit path.
+   */
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
+  private String waitForCompletionTimeout = null;
+
+  /**
+   * Raw {@code keep_alive} body value (e.g. {@code "5m"}). Presence of this field or {@link
+   * #waitForCompletionTimeout} switches the transport action to the asynchronous submit path.
+   */
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
+  private String keepAlive = null;
+
   /** Constructor of TransportPPLQueryRequest from PPLQueryRequest. */
   public TransportPPLQueryRequest(PPLQueryRequest pplQueryRequest) {
     pplQuery = pplQueryRequest.getRequest();
@@ -85,6 +103,8 @@ public class TransportPPLQueryRequest extends ActionRequest {
     explainMode = pplQueryRequest.mode().getModeName();
     queryId = pplQueryRequest.queryId();
     partialResult = pplQueryRequest.partialResult();
+    waitForCompletionTimeout = pplQueryRequest.waitForCompletionTimeout();
+    keepAlive = pplQueryRequest.keepAlive();
   }
 
   /** Constructor of TransportPPLQueryRequest from StreamInput. */
@@ -102,6 +122,8 @@ public class TransportPPLQueryRequest extends ActionRequest {
     analyze = in.readBoolean();
     queryId = in.readOptionalString();
     partialResult = in.readOptionalBoolean();
+    waitForCompletionTimeout = in.readOptionalString();
+    keepAlive = in.readOptionalString();
   }
 
   /** Re-create the object from the actionRequest. */
@@ -137,6 +159,8 @@ public class TransportPPLQueryRequest extends ActionRequest {
     out.writeBoolean(analyze);
     out.writeOptionalString(queryId);
     out.writeOptionalBoolean(partialResult);
+    out.writeOptionalString(waitForCompletionTimeout);
+    out.writeOptionalString(keepAlive);
   }
 
   public String getRequest() {
@@ -197,6 +221,13 @@ public class TransportPPLQueryRequest extends ActionRequest {
     pplQueryRequest.style(style);
     pplQueryRequest.queryId(queryId);
     pplQueryRequest.partialResult(partialResult);
+    pplQueryRequest.waitForCompletionTimeout(waitForCompletionTimeout);
+    pplQueryRequest.keepAlive(keepAlive);
     return pplQueryRequest;
+  }
+
+  /** Presence of either async body field selects the asynchronous submit path. */
+  public boolean isAsync() {
+    return waitForCompletionTimeout != null || keepAlive != null;
   }
 }

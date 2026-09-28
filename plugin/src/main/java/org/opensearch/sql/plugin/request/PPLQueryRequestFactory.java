@@ -34,6 +34,9 @@ public class PPLQueryRequestFactory {
   private static final String QUERY_PARAMS_FETCH_SIZE = "fetch_size";
   private static final String QUERY_PARAMS_INCLUDE_METADATA = "include_metadata";
   private static final String QUERY_PARAMS_PARTIAL_RESULT = "partial_result";
+  private static final String QUERY_PARAMS_WAIT_FOR_COMPLETION_TIMEOUT =
+      "wait_for_completion_timeout";
+  private static final String QUERY_PARAMS_KEEP_ALIVE = "keep_alive";
 
   /**
    * Build {@link PPLQueryRequest} from {@link RestRequest}.
@@ -136,6 +139,15 @@ public class PPLQueryRequestFactory {
       // setting.
       if (jsonContent.has(QUERY_PARAMS_PARTIAL_RESULT)) {
         pplRequest.partialResult(jsonContent.optBoolean(QUERY_PARAMS_PARTIAL_RESULT));
+      }
+      // Presence of either async body field selects the asynchronous submit path in the transport
+      // action. Absent = existing synchronous behavior.
+      if (jsonContent.has(QUERY_PARAMS_WAIT_FOR_COMPLETION_TIMEOUT)) {
+        pplRequest.waitForCompletionTimeout(
+            jsonContent.getString(QUERY_PARAMS_WAIT_FOR_COMPLETION_TIMEOUT));
+      }
+      if (jsonContent.has(QUERY_PARAMS_KEEP_ALIVE)) {
+        pplRequest.keepAlive(jsonContent.getString(QUERY_PARAMS_KEEP_ALIVE));
       }
       return pplRequest;
     } catch (JSONException e) {
