@@ -301,11 +301,13 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
       return fields;
     }
     List<RelDataTypeField> retyped = new ArrayList<>(fields.size());
+    // expandedGroupKeys only marks pass-through refs to ARRAY keys, so a marked field has an
+    // element.
     for (RelDataTypeField field : fields) {
-      RelDataType element = field.getType().getComponentType();
       retyped.add(
-          expanded.get(field.getIndex()) && element != null
-              ? new RelDataTypeFieldImpl(field.getName(), field.getIndex(), element)
+          expanded.get(field.getIndex())
+              ? new RelDataTypeFieldImpl(
+                  field.getName(), field.getIndex(), field.getType().getComponentType())
               : field);
     }
     return retyped;
