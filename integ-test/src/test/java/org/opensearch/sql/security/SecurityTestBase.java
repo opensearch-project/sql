@@ -14,6 +14,7 @@ import org.json.JSONObject;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 /**
@@ -258,8 +259,7 @@ public abstract class SecurityTestBase extends PPLIntegTestCase {
    * @return the JSON response from the query
    */
   protected JSONObject executeQueryAsUser(String query, String username) throws IOException {
-    Request request = new Request("POST", "/_plugins/_ppl");
-    request.setJsonEntity(
+    return postQueryAsUser(
         String.format(
             Locale.ROOT,
             """
@@ -267,7 +267,29 @@ public abstract class SecurityTestBase extends PPLIntegTestCase {
               "query": "%s"
             }
             """,
-            query));
+            query),
+        username);
+  }
+
+  /** Like {@link #executeQueryAsUser}, but also sends the per-request time bounds. */
+  protected JSONObject executeQueryAsUserWithBounds(
+      String query, String username, String timeField, String start, String end)
+      throws IOException {
+    return postQueryAsUser(
+        String.format(
+            Locale.ROOT,
+            "{ \"query\": \"%s\", \"time_field\": \"%s\", \"start_time\": \"%s\","
+                + " \"end_time\": \"%s\" }",
+            query,
+            timeField,
+            start,
+            end),
+        username);
+  }
+
+  private JSONObject postQueryAsUser(String body, String username) throws IOException {
+    Request request = new Request("POST", "/_plugins/_ppl");
+    request.setJsonEntity(body);
 
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");
@@ -277,6 +299,20 @@ public abstract class SecurityTestBase extends PPLIntegTestCase {
     Response response = client().performRequest(request);
     assertEquals(200, response.getStatusLine().getStatusCode());
     return new JSONObject(org.opensearch.sql.legacy.TestUtils.getResponseBody(response, true));
+  }
+
+  protected void setPruning(boolean enabled) throws IOException {
+    updateClusterSettings(
+        new ClusterSetting(
+            "persistent",
+            Settings.Key.QUERY_PRUNING_ENABLED.getKeyValue(),
+            Boolean.toString(enabled)));
+  }
+
+  /** Clears rather than pins false, which would leak to later classes. */
+  protected void resetPruningToDefault() throws IOException {
+    updateClusterSettings(
+        new ClusterSetting("persistent", Settings.Key.QUERY_PRUNING_ENABLED.getKeyValue(), null));
   }
 
   /** Executes a grammar metadata request as a specific user with basic authentication. */
