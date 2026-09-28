@@ -16,6 +16,7 @@ import javax.annotation.Nullable;
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.core.tasks.TaskCancelledException;
+import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.NonFallbackCalciteException;
 import org.opensearch.sql.monitor.profile.ProfileContext;
@@ -156,6 +157,9 @@ public class BackgroundSearchScanner {
    */
   public SearchBatchResult fetchNextBatch(OpenSearchRequest request) {
     OpenSearchResponse response = getCurrentResponse(request);
+    // On the query thread: the search may have run on the background pool, whose thread the
+    // thread-local warning sink cannot reach.
+    response.getShardStats().toWarning().ifPresent(CalcitePlanContext::addWarning);
 
     // Determine if we need future batches
     if (response.isCountResponse()) {
