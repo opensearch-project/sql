@@ -15,8 +15,16 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.Filter;
+import org.apache.calcite.rel.core.Project;
+import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
 import org.opensearch.analytics.exec.profile.ProfiledResult;
 import org.opensearch.analytics.schema.BinaryType;
@@ -127,7 +135,7 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
                 profileCtx,
                 () -> {
                   try {
-                    List<RelDataTypeField> fields = plan.getRowType().getFieldList();
+                    List<RelDataTypeField> fields = resultFields(plan);
                     List<ExprValue> results = convertRows(rows, fields);
                     Schema schema = buildSchema(fields, results);
                     QueryResponse response =
@@ -208,7 +216,7 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
 
   private QueryResponse buildProfiledResponse(
       RelNode plan, ProfiledResult result, TimewrapSignals timewrap) {
-    List<RelDataTypeField> fields = plan.getRowType().getFieldList();
+    List<RelDataTypeField> fields = resultFields(plan);
     List<ExprValue> results =
         result.rows() != null ? convertRows(result.rows(), fields) : List.of();
     Schema schema = buildSchema(fields, results);
@@ -279,6 +287,62 @@ public class AnalyticsExecutionEngine implements ExecutionEngine {
       }
     }
     return out;
+  }
+
+  /**
+   * The plan's output fields, with every GROUP BY key over a multi_value (ARRAY) field typed as its
+   * element. The analytics engine groups such a key by each element, so the column carries one
+   * element per row; labelling it ARRAY would misreport the response schema.
+   */
+  static List<RelDataTypeField> resultFields(RelNode plan) {
+    List<RelDataTypeField> fields = plan.getRowType().getFieldList();
+    ImmutableBitSet expanded = expandedGroupKeys(plan);
+    if (expanded.isEmpty()) {
+      return fields;
+    }
+    List<RelDataTypeField> retyped = new ArrayList<>(fields.size());
+    for (RelDataTypeField field : fields) {
+      RelDataType element = field.getType().getComponentType();
+      retyped.add(
+          expanded.get(field.getIndex()) && element != null
+              ? new RelDataTypeFieldImpl(field.getName(), field.getIndex(), element)
+              : field);
+    }
+    return retyped;
+  }
+
+  /** Output ordinals of {@code rel} that carry an element-expanded ARRAY GROUP BY key. */
+  private static ImmutableBitSet expandedGroupKeys(RelNode rel) {
+    if (rel instanceof Aggregate aggregate) {
+      ImmutableBitSet.Builder keys = ImmutableBitSet.builder();
+      List<RelDataTypeField> input = aggregate.getInput().getRowType().getFieldList();
+      int ordinal = 0;
+      for (int key : aggregate.getGroupSet()) {
+        if (input.get(key).getType().getComponentType() != null) {
+          keys.set(ordinal);
+        }
+        ordinal++;
+      }
+      return keys.build();
+    }
+    if (rel instanceof Project project) {
+      ImmutableBitSet inputKeys = expandedGroupKeys(project.getInput());
+      if (inputKeys.isEmpty()) {
+        return inputKeys;
+      }
+      ImmutableBitSet.Builder keys = ImmutableBitSet.builder();
+      List<RexNode> projects = project.getProjects();
+      for (int i = 0; i < projects.size(); i++) {
+        if (projects.get(i) instanceof RexInputRef ref && inputKeys.get(ref.getIndex())) {
+          keys.set(i);
+        }
+      }
+      return keys.build();
+    }
+    if (rel instanceof Filter || rel instanceof Sort) {
+      return expandedGroupKeys(rel.getInput(0));
+    }
+    return ImmutableBitSet.of();
   }
 
   private Schema buildSchema(List<RelDataTypeField> fields, List<ExprValue> results) {
