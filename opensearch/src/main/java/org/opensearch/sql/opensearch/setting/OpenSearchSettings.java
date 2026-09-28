@@ -31,6 +31,7 @@ import org.opensearch.index.IndexSettings;
 import org.opensearch.search.aggregations.MultiBucketConsumerService;
 import org.opensearch.sql.common.antlr.AstBuildGuard;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.utils.DeserializationFilterUtil;
 
 /** Setting implementation on OpenSearch. */
@@ -253,6 +254,15 @@ public class OpenSearchSettings extends Settings {
           Key.DESERIALIZATION_MAX_BYTES.getKeyValue(),
           DeserializationFilterUtil.DEFAULT_MAX_BYTES,
           1,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<Integer> CURSOR_MAX_BYTES_SETTING =
+      Setting.intSetting(
+          Key.CURSOR_MAX_BYTES.getKeyValue(),
+          PlanSerializer.DEFAULT_MAX_CURSOR_BYTES,
+          1,
+          PlanSerializer.MAX_CURSOR_BYTES,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
@@ -585,6 +595,12 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.CURSOR_MAX_BYTES,
+        CURSOR_MAX_BYTES_SETTING,
+        new Updater(Key.CURSOR_MAX_BYTES));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.QUERY_BUCKET_SIZE,
         QUERY_BUCKET_SIZE_SETTING,
         new Updater(Key.QUERY_BUCKET_SIZE));
@@ -765,6 +781,7 @@ public class OpenSearchSettings extends Settings {
         .add(DESERIALIZATION_MAX_DEPTH_SETTING)
         .add(DESERIALIZATION_MAX_REFS_SETTING)
         .add(DESERIALIZATION_MAX_BYTES_SETTING)
+        .add(CURSOR_MAX_BYTES_SETTING)
         .add(PPL_ENABLED_SETTING)
         .add(PPL_QUERY_TIMEOUT_SETTING)
         .add(PPL_SYNTAX_LEGACY_PREFERRED_SETTING)

@@ -57,6 +57,7 @@ dependencies {
     api "tools.jackson.core:jackson-databind:${versions.jackson3_databind}"
     api "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson_annotations}"
     api "tools.jackson.dataformat:jackson-dataformat-yaml:${versions.jackson3}"
+    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-smile:${versions.jackson}"
     api "org.snakeyaml:snakeyaml-engine:${versions.snakeyaml_engine}"
     api group: 'com.google.code.gson', name: 'gson', version: '2.8.9'
     api group: 'com.tdunning', name: 't-digest', version: '3.3'

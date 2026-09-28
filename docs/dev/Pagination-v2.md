@@ -547,111 +547,66 @@ RestSQLQueryAction ->>+ SQLService : prepareRequest
 
 #### Serialization and Deserialization round trip
 
-The SQL engine should be able to completely recover the Physical Query Plan to continue its execution to get the next page. Serialization mechanism is responsible for recovering the query plan. note: `ResourceMonitorPlan` isn't serialized, because a new object of this type would be created for the restored query plan before execution. 
-Serialization and Deserialization are performed by Java object serialization API.
+The SQL engine must recover the physical query plan needed to fetch the next page. `PlanSerializer` stores only the supported continuation state in a closed, versioned schema. The schema currently contains `ProjectNode` and `IndexScanNode`. Runtime-only wrappers such as `ResourceMonitorPlan` are omitted and recreated before execution.
+
+The schema is encoded with Jackson Smile and then standard Base64. The new format uses the `n:v2:` prefix so it is distinct from the legacy `n:` object stream. This keeps the payload opaque to clients while avoiding Java object deserialization for the physical-plan envelope and its dependency on the runtime class graph.
 
 ```mermaid
 stateDiagram-v2
     direction LR
-    state "Initial Query Request Query Plan" as FirstPage
-    state FirstPage {
-        state "ProjectOperator" as logState1_1
-        state "..." as logState1_2
-        state "ResourceMonitorPlan" as logState1_3
-        state "OpenSearchIndexScan" as logState1_4
-        state "OpenSearchScrollRequest" as logState1_5
-        logState1_1 --> logState1_2
-        logState1_2 --> logState1_3
-        logState1_3 --> logState1_4
-        logState1_4 --> logState1_5
-    }
+    state "Physical plan" as Plan
+    state "Closed cursor schema" as Schema
+    state "Smile bytes" as Smile
+    state "n:v2: Base64 cursor" as Cursor
+    state "Restored physical plan" as Restored
 
-    state "Deserialized Query Plan" as SecondPageTree
-    state SecondPageTree {
-        state "ProjectOperator" as logState2_1
-        state "..." as logState2_2
-        state "OpenSearchIndexScan" as logState2_3
-        state "OpenSearchScrollRequest" as logState2_4
-        logState2_1 --> logState2_2
-        logState2_2 --> logState2_3
-        logState2_3 --> logState2_4
-    }
-
-    state "Subsequent Query Request Query Plan" as SecondPage
-    state SecondPage {
-        state "ProjectOperator" as logState3_1
-        state "..." as logState3_2
-        state "ResourceMonitorPlan" as logState3_3
-        state "OpenSearchIndexScan" as logState3_4
-        state "OpenSearchScrollRequest" as logState3_5
-        logState3_1 --> logState3_2
-        logState3_2 --> logState3_3
-        logState3_3 --> logState3_4
-        logState3_4 --> logState3_5
-    }
-
-  FirstPage --> SecondPageTree : Serialization and\nDeserialization
-  SecondPageTree --> SecondPage : Execution\nPreparation
+    Plan --> Schema : flatten supported nodes
+    Schema --> Smile : encode and validate limits
+    Smile --> Cursor : Base64 encode
+    Cursor --> Schema : validate and decode
+    Schema --> Restored : rebuild with storage engine
 ```
 
 #### Serialization
 
-All query plan nodes which are supported by pagination should implement [`SerializablePlan`](https://github.com/opensearch-project/sql/blob/f40bb6d68241e76728737d88026e4c8b1e6b3b8b/core/src/main/java/org/opensearch/sql/planner/SerializablePlan.java) interface. `getPlanForSerialization` method of this interface allows serialization mechanism to skip a tree node from serialization. OpenSearch search request objects are not serialized, but search context provided by the OpenSearch cluster is extracted from them.
+`PlanSerializer` loads the OpenSearch-specific `PlanFlattener` through `ServiceLoader`. The flattener removes runtime-only wrappers, converts supported plan nodes to the closed schema, and serializes the current PIT-backed `OpenSearchQueryRequest` with the OpenSearch transport codec. Projection expressions continue to use the existing expression serializer.
+
+The complete Smile payload is validated against the configured depth, token-count, field-name, and cursor-size limits before it is returned. PIT ownership transfers to the cursor only after Smile serialization, validation, and Base64 encoding all succeed. If any step fails, the current request retains ownership and closes the PIT instead of leaving an unreachable search context.
 
 ```mermaid
 sequenceDiagram
     participant PlanSerializer
+    participant PlanFlattener
     participant ProjectOperator
-    participant ResourceMonitorPlan
     participant OpenSearchIndexScan
-    participant OpenSearchScrollRequest
 
-PlanSerializer ->>+ ProjectOperator : getPlanForSerialization
-  ProjectOperator -->>- PlanSerializer : this
-PlanSerializer ->>+ ProjectOperator : serialize
-  Note over ProjectOperator : dump private fields
-  ProjectOperator ->>+ ResourceMonitorPlan : getPlanForSerialization
-    ResourceMonitorPlan -->>- ProjectOperator : delegate
-  Note over ResourceMonitorPlan : ResourceMonitorPlan<br />is not serialized
-  ProjectOperator ->>+ OpenSearchIndexScan : writeExternal
-    OpenSearchIndexScan ->>+ OpenSearchScrollRequest : writeTo
-      Note over OpenSearchScrollRequest : dump private fields
-      OpenSearchScrollRequest -->>- OpenSearchIndexScan : serialized request
-    Note over OpenSearchIndexScan : dump private fields
-    OpenSearchIndexScan -->>- ProjectOperator : serialized
-  ProjectOperator -->>- PlanSerializer : serialized
-Note over PlanSerializer : Zip to reduce size
+    PlanSerializer ->> PlanFlattener : flatten physical plan
+    PlanFlattener ->> ProjectOperator : encode projection expressions
+    PlanFlattener ->> OpenSearchIndexScan : encode PIT-backed request
+    PlanFlattener -->> PlanSerializer : closed schema + deferred PIT handoff
+    PlanSerializer ->> PlanSerializer : Smile encode and validate
+    PlanSerializer ->> PlanSerializer : Base64 encode with n:v2: prefix
+    PlanSerializer ->> OpenSearchIndexScan : mark cursor serialized
 ```
 
 #### Deserialization
 
-Deserialization restores previously serialized Physical Query Plan. The recovered plan is ready to execute and returns the next page of the search response. To complete the query plan restoration, SQL engine will build a new request to the OpenSearch node. This request doesn't contain a search query, but it contains a search context reference &mdash; `scrollID`. To create a new `OpenSearchScrollRequest` object it requires access to the instance of `OpenSearchStorageEngine`. Note: `OpenSearchStorageEngine` can't be serialized, and it exists as a singleton in the SQL plugin engine. `PlanSerializer` creates a customized deserialization binary object stream &mdash; `CursorDeserializationStream`. This stream provides an interface to access the `OpenSearchStorageEngine` object.
+`PlanSerializer` validates the `n:v2:` prefix and encoded length before Base64 decoding. It then validates the Smile payload with bounded stream-read constraints and decodes only the closed cursor schema. `PlanRebuilder`, loaded through `ServiceLoader`, reconstructs the supported physical plan nodes with the active `OpenSearchStorageEngine`. The restored request references the existing PIT, so query analysis and planning do not run again for the next page.
 
 ```mermaid
 sequenceDiagram
     participant PlanSerializer
-    participant CursorDeserializationStream
+    participant PlanRebuilder
     participant ProjectOperator
     participant OpenSearchIndexScan
-    participant OpenSearchScrollRequest
+    participant OpenSearchStorageEngine
 
-Note over PlanSerializer : Unzip
-Note over PlanSerializer : Validate cursor integrity
-PlanSerializer ->>+ CursorDeserializationStream : deserialize
-  CursorDeserializationStream ->>+ ProjectOperator : create new
-    Note over ProjectOperator: load private fields
-    ProjectOperator -->> CursorDeserializationStream : deserialize input
-  activate CursorDeserializationStream
-  CursorDeserializationStream ->>+ OpenSearchIndexScan : create new
-  deactivate CursorDeserializationStream
-    OpenSearchIndexScan -->>+ CursorDeserializationStream : resolve engine
-  CursorDeserializationStream ->>- OpenSearchIndexScan : OpenSearchStorageEngine
-    Note over OpenSearchIndexScan : load private fields
-    OpenSearchIndexScan ->>+ OpenSearchScrollRequest : create new
-      OpenSearchScrollRequest -->>- OpenSearchIndexScan : created
-    OpenSearchIndexScan -->>- ProjectOperator : deserialized
-  ProjectOperator -->>- PlanSerializer : deserialized
-  deactivate CursorDeserializationStream
+    PlanSerializer ->> PlanSerializer : validate prefix, size, and Smile structure
+    PlanSerializer ->> PlanRebuilder : rebuild closed schema
+    PlanRebuilder ->> OpenSearchStorageEngine : obtain active engine
+    PlanRebuilder ->> OpenSearchIndexScan : restore PIT-backed request
+    PlanRebuilder ->> ProjectOperator : restore projection and child
+    PlanRebuilder -->> PlanSerializer : physical query plan
 ```
 
 #### Close Cursor

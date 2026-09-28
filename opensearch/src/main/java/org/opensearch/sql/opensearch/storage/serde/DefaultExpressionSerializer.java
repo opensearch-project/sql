@@ -49,9 +49,12 @@ public class DefaultExpressionSerializer implements ExpressionSerializer {
   @Override
   public Expression deserialize(String code) {
     try {
-      ByteArrayInputStream input = new ByteArrayInputStream(Base64.getDecoder().decode(code));
-      ObjectInputStream objectInput = new ObjectInputStream(input);
       Settings settings = settingsSupplier == null ? null : settingsSupplier.get();
+      int maxBytes = maxBytes(settings);
+      checkEncodedSize(code, maxBytes);
+      byte[] decoded = Base64.getDecoder().decode(code);
+      checkDecodedSize(decoded, maxBytes);
+      ObjectInputStream objectInput = new ObjectInputStream(new ByteArrayInputStream(decoded));
       objectInput.setObjectInputFilter(
           settings == null
               ? DeserializationFilterUtil.createFilter("")
@@ -59,6 +62,27 @@ public class DefaultExpressionSerializer implements ExpressionSerializer {
       return (Expression) objectInput.readObject();
     } catch (Exception e) {
       throw new IllegalStateException("Failed to deserialize expression code: " + code, e);
+    }
+  }
+
+  private static int maxBytes(Settings settings) {
+    if (settings == null) {
+      return DeserializationFilterUtil.DEFAULT_MAX_BYTES;
+    }
+    Integer configured = settings.getSettingValue(Settings.Key.DESERIALIZATION_MAX_BYTES);
+    return configured == null ? DeserializationFilterUtil.DEFAULT_MAX_BYTES : configured;
+  }
+
+  private static void checkEncodedSize(String code, int maxBytes) {
+    long maxEncodedLength = 4L * ((maxBytes + 2L) / 3L);
+    if (code.length() > maxEncodedLength) {
+      throw new IllegalArgumentException("Serialized expression exceeds the configured byte limit");
+    }
+  }
+
+  private static void checkDecodedSize(byte[] decoded, int maxBytes) {
+    if (decoded.length > maxBytes) {
+      throw new IllegalArgumentException("Serialized expression exceeds the configured byte limit");
     }
   }
 }

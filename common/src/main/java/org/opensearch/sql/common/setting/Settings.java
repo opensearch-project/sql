@@ -58,6 +58,7 @@ public abstract class Settings {
     DESERIALIZATION_MAX_DEPTH("plugins.query.deserialization.max_depth"),
     DESERIALIZATION_MAX_REFS("plugins.query.deserialization.max_refs"),
     DESERIALIZATION_MAX_BYTES("plugins.query.deserialization.max_bytes"),
+    CURSOR_MAX_BYTES("plugins.query.cursor.max_bytes"),
     QUERY_BUCKET_SIZE("plugins.query.buckets"),
     SEARCH_MAX_BUCKETS("search.max_buckets"),
     ENCYRPTION_MASTER_KEY("plugins.query.datasources.encryption.masterkey"),

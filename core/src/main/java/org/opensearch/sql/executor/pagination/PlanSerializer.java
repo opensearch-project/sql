@@ -5,146 +5,220 @@
 
 package org.opensearch.sql.executor.pagination;
 
-import com.google.common.hash.HashCode;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
+import com.fasterxml.jackson.core.StreamReadConstraints;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.smile.SmileFactory;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.NotSerializableException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
-import java.util.zip.Deflater;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
+import java.util.Base64;
+import java.util.Objects;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.exception.NoCursorException;
-import org.opensearch.sql.planner.SerializablePlan;
+import org.opensearch.sql.executor.pagination.serde.SerializablePlanNode;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.utils.DeserializationFilterUtil;
 
-/**
- * This class is entry point to paged requests. It is responsible to cursor serialization and
- * deserialization.
- */
+/** Serializes paged physical plans with a closed, versioned Jackson Smile schema. */
 public class PlanSerializer {
-  public static final String CURSOR_PREFIX = "n:";
+  public static final String CURSOR_PREFIX = "n:v2:";
+
+  /** Default cap for the complete Smile cursor envelope. */
+  public static final int DEFAULT_MAX_CURSOR_BYTES = 1 << 20;
+
+  /** Administrative ceiling for the complete Smile cursor envelope. */
+  public static final int MAX_CURSOR_BYTES = 16 << 20;
+
+  private static final ObjectMapper WRITE_MAPPER = new ObjectMapper(new SmileFactory());
+
+  /** Bound for fixed closed-schema field names; the longest current wire name is 15 characters. */
+  private static final int MAX_SMILE_NAME_LENGTH = 64;
+
+  private static final Base64.Encoder CURSOR_ENCODER = Base64.getEncoder();
+  private static final Base64.Decoder CURSOR_DECODER = Base64.getDecoder();
 
   private final StorageEngine engine;
 
-  /** Cluster settings supplying deserialization structural limits; null falls back to defaults. */
+  /** Cluster settings supplying cursor and deserialization limits; null falls back to defaults. */
   private final Settings settings;
+
+  private final ObjectMapper writeMapper;
+  private final PlanFlattenFunction flattener;
+  private final PlanRebuildFunction rebuilder;
 
   public PlanSerializer(StorageEngine engine) {
     this(engine, null);
   }
 
   public PlanSerializer(StorageEngine engine, Settings settings) {
+    this(engine, settings, WRITE_MAPPER, null, null);
+  }
+
+  PlanSerializer(
+      StorageEngine engine,
+      Settings settings,
+      ObjectMapper writeMapper,
+      PlanFlattenFunction flattener,
+      PlanRebuildFunction rebuilder) {
     this.engine = engine;
     this.settings = settings;
+    this.writeMapper = Objects.requireNonNull(writeMapper, "writeMapper");
+    this.flattener = flattener;
+    this.rebuilder = rebuilder;
   }
 
-  /** Converts a physical plan tree to a cursor. */
+  /**
+   * Converts a physical plan tree to a cursor. PIT ownership transfers only after the complete
+   * cursor has been encoded and validated successfully.
+   */
   public Cursor convertToCursor(PhysicalPlan plan) {
     try {
-      return new Cursor(
-          CURSOR_PREFIX + serialize(((SerializablePlan) plan).getPlanForSerialization()));
-      // ClassCastException thrown when a plan in the tree doesn't implement SerializablePlan
-    } catch (NotSerializableException | ClassCastException | NoCursorException e) {
+      FlattenResult flattened = flattener().flatten(plan, settings);
+      ReadLimits limits = readLimits();
+      byte[] smileBytes = writeMapper.writeValueAsBytes(flattened.node());
+      checkSmileSize(smileBytes, limits);
+      readMapper(limits).readValue(smileBytes, SerializablePlanNode.class);
+      String encoded = CURSOR_ENCODER.encodeToString(smileBytes);
+      checkBase64Size(encoded, limits);
+      Cursor cursor = new Cursor(CURSOR_PREFIX + encoded);
+      flattened.onCursorEncoded().run();
+      return cursor;
+    } catch (NoCursorException | ClassCastException e) {
       return Cursor.None;
-    }
-  }
-
-  /**
-   * Serializes and compresses the object.
-   *
-   * @param object The object.
-   * @return Encoded binary data.
-   */
-  protected String serialize(Serializable object) throws NotSerializableException {
-    try {
-      ByteArrayOutputStream output = new ByteArrayOutputStream();
-      ObjectOutputStream objectOutput = new ObjectOutputStream(output);
-      objectOutput.writeObject(object);
-      objectOutput.flush();
-
-      ByteArrayOutputStream out = new ByteArrayOutputStream();
-      // GZIP provides 35-45%, lzma from apache commons-compress has few % better compression
-      GZIPOutputStream gzip =
-          new GZIPOutputStream(out) {
-            {
-              this.def.setLevel(Deflater.BEST_COMPRESSION);
-            }
-          };
-      gzip.write(output.toByteArray());
-      gzip.close();
-
-      return HashCode.fromBytes(out.toByteArray()).toString();
-    } catch (NotSerializableException e) {
-      throw e;
     } catch (IOException e) {
-      throw new IllegalStateException("Failed to serialize: " + object, e);
-    }
-  }
-
-  /**
-   * Decompresses and deserializes the binary data.
-   *
-   * @param code Encoded binary data.
-   * @return An object.
-   */
-  protected Serializable deserialize(String code) {
-    try {
-      GZIPInputStream gzip =
-          new GZIPInputStream(new ByteArrayInputStream(HashCode.fromString(code).asBytes()));
-      ObjectInputStream objectInput =
-          new CursorDeserializationStream(new ByteArrayInputStream(gzip.readAllBytes()));
-      String additionalPatterns =
-          "org.opensearch.sql.planner.physical.*;"
-              + "org.opensearch.sql.opensearch.storage.scan.*;"
-              + "org.opensearch.sql.opensearch.data.type.*;"
-              + "org.opensearch.sql.executor.pagination.*;"
-              + "org.opensearch.sql.executor.QueryType;"
-              + "org.opensearch.sql.utils.*;";
-      objectInput.setObjectInputFilter(
-          settings == null
-              ? DeserializationFilterUtil.createFilter(additionalPatterns)
-              : DeserializationFilterUtil.createFilter(settings, additionalPatterns));
-      return (Serializable) objectInput.readObject();
-    } catch (Exception e) {
-      throw new IllegalStateException("Failed to deserialize object", e);
+      throw new IllegalStateException("Failed to serialize cursor", e);
     }
   }
 
   /** Converts a cursor to a physical plan tree. */
   public PhysicalPlan convertToPlan(String cursor) {
-    if (!cursor.startsWith(CURSOR_PREFIX)) {
+    if (cursor == null || !cursor.startsWith(CURSOR_PREFIX)) {
       throw new UnsupportedOperationException("Unsupported cursor");
     }
     try {
-      return (PhysicalPlan) deserialize(cursor.substring(CURSOR_PREFIX.length()));
+      ReadLimits limits = readLimits();
+      String encoded = cursor.substring(CURSOR_PREFIX.length());
+      checkBase64Size(encoded, limits);
+      byte[] smileBytes = CURSOR_DECODER.decode(encoded);
+      checkSmileSize(smileBytes, limits);
+      SerializablePlanNode node =
+          readMapper(limits).readValue(smileBytes, SerializablePlanNode.class);
+      return rebuilder().rebuild(node, engine);
     } catch (Exception e) {
       throw new UnsupportedOperationException("Unsupported cursor", e);
     }
   }
 
-  /**
-   * This function is used in testing only, to get access to {@link CursorDeserializationStream}.
-   */
-  public CursorDeserializationStream getCursorDeserializationStream(InputStream in)
-      throws IOException {
-    return new CursorDeserializationStream(in);
+  private static void checkBase64Size(String encoded, ReadLimits limits) {
+    if (encoded.length() > limits.maxBase64Length()) {
+      throw new IllegalArgumentException("Cursor exceeds the configured byte limit");
+    }
   }
 
-  public class CursorDeserializationStream extends ObjectInputStream {
-    public CursorDeserializationStream(InputStream in) throws IOException {
-      super(in);
+  private static void checkSmileSize(byte[] smileBytes, ReadLimits limits) {
+    if (smileBytes.length > limits.maxBytes()) {
+      throw new IllegalArgumentException("Cursor exceeds the configured byte limit");
     }
+  }
 
-    @Override
-    public Object resolveObject(Object obj) throws IOException {
-      return obj.equals("engine") ? engine : obj;
+  private ReadLimits readLimits() {
+    int maxDepth =
+        settingOrDefault(
+            Settings.Key.DESERIALIZATION_MAX_DEPTH, DeserializationFilterUtil.DEFAULT_MAX_DEPTH);
+    int maxRefs =
+        settingOrDefault(
+            Settings.Key.DESERIALIZATION_MAX_REFS, DeserializationFilterUtil.DEFAULT_MAX_REFS);
+    int maxBytes = settingOrDefault(Settings.Key.CURSOR_MAX_BYTES, DEFAULT_MAX_CURSOR_BYTES);
+    return new ReadLimits(maxDepth, maxRefs, maxBytes);
+  }
+
+  private int settingOrDefault(Settings.Key key, int defaultValue) {
+    if (settings == null) {
+      return defaultValue;
     }
+    Integer value = settings.getSettingValue(key);
+    return value == null ? defaultValue : value;
+  }
+
+  private static ObjectMapper readMapper(ReadLimits limits) {
+    StreamReadConstraints constraints =
+        StreamReadConstraints.builder()
+            .maxNestingDepth(limits.maxDepth())
+            .maxTokenCount(limits.maxRefs())
+            .maxDocumentLength(limits.maxBytes())
+            .maxStringLength(limits.maxBytes())
+            .maxNameLength(MAX_SMILE_NAME_LENGTH)
+            .build();
+    SmileFactory factory = SmileFactory.builder().streamReadConstraints(constraints).build();
+    return new ObjectMapper(factory);
+  }
+
+  private PlanFlattenFunction flattener() {
+    return flattener == null ? getFlattener() : flattener;
+  }
+
+  private PlanRebuildFunction rebuilder() {
+    return rebuilder == null ? getRebuilder() : rebuilder;
+  }
+
+  private record ReadLimits(int maxDepth, int maxRefs, int maxBytes) {
+    private long maxBase64Length() {
+      return 4L * ((maxBytes + 2L) / 3L);
+    }
+  }
+
+  /** A flattened plan and the ownership transfer to commit after successful cursor encoding. */
+  public record FlattenResult(SerializablePlanNode node, Runnable onCursorEncoded) {
+    public FlattenResult {
+      Objects.requireNonNull(node, "node");
+      Objects.requireNonNull(onCursorEncoded, "onCursorEncoded");
+    }
+  }
+
+  /** Flattens engine-specific physical plans into the closed cursor schema. */
+  public interface PlanFlattenFunction {
+    FlattenResult flatten(PhysicalPlan plan, Settings settings) throws NoCursorException;
+  }
+
+  /** Rebuilds engine-specific physical plans from the closed cursor schema. */
+  public interface PlanRebuildFunction {
+    PhysicalPlan rebuild(SerializablePlanNode node, StorageEngine engine);
+  }
+
+  private static volatile PlanFlattenFunction cachedFlattener;
+  private static volatile PlanRebuildFunction cachedRebuilder;
+
+  private static PlanFlattenFunction getFlattener() {
+    PlanFlattenFunction local = cachedFlattener;
+    if (local == null) {
+      synchronized (PlanSerializer.class) {
+        local = cachedFlattener;
+        if (local == null) {
+          cachedFlattener = local = loadService(PlanFlattenFunction.class);
+        }
+      }
+    }
+    return local;
+  }
+
+  private static PlanRebuildFunction getRebuilder() {
+    PlanRebuildFunction local = cachedRebuilder;
+    if (local == null) {
+      synchronized (PlanSerializer.class) {
+        local = cachedRebuilder;
+        if (local == null) {
+          cachedRebuilder = local = loadService(PlanRebuildFunction.class);
+        }
+      }
+    }
+    return local;
+  }
+
+  private static <T> T loadService(Class<T> serviceClass) {
+    return java.util.ServiceLoader.load(serviceClass, PlanSerializer.class.getClassLoader())
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new IllegalStateException(
+                    "No ServiceLoader provider found for " + serviceClass.getName()));
   }
 }
