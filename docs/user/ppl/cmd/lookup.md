@@ -6,7 +6,7 @@ Think of it as a left join tuned for enrichment: every row from your search is k
 
 ## How to read a lookup clause
 
-A lookup clause has three parts. This is the part people find confusing, so read it left to right:
+A lookup clause has three parts, read left to right:
 
 ```
 lookup  <lookupIndex>   <matchFields>   [<strategy> <copyFields>]
@@ -17,9 +17,9 @@ lookup  <lookupIndex>   <matchFields>   [<strategy> <copyFields>]
 
 ### Match fields: `lookupField AS sourceField`
 
-The match fields tell `lookup` how to pair a row in your results with a row in the lookup index. The important rule:
+The match fields tell `lookup` how to pair a row in your results with a row in the lookup index.
 
-> **The name on the LEFT of `AS` is a field in the LOOKUP index. The name on the RIGHT is the field in YOUR search results.** They are compared for equality.
+> **The name on the left of `AS` is a field in the lookup index. The name on the right is the field in the search results.**
 
 So `lookup work_information uid AS id` reads as:
 
@@ -38,11 +38,11 @@ lookup work_information uid AS id, dept AS department  -- both fields remapped
 
 After the match fields, you optionally list which fields to copy from the lookup index onto your results, and optionally rename them. This follows the same left-to-right pattern as match fields:
 
-> **The name on the LEFT of `AS` is a field in the LOOKUP index (the source of the value). The name on the RIGHT is the field name it lands in on YOUR results.**
+> **The name on the left of `AS` is a field in the LOOKUP index (the source of the value). The name on the right is the field name it has in the results.**
 
 So `replace department AS dept` reads as "copy `work_information.department` onto my results under the name `dept`."
 
-If you list no copy fields at all, `lookup` copies **every** field from the lookup index except the ones used for matching.
+If you list no copy fields at all, `lookup` copies all fields from the lookup index except the ones used for matching.
 
 ### Strategy: `replace` vs. `append`
 
@@ -53,7 +53,7 @@ The strategy controls what happens when the output field already exists on your 
 | `replace` (default) | Overwrites it with the value from the lookup index (even overwriting with `null` on no match) | Fills it in from the lookup index |
 | `append` | Keeps your existing value | Fills it in from the lookup index |
 
-`replace` wins; `append` only fills gaps. If the output field does not exist on your results yet, both strategies simply add it (though `append` into a brand-new field that requires renaming is not supported — see the note in Example 5). `output` is an accepted synonym for `replace`, provided for SPL compatibility.
+`replace` wins; `append` only fills gaps. If the output field does not exist on your results yet, both strategies simply add it. `output` is an accepted synonym for `replace`, provided for SPL compatibility.
 
 ## Syntax
 
@@ -79,7 +79,7 @@ source = table1 | lookup table2 id as cid append dept as department    -- ...but
 | `<lookupMappingField>` | Required | A field in the **lookup index** used for matching. With no `as` clause, a field of the same name is expected in your search results. List several as a comma-separated set; all must match. |
 | `<sourceMappingField>` | Optional | The field in **your search results** that `<lookupMappingField>` is matched against. Defaults to the same name as `<lookupMappingField>`. |
 | `<inputField>` | Optional | A field in the **lookup index** whose matched value is copied onto your results. List several as a comma-separated set. If omitted, every field in the lookup index except the match fields is copied. |
-| `<outputField>` | Optional | The field name on **your results** where the copied value lands. Defaults to `<inputField>`. If it names an existing field, that field is replaced or appended per the strategy. If it names a new field, `replace` adds it; `append` into a new *renamed* field is unsupported. |
+| `<outputField>` | Optional | The field name on **your results** where the copied value lands. Defaults to `<inputField>`. `replace` can create new fields or overwrite existing ones; `append` fills existing fields only. |
 | `(replace \| append \| output)` | Optional | How copied values are applied. `replace` (default) overwrites; `append` fills only missing/`null` values; `output` is a synonym for `replace` (SPL compatibility). |
 
 ## Examples
@@ -257,4 +257,4 @@ source = worker
   | sort id
 ```
 
-> **Note:** `append` cannot copy into a *new, renamed* field. A clause like `... APPEND col1 as colA` where `colA` does not already exist in your results throws an error, because there is no existing value for `append` to preserve. Use `replace` to create a new renamed field, or `append` only when the output field already exists.
+> **Note:** `append` works with existing fields only. To copy a value into a new field with a different name, use `replace`.
