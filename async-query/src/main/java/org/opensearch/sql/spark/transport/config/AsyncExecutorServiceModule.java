@@ -22,7 +22,6 @@ import org.opensearch.sql.job.QueryJobService;
 import org.opensearch.sql.job.SecurityAdapter;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorServiceImpl;
-import org.opensearch.sql.spark.asyncquery.RoutingAsyncQueryExecutorService;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryJobMetadataStorageService;
 import org.opensearch.sql.spark.asyncquery.OpenSearchAsyncQueryJobMetadataStorageService;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
@@ -81,29 +80,29 @@ public class AsyncExecutorServiceModule extends AbstractModule {
   @Override
   protected void configure() {}
 
+  /**
+   * Provides {@link AsyncQueryExecutorService} for callers that reference the interface (e.g.
+   * scheduled job runner). The impl also embeds id-shape routing to {@link QueryJobService} for
+   * PPL async submissions per issue #5765.
+   */
   @Provides
-  public AsyncQueryExecutorServiceImpl sparkBackedAsyncQueryExecutorService(
+  public AsyncQueryExecutorService asyncQueryExecutorService(AsyncQueryExecutorServiceImpl impl) {
+    return impl;
+  }
+
+  @Provides
+  public AsyncQueryExecutorServiceImpl asyncQueryExecutorServiceImpl(
       AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService,
       SparkQueryDispatcher sparkQueryDispatcher,
-      SparkExecutionEngineConfigSupplier sparkExecutionEngineConfigSupplier) {
+      SparkExecutionEngineConfigSupplier sparkExecutionEngineConfigSupplier,
+      QueryJobService jobService,
+      SecurityAdapter security) {
     return new AsyncQueryExecutorServiceImpl(
         asyncQueryJobMetadataStorageService,
         sparkQueryDispatcher,
-        sparkExecutionEngineConfigSupplier);
-  }
-
-  /**
-   * Binds the {@link AsyncQueryExecutorService} interface to a router that dispatches on the id
-   * shape. In-JVM PPL jobs (whose ids parse as {@code QueryJobId}) go to the neutral {@link
-   * QueryJobService}; Spark job ids continue to the existing implementation. Callers of the
-   * transport actions on {@code /_plugins/_async_query} see one API; the routing is invisible.
-   */
-  @Provides
-  public AsyncQueryExecutorService asyncQueryExecutorService(
-      AsyncQueryExecutorServiceImpl sparkBacked,
-      QueryJobService jobService,
-      SecurityAdapter security) {
-    return new RoutingAsyncQueryExecutorService(sparkBacked, jobService, security);
+        sparkExecutionEngineConfigSupplier,
+        jobService,
+        security);
   }
 
   @Provides
