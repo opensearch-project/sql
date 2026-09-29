@@ -568,4 +568,23 @@ class OpenSearchDataTypeTest {
             new OpenSearchAliasType("col1", OpenSearchDataType.of(MappingType.Invalid))),
         OpenSearchDataType.parseMapping(indexMapping2));
   }
+
+  @Test
+  public void test_parseMapping_wraps_multi_value_field_as_array() {
+    // A field mapped `multi_value: true` is stored as a LIST column and must surface as ARRAY so
+    // array operators type-check against it; a field without the flag is left as its scalar type.
+    Map<String, Object> indexMapping =
+        Map.of(
+            "tags", Map.of("type", "keyword", "multi_value", true),
+            "name", Map.of("type", "keyword"));
+    Map<String, OpenSearchDataType> parsed = OpenSearchDataType.parseMapping(indexMapping);
+
+    assertEquals(ARRAY, parsed.get("tags").getExprType());
+    assertEquals(OpenSearchDataType.of(MappingType.Keyword), parsed.get("name"));
+  }
+
+  @Test
+  public void test_ofArray_returns_array_type() {
+    assertEquals(ARRAY, OpenSearchDataType.ofArray(textType).getExprType());
+  }
 }
