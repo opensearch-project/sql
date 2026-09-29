@@ -20,6 +20,8 @@ import org.opensearch.sql.data.type.ExprType;
  */
 public class OpenSearchTextType extends OpenSearchDataType {
 
+  private static final long serialVersionUID = 1L;
+
   private static final OpenSearchTextType instance = new OpenSearchTextType();
 
   // text could have fields
