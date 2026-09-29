@@ -28,7 +28,6 @@
 package org.opensearch.sql.calcite.utils;
 
 import static java.util.Objects.requireNonNull;
-import static org.opensearch.sql.monitor.profile.MetricName.OPTIMIZE;
 
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Type;
@@ -109,8 +108,9 @@ import org.opensearch.sql.calcite.profile.PlanProfileBuilder;
 import org.opensearch.sql.common.error.ErrorCode;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+import org.opensearch.sql.monitor.profile.MetricName;
 import org.opensearch.sql.monitor.profile.ProfileContext;
-import org.opensearch.sql.monitor.profile.ProfileMetric;
+import org.opensearch.sql.monitor.profile.ProfileScope;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
 
 /**
@@ -461,6 +461,9 @@ public class CalciteToolsHelper {
   }
 
   public static class OpenSearchRelRunners {
+    // Duplicated in the response layer, since neither module depends on the other.
+    private static final String PLAN_PREPARATION_PREFIX = "Error while preparing plan [";
+
     private static boolean isNonPushdownEnumerableAggregate(String message) {
       return message.contains("Error while preparing plan")
           && message.contains("CalciteEnumerableNestedAggregate");
@@ -488,16 +491,24 @@ public class CalciteToolsHelper {
     }
 
     private static void enrichErrorsForSpecialCases(ErrorReport.Builder report, SQLException e) {
-      if (e.getMessage().contains("Error while preparing plan [") && e.getCause() != null) {
-        // Generic 'something went wrong' planning error, try to get the cause
-        int planStart = e.getMessage().indexOf('[');
-        int planEnd = e.getMessage().lastIndexOf(']');
-        report
-            .context("plan", e.getMessage().substring(planStart + 1, planEnd))
-            .details(rootCauseMessage(e));
+      String message = e.getMessage();
+      if (message != null && message.contains(PLAN_PREPARATION_PREFIX) && e.getCause() != null) {
+        // Generic 'something went wrong' planning error, try to get the cause. rootCauseMessage
+        // falls back to this exception's own message when every deeper message is null, and on this
+        // branch that message is the plan. Overwrite it, do not skip, since the builder already
+        // defaults details to that same message and skipping would publish the plan.
+        String rootCause = rootCauseMessage(e);
+        if (rootCause != null && !rootCause.contains(PLAN_PREPARATION_PREFIX)) {
+          report.details(rootCause);
+        } else {
+          report.details(
+              "The engine could not prepare this query plan for execution. The plan is in the"
+                  + " OpenSearch node log.");
+        }
       }
       if (isWindowBinOnTimeField(e)) {
         report
+            .reason("The 'bins' parameter is not supported on a timestamp field in this context.")
             .details(
                 "The 'bins' parameter on timestamp fields requires: (1) pushdown to be enabled"
                     + " (controlled by plugins.calcite.pushdown.enabled, enabled by default), and"
@@ -514,39 +525,35 @@ public class CalciteToolsHelper {
      * org.apache.calcite.tools.RelRunners#run(RelNode)}
      */
     public static PreparedStatement run(CalcitePlanContext context, RelNode rel) {
-      ProfileMetric optimizeTime = QueryProfiling.current().getOrCreateMetric(OPTIMIZE);
-      long startTime = System.nanoTime();
-      // Optimize the plan by Calcite's HepPlanner before using VolcanoPlanner in prepareStatement.
-      rel = CalciteToolsHelper.optimize(rel, context);
-      final RelShuttle shuttle =
-          new RelHomogeneousShuttle() {
-            @Override
-            public RelNode visit(TableScan scan) {
-              final RelOptTable table = scan.getTable();
-              if (scan instanceof LogicalTableScan
-                  && Bindables.BindableTableScan.canHandle(table)) {
-                // Always replace the LogicalTableScan with BindableTableScan
-                // because it's implementation does not require a "schema" as context.
-                return Bindables.BindableTableScan.create(scan.getCluster(), table);
+      try (ProfileScope optimizePhase = ProfileScope.open(MetricName.OPTIMIZE)) {
+        final RelShuttle shuttle =
+            new RelHomogeneousShuttle() {
+              @Override
+              public RelNode visit(TableScan scan) {
+                final RelOptTable table = scan.getTable();
+                if (scan instanceof LogicalTableScan
+                    && Bindables.BindableTableScan.canHandle(table)) {
+                  // Always replace the LogicalTableScan with BindableTableScan
+                  // because it's implementation does not require a "schema" as context.
+                  return Bindables.BindableTableScan.create(scan.getCluster(), table);
+                }
+                return super.visit(scan);
               }
-              return super.visit(scan);
-            }
-          };
-      rel = rel.accept(shuttle);
-      // the line we changed here
-      try (Connection connection = context.connection) {
-        final RelRunner runner = connection.unwrap(RelRunner.class);
-        PreparedStatement preparedStatement = runner.prepareStatement(rel);
-        optimizeTime.set(System.nanoTime() - startTime);
-        return preparedStatement;
-      } catch (SQLException e) {
-        // Detect if error is due to window functions in unsupported context (bins on time fields)
-        ErrorReport.Builder report =
-            ErrorReport.wrap(e)
-                .location("while compiling the optimized query plan for physical execution")
-                .code(ErrorCode.PLANNING_ERROR);
-        enrichErrorsForSpecialCases(report, e);
-        throw report.build();
+            };
+        rel = rel.accept(shuttle);
+
+        try (Connection connection = context.connection) {
+          final RelRunner runner = connection.unwrap(RelRunner.class);
+          return runner.prepareStatement(rel);
+        } catch (SQLException e) {
+          // Detect if error is due to window functions in unsupported context (bins on time fields)
+          ErrorReport.Builder report =
+              ErrorReport.wrap(e)
+                  .location("while compiling the optimized query plan for physical execution")
+                  .code(ErrorCode.PLANNING_ERROR);
+          enrichErrorsForSpecialCases(report, e);
+          throw report.build();
+        }
       }
     }
   }
@@ -558,9 +565,27 @@ public class CalciteToolsHelper {
   private static final HepProgram HEP_PROGRAM =
       new HepProgramBuilder().addRuleCollection(hepRuleList).build();
 
+  // PPLSimplifyDedupRule collapses the ROW_NUMBER window form of dedup into a LogicalDedup so
+  // DedupPushdownRule can push it into a Lucene scan. The analytics engine has no such pushdown and
+  // cannot plan a LogicalDedup, so its optimization runs the standard window form directly.
+  private static final HepProgram ANALYTICS_HEP_PROGRAM =
+      new HepProgramBuilder()
+          .addRuleCollection(
+              hepRuleList.stream()
+                  .filter(rule -> rule != PPLSimplifyDedupRule.DEDUP_SIMPLIFY_RULE)
+                  .toList())
+          .build();
+
   public static RelNode optimize(RelNode plan, CalcitePlanContext context) {
     Util.discard(context);
     HepPlanner planner = new HepPlanner(HEP_PROGRAM);
+    planner.setRoot(plan);
+    return planner.findBestExp();
+  }
+
+  public static RelNode optimizeForAnalytics(RelNode plan, CalcitePlanContext context) {
+    Util.discard(context);
+    HepPlanner planner = new HepPlanner(ANALYTICS_HEP_PROGRAM);
     planner.setRoot(plan);
     return planner.findBestExp();
   }

@@ -1,0 +1,275 @@
+{
+  "schemaVersion": 2,
+  "excludedRules": [
+    {
+      "ruleId": "head-without-sort",
+      "reason": "Disabled by default in the approved OSD release catalog; outside the active compatibility gate."
+    },
+    {
+      "ruleId": "disabled-join-type",
+      "reason": "Disabled by default in the approved OSD release catalog; outside the active compatibility gate."
+    },
+    {
+      "ruleId": "dedup-consecutive-unsupported",
+      "reason": "Disabled by default in the approved OSD release catalog; outside the active compatibility gate."
+    },
+    {
+      "ruleId": "flat-object-subfield",
+      "reason": "Disabled by default in the approved OSD release catalog; outside the active compatibility gate."
+    },
+    {
+      "ruleId": "operation-not-pushed",
+      "reason": "Disabled by default and requires backend explain data; backend execution is outside this grammar/linter check."
+    },
+    {
+      "ruleId": "operation-pushed-as-script",
+      "reason": "Disabled by default and requires backend explain data; backend execution is outside this grammar/linter check."
+    }
+  ],
+  "cases": [
+    {
+      "id": "division-by-zero",
+      "ruleId": "division-by-zero",
+      "kind": "trigger",
+      "query": "source=accounts | eval ratio = balance / 0 | fields ratio",
+      "expectedCount": 1,
+      "context": { "isCalcite": true }
+    },
+    {
+      "id": "division-by-nonzero-control",
+      "ruleId": "division-by-zero",
+      "kind": "control",
+      "query": "source=accounts | eval ratio = balance / 2 | fields ratio",
+      "expectedCount": 0,
+      "context": { "isCalcite": true }
+    },
+    {
+      "id": "eventstats-rank",
+      "ruleId": "unsupported-window-function-in-eventstats",
+      "kind": "trigger",
+      "query": "source=accounts | eventstats rank() as rank_value",
+      "expectedCount": 1,
+      "context": { "isCalcite": true }
+    },
+    {
+      "id": "eventstats-avg-control",
+      "ruleId": "unsupported-window-function-in-eventstats",
+      "kind": "control",
+      "query": "source=accounts | eventstats avg(age) as avg_age",
+      "expectedCount": 0,
+      "context": { "isCalcite": true }
+    },
+    {
+      "id": "multisearch-single-subsearch",
+      "ruleId": "multisearch-min-subsearch",
+      "kind": "trigger",
+      "query": "multisearch [ search source=accounts ]",
+      "expectedCount": 1,
+      "context": { "isCalcite": true }
+    },
+    {
+      "id": "multisearch-two-subsearches-control",
+      "ruleId": "multisearch-min-subsearch",
+      "kind": "control",
+      "query": "multisearch [ search source=accounts ] [ search source=accounts ]",
+      "expectedCount": 0,
+      "context": { "isCalcite": true }
+    },
+    {
+      "id": "union-single-dataset",
+      "ruleId": "union-min-datasets",
+      "kind": "trigger",
+      "query": "union [ source=accounts ]",
+      "expectedCount": 1,
+      "context": { "isCalcite": true }
+    },
+    {
+      "id": "union-two-datasets-control",
+      "ruleId": "union-min-datasets",
+      "kind": "control",
+      "query": "union [ source=accounts ] [ source=accounts ]",
+      "expectedCount": 0,
+      "context": { "isCalcite": true }
+    },
+    {
+      "id": "replace-wildcard-count-mismatch",
+      "ruleId": "replace-wildcard-asymmetry",
+      "kind": "trigger",
+      "query": "source=accounts | replace \"*_a\" with \"b_*_*\" in firstname",
+      "expectedCount": 1,
+      "context": { "isCalcite": true }
+    },
+    {
+      "id": "replace-symmetric-control",
+      "ruleId": "replace-wildcard-asymmetry",
+      "kind": "control",
+      "query": "source=accounts | replace \"*_a\" with \"b_*\" in firstname",
+      "expectedCount": 0,
+      "context": { "isCalcite": true }
+    },
+    {
+      "id": "rex-capture-name-underscore",
+      "ruleId": "invalid-capture-group-name",
+      "kind": "trigger",
+      "query": "source=accounts | rex field=email \"(?<user_name>[^@]+)@(?<domain>.+)\"",
+      "expectedCount": 1,
+      "context": { "isCalcite": true }
+    },
+    {
+      "id": "rex-capture-name-alphanumeric-control",
+      "ruleId": "invalid-capture-group-name",
+      "kind": "control",
+      "query": "source=accounts | rex field=email \"(?<username>[^@]+)@(?<domain>.+)\"",
+      "expectedCount": 0,
+      "context": { "isCalcite": true }
+    },
+    {
+      "id": "unknown-field-reference",
+      "ruleId": "field-validation",
+      "kind": "trigger",
+      "query": "source=accounts | where missing_field = 1",
+      "expectedCount": 1,
+      "context": {
+        "fields": ["age"]
+      }
+    },
+    {
+      "id": "known-field-reference-control",
+      "ruleId": "field-validation",
+      "kind": "control",
+      "query": "source=accounts | where age = 1",
+      "expectedCount": 0,
+      "context": {
+        "fields": ["age"]
+      }
+    },
+    {
+      "id": "aggregate-text-field",
+      "ruleId": "agg-on-text",
+      "kind": "trigger",
+      "query": "source=accounts | stats avg(name)",
+      "expectedCount": 1,
+      "context": {
+        "isCalcite": true,
+        "fields": ["name", "age"],
+        "typeMap": {
+          "name": "text",
+          "age": "long"
+        }
+      }
+    },
+    {
+      "id": "aggregate-numeric-field-control",
+      "ruleId": "agg-on-text",
+      "kind": "control",
+      "query": "source=accounts | stats avg(age)",
+      "expectedCount": 0,
+      "context": {
+        "isCalcite": true,
+        "fields": ["name", "age"],
+        "typeMap": {
+          "name": "text",
+          "age": "long"
+        }
+      }
+    },
+    {
+      "id": "numeric-field-text-comparison",
+      "ruleId": "type-mismatch-numeric",
+      "kind": "trigger",
+      "query": "source=accounts | where age = \"thirty\"",
+      "expectedCount": 1,
+      "context": {
+        "isCalcite": true,
+        "typeMap": {
+          "age": "long"
+        }
+      }
+    },
+    {
+      "id": "numeric-field-coercible-comparison-control",
+      "ruleId": "type-mismatch-numeric",
+      "kind": "control",
+      "query": "source=accounts | where age = \"32\"",
+      "expectedCount": 0,
+      "context": {
+        "isCalcite": true,
+        "typeMap": {
+          "age": "long"
+        }
+      }
+    },
+    {
+      "id": "disabled-object-subfield-reference",
+      "ruleId": "enabled-false-object",
+      "kind": "trigger",
+      "query": "source=accounts | where session.id = 1",
+      "expectedCount": 1,
+      "context": {
+        "isCalcite": true,
+        "fields": ["status"],
+        "disabledObjectFields": ["session"]
+      }
+    },
+    {
+      "id": "searchable-field-reference-control",
+      "ruleId": "enabled-false-object",
+      "kind": "control",
+      "query": "source=accounts | where status = 1",
+      "expectedCount": 0,
+      "context": {
+        "isCalcite": true,
+        "fields": ["status"],
+        "disabledObjectFields": ["session"]
+      }
+    },
+    {
+      "id": "wildcard-source-without-match",
+      "ruleId": "wildcard-source-zero-match",
+      "kind": "trigger",
+      "query": "source=nope-*",
+      "expectedCount": 1,
+      "context": {
+        "visibleIndices": ["logs-2024", "accounts"]
+      }
+    },
+    {
+      "id": "wildcard-source-with-match-control",
+      "ruleId": "wildcard-source-zero-match",
+      "kind": "control",
+      "query": "source=logs-*",
+      "expectedCount": 0,
+      "context": {
+        "visibleIndices": ["logs-2024", "accounts"]
+      }
+    },
+    {
+      "id": "rex-over-text-field",
+      "ruleId": "rex-scan-cost",
+      "kind": "trigger",
+      "query": "source=logs | rex field=raw_log \"GET (?<path>\\S+)\"",
+      "expectedCount": 1,
+      "context": {
+        "fields": ["raw_log", "host"],
+        "typeMap": {
+          "raw_log": "text",
+          "host": "keyword"
+        }
+      }
+    },
+    {
+      "id": "rex-over-keyword-field-control",
+      "ruleId": "rex-scan-cost",
+      "kind": "control",
+      "query": "source=logs | rex field=host \"(?<host>\\S+)\"",
+      "expectedCount": 0,
+      "context": {
+        "fields": ["raw_log", "host"],
+        "typeMap": {
+          "raw_log": "text",
+          "host": "keyword"
+        }
+      }
+    }
+  ]
+}

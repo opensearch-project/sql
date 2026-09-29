@@ -25,13 +25,13 @@ public class OrdinalAliasRewriterIT extends SQLIntegTestCase {
     String expected =
         executeQuery(
             StringUtils.format(
-                "SELECT lastname FROM %s AS b GROUP BY lastname LIMIT 3",
+                "SELECT lastname FROM %s AS b GROUP BY lastname ORDER BY lastname LIMIT 3",
                 TestsConstants.TEST_INDEX_ACCOUNT),
             "jdbc");
     String actual =
         executeQuery(
             StringUtils.format(
-                "SELECT lastname FROM %s AS b GROUP BY 1 LIMIT 3",
+                "SELECT lastname FROM %s AS b GROUP BY 1 ORDER BY 1 LIMIT 3",
                 TestsConstants.TEST_INDEX_ACCOUNT),
             "jdbc");
     assertThat(actual, equalTo(expected));
@@ -43,13 +43,14 @@ public class OrdinalAliasRewriterIT extends SQLIntegTestCase {
         executeQuery(
             StringUtils.format(
                 "SELECT lastname, firstname, age FROM %s AS b GROUP BY firstname, age, lastname"
-                    + " LIMIT 3",
+                    + " ORDER BY lastname, firstname, age LIMIT 3",
                 TestsConstants.TEST_INDEX_ACCOUNT),
             "jdbc");
     String actual =
         executeQuery(
             StringUtils.format(
-                "SELECT lastname, firstname, age FROM %s AS b GROUP BY 2, 3, 1 LIMIT 3",
+                "SELECT lastname, firstname, age FROM %s AS b GROUP BY 2, 3, 1"
+                    + " ORDER BY 1, 2, 3 LIMIT 3",
                 TestsConstants.TEST_INDEX_ACCOUNT),
             "jdbc");
     assertThat(actual, equalTo(expected));
@@ -60,13 +61,13 @@ public class OrdinalAliasRewriterIT extends SQLIntegTestCase {
     String expected =
         executeQuery(
             StringUtils.format(
-                "SELECT `lastname` FROM %s AS b GROUP BY `lastname` LIMIT 3",
+                "SELECT `lastname` FROM %s AS b GROUP BY `lastname` ORDER BY `lastname` LIMIT 3",
                 TestsConstants.TEST_INDEX_ACCOUNT),
             "jdbc");
     String actual =
         executeQuery(
             StringUtils.format(
-                "SELECT `lastname` FROM %s AS b GROUP BY 1 LIMIT 3",
+                "SELECT `lastname` FROM %s AS b GROUP BY 1 ORDER BY 1 LIMIT 3",
                 TestsConstants.TEST_INDEX_ACCOUNT),
             "jdbc");
     assertThat(actual, equalTo(expected));
@@ -78,13 +79,14 @@ public class OrdinalAliasRewriterIT extends SQLIntegTestCase {
         executeQuery(
             StringUtils.format(
                 "SELECT `b`.`lastname`, `age`, firstname FROM %s AS b GROUP BY `age`,"
-                    + " `b`.`lastname` , firstname LIMIT 10",
+                    + " `b`.`lastname` , firstname ORDER BY `b`.`lastname`, `age` LIMIT 10",
                 TestsConstants.TEST_INDEX_ACCOUNT),
             "jdbc");
     String actual =
         executeQuery(
             StringUtils.format(
-                "SELECT `b`.`lastname`, `age`, firstname  FROM %s AS b GROUP BY 2, 1, 3 LIMIT 10",
+                "SELECT `b`.`lastname`, `age`, firstname  FROM %s AS b GROUP BY 2, 1, 3 ORDER BY 1,"
+                    + " 2 LIMIT 10",
                 TestsConstants.TEST_INDEX_ACCOUNT),
             "jdbc");
     assertThat(actual, equalTo(expected));
@@ -166,14 +168,14 @@ public class OrdinalAliasRewriterIT extends SQLIntegTestCase {
         executeQuery(
             StringUtils.format(
                 "SELECT `b`.`lastname`, age FROM %s AS b ORDER BY `b`.`lastname` IS NOT NULL DESC,"
-                    + " age is NULL LIMIT 3",
+                    + " age is NULL, `b`.`lastname` LIMIT 3",
                 TestsConstants.TEST_INDEX_ACCOUNT),
             "jdbc");
     String actual =
         executeQuery(
             StringUtils.format(
-                "SELECT `b`.`lastname`, age FROM %s AS b ORDER BY 1 IS NOT NULL DESC, 2 IS NULL"
-                    + " LIMIT 3",
+                "SELECT `b`.`lastname`, age FROM %s AS b ORDER BY 1 IS NOT NULL DESC, 2 IS NULL,"
+                    + " 1 LIMIT 3",
                 TestsConstants.TEST_INDEX_ACCOUNT),
             "jdbc");
     assertThat(actual, equalTo(expected));

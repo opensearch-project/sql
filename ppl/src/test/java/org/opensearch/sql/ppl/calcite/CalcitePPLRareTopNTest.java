@@ -27,7 +27,7 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
         "LogicalProject(JOB=[$0], count=[$1])\n"
             + "  LogicalFilter(condition=[<=($2, 10)])\n"
             + "    LogicalProject(JOB=[$0], count=[$1], _row_number_rare_top_=[ROW_NUMBER() OVER"
-            + " (ORDER BY $1)])\n"
+            + " (ORDER BY $1, $0)])\n"
             + "      LogicalAggregate(group=[{0}], count=[COUNT()])\n"
             + "        LogicalProject(JOB=[$2])\n"
             + "          LogicalTableScan(table=[[scott, EMP]])\n";
@@ -38,14 +38,14 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
             + "JOB=PRESIDENT; count=1\n"
             + "JOB=ANALYST; count=2\n"
             + "JOB=MANAGER; count=3\n"
-            + "JOB=SALESMAN; count=4\n"
-            + "JOB=CLERK; count=4\n";
+            + "JOB=CLERK; count=4\n"
+            + "JOB=SALESMAN; count=4\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
         "SELECT `JOB`, `count`\n"
             + "FROM (SELECT `JOB`, COUNT(*) `count`, ROW_NUMBER() OVER (ORDER BY COUNT(*) NULLS"
-            + " LAST) `_row_number_rare_top_`\n"
+            + " LAST, `JOB` NULLS LAST) `_row_number_rare_top_`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `JOB`) `t1`\n"
             + "WHERE `_row_number_rare_top_` <= 10";
@@ -60,7 +60,7 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
         "LogicalProject(DEPTNO=[$0], JOB=[$1], count=[$2])\n"
             + "  LogicalFilter(condition=[<=($3, 10)])\n"
             + "    LogicalProject(DEPTNO=[$0], JOB=[$1], count=[$2],"
-            + " _row_number_rare_top_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2)])\n"
+            + " _row_number_rare_top_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2, $1)])\n"
             + "      LogicalAggregate(group=[{0, 1}], count=[COUNT()])\n"
             + "        LogicalProject(DEPTNO=[$7], JOB=[$2])\n"
             + "          LogicalTableScan(table=[[scott, EMP]])\n";
@@ -69,20 +69,20 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
     String expectedResult =
         ""
             + "DEPTNO=20; JOB=MANAGER; count=1\n"
-            + "DEPTNO=20; JOB=CLERK; count=2\n"
             + "DEPTNO=20; JOB=ANALYST; count=2\n"
-            + "DEPTNO=10; JOB=MANAGER; count=1\n"
+            + "DEPTNO=20; JOB=CLERK; count=2\n"
             + "DEPTNO=10; JOB=CLERK; count=1\n"
+            + "DEPTNO=10; JOB=MANAGER; count=1\n"
             + "DEPTNO=10; JOB=PRESIDENT; count=1\n"
-            + "DEPTNO=30; JOB=MANAGER; count=1\n"
             + "DEPTNO=30; JOB=CLERK; count=1\n"
+            + "DEPTNO=30; JOB=MANAGER; count=1\n"
             + "DEPTNO=30; JOB=SALESMAN; count=4\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
         "SELECT `DEPTNO`, `JOB`, `count`\n"
             + "FROM (SELECT `DEPTNO`, `JOB`, COUNT(*) `count`, ROW_NUMBER() OVER (PARTITION BY"
-            + " `DEPTNO` ORDER BY COUNT(*) NULLS LAST) `_row_number_rare_top_`\n"
+            + " `DEPTNO` ORDER BY COUNT(*) NULLS LAST, `JOB` NULLS LAST) `_row_number_rare_top_`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`, `JOB`) `t1`\n"
             + "WHERE `_row_number_rare_top_` <= 10";
@@ -97,7 +97,7 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
         "LogicalProject(DEPTNO=[$0], JOB=[$1])\n"
             + "  LogicalFilter(condition=[<=($3, 10)])\n"
             + "    LogicalProject(DEPTNO=[$0], JOB=[$1], count=[$2],"
-            + " _row_number_rare_top_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2)])\n"
+            + " _row_number_rare_top_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2, $1)])\n"
             + "      LogicalAggregate(group=[{0, 1}], count=[COUNT()])\n"
             + "        LogicalProject(DEPTNO=[$7], JOB=[$2])\n"
             + "          LogicalTableScan(table=[[scott, EMP]])\n";
@@ -106,20 +106,20 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
     String expectedResult =
         ""
             + "DEPTNO=20; JOB=MANAGER\n"
-            + "DEPTNO=20; JOB=CLERK\n"
             + "DEPTNO=20; JOB=ANALYST\n"
-            + "DEPTNO=10; JOB=MANAGER\n"
+            + "DEPTNO=20; JOB=CLERK\n"
             + "DEPTNO=10; JOB=CLERK\n"
+            + "DEPTNO=10; JOB=MANAGER\n"
             + "DEPTNO=10; JOB=PRESIDENT\n"
-            + "DEPTNO=30; JOB=MANAGER\n"
             + "DEPTNO=30; JOB=CLERK\n"
+            + "DEPTNO=30; JOB=MANAGER\n"
             + "DEPTNO=30; JOB=SALESMAN\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
         "SELECT `DEPTNO`, `JOB`\n"
             + "FROM (SELECT `DEPTNO`, `JOB`, COUNT(*) `count`, ROW_NUMBER() OVER (PARTITION BY"
-            + " `DEPTNO` ORDER BY COUNT(*) NULLS LAST) `_row_number_rare_top_`\n"
+            + " `DEPTNO` ORDER BY COUNT(*) NULLS LAST, `JOB` NULLS LAST) `_row_number_rare_top_`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`, `JOB`) `t1`\n"
             + "WHERE `_row_number_rare_top_` <= 10";
@@ -134,7 +134,7 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
         "LogicalProject(DEPTNO=[$0], JOB=[$1], my_cnt=[$2])\n"
             + "  LogicalFilter(condition=[<=($3, 10)])\n"
             + "    LogicalProject(DEPTNO=[$0], JOB=[$1], my_cnt=[$2],"
-            + " _row_number_rare_top_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2)])\n"
+            + " _row_number_rare_top_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2, $1)])\n"
             + "      LogicalAggregate(group=[{0, 1}], my_cnt=[COUNT()])\n"
             + "        LogicalProject(DEPTNO=[$7], JOB=[$2])\n"
             + "          LogicalTableScan(table=[[scott, EMP]])\n";
@@ -143,20 +143,20 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
     String expectedResult =
         ""
             + "DEPTNO=20; JOB=MANAGER; my_cnt=1\n"
-            + "DEPTNO=20; JOB=CLERK; my_cnt=2\n"
             + "DEPTNO=20; JOB=ANALYST; my_cnt=2\n"
-            + "DEPTNO=10; JOB=MANAGER; my_cnt=1\n"
+            + "DEPTNO=20; JOB=CLERK; my_cnt=2\n"
             + "DEPTNO=10; JOB=CLERK; my_cnt=1\n"
+            + "DEPTNO=10; JOB=MANAGER; my_cnt=1\n"
             + "DEPTNO=10; JOB=PRESIDENT; my_cnt=1\n"
-            + "DEPTNO=30; JOB=MANAGER; my_cnt=1\n"
             + "DEPTNO=30; JOB=CLERK; my_cnt=1\n"
+            + "DEPTNO=30; JOB=MANAGER; my_cnt=1\n"
             + "DEPTNO=30; JOB=SALESMAN; my_cnt=4\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
         "SELECT `DEPTNO`, `JOB`, `my_cnt`\n"
             + "FROM (SELECT `DEPTNO`, `JOB`, COUNT(*) `my_cnt`, ROW_NUMBER() OVER (PARTITION BY"
-            + " `DEPTNO` ORDER BY COUNT(*) NULLS LAST) `_row_number_rare_top_`\n"
+            + " `DEPTNO` ORDER BY COUNT(*) NULLS LAST, `JOB` NULLS LAST) `_row_number_rare_top_`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`, `JOB`) `t1`\n"
             + "WHERE `_row_number_rare_top_` <= 10";
@@ -171,7 +171,7 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
         "LogicalProject(DEPTNO=[$0], JOB=[$1], count=[$2])\n"
             + "  LogicalFilter(condition=[<=($3, 10)])\n"
             + "    LogicalProject(DEPTNO=[$0], JOB=[$1], count=[$2],"
-            + " _row_number_rare_top_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2)])\n"
+            + " _row_number_rare_top_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2, $1)])\n"
             + "      LogicalAggregate(group=[{0, 1}], count=[COUNT()])\n"
             + "        LogicalProject(DEPTNO=[$7], JOB=[$2])\n"
             + "          LogicalFilter(condition=[AND(IS NOT NULL($7), IS NOT NULL($2))])\n"
@@ -181,20 +181,20 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
     String expectedResult =
         ""
             + "DEPTNO=20; JOB=MANAGER; count=1\n"
-            + "DEPTNO=20; JOB=CLERK; count=2\n"
             + "DEPTNO=20; JOB=ANALYST; count=2\n"
-            + "DEPTNO=10; JOB=MANAGER; count=1\n"
+            + "DEPTNO=20; JOB=CLERK; count=2\n"
             + "DEPTNO=10; JOB=CLERK; count=1\n"
+            + "DEPTNO=10; JOB=MANAGER; count=1\n"
             + "DEPTNO=10; JOB=PRESIDENT; count=1\n"
-            + "DEPTNO=30; JOB=MANAGER; count=1\n"
             + "DEPTNO=30; JOB=CLERK; count=1\n"
+            + "DEPTNO=30; JOB=MANAGER; count=1\n"
             + "DEPTNO=30; JOB=SALESMAN; count=4\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
         "SELECT `DEPTNO`, `JOB`, `count`\n"
             + "FROM (SELECT `DEPTNO`, `JOB`, COUNT(*) `count`, ROW_NUMBER() OVER (PARTITION BY"
-            + " `DEPTNO` ORDER BY COUNT(*) NULLS LAST) `_row_number_rare_top_`\n"
+            + " `DEPTNO` ORDER BY COUNT(*) NULLS LAST, `JOB` NULLS LAST) `_row_number_rare_top_`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `DEPTNO` IS NOT NULL AND `JOB` IS NOT NULL\n"
             + "GROUP BY `DEPTNO`, `JOB`) `t2`\n"
@@ -223,6 +223,206 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
   }
 
   @Test
+  public void testRareShowPerc() {
+    String ppl = "source=EMP | rare showperc=true JOB";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(JOB=[$0], count=[$1], percent=[$2])\n"
+            + "  LogicalFilter(condition=[<=($3, 10)])\n"
+            + "    LogicalProject(JOB=[$0], count=[$1], percent=[$2],"
+            + " _row_number_rare_top_=[ROW_NUMBER() OVER (ORDER BY $1, $0)])\n"
+            + "      LogicalProject(JOB=[$0], count=[$1],"
+            + " percent=[ROUND(/(*(100.0:DECIMAL(4, 1), CAST($1):DOUBLE NOT NULL),"
+            + " CAST(CHECKED_LONG_SUM($1) OVER ()):DOUBLE NOT NULL), 6)])\n"
+            + "        LogicalAggregate(group=[{0}], count=[COUNT()])\n"
+            + "          LogicalProject(JOB=[$2])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult =
+        ""
+            + "JOB=PRESIDENT; count=1; percent=7.142857\n"
+            + "JOB=ANALYST; count=2; percent=14.285714\n"
+            + "JOB=MANAGER; count=3; percent=21.428571\n"
+            + "JOB=CLERK; count=4; percent=28.571429\n"
+            + "JOB=SALESMAN; count=4; percent=28.571429\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT `JOB`, `count`, `percent`\n"
+            + "FROM (SELECT `JOB`, `count`, `percent`, ROW_NUMBER() OVER (ORDER BY `count` NULLS"
+            + " LAST, `JOB` NULLS LAST) `_row_number_rare_top_`\n"
+            + "FROM (SELECT `JOB`, COUNT(*) `count`, ROUND(100.0 * CAST(COUNT(*) AS DOUBLE) /"
+            + " CAST(SUM(COUNT(*)) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED"
+            + " FOLLOWING) AS DOUBLE), 6) `percent`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "GROUP BY `JOB`) `t1`) `t2`\n"
+            + "WHERE `_row_number_rare_top_` <= 10";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testRareShowPercWithGroupBy() {
+    String ppl = "source=EMP | rare showperc=true JOB by DEPTNO";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(DEPTNO=[$0], JOB=[$1], count=[$2], percent=[$3])\n"
+            + "  LogicalFilter(condition=[<=($4, 10)])\n"
+            + "    LogicalProject(DEPTNO=[$0], JOB=[$1], count=[$2], percent=[$3],"
+            + " _row_number_rare_top_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2, $1)])\n"
+            + "      LogicalProject(DEPTNO=[$0], JOB=[$1], count=[$2],"
+            + " percent=[ROUND(/(*(100.0:DECIMAL(4, 1), CAST($2):DOUBLE NOT NULL),"
+            + " CAST(CHECKED_LONG_SUM($2) OVER (PARTITION BY $0)):DOUBLE NOT NULL), 6)])\n"
+            + "        LogicalAggregate(group=[{0, 1}], count=[COUNT()])\n"
+            + "          LogicalProject(DEPTNO=[$7], JOB=[$2])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult =
+        ""
+            + "DEPTNO=20; JOB=MANAGER; count=1; percent=20.0\n"
+            + "DEPTNO=20; JOB=ANALYST; count=2; percent=40.0\n"
+            + "DEPTNO=20; JOB=CLERK; count=2; percent=40.0\n"
+            + "DEPTNO=10; JOB=CLERK; count=1; percent=33.333333\n"
+            + "DEPTNO=10; JOB=MANAGER; count=1; percent=33.333333\n"
+            + "DEPTNO=10; JOB=PRESIDENT; count=1; percent=33.333333\n"
+            + "DEPTNO=30; JOB=CLERK; count=1; percent=16.666667\n"
+            + "DEPTNO=30; JOB=MANAGER; count=1; percent=16.666667\n"
+            + "DEPTNO=30; JOB=SALESMAN; count=4; percent=66.666667\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT `DEPTNO`, `JOB`, `count`, `percent`\n"
+            + "FROM (SELECT `DEPTNO`, `JOB`, `count`, `percent`, ROW_NUMBER() OVER (PARTITION BY"
+            + " `DEPTNO` ORDER BY `count` NULLS LAST, `JOB` NULLS LAST) `_row_number_rare_top_`\n"
+            + "FROM (SELECT `DEPTNO`, `JOB`, COUNT(*) `count`, ROUND(100.0 * CAST(COUNT(*) AS"
+            + " DOUBLE) / CAST(SUM(COUNT(*)) OVER (PARTITION BY `DEPTNO` RANGE BETWEEN UNBOUNDED"
+            + " PRECEDING AND UNBOUNDED FOLLOWING) AS DOUBLE), 6) `percent`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "GROUP BY `DEPTNO`, `JOB`) `t1`) `t2`\n"
+            + "WHERE `_row_number_rare_top_` <= 10";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testRareShowPercWithoutShowCount() {
+    String ppl = "source=EMP | rare showcount=false showperc=true JOB";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(JOB=[$0], percent=[$2])\n"
+            + "  LogicalFilter(condition=[<=($3, 10)])\n"
+            + "    LogicalProject(JOB=[$0], count=[$1], percent=[$2],"
+            + " _row_number_rare_top_=[ROW_NUMBER() OVER (ORDER BY $1, $0)])\n"
+            + "      LogicalProject(JOB=[$0], count=[$1],"
+            + " percent=[ROUND(/(*(100.0:DECIMAL(4, 1), CAST($1):DOUBLE NOT NULL),"
+            + " CAST(CHECKED_LONG_SUM($1) OVER ()):DOUBLE NOT NULL), 6)])\n"
+            + "        LogicalAggregate(group=[{0}], count=[COUNT()])\n"
+            + "          LogicalProject(JOB=[$2])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult =
+        ""
+            + "JOB=PRESIDENT; percent=7.142857\n"
+            + "JOB=ANALYST; percent=14.285714\n"
+            + "JOB=MANAGER; percent=21.428571\n"
+            + "JOB=CLERK; percent=28.571429\n"
+            + "JOB=SALESMAN; percent=28.571429\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT `JOB`, `percent`\n"
+            + "FROM (SELECT `JOB`, `count`, `percent`, ROW_NUMBER() OVER (ORDER BY `count` NULLS"
+            + " LAST, `JOB` NULLS LAST) `_row_number_rare_top_`\n"
+            + "FROM (SELECT `JOB`, COUNT(*) `count`, ROUND(100.0 * CAST(COUNT(*) AS DOUBLE) /"
+            + " CAST(SUM(COUNT(*)) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED"
+            + " FOLLOWING) AS DOUBLE), 6) `percent`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "GROUP BY `JOB`) `t1`) `t2`\n"
+            + "WHERE `_row_number_rare_top_` <= 10";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testRareShowPercCustomField() {
+    String ppl = "source=EMP | rare percentfield='pct' showperc=true JOB";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(JOB=[$0], count=[$1], pct=[$2])\n"
+            + "  LogicalFilter(condition=[<=($3, 10)])\n"
+            + "    LogicalProject(JOB=[$0], count=[$1], pct=[$2],"
+            + " _row_number_rare_top_=[ROW_NUMBER() OVER (ORDER BY $1, $0)])\n"
+            + "      LogicalProject(JOB=[$0], count=[$1],"
+            + " pct=[ROUND(/(*(100.0:DECIMAL(4, 1), CAST($1):DOUBLE NOT NULL),"
+            + " CAST(CHECKED_LONG_SUM($1) OVER ()):DOUBLE NOT NULL), 6)])\n"
+            + "        LogicalAggregate(group=[{0}], count=[COUNT()])\n"
+            + "          LogicalProject(JOB=[$2])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult =
+        ""
+            + "JOB=PRESIDENT; count=1; pct=7.142857\n"
+            + "JOB=ANALYST; count=2; pct=14.285714\n"
+            + "JOB=MANAGER; count=3; pct=21.428571\n"
+            + "JOB=CLERK; count=4; pct=28.571429\n"
+            + "JOB=SALESMAN; count=4; pct=28.571429\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT `JOB`, `count`, `pct`\n"
+            + "FROM (SELECT `JOB`, `count`, `pct`, ROW_NUMBER() OVER (ORDER BY `count` NULLS"
+            + " LAST, `JOB` NULLS LAST) `_row_number_rare_top_`\n"
+            + "FROM (SELECT `JOB`, COUNT(*) `count`, ROUND(100.0 * CAST(COUNT(*) AS DOUBLE) /"
+            + " CAST(SUM(COUNT(*)) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED"
+            + " FOLLOWING) AS DOUBLE), 6) `pct`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "GROUP BY `JOB`) `t1`) `t2`\n"
+            + "WHERE `_row_number_rare_top_` <= 10";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testRareShowPercWithLimit() {
+    String ppl = "source=EMP | rare 1 showperc=true JOB";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(JOB=[$0], count=[$1], percent=[$2])\n"
+            + "  LogicalFilter(condition=[<=($3, 1)])\n"
+            + "    LogicalProject(JOB=[$0], count=[$1], percent=[$2],"
+            + " _row_number_rare_top_=[ROW_NUMBER() OVER (ORDER BY $1, $0)])\n"
+            + "      LogicalProject(JOB=[$0], count=[$1],"
+            + " percent=[ROUND(/(*(100.0:DECIMAL(4, 1), CAST($1):DOUBLE NOT NULL),"
+            + " CAST(CHECKED_LONG_SUM($1) OVER ()):DOUBLE NOT NULL), 6)])\n"
+            + "        LogicalAggregate(group=[{0}], count=[COUNT()])\n"
+            + "          LogicalProject(JOB=[$2])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    // Should show percentage relative to full dataset, not 100%
+    // PRESIDENT has 1 out of 14 total employees = 7.142857%
+    String expectedResult = "JOB=PRESIDENT; count=1; percent=7.142857\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT `JOB`, `count`, `percent`\n"
+            + "FROM (SELECT `JOB`, `count`, `percent`, ROW_NUMBER() OVER (ORDER BY `count` NULLS"
+            + " LAST, `JOB` NULLS LAST) `_row_number_rare_top_`\n"
+            + "FROM (SELECT `JOB`, COUNT(*) `count`, ROUND(100.0 * CAST(COUNT(*) AS DOUBLE) /"
+            + " CAST(SUM(COUNT(*)) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED"
+            + " FOLLOWING) AS DOUBLE), 6) `percent`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "GROUP BY `JOB`) `t1`) `t2`\n"
+            + "WHERE `_row_number_rare_top_` <= 1";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
   public void testTop() {
     String ppl = "source=EMP | top JOB";
     RelNode root = getRelNode(ppl);
@@ -230,7 +430,7 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
         "LogicalProject(JOB=[$0], count=[$1])\n"
             + "  LogicalFilter(condition=[<=($2, 10)])\n"
             + "    LogicalProject(JOB=[$0], count=[$1], _row_number_rare_top_=[ROW_NUMBER() OVER"
-            + " (ORDER BY $1 DESC)])\n"
+            + " (ORDER BY $1 DESC, $0)])\n"
             + "      LogicalAggregate(group=[{0}], count=[COUNT()])\n"
             + "        LogicalProject(JOB=[$2])\n"
             + "          LogicalTableScan(table=[[scott, EMP]])\n";
@@ -238,8 +438,8 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
 
     String expectedResult =
         ""
-            + "JOB=SALESMAN; count=4\n"
             + "JOB=CLERK; count=4\n"
+            + "JOB=SALESMAN; count=4\n"
             + "JOB=MANAGER; count=3\n"
             + "JOB=ANALYST; count=2\n"
             + "JOB=PRESIDENT; count=1\n";
@@ -248,7 +448,7 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `JOB`, `count`\n"
             + "FROM (SELECT `JOB`, COUNT(*) `count`, ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC"
-            + " NULLS FIRST) `_row_number_rare_top_`\n"
+            + " NULLS FIRST, `JOB` NULLS LAST) `_row_number_rare_top_`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `JOB`) `t1`\n"
             + "WHERE `_row_number_rare_top_` <= 10";
@@ -263,7 +463,7 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
         "LogicalProject(DEPTNO=[$0], JOB=[$1], count=[$2])\n"
             + "  LogicalFilter(condition=[<=($3, 10)])\n"
             + "    LogicalProject(DEPTNO=[$0], JOB=[$1], count=[$2],"
-            + " _row_number_rare_top_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2 DESC)])\n"
+            + " _row_number_rare_top_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2 DESC, $1)])\n"
             + "      LogicalAggregate(group=[{0, 1}], count=[COUNT()])\n"
             + "        LogicalProject(DEPTNO=[$7], JOB=[$2])\n"
             + "          LogicalTableScan(table=[[scott, EMP]])\n";
@@ -271,21 +471,22 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
 
     String expectedResult =
         ""
-            + "DEPTNO=20; JOB=CLERK; count=2\n"
             + "DEPTNO=20; JOB=ANALYST; count=2\n"
+            + "DEPTNO=20; JOB=CLERK; count=2\n"
             + "DEPTNO=20; JOB=MANAGER; count=1\n"
-            + "DEPTNO=10; JOB=MANAGER; count=1\n"
             + "DEPTNO=10; JOB=CLERK; count=1\n"
+            + "DEPTNO=10; JOB=MANAGER; count=1\n"
             + "DEPTNO=10; JOB=PRESIDENT; count=1\n"
             + "DEPTNO=30; JOB=SALESMAN; count=4\n"
-            + "DEPTNO=30; JOB=MANAGER; count=1\n"
-            + "DEPTNO=30; JOB=CLERK; count=1\n";
+            + "DEPTNO=30; JOB=CLERK; count=1\n"
+            + "DEPTNO=30; JOB=MANAGER; count=1\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
         "SELECT `DEPTNO`, `JOB`, `count`\n"
             + "FROM (SELECT `DEPTNO`, `JOB`, COUNT(*) `count`, ROW_NUMBER() OVER (PARTITION BY"
-            + " `DEPTNO` ORDER BY COUNT(*) DESC NULLS FIRST) `_row_number_rare_top_`\n"
+            + " `DEPTNO` ORDER BY COUNT(*) DESC NULLS FIRST, `JOB` NULLS LAST)"
+            + " `_row_number_rare_top_`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`, `JOB`) `t1`\n"
             + "WHERE `_row_number_rare_top_` <= 10";
@@ -300,7 +501,7 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
         "LogicalProject(DEPTNO=[$0], JOB=[$1])\n"
             + "  LogicalFilter(condition=[<=($3, 10)])\n"
             + "    LogicalProject(DEPTNO=[$0], JOB=[$1], count=[$2],"
-            + " _row_number_rare_top_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2 DESC)])\n"
+            + " _row_number_rare_top_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2 DESC, $1)])\n"
             + "      LogicalAggregate(group=[{0, 1}], count=[COUNT()])\n"
             + "        LogicalProject(DEPTNO=[$7], JOB=[$2])\n"
             + "          LogicalTableScan(table=[[scott, EMP]])\n";
@@ -308,21 +509,22 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
 
     String expectedResult =
         ""
-            + "DEPTNO=20; JOB=CLERK\n"
             + "DEPTNO=20; JOB=ANALYST\n"
+            + "DEPTNO=20; JOB=CLERK\n"
             + "DEPTNO=20; JOB=MANAGER\n"
-            + "DEPTNO=10; JOB=MANAGER\n"
             + "DEPTNO=10; JOB=CLERK\n"
+            + "DEPTNO=10; JOB=MANAGER\n"
             + "DEPTNO=10; JOB=PRESIDENT\n"
             + "DEPTNO=30; JOB=SALESMAN\n"
-            + "DEPTNO=30; JOB=MANAGER\n"
-            + "DEPTNO=30; JOB=CLERK\n";
+            + "DEPTNO=30; JOB=CLERK\n"
+            + "DEPTNO=30; JOB=MANAGER\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
         "SELECT `DEPTNO`, `JOB`\n"
             + "FROM (SELECT `DEPTNO`, `JOB`, COUNT(*) `count`, ROW_NUMBER() OVER (PARTITION BY"
-            + " `DEPTNO` ORDER BY COUNT(*) DESC NULLS FIRST) `_row_number_rare_top_`\n"
+            + " `DEPTNO` ORDER BY COUNT(*) DESC NULLS FIRST, `JOB` NULLS LAST)"
+            + " `_row_number_rare_top_`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`, `JOB`) `t1`\n"
             + "WHERE `_row_number_rare_top_` <= 10";
@@ -337,7 +539,7 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
         "LogicalProject(DEPTNO=[$0], JOB=[$1], my_cnt=[$2])\n"
             + "  LogicalFilter(condition=[<=($3, 10)])\n"
             + "    LogicalProject(DEPTNO=[$0], JOB=[$1], my_cnt=[$2],"
-            + " _row_number_rare_top_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2 DESC)])\n"
+            + " _row_number_rare_top_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2 DESC, $1)])\n"
             + "      LogicalAggregate(group=[{0, 1}], my_cnt=[COUNT()])\n"
             + "        LogicalProject(DEPTNO=[$7], JOB=[$2])\n"
             + "          LogicalTableScan(table=[[scott, EMP]])\n";
@@ -345,21 +547,22 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
 
     String expectedResult =
         ""
-            + "DEPTNO=20; JOB=CLERK; my_cnt=2\n"
             + "DEPTNO=20; JOB=ANALYST; my_cnt=2\n"
+            + "DEPTNO=20; JOB=CLERK; my_cnt=2\n"
             + "DEPTNO=20; JOB=MANAGER; my_cnt=1\n"
-            + "DEPTNO=10; JOB=MANAGER; my_cnt=1\n"
             + "DEPTNO=10; JOB=CLERK; my_cnt=1\n"
+            + "DEPTNO=10; JOB=MANAGER; my_cnt=1\n"
             + "DEPTNO=10; JOB=PRESIDENT; my_cnt=1\n"
             + "DEPTNO=30; JOB=SALESMAN; my_cnt=4\n"
-            + "DEPTNO=30; JOB=MANAGER; my_cnt=1\n"
-            + "DEPTNO=30; JOB=CLERK; my_cnt=1\n";
+            + "DEPTNO=30; JOB=CLERK; my_cnt=1\n"
+            + "DEPTNO=30; JOB=MANAGER; my_cnt=1\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
         "SELECT `DEPTNO`, `JOB`, `my_cnt`\n"
             + "FROM (SELECT `DEPTNO`, `JOB`, COUNT(*) `my_cnt`, ROW_NUMBER() OVER (PARTITION BY"
-            + " `DEPTNO` ORDER BY COUNT(*) DESC NULLS FIRST) `_row_number_rare_top_`\n"
+            + " `DEPTNO` ORDER BY COUNT(*) DESC NULLS FIRST, `JOB` NULLS LAST)"
+            + " `_row_number_rare_top_`\n"
             + "FROM `scott`.`EMP`\n"
             + "GROUP BY `DEPTNO`, `JOB`) `t1`\n"
             + "WHERE `_row_number_rare_top_` <= 10";
@@ -374,7 +577,7 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
         "LogicalProject(DEPTNO=[$0], JOB=[$1], count=[$2])\n"
             + "  LogicalFilter(condition=[<=($3, 10)])\n"
             + "    LogicalProject(DEPTNO=[$0], JOB=[$1], count=[$2],"
-            + " _row_number_rare_top_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2 DESC)])\n"
+            + " _row_number_rare_top_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2 DESC, $1)])\n"
             + "      LogicalAggregate(group=[{0, 1}], count=[COUNT()])\n"
             + "        LogicalProject(DEPTNO=[$7], JOB=[$2])\n"
             + "          LogicalFilter(condition=[AND(IS NOT NULL($7), IS NOT NULL($2))])\n"
@@ -383,25 +586,227 @@ public class CalcitePPLRareTopNTest extends CalcitePPLAbstractTest {
 
     String expectedResult =
         ""
-            + "DEPTNO=20; JOB=CLERK; count=2\n"
             + "DEPTNO=20; JOB=ANALYST; count=2\n"
+            + "DEPTNO=20; JOB=CLERK; count=2\n"
             + "DEPTNO=20; JOB=MANAGER; count=1\n"
-            + "DEPTNO=10; JOB=MANAGER; count=1\n"
             + "DEPTNO=10; JOB=CLERK; count=1\n"
+            + "DEPTNO=10; JOB=MANAGER; count=1\n"
             + "DEPTNO=10; JOB=PRESIDENT; count=1\n"
             + "DEPTNO=30; JOB=SALESMAN; count=4\n"
-            + "DEPTNO=30; JOB=MANAGER; count=1\n"
-            + "DEPTNO=30; JOB=CLERK; count=1\n";
+            + "DEPTNO=30; JOB=CLERK; count=1\n"
+            + "DEPTNO=30; JOB=MANAGER; count=1\n";
     verifyResult(root, expectedResult);
 
     String expectedSparkSql =
         "SELECT `DEPTNO`, `JOB`, `count`\n"
             + "FROM (SELECT `DEPTNO`, `JOB`, COUNT(*) `count`, ROW_NUMBER() OVER (PARTITION BY"
-            + " `DEPTNO` ORDER BY COUNT(*) DESC NULLS FIRST) `_row_number_rare_top_`\n"
+            + " `DEPTNO` ORDER BY COUNT(*) DESC NULLS FIRST, `JOB` NULLS LAST)"
+            + " `_row_number_rare_top_`\n"
             + "FROM `scott`.`EMP`\n"
             + "WHERE `DEPTNO` IS NOT NULL AND `JOB` IS NOT NULL\n"
             + "GROUP BY `DEPTNO`, `JOB`) `t2`\n"
             + "WHERE `_row_number_rare_top_` <= 10";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testTopShowPerc() {
+    String ppl = "source=EMP | top showperc=true JOB";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(JOB=[$0], count=[$1], percent=[$2])\n"
+            + "  LogicalFilter(condition=[<=($3, 10)])\n"
+            + "    LogicalProject(JOB=[$0], count=[$1], percent=[$2],"
+            + " _row_number_rare_top_=[ROW_NUMBER() OVER (ORDER BY $1 DESC, $0)])\n"
+            + "      LogicalProject(JOB=[$0], count=[$1],"
+            + " percent=[ROUND(/(*(100.0:DECIMAL(4, 1), CAST($1):DOUBLE NOT NULL),"
+            + " CAST(CHECKED_LONG_SUM($1) OVER ()):DOUBLE NOT NULL), 6)])\n"
+            + "        LogicalAggregate(group=[{0}], count=[COUNT()])\n"
+            + "          LogicalProject(JOB=[$2])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult =
+        ""
+            + "JOB=CLERK; count=4; percent=28.571429\n"
+            + "JOB=SALESMAN; count=4; percent=28.571429\n"
+            + "JOB=MANAGER; count=3; percent=21.428571\n"
+            + "JOB=ANALYST; count=2; percent=14.285714\n"
+            + "JOB=PRESIDENT; count=1; percent=7.142857\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT `JOB`, `count`, `percent`\n"
+            + "FROM (SELECT `JOB`, `count`, `percent`, ROW_NUMBER() OVER (ORDER BY `count` DESC"
+            + " NULLS FIRST, `JOB` NULLS LAST) `_row_number_rare_top_`\n"
+            + "FROM (SELECT `JOB`, COUNT(*) `count`, ROUND(100.0 * CAST(COUNT(*) AS DOUBLE) /"
+            + " CAST(SUM(COUNT(*)) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED"
+            + " FOLLOWING) AS DOUBLE), 6) `percent`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "GROUP BY `JOB`) `t1`) `t2`\n"
+            + "WHERE `_row_number_rare_top_` <= 10";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testTopShowPercWithGroupBy() {
+    String ppl = "source=EMP | top showperc=true JOB by DEPTNO";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(DEPTNO=[$0], JOB=[$1], count=[$2], percent=[$3])\n"
+            + "  LogicalFilter(condition=[<=($4, 10)])\n"
+            + "    LogicalProject(DEPTNO=[$0], JOB=[$1], count=[$2], percent=[$3],"
+            + " _row_number_rare_top_=[ROW_NUMBER() OVER (PARTITION BY $0 ORDER BY $2 DESC, $1)])\n"
+            + "      LogicalProject(DEPTNO=[$0], JOB=[$1], count=[$2],"
+            + " percent=[ROUND(/(*(100.0:DECIMAL(4, 1), CAST($2):DOUBLE NOT NULL),"
+            + " CAST(CHECKED_LONG_SUM($2) OVER (PARTITION BY $0)):DOUBLE NOT NULL), 6)])\n"
+            + "        LogicalAggregate(group=[{0, 1}], count=[COUNT()])\n"
+            + "          LogicalProject(DEPTNO=[$7], JOB=[$2])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult =
+        ""
+            + "DEPTNO=20; JOB=ANALYST; count=2; percent=40.0\n"
+            + "DEPTNO=20; JOB=CLERK; count=2; percent=40.0\n"
+            + "DEPTNO=20; JOB=MANAGER; count=1; percent=20.0\n"
+            + "DEPTNO=10; JOB=CLERK; count=1; percent=33.333333\n"
+            + "DEPTNO=10; JOB=MANAGER; count=1; percent=33.333333\n"
+            + "DEPTNO=10; JOB=PRESIDENT; count=1; percent=33.333333\n"
+            + "DEPTNO=30; JOB=SALESMAN; count=4; percent=66.666667\n"
+            + "DEPTNO=30; JOB=CLERK; count=1; percent=16.666667\n"
+            + "DEPTNO=30; JOB=MANAGER; count=1; percent=16.666667\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT `DEPTNO`, `JOB`, `count`, `percent`\n"
+            + "FROM (SELECT `DEPTNO`, `JOB`, `count`, `percent`, ROW_NUMBER() OVER (PARTITION BY"
+            + " `DEPTNO` ORDER BY `count` DESC NULLS FIRST, `JOB` NULLS LAST)"
+            + " `_row_number_rare_top_`\n"
+            + "FROM (SELECT `DEPTNO`, `JOB`, COUNT(*) `count`, ROUND(100.0 * CAST(COUNT(*) AS"
+            + " DOUBLE) / CAST(SUM(COUNT(*)) OVER (PARTITION BY `DEPTNO` RANGE BETWEEN UNBOUNDED"
+            + " PRECEDING AND UNBOUNDED FOLLOWING) AS DOUBLE), 6) `percent`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "GROUP BY `DEPTNO`, `JOB`) `t1`) `t2`\n"
+            + "WHERE `_row_number_rare_top_` <= 10";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testTopShowPercWithoutShowCount() {
+    String ppl = "source=EMP | top showcount=false showperc=true JOB";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(JOB=[$0], percent=[$2])\n"
+            + "  LogicalFilter(condition=[<=($3, 10)])\n"
+            + "    LogicalProject(JOB=[$0], count=[$1], percent=[$2],"
+            + " _row_number_rare_top_=[ROW_NUMBER() OVER (ORDER BY $1 DESC, $0)])\n"
+            + "      LogicalProject(JOB=[$0], count=[$1],"
+            + " percent=[ROUND(/(*(100.0:DECIMAL(4, 1), CAST($1):DOUBLE NOT NULL),"
+            + " CAST(CHECKED_LONG_SUM($1) OVER ()):DOUBLE NOT NULL), 6)])\n"
+            + "        LogicalAggregate(group=[{0}], count=[COUNT()])\n"
+            + "          LogicalProject(JOB=[$2])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult =
+        ""
+            + "JOB=CLERK; percent=28.571429\n"
+            + "JOB=SALESMAN; percent=28.571429\n"
+            + "JOB=MANAGER; percent=21.428571\n"
+            + "JOB=ANALYST; percent=14.285714\n"
+            + "JOB=PRESIDENT; percent=7.142857\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT `JOB`, `percent`\n"
+            + "FROM (SELECT `JOB`, `count`, `percent`, ROW_NUMBER() OVER (ORDER BY `count` DESC"
+            + " NULLS FIRST, `JOB` NULLS LAST) `_row_number_rare_top_`\n"
+            + "FROM (SELECT `JOB`, COUNT(*) `count`, ROUND(100.0 * CAST(COUNT(*) AS DOUBLE) /"
+            + " CAST(SUM(COUNT(*)) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED"
+            + " FOLLOWING) AS DOUBLE), 6) `percent`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "GROUP BY `JOB`) `t1`) `t2`\n"
+            + "WHERE `_row_number_rare_top_` <= 10";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testTopShowPercCustomField() {
+    String ppl = "source=EMP | top percentfield='pct' showperc=true JOB";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(JOB=[$0], count=[$1], pct=[$2])\n"
+            + "  LogicalFilter(condition=[<=($3, 10)])\n"
+            + "    LogicalProject(JOB=[$0], count=[$1], pct=[$2],"
+            + " _row_number_rare_top_=[ROW_NUMBER() OVER (ORDER BY $1 DESC, $0)])\n"
+            + "      LogicalProject(JOB=[$0], count=[$1],"
+            + " pct=[ROUND(/(*(100.0:DECIMAL(4, 1), CAST($1):DOUBLE NOT NULL),"
+            + " CAST(CHECKED_LONG_SUM($1) OVER ()):DOUBLE NOT NULL), 6)])\n"
+            + "        LogicalAggregate(group=[{0}], count=[COUNT()])\n"
+            + "          LogicalProject(JOB=[$2])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult =
+        ""
+            + "JOB=CLERK; count=4; pct=28.571429\n"
+            + "JOB=SALESMAN; count=4; pct=28.571429\n"
+            + "JOB=MANAGER; count=3; pct=21.428571\n"
+            + "JOB=ANALYST; count=2; pct=14.285714\n"
+            + "JOB=PRESIDENT; count=1; pct=7.142857\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT `JOB`, `count`, `pct`\n"
+            + "FROM (SELECT `JOB`, `count`, `pct`, ROW_NUMBER() OVER (ORDER BY `count` DESC"
+            + " NULLS FIRST, `JOB` NULLS LAST) `_row_number_rare_top_`\n"
+            + "FROM (SELECT `JOB`, COUNT(*) `count`, ROUND(100.0 * CAST(COUNT(*) AS DOUBLE) /"
+            + " CAST(SUM(COUNT(*)) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED"
+            + " FOLLOWING) AS DOUBLE), 6) `pct`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "GROUP BY `JOB`) `t1`) `t2`\n"
+            + "WHERE `_row_number_rare_top_` <= 10";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testTopShowPercWithLimit() {
+    String ppl = "source=EMP | top 1 showperc=true JOB";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(JOB=[$0], count=[$1], percent=[$2])\n"
+            + "  LogicalFilter(condition=[<=($3, 1)])\n"
+            + "    LogicalProject(JOB=[$0], count=[$1], percent=[$2],"
+            + " _row_number_rare_top_=[ROW_NUMBER() OVER (ORDER BY $1 DESC, $0)])\n"
+            + "      LogicalProject(JOB=[$0], count=[$1],"
+            + " percent=[ROUND(/(*(100.0:DECIMAL(4, 1), CAST($1):DOUBLE NOT NULL),"
+            + " CAST(CHECKED_LONG_SUM($1) OVER ()):DOUBLE NOT NULL), 6)])\n"
+            + "        LogicalAggregate(group=[{0}], count=[COUNT()])\n"
+            + "          LogicalProject(JOB=[$2])\n"
+            + "            LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    // Should show percentage relative to full dataset, not 100%
+    // CLERK has 4 out of 14 total employees = 28.571429%
+    String expectedResult = "JOB=CLERK; count=4; percent=28.571429\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT `JOB`, `count`, `percent`\n"
+            + "FROM (SELECT `JOB`, `count`, `percent`, ROW_NUMBER() OVER (ORDER BY `count` DESC"
+            + " NULLS FIRST, `JOB` NULLS LAST) `_row_number_rare_top_`\n"
+            + "FROM (SELECT `JOB`, COUNT(*) `count`, ROUND(100.0 * CAST(COUNT(*) AS DOUBLE) /"
+            + " CAST(SUM(COUNT(*)) OVER (RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED"
+            + " FOLLOWING) AS DOUBLE), 6) `percent`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "GROUP BY `JOB`) `t1`) `t2`\n"
+            + "WHERE `_row_number_rare_top_` <= 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

@@ -57,6 +57,21 @@ public class PushDownContext extends AbstractCollection<PushDownOperation> {
   }
 
   /**
+   * Clone this context but rebind it to a different {@link OpenSearchIndex}. Used by partial-result
+   * pushdown, which re-targets an aggregation at a narrowed index subset while preserving the
+   * operations already pushed onto the current scan (e.g. a WHERE filter). The pushed operations
+   * are index-agnostic request-builder actions, so replaying them onto the new index is safe.
+   */
+  public PushDownContext cloneWithOsIndex(OpenSearchIndex newOsIndex) {
+    PushDownContext newContext = new PushDownContext(newOsIndex);
+    for (PushDownOperation operation : this) {
+      newContext.add(operation);
+    }
+    newContext.aggSpec = aggSpec;
+    return newContext;
+  }
+
+  /**
    * Create a new {@link PushDownContext} without the collation action.
    *
    * @return A new push-down context without the collation action.

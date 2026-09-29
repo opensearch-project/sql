@@ -94,9 +94,32 @@ public class UserDefinedFunctionUtils {
       String functionName,
       SqlReturnTypeInference returnType,
       @Nullable UDFOperandMetadata operandMetadata) {
+    return createReflectiveAggFunction(udafClass, functionName, returnType, operandMetadata);
+  }
+
+  /** Creates an aggregate function from a class following Calcite's reflective UDAF convention. */
+  public static SqlUserDefinedAggFunction createReflectiveAggFunction(
+      Class<?> udafClass,
+      String functionName,
+      SqlReturnTypeInference returnType,
+      @Nullable UDFOperandMetadata operandMetadata) {
+    return createReflectiveAggFunction(
+        udafClass, functionName, SqlKind.OTHER_FUNCTION, returnType, operandMetadata);
+  }
+
+  /**
+   * Creates an aggregate function whose kind remains visible to planner rules while execution uses
+   * the supplied reflective UDAF.
+   */
+  public static SqlUserDefinedAggFunction createReflectiveAggFunction(
+      Class<?> udafClass,
+      String functionName,
+      SqlKind kind,
+      SqlReturnTypeInference returnType,
+      @Nullable UDFOperandMetadata operandMetadata) {
     return new SqlUserDefinedAggFunction(
         new SqlIdentifier(functionName, SqlParserPos.ZERO),
-        SqlKind.OTHER_FUNCTION,
+        kind,
         returnType,
         null,
         operandMetadata,

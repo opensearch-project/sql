@@ -1,16 +1,16 @@
 root:
-  name: ProjectOperator
-  description:
-    fields: "[ageMinus]"
   children:
-    - name: OpenSearchEvalOperator
-      description:
-        expressions:
-          ageMinus: "-(age, 30)"
-      children:
-        - name: OpenSearchIndexScan
+    - children:
+        - children: []
           description:
             request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account,\
               \ sourceBuilder={\"from\":0,\"size\":5,\"timeout\":\"1m\"}, pitId=*,\
               \ cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
-          children: []
+          name: OpenSearchIndexScan
+      description:
+        expressions:
+          ageMinus: "-(age, 30)"
+      name: OpenSearchEvalOperator
+  description:
+    fields: "[ageMinus]"
+  name: ProjectOperator

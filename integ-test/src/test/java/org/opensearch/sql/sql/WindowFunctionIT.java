@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.sql;
 
+import static org.opensearch.sql.util.Capability.PERCENTILE_APPROXIMATE;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
@@ -13,6 +14,7 @@ import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.legacy.TestsConstants;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class WindowFunctionIT extends SQLIntegTestCase {
 
@@ -113,7 +115,7 @@ public class WindowFunctionIT extends SQLIntegTestCase {
                     + " lastname) FROM "
                     + TestsConstants.TEST_INDEX_BANK,
                 "jdbc"));
-    verifyDataRowsInOrder(
+    verifyDataRows(
         response,
         rows("Ayala", 1),
         rows("Bates", 1),
@@ -125,6 +127,7 @@ public class WindowFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(PERCENTILE_APPROXIMATE)
   public void testPercentileOverNull() {
     JSONObject response =
         new JSONObject(
@@ -145,6 +148,7 @@ public class WindowFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(PERCENTILE_APPROXIMATE)
   public void testPercentileOver() {
     JSONObject response =
         new JSONObject(
@@ -165,6 +169,7 @@ public class WindowFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(PERCENTILE_APPROXIMATE)
   public void testPercentilePartition() {
     JSONObject response =
         new JSONObject(
@@ -182,5 +187,94 @@ public class WindowFunctionIT extends SQLIntegTestCase {
         rows("Bond", 5686),
         rows("Duke Willmington", 5686),
         rows("Ratliff", 16418));
+  }
+
+  @Test
+  public void testRankOverNull() {
+    JSONObject response =
+        new JSONObject(
+            executeQuery(
+                """
+                SELECT lastname, RANK() OVER() FROM %s\
+                """
+                    .formatted(TestsConstants.TEST_INDEX_BANK),
+                "jdbc"));
+
+    verifyDataRows(
+        response,
+        rows("Duke Willmington", 1),
+        rows("Bond", 1),
+        rows("Bates", 1),
+        rows("Adams", 1),
+        rows("Ratliff", 1),
+        rows("Ayala", 1),
+        rows("Mcpherson", 1));
+  }
+
+  @Test
+  public void testRankOver() {
+    JSONObject response =
+        new JSONObject(
+            executeQuery(
+                """
+                SELECT age, RANK() OVER(ORDER BY age DESC) FROM %s\
+                """
+                    .formatted(TestsConstants.TEST_INDEX_BANK),
+                "jdbc"));
+
+    verifyDataRows(
+        response,
+        rows(39, 1),
+        rows(36, 2),
+        rows(36, 2),
+        rows(34, 4),
+        rows(33, 5),
+        rows(32, 6),
+        rows(28, 7));
+  }
+
+  @Test
+  public void testRankPartition() {
+    JSONObject response =
+        new JSONObject(
+            executeQuery(
+                """
+                SELECT lastname, RANK() OVER(PARTITION BY gender ORDER BY age DESC)\
+                 FROM %s\
+                """
+                    .formatted(TestsConstants.TEST_INDEX_BANK),
+                "jdbc"));
+
+    verifyDataRows(
+        response,
+        rows("Bond", 1),
+        rows("Ratliff", 1),
+        rows("Adams", 3),
+        rows("Duke Willmington", 4),
+        rows("Ayala", 1),
+        rows("Mcpherson", 2),
+        rows("Bates", 3));
+  }
+
+  @Test
+  public void testDenseRankOver() {
+    JSONObject response =
+        new JSONObject(
+            executeQuery(
+                """
+                SELECT age, DENSE_RANK() OVER(ORDER BY age DESC) FROM %s\
+                """
+                    .formatted(TestsConstants.TEST_INDEX_BANK),
+                "jdbc"));
+
+    verifyDataRows(
+        response,
+        rows(39, 1),
+        rows(36, 2),
+        rows(36, 2),
+        rows(34, 3),
+        rows(33, 4),
+        rows(32, 5),
+        rows(28, 6));
   }
 }

@@ -5,9 +5,13 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OCCUPATION;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORKER;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORK_INFORMATION;
+import static org.opensearch.sql.util.Capability.HEAD_WITHOUT_STABLE_SORT;
+import static org.opensearch.sql.util.Capability.SUBSEARCH_MAXOUT_IN_SUBQUERY;
+import static org.opensearch.sql.util.Capability.TEXT_FIELD_EXACT_MATCH;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -22,7 +26,9 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
 
@@ -31,19 +37,26 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
     super.init();
     enableCalcite();
 
+    // init() runs as @Before, before every test method. On the analytics route the parquet-backed
+    // store is append-only on same-_id PUT, so seed the extra worker doc only when the index is
+    // first created — otherwise it accumulates a duplicate per test method and inflates row counts.
+    boolean workerExisted = isIndexExist(client(), TEST_INDEX_WORKER);
     loadIndex(Index.WORKER);
     loadIndex(Index.WORK_INFORMATION);
     loadIndex(Index.OCCUPATION);
 
-    // {"index":{"_id":"7"}}
-    // {"id":1006,"name":"Tommy","occupation":"Teacher","country":"USA","salary":30000}
-    Request request1 = new Request("PUT", "/" + TEST_INDEX_WORKER + "/_doc/7?refresh=true");
-    request1.setJsonEntity(
-        "{\"id\":1006,\"name\":\"Tommy\",\"occupation\":\"Teacher\",\"country\":\"USA\",\"salary\":30000}");
-    client().performRequest(request1);
+    if (!workerExisted) {
+      // {"index":{"_id":"7"}}
+      // {"id":1006,"name":"Tommy","occupation":"Teacher","country":"USA","salary":30000}
+      Request request1 = TestUtils.seedDocRequest(TEST_INDEX_WORKER, "7");
+      request1.setJsonEntity(
+          "{\"id\":1006,\"name\":\"Tommy\",\"occupation\":\"Teacher\",\"country\":\"USA\",\"salary\":30000}");
+      client().performRequest(request1);
+    }
   }
 
   @Test
+  @RequiresCapability(HEAD_WITHOUT_STABLE_SORT)
   public void testSelfInSubquery() throws IOException {
     var result =
         executeQuery(
@@ -65,6 +78,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(HEAD_WITHOUT_STABLE_SORT)
   public void testWhereInSubquery() throws IOException {
     JSONObject result =
         executeQuery(
@@ -87,6 +101,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(HEAD_WITHOUT_STABLE_SORT)
   public void testFilterInSubquery() throws IOException {
     JSONObject result =
         executeQuery(
@@ -108,6 +123,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(HEAD_WITHOUT_STABLE_SORT)
   public void testInSubqueryWithParentheses() throws IOException {
     JSONObject result1 =
         executeQuery(
@@ -130,6 +146,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(HEAD_WITHOUT_STABLE_SORT)
   public void testTwoExpressionsInSubquery() throws IOException {
     JSONObject result =
         executeQuery(
@@ -206,7 +223,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
                 "source = %s | where id not in ["
                     + "    source = %s | where uid = 0000 | fields uid"
                     + "  ]"
-                    + "| sort  - salary"
+                    + "| sort  - salary, id"
                     + "| fields id, name, salary",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
@@ -236,7 +253,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
                     + "      ]"
                     + "    | fields uid"
                     + "  ]"
-                    + "| sort  - salary"
+                    + "| sort  - salary, id"
                     + "| fields id, name, salary",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_OCCUPATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
@@ -262,7 +279,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
                     + "      ]"
                     + "    | fields uid"
                     + "  ]"
-                    + "| sort  - salary | fields name, country, occupation, id, salary",
+                    + "| sort  - salary, id | fields name, country, occupation, id, salary",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_OCCUPATION));
     verifySchema(
         result,
@@ -339,6 +356,9 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = TEXT_FIELD_EXACT_MATCH,
+      note = "Subsearch filters a text-mapped field with exact equality (i.department = 'DATA').")
   public void testInSubqueryWithTableAlias() throws IOException {
     JSONObject result =
         executeQuery(
@@ -357,6 +377,9 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = TEXT_FIELD_EXACT_MATCH,
+      note = "Subsearch filters a text-mapped field with exact equality (occupation = 'Engineer').")
   public void testInCorrelatedSubquery() throws IOException {
     JSONObject result =
         executeQuery(
@@ -371,6 +394,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(SUBSEARCH_MAXOUT_IN_SUBQUERY)
   public void testSubsearchMaxOut() throws IOException {
     setSubsearchMaxOut(1);
     JSONObject result =
@@ -378,7 +402,10 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
             String.format(
                 "source = %s"
                     + "| where id in ["
-                    + "    source = %s | fields uid"
+                    // Sort the subsearch on a unique key before the maxout cap so the single
+                    // retained row (uid=1000) is deterministic across shard counts. Without this
+                    // the capped subsearch keeps an arbitrary uid on a multi-shard index.
+                    + "    source = %s | sort uid | fields uid"
                     + "  ]"
                     + "| sort  - salary"
                     + "| fields id, name, salary",

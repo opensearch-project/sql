@@ -6,6 +6,7 @@
 package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
+import static org.opensearch.sql.util.Capability.FUNCTION_TYPE_COMPAT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -20,6 +21,7 @@ import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class TextFunctionIT extends SQLIntegTestCase {
 
@@ -47,6 +49,7 @@ public class TextFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testRegexp() throws IOException {
     verifyQuery("'a' regexp 'b'", "integer", 0);
     verifyQuery("'a' regexp '.*'", "integer", 1);

@@ -58,6 +58,16 @@ public final class QueryProfiling {
   }
 
   /**
+   * Set the profiling context for the current thread. Used when propagating context across thread
+   * boundaries.
+   *
+   * @param ctx profiling context to bind
+   */
+  public static void set(ProfileContext ctx) {
+    CURRENT.set(Objects.requireNonNull(ctx, "ctx"));
+  }
+
+  /**
    * Run a supplier with the provided profiling context bound to the current thread.
    *
    * @param action supplier to execute

@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.sql;
 
+import static org.opensearch.sql.util.Capability.VECTOR_SEARCH;
 import static org.opensearch.sql.util.TestUtils.createIndexByRestClient;
 import static org.opensearch.sql.util.TestUtils.isIndexExist;
 import static org.opensearch.sql.util.TestUtils.performRequest;
@@ -20,6 +21,7 @@ import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * Happy-path execution tests for the vectorSearch() SQL table function. These tests run an actual
@@ -31,6 +33,7 @@ import org.opensearch.sql.legacy.SQLIntegTestCase;
  * is absent. Run locally against a cluster that has opensearch-knn installed. Provisioning k-NN in
  * CI is a separate follow-up.
  */
+@RequiresCapability(VECTOR_SEARCH)
 public class VectorSearchExecutionIT extends SQLIntegTestCase {
 
   private static final String TEST_INDEX = "vector_exec_test";

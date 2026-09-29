@@ -40,7 +40,9 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -54,6 +56,7 @@ import org.opensearch.sql.ast.expression.Argument.ArgumentMap;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
+import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
@@ -64,6 +67,7 @@ import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.SearchAnd;
 import org.opensearch.sql.ast.expression.SearchExpression;
 import org.opensearch.sql.ast.expression.SearchGroup;
+import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.WindowFrame;
@@ -86,6 +90,8 @@ import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.Foreach;
+import org.opensearch.sql.ast.tree.Foreach.ForeachEvalClause;
 import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.GraphLookup.Direction;
 import org.opensearch.sql.ast.tree.Head;
@@ -93,6 +99,7 @@ import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.MakeResults;
 import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
@@ -109,6 +116,7 @@ import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Replace;
 import org.opensearch.sql.ast.tree.ReplacePair;
+import org.opensearch.sql.ast.tree.RestRelation;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
@@ -118,17 +126,21 @@ import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Timewrap;
 import org.opensearch.sql.ast.tree.Transpose;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.ast.tree.Xyseries;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
+import org.opensearch.sql.common.antlr.AstBuildGuard;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.executor.TimeBounds;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.AdCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ByClauseContext;
@@ -139,7 +151,9 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LookupPairContext
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsByClauseContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
+import org.opensearch.sql.ppl.utils.MakeResultsDataParser;
 import org.opensearch.sql.ppl.utils.UnresolvedPlanHelper;
+import org.opensearch.sql.utils.SystemIndexUtils;
 
 /** Class of building the AST. Refines the visit path and build the AST nodes */
 public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
@@ -154,14 +168,59 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    */
   private final String query;
 
+  /** Time range the main source is narrowed to, or null when the request declared none. */
+  @Nullable private final TimeBounds timeBounds;
+
   public AstBuilder(String query) {
-    this(query, null);
+    this(query, null, null);
   }
 
   public AstBuilder(String query, Settings settings) {
-    this.expressionBuilder = new AstExpressionBuilder(this);
+    this(query, settings, null);
+  }
+
+  public AstBuilder(String query, Settings settings, @Nullable TimeBounds timeBounds) {
+    this.expressionBuilder = new AstExpressionBuilder(this, AstBuildGuard.fromSettings(settings));
     this.query = query;
     this.settings = settings;
+    this.timeBounds = timeBounds;
+  }
+
+  /** A relation whose names carry the request's time bounds (see {@link TimeBounds}). */
+  private Relation relation(List<UnresolvedExpression> tableSources) {
+    if (timeBounds == null) {
+      return new Relation(tableSources);
+    }
+    return new Relation(tableSources.stream().map(this::withTimeBounds).toList());
+  }
+
+  /**
+   * Whether {@code ctx} is the outermost pipeline's own {@code source=}, rather than a join's other
+   * side, a subsearch's source, a multisearch dataset or a lookup table. Only that one is narrowed:
+   * a client's time filter constrains the first command, so a secondary source keeps every row, and
+   * narrowing it would drop indices nothing filtered.
+   */
+  private boolean isMainSource(TableSourceClauseContext ctx) {
+    if (!(ctx.getParent() instanceof OpenSearchPPLParser.TableOrSubqueryClauseContext)
+        || !(ctx.getParent().getParent() instanceof OpenSearchPPLParser.FromClauseContext)) {
+      return false;
+    }
+    for (RuleContext parent = ctx.getParent(); parent != null; parent = parent.getParent()) {
+      if (parent instanceof OpenSearchPPLParser.SubSearchContext) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private UnresolvedExpression withTimeBounds(UnresolvedExpression tableSource) {
+    if (!(tableSource instanceof QualifiedName name)) {
+      return tableSource;
+    }
+    List<String> parts = new ArrayList<>(name.getParts());
+    int last = parts.size() - 1;
+    parts.set(last, timeBounds.encodeInto(parts.get(last)));
+    return new QualifiedName(parts);
   }
 
   public Settings getSettings() {
@@ -251,6 +310,74 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     return new DescribeRelation(qualifiedName(DATASOURCES_TABLE_NAME));
   }
 
+  /**
+   * <b>Rest command.</b><br>
+   * Encodes the validated endpoint spec into a reserved table name (via {@link
+   * org.opensearch.sql.utils.SystemIndexUtils#restTable}) that resolves through the storage engine
+   * to a REST source table on the Calcite path, mirroring how DESCRIBE resolves to a system index.
+   */
+  @Override
+  public UnresolvedPlan visitRestCommand(OpenSearchPPLParser.RestCommandContext ctx) {
+    String endpoint = StringUtils.unquoteText(ctx.stringLiteral().getText());
+    LinkedHashMap<String, String> args = new LinkedHashMap<>();
+    Integer count = null;
+    String timeout = null;
+    for (OpenSearchPPLParser.RestArgumentContext arg : ctx.restArgument()) {
+      if (arg.COUNT() != null) {
+        count = Integer.parseInt(arg.integerLiteral().getText());
+      } else if (arg.TIMEOUT() != null) {
+        timeout = StringUtils.unquoteText(arg.stringLiteral().getText());
+      } else {
+        args.put(
+            StringUtils.unquoteIdentifier(arg.ident().getText()),
+            StringUtils.unquoteText(arg.literalValue().getText()));
+      }
+    }
+    String token =
+        SystemIndexUtils.restTable(new SystemIndexUtils.RestSpec(endpoint, args, count, timeout));
+    return new RestRelation(new QualifiedName(token));
+  }
+
+  /** makeresults command. */
+  @Override
+  public UnresolvedPlan visitMakeresultsCommand(OpenSearchPPLParser.MakeresultsCommandContext ctx) {
+    int count = 1;
+    String format = null;
+    String data = null;
+    for (OpenSearchPPLParser.MakeresultsArgContext arg : ctx.makeresultsArg()) {
+      if (arg.integerLiteral() != null) {
+        String raw = arg.integerLiteral().getText();
+        try {
+          count = Integer.parseInt(raw);
+        } catch (NumberFormatException e) {
+          throw new SyntaxCheckException(
+              "makeresults count \"" + raw + "\" is not a valid integer within the allowed range");
+        }
+      } else if (arg.stringLiteral() != null) {
+        data = StringUtils.unquoteText(arg.stringLiteral().getText());
+      } else if (arg.JSON() != null) {
+        format = "json";
+      } else if (arg.CSV() != null) {
+        format = "csv";
+      }
+    }
+    if (data != null || format != null) {
+      if (data == null || format == null) {
+        throw new SyntaxCheckException("makeresults format and data must be provided together");
+      }
+      return MakeResultsDataParser.parse(format, data);
+    }
+    if (count < 0) {
+      // Negative count yields zero rows.
+      count = 0;
+    }
+    if (count > 5000) {
+      // Inline literal rows hit the JVM 64 KB per-method bytecode limit.
+      throw new SyntaxCheckException("makeresults count must not exceed 5000");
+    }
+    return new MakeResults(count);
+  }
+
   /** Where command. */
   @Override
   public UnresolvedPlan visitWhereCommand(WhereCommandContext ctx) {
@@ -326,6 +453,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     if (ctx.fieldList() != null) {
       joinFields = Optional.of(getFieldList(ctx.fieldList()));
     }
+    // Keep a bare `on <field>` criteria verbatim; the planner expands it to an equi-join. Folding
+    // it into joinFields here would instead merge the key into one column.
     return new Join(
         projectExceptMeta(right),
         leftAlias,
@@ -820,6 +949,39 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         .build();
   }
 
+  /** Timewrap command. */
+  @Override
+  public UnresolvedPlan visitTimewrapCommand(OpenSearchPPLParser.TimewrapCommandContext ctx) {
+    Literal spanLiteral = (Literal) expressionBuilder.visit(ctx.spanLiteral());
+    String spanText = spanLiteral.getValue().toString();
+    String valueStr = spanText.replaceAll("[^0-9]", "");
+    String unitStr = spanText.replaceAll("[0-9]", "");
+    int value = valueStr.isEmpty() ? 1 : Integer.parseInt(valueStr);
+    SpanUnit unit = SpanUnit.of(unitStr);
+    if (unit == SpanUnit.UNKNOWN || unit == SpanUnit.NONE) {
+      throw new SemanticCheckException("Invalid timewrap span unit: " + unitStr);
+    }
+    String align = "end";
+    String series = "relative";
+    String timeFormat = null;
+    for (var param : ctx.timewrapParameter()) {
+      if (param.timewrapAlign() != null) {
+        align = param.timewrapAlign().getText().toLowerCase();
+      } else if (param.timewrapSeries() != null) {
+        series = param.timewrapSeries().getText().toLowerCase();
+      } else if (param.TIME_FORMAT() != null) {
+        timeFormat = param.stringLiteral().getText();
+        // Strip surrounding quotes
+        if (timeFormat.length() >= 2
+            && ((timeFormat.startsWith("\"") && timeFormat.endsWith("\""))
+                || (timeFormat.startsWith("'") && timeFormat.endsWith("'")))) {
+          timeFormat = timeFormat.substring(1, timeFormat.length() - 1);
+        }
+      }
+    }
+    return new Timewrap(unit, value, align, series, timeFormat, spanLiteral);
+  }
+
   /** Eval command. */
   @Override
   public UnresolvedPlan visitEvalCommand(EvalCommandContext ctx) {
@@ -827,6 +989,66 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         ctx.evalClause().stream()
             .map(ct -> (Let) internalVisitExpression(ct))
             .collect(Collectors.toList()));
+  }
+
+  @Override
+  public UnresolvedPlan visitForeachCommand(OpenSearchPPLParser.ForeachCommandContext ctx) {
+    java.util.Map<String, String> options = new LinkedHashMap<>();
+    List<UnresolvedExpression> targets = new ArrayList<>();
+    List<String> patterns = new ArrayList<>();
+    for (OpenSearchPPLParser.ForeachArgumentContext argument : ctx.foreachArgument()) {
+      OpenSearchPPLParser.ForeachOptionContext option = argument.foreachOption();
+      if (option != null) {
+        options.put(
+            option.ident(0).getText().toLowerCase(Locale.ROOT),
+            stripForeachPlaceholderMarkers(option.getChild(2).getText()));
+      } else {
+        OpenSearchPPLParser.ForeachTargetContext target = argument.foreachTarget();
+        patterns.add(getTextInQuery(target));
+        if (target.functionCall() != null) {
+          targets.add(expressionBuilder.visit(target.functionCall()));
+        } else if (target.stringLiteral() != null) {
+          targets.add(expressionBuilder.visit(target.stringLiteral()));
+        } else {
+          targets.add(new Field(new QualifiedName(getTextInQuery(target))));
+        }
+      }
+    }
+    Foreach.Mode mode =
+        options.containsKey("mode")
+            ? Foreach.Mode.of(options.get("mode"))
+            : inferForeachMode(targets);
+    UnresolvedExpression collectionExpression = null;
+    if (mode != Foreach.Mode.MULTIFIELD) {
+      if (targets.size() > 1 || (targets.isEmpty() && mode != Foreach.Mode.AUTO_COLLECTIONS)) {
+        throw new IllegalArgumentException("foreach collection modes accept exactly one field");
+      }
+      collectionExpression = targets.isEmpty() ? null : targets.get(0);
+    }
+    List<ForeachEvalClause> evalClauses =
+        ctx.foreachEvalCommand().foreachEvalClause().stream()
+            .map(
+                clause ->
+                    new ForeachEvalClause(
+                        getTextInQuery(clause.target),
+                        expressionBuilder.visit(clause.logicalExpression())))
+            .collect(Collectors.toList());
+    return new Foreach(mode, options, patterns, collectionExpression, evalClauses);
+  }
+
+  private String stripForeachPlaceholderMarkers(String value) {
+    return value.startsWith("<<") && value.endsWith(">>")
+        ? value.substring(2, value.length() - 2)
+        : value;
+  }
+
+  /** A bare json_array(...) target implies json_array mode; anything else is multifield. */
+  private Foreach.Mode inferForeachMode(List<UnresolvedExpression> targets) {
+    return targets.size() == 1
+            && targets.get(0) instanceof Function function
+            && "json_array".equalsIgnoreCase(function.getFuncName())
+        ? Foreach.Mode.JSON_ARRAY
+        : Foreach.Mode.MULTIFIELD;
   }
 
   @Override
@@ -1072,11 +1294,9 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   @Override
   public UnresolvedPlan visitTableSourceClause(TableSourceClauseContext ctx) {
-    Relation relation =
-        new Relation(
-            ctx.tableSource().stream()
-                .map(this::internalVisitExpression)
-                .collect(Collectors.toList()));
+    List<UnresolvedExpression> tableSources =
+        ctx.tableSource().stream().map(this::internalVisitExpression).collect(Collectors.toList());
+    Relation relation = isMainSource(ctx) ? relation(tableSources) : new Relation(tableSources);
     return ctx.alias != null
         ? new SubqueryAlias(internalVisitExpression(ctx.alias).toString(), relation)
         : relation;
@@ -1693,5 +1913,38 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
         .usePIT(usePIT)
         .filter(filter)
         .build();
+  }
+
+  /** Xyseries command. */
+  @Override
+  public UnresolvedPlan visitXyseriesCommand(OpenSearchPPLParser.XyseriesCommandContext ctx) {
+    UnresolvedExpression xField = internalVisitExpression(ctx.xField);
+    UnresolvedExpression yNameField = internalVisitExpression(ctx.yNameField);
+
+    // Parse pivot values from IN (...) clause
+    List<String> pivotValues =
+        ctx.xyseriesPivotValues().stringLiteral().stream()
+            .map(s -> StringUtils.unquoteText(s.getText()))
+            .distinct()
+            .collect(Collectors.toList());
+
+    // Parse y-data fields
+    List<UnresolvedExpression> yDataFields =
+        ctx.yDataFields.fieldExpression().stream()
+            .map(this::internalVisitExpression)
+            .collect(Collectors.toList());
+
+    // Parse options
+    String separator = ": ";
+    String format = null;
+    for (OpenSearchPPLParser.XyseriesOptionContext optCtx : ctx.xyseriesOption()) {
+      if (optCtx.SEP() != null) {
+        separator = StringUtils.unquoteText(optCtx.sep.getText());
+      } else if (optCtx.FORMAT() != null) {
+        format = StringUtils.unquoteText(optCtx.format.getText());
+      }
+    }
+
+    return new Xyseries(xField, yNameField, pivotValues, yDataFields, separator, format);
   }
 }

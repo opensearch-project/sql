@@ -326,7 +326,7 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
             + "FROM (SELECT *\n"
             + "FROM `scott`.`SALGRADE`\n"
             + "WHERE EXISTS (SELECT *\n"
-            + "FROM `scott`.`EMP`\n"
+            + "FROM `scott`.`EMP` `EMP0`\n"
             + "WHERE `SAL` = `SALGRADE`.`HISAL`)) `t0`\n"
             + "WHERE `EMP`.`SAL` = `HISAL`)\n"
             + "ORDER BY `EMPNO` DESC";
@@ -372,7 +372,7 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
             + "FROM (SELECT *\n"
             + "FROM `scott`.`SALGRADE`\n"
             + "WHERE EXISTS (SELECT *\n"
-            + "FROM `scott`.`EMP`\n"
+            + "FROM `scott`.`EMP` `EMP0`\n"
             + "WHERE `SAL` > 1000.0)) `t0`\n"
             + "WHERE `HISAL` > 1000.0)\n"
             + "ORDER BY `EMPNO` DESC";
@@ -435,12 +435,12 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`SALGRADE`\n"
             + "WHERE EXISTS (SELECT *\n"
             + "FROM (SELECT *\n"
-            + "FROM `scott`.`EMP`\n"
+            + "FROM `scott`.`EMP` `EMP0`\n"
             + "WHERE EXISTS (SELECT *\n"
             + "FROM (SELECT *\n"
-            + "FROM `scott`.`SALGRADE`\n"
+            + "FROM `scott`.`SALGRADE` `SALGRADE0`\n"
             + "WHERE EXISTS (SELECT *\n"
-            + "FROM `scott`.`EMP`\n"
+            + "FROM `scott`.`EMP` `EMP1`\n"
             + "WHERE `SAL` = `SALGRADE0`.`HISAL`)) `t0`\n"
             + "WHERE `EMP0`.`SAL` > 1000.0)) `t2`\n"
             + "WHERE `SAL` = `SALGRADE`.`HISAL`)) `t4`\n"
@@ -490,14 +490,14 @@ public class CalcitePPLExistsSubqueryTest extends CalcitePPLAbstractTest {
             + "  LogicalTableScan(table=[[scott, DEPT]])\n"
             + "})], variablesSet=[[$cor0]])\n"
             + "  LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[+($7, 1)])\n"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[+(CAST($7):BIGINT, 1)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
         "SELECT *\n"
-            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO` + 1"
-            + " `DEPTNO`\n"
+            + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`,"
+            + " CAST(`DEPTNO` AS BIGINT) + 1 `DEPTNO`\n"
             + "FROM `scott`.`EMP`) `t`\n"
             + "WHERE EXISTS (SELECT *\n"
             + "FROM `scott`.`DEPT`\n"

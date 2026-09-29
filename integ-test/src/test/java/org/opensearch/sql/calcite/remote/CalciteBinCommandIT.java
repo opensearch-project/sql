@@ -9,6 +9,8 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.legacy.TestsConstants.*;
+import static org.opensearch.sql.util.Capability.BIN_TIME_FIELD_BUCKETING;
+import static org.opensearch.sql.util.Capability.STRICT_QUERY_REJECTION;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -20,6 +22,7 @@ import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalciteBinCommandIT extends PPLIntegTestCase {
   @Override
@@ -85,10 +88,12 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   public void testBinBasicFunctionality() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("source=%s | bin age span=5 | fields age | head 3", TEST_INDEX_ACCOUNT));
+            String.format(
+                "source=%s | bin age span=5 | sort account_number | fields age | head 3",
+                TEST_INDEX_ACCOUNT));
     verifySchema(result, schema("age", null, "string"));
 
-    verifyDataRows(result, rows("30-35"), rows("35-40"), rows("25-30"));
+    verifyDataRows(result, rows("25-30"), rows("30-35"), rows("20-25"));
   }
 
   @Test
@@ -105,10 +110,14 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testBinValueFieldOnly() throws IOException {
+    // `head` without a preceding sort selects an undefined set of rows, so the exact values
+    // asserted below only hold by accident of scan order. Sort on a unique key to fix which
+    // rows are selected; the expected values are unchanged.
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | bin value span=2000 | fields value | head 3", TEST_INDEX_TIME_DATA));
+                "source=%s | sort `@timestamp` | bin value span=2000 | fields value | head 3",
+                TEST_INDEX_TIME_DATA));
     verifySchema(result, schema("value", null, "string"));
 
     verifyDataRows(result, rows("8000-10000"), rows("6000-8000"), rows("8000-10000"));
@@ -195,7 +204,9 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     JSONObject binOnlyResult =
         executeQuery(
             String.format(
-                "source=%s" + " | bin @timestamp span=4h" + " | fields `@timestamp` | head 3",
+                "source=%s"
+                    + " | bin @timestamp span=4h"
+                    + " | fields `@timestamp` | sort `@timestamp` | head 3",
                 TEST_INDEX_TIME_DATA));
 
     // Verify schema and that binning works correctly
@@ -235,7 +246,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
         executeQuery(
             String.format(
                 "source=%s | bin @timestamp span=4mon as cate | fields"
-                    + " cate, @timestamp | head 5",
+                    + " cate, @timestamp | sort @timestamp | head 5",
                 TEST_INDEX_TIME_DATA));
     verifySchema(result, schema("cate", null, "string"), schema("@timestamp", null, "timestamp"));
 
@@ -431,8 +442,8 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | bin @timestamp span=7day | fields"
-                    + " @timestamp, value | sort @timestamp | head 3",
+                "source=%s | eval original_timestamp = @timestamp | bin @timestamp span=7day |"
+                    + " sort original_timestamp | head 3 | fields @timestamp, value",
                 TEST_INDEX_TIME_DATA));
     verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
     verifyDataRows(
@@ -447,8 +458,8 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | bin @timestamp span=6day | fields"
-                    + " @timestamp, value | sort @timestamp | head 3",
+                "source=%s | eval original_timestamp = @timestamp | bin @timestamp span=6day |"
+                    + " sort original_timestamp | head 3 | fields @timestamp, value",
                 TEST_INDEX_TIME_DATA));
     verifySchema(result, schema("@timestamp", null, "timestamp"), schema("value", null, "int"));
     verifyDataRows(
@@ -511,10 +522,14 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testBinSpanWithStartEndNeverShrinkRange() throws IOException {
+    // `head` without a preceding sort selects an undefined set of rows, so the exact values
+    // asserted below only hold by accident of scan order. Sort on a unique key to fix which
+    // rows are selected; the expected values are unchanged.
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | bin age span=1 start=25 end=35 as cate | fields cate, age | head 6",
+                "source=%s | sort account_number | bin age span=1 start=25 end=35 as cate | fields"
+                    + " cate, age | head 6",
                 TEST_INDEX_BANK));
 
     verifySchema(result, schema("cate", null, "string"), schema("age", null, "int"));
@@ -865,6 +880,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(BIN_TIME_FIELD_BUCKETING)
   public void testStatsWithBinsOnTimeField_Count() throws IOException {
     // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
     enabledOnlyWhenPushdownIsEnabled();
@@ -903,6 +919,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(BIN_TIME_FIELD_BUCKETING)
   public void testStatsWithBinsOnTimeField_Avg() throws IOException {
     // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
     enabledOnlyWhenPushdownIsEnabled();
@@ -944,6 +961,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(BIN_TIME_FIELD_BUCKETING)
   public void testStatsWithBinsOnTimeAndTermField_Count() throws IOException {
     // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
     enabledOnlyWhenPushdownIsEnabled();
@@ -967,6 +985,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(BIN_TIME_FIELD_BUCKETING)
   public void testStatsWithBinsOnTimeAndTermField_Avg() throws IOException {
     // TODO: Remove this after addressing https://github.com/opensearch-project/sql/issues/4317
     enabledOnlyWhenPushdownIsEnabled();
@@ -990,6 +1009,7 @@ public class CalciteBinCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(STRICT_QUERY_REJECTION)
   public void testBinsOnTimeFieldWithPushdownDisabled_ShouldFail() throws IOException {
     // Verify that bins parameter on timestamp fields fails with clear error when pushdown disabled
     enabledOnlyWhenPushdownIsDisabled();

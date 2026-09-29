@@ -6,12 +6,14 @@
 package org.opensearch.sql.sql;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.opensearch.sql.util.Capability.VECTOR_SEARCH;
 
 import java.io.IOException;
 import org.junit.Test;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.legacy.TestsConstants;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * Integration tests for vectorSearch() used inside subqueries. Locks in the rejection of outer
@@ -22,6 +24,7 @@ import org.opensearch.sql.legacy.TestsConstants;
  * <p>Uses _explain-only plus error-path queries, so the k-NN plugin is not required — the planner
  * validation fires during planning, before any k-NN execution.
  */
+@RequiresCapability(VECTOR_SEARCH)
 public class VectorSearchSubqueryIT extends SQLIntegTestCase {
 
   @Override

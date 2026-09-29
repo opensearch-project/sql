@@ -9,6 +9,8 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OTEL_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TIME_DATA;
+import static org.opensearch.sql.util.Capability.BIN_TIME_FIELD_BUCKETING;
+import static org.opensearch.sql.util.Capability.MULTI_VALUE_FIELD_LOAD;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -20,6 +22,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalciteChartCommandIT extends PPLIntegTestCase {
   @Override
@@ -28,7 +31,13 @@ public class CalciteChartCommandIT extends PPLIntegTestCase {
     enableCalcite();
     loadIndex(Index.BANK);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
-    loadIndex(Index.OTELLOGS);
+    // otel_logs has a multi-value array for a scalar-mapped field, which the parquet store rejects
+    // at bulk load (MULTI_VALUE_FIELD_LOAD); skip the load on the AE route so it doesn't abort
+    // init() for the otel-independent tests. The otel tests themselves are
+    // @RequiresCapability-gated.
+    if (!isAnalyticsParquetIndicesEnabled()) {
+      loadIndex(Index.OTELLOGS);
+    }
     loadIndex(Index.TIME_TEST_DATA);
     loadIndex(Index.EVENTS_NULL);
   }
@@ -142,6 +151,11 @@ public class CalciteChartCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = BIN_TIME_FIELD_BUCKETING,
+      note =
+          "span=2weeks anchors the bucket to a different week origin on the AE route"
+              + " (BIN_TIME_FIELD_BUCKETING).")
   public void testChartMaxValueByTimestampSpanDayAndWeek() throws IOException {
     JSONObject result =
         executeQuery(
@@ -165,6 +179,11 @@ public class CalciteChartCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = MULTI_VALUE_FIELD_LOAD,
+      note =
+          "reads otel_logs whose multi-value field can't load on the AE store"
+              + " (MULTI_VALUE_FIELD_LOAD).")
   public void testChartLimit0WithUseOther() throws IOException {
     JSONObject result =
         executeQuery(
@@ -208,6 +227,11 @@ public class CalciteChartCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = MULTI_VALUE_FIELD_LOAD,
+      note =
+          "reads otel_logs whose multi-value field can't load on the AE store"
+              + " (MULTI_VALUE_FIELD_LOAD).")
   public void testChartLimitTopWithUseOther() throws IOException {
     JSONObject result =
         executeQuery(
@@ -230,6 +254,11 @@ public class CalciteChartCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = MULTI_VALUE_FIELD_LOAD,
+      note =
+          "reads otel_logs whose multi-value field can't load on the AE store"
+              + " (MULTI_VALUE_FIELD_LOAD).")
   public void testChartLimitBottomWithUseOther() throws IOException {
     JSONObject result =
         executeQuery(
@@ -246,6 +275,11 @@ public class CalciteChartCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = MULTI_VALUE_FIELD_LOAD,
+      note =
+          "reads otel_logs whose multi-value field can't load on the AE store"
+              + " (MULTI_VALUE_FIELD_LOAD).")
   public void testChartLimitTopWithMinAgg() throws IOException {
     JSONObject result =
         executeQuery(

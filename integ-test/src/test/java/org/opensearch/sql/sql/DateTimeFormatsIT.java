@@ -8,6 +8,7 @@ package org.opensearch.sql.sql;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
+import static org.opensearch.sql.util.Capability.DATETIME_FORMAT_RENDERING;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -23,6 +24,7 @@ import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class DateTimeFormatsIT extends SQLIntegTestCase {
 
@@ -34,6 +36,7 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DATETIME_FORMAT_RENDERING)
   public void testReadingDateFormats() throws IOException {
     String query =
         String.format(
@@ -50,6 +53,7 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DATETIME_FORMAT_RENDERING)
   public void testDateFormatsWithOr() throws IOException {
     String query =
         String.format("SELECT yyyy-MM-dd_OR_epoch_millis FROM %s", TEST_INDEX_DATE_FORMATS);
@@ -153,6 +157,7 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
 
   @Test
   @SneakyThrows
+  @RequiresCapability(DATETIME_FORMAT_RENDERING)
   public void testDateNanosWithFunctions() {
     // in memory funcs
     String query =

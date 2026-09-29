@@ -110,6 +110,20 @@ public class CalcitePPLAbstractTest {
     return root;
   }
 
+  /**
+   * Get the root RelNode of the given PPL query without merging adjacent filters. Useful for
+   * regression tests that need to exercise rule ordering against the un-merged shape that PPL
+   * actually emits to the production HEP optimizer.
+   */
+  public RelNode getRelNodeRaw(String ppl) {
+    CalcitePlanContext context = createBuilderContext();
+    Query query = (Query) plan(pplParser, ppl);
+    planTransformer.analyze(query.getPlan(), context);
+    RelNode root = context.relBuilder.build();
+    System.out.println(root.explain());
+    return root;
+  }
+
   private RelNode mergeAdjacentFilters(RelNode relNode) {
     HepProgram program =
         new HepProgramBuilder().addRuleInstance(FilterMergeRule.Config.DEFAULT.toRule()).build();

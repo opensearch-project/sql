@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import org.opensearch.sql.calcite.CalcitePlanContext;
 
 /** Default implementation that records profiling metrics. */
 public class DefaultProfileContext implements ProfileContext {
@@ -17,6 +18,7 @@ public class DefaultProfileContext implements ProfileContext {
   private boolean finished;
   private final Map<MetricName, DefaultMetricImpl> metrics = new ConcurrentHashMap<>();
   private ProfilePlanNode planRoot;
+  private Object enginePlan;
   private QueryProfile profile;
 
   public DefaultProfileContext() {}
@@ -40,6 +42,11 @@ public class DefaultProfileContext implements ProfileContext {
     }
   }
 
+  @Override
+  public synchronized void setEnginePlan(Object enginePlan) {
+    this.enginePlan = enginePlan;
+  }
+
   /** {@inheritDoc} */
   @Override
   public synchronized QueryProfile finish() {
@@ -55,8 +62,10 @@ public class DefaultProfileContext implements ProfileContext {
       snapshot.put(metricName, millis);
     }
     double totalMillis = ProfileUtils.roundToMillis(endNanos - startNanos);
-    QueryProfile.PlanNode planSnapshot = planRoot == null ? null : planRoot.snapshot();
-    profile = new QueryProfile(totalMillis, snapshot, planSnapshot);
+    Object planSnapshot =
+        enginePlan != null ? enginePlan : (planRoot == null ? null : planRoot.snapshot());
+    String threadPool = CalcitePlanContext.executionPool.get();
+    profile = new QueryProfile(totalMillis, snapshot, planSnapshot, threadPool);
     return profile;
   }
 }

@@ -9,6 +9,9 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_TIME;
+import static org.opensearch.sql.util.Capability.DYNAMIC_STRING_NO_KEYWORD;
+import static org.opensearch.sql.util.Capability.ID_METADATA;
+import static org.opensearch.sql.util.Capability.QUERY_ERROR_MESSAGE;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -20,6 +23,7 @@ import org.hamcrest.MatcherAssert;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class WhereCommandIT extends PPLIntegTestCase {
 
@@ -28,7 +32,12 @@ public class WhereCommandIT extends PPLIntegTestCase {
     super.init();
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
-    loadIndex(Index.GAME_OF_THRONES);
+    // game_of_thrones has a multi-value array for the scalar-mapped `titles` field, which the
+    // parquet store rejects at bulk load; skip it on the AE route so it doesn't abort init() for
+    // the rest of the suite. No test in this class hierarchy queries game_of_thrones.
+    if (!isAnalyticsParquetIndicesEnabled()) {
+      loadIndex(Index.GAME_OF_THRONES);
+    }
     loadIndex(Index.DATETIME);
   }
 
@@ -215,6 +224,7 @@ public class WhereCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ID_METADATA)
   public void testWhereWithMetadataFields() throws IOException {
     JSONObject result =
         executeQuery(
@@ -223,6 +233,7 @@ public class WhereCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ID_METADATA)
   public void testWhereWithMetadataFields2() throws IOException {
     JSONObject result =
         executeQuery(String.format("source=%s | where _id='1'", TEST_INDEX_ACCOUNT));
@@ -292,6 +303,7 @@ public class WhereCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(QUERY_ERROR_MESSAGE)
   public void testInWithIncompatibleType() {
     Exception e =
         assertThrows(
@@ -530,6 +542,7 @@ public class WhereCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DYNAMIC_STRING_NO_KEYWORD)
   public void testDoubleEqualWithSpecialCharacters() throws IOException {
     // Test == with strings containing special characters
     JSONObject result =

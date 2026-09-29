@@ -7,8 +7,6 @@ package org.opensearch.sql.api;
 
 import static org.apache.calcite.sql.type.SqlTypeName.INTEGER;
 import static org.apache.calcite.sql.type.SqlTypeName.VARCHAR;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 import java.util.Map;
@@ -17,8 +15,6 @@ import lombok.Singular;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Linq4j;
-import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.ScannableTable;
@@ -35,7 +31,7 @@ import org.junit.Before;
 import org.opensearch.sql.executor.QueryType;
 
 /** Base class for unified query tests providing common test schema and utilities. */
-public abstract class UnifiedQueryTestBase {
+public abstract class UnifiedQueryTestBase implements QueryPlanAssertion {
 
   /** Default catalog name */
   protected static final String DEFAULT_CATALOG = "catalog";
@@ -156,64 +152,6 @@ public abstract class UnifiedQueryTestBase {
       throw new AssertionError("Expected query to fail: " + query);
     } catch (Exception e) {
       return new QueryErrorAssert(e);
-    }
-  }
-
-  /** Fluent assertion on a query planning error. */
-  protected static class QueryErrorAssert {
-    private final Exception error;
-
-    QueryErrorAssert(Exception error) {
-      this.error = error;
-    }
-
-    /** Assert the root cause error message contains the expected substring. */
-    public QueryErrorAssert assertErrorMessage(String expected) {
-      Throwable cause = error;
-      while (cause.getCause() != null) {
-        cause = cause.getCause();
-      }
-      String msg = cause.getMessage() != null ? cause.getMessage() : cause.getClass().getName();
-      assertTrue(
-          "Expected error to contain: " + expected + "\nActual: " + msg, msg.contains(expected));
-      return this;
-    }
-  }
-
-  /** Fluent assertion on a query's logical plan. */
-  protected static class QueryAssert {
-    private final RelNode plan;
-
-    QueryAssert(RelNode plan) {
-      this.plan = plan;
-    }
-
-    /** Assert the logical plan matches the expected tree string. */
-    public QueryAssert assertPlan(String expected) {
-      assertEquals(
-          expected.stripTrailing(),
-          RelOptUtil.toString(plan).replaceAll("\\r\\n", "\n").stripTrailing());
-      return this;
-    }
-
-    /** Assert the logical plan contains the expected substring. */
-    public QueryAssert assertPlanContains(String expected) {
-      String planStr = RelOptUtil.toString(plan).replaceAll("\\r\\n", "\n");
-      assertTrue(
-          "Expected plan to contain: " + expected + "\nActual plan:\n" + planStr,
-          planStr.contains(expected));
-      return this;
-    }
-
-    /** Assert the output field names match. */
-    public QueryAssert assertFields(String... names) {
-      assertEquals(List.of(names), plan.getRowType().getFieldNames());
-      return this;
-    }
-
-    /** Access the underlying plan for custom assertions. */
-    public RelNode plan() {
-      return plan;
     }
   }
 }

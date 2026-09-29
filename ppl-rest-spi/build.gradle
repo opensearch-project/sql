@@ -1,0 +1,106 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
+ * The `rest` command extension SPI.
+ *
+ * This module is intentionally thin: it declares ONLY the interfaces a plugin implements to
+ * contribute read-only `rest` endpoints, plus the JDK-typed row/column/arg value objects those
+ * interfaces exchange. It depends on the OpenSearch core artifact ONLY (for the transport client
+ * handed to a handler) and on NO sql module, so external plugins can compileOnly it without a
+ * dependency cycle and without a cross-classloader type-identity problem (row values are plain
+ * java.lang types).
+ */
+
+plugins {
+    id 'java-library'
+    id "io.freefair.lombok"
+    id 'com.diffplug.spotless'
+}
+
+dependencies {
+    // Core only. Deliberately no `project(':core')` / `project(':opensearch')` dependency so the
+    // sql plugin (which depends on this module) never forms a cycle, and so an external plugin can
+    // depend on this module alone.
+    compileOnly group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
+
+    testImplementation group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
+    testImplementation('org.junit.jupiter:junit-jupiter-api:5.9.3')
+    testImplementation('org.junit.jupiter:junit-jupiter-params:5.9.3')
+    testRuntimeOnly('org.junit.jupiter:junit-jupiter-engine')
+    testRuntimeOnly('org.junit.platform:junit-platform-launcher')
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+    }
+}
+
+// Published as a standalone Maven artifact so an external plugin can depend on the SPI
+// `compileOnly`. Intentionally NOT added to the root `publishedModules` list, which would prefix
+// the artifactId with `unified-query-`; this is a public extension SPI, so it keeps the plain
+// `ppl-rest-spi` artifactId.
+apply plugin: 'maven-publish'
+
+publishing {
+    publications {
+        restSpi(MavenPublication) {
+            from components.java
+            groupId = "org.opensearch.query"
+            artifactId = "ppl-rest-spi"
+
+            pom {
+                name = "ppl-rest-spi"
+                description = "OpenSearch PPL rest command extension SPI"
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        name = 'OpenSearch'
+                        url = 'https://github.com/opensearch-project/sql'
+                    }
+                }
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            name = "Snapshots"
+            url = "https://ci.opensearch.org/ci/dbc/snapshots/maven/"
+            url = System.getenv("MAVEN_SNAPSHOTS_S3_REPO")
+            credentials(AwsCredentials) {
+                accessKey = System.getenv("AWS_ACCESS_KEY_ID")
+                secretKey = System.getenv("AWS_SECRET_ACCESS_KEY")
+                sessionToken = System.getenv("AWS_SESSION_TOKEN")
+            }
+        }
+    }
+}
+
+spotless {
+    java {
+        target fileTree('.') {
+            include '**/*.java'
+            exclude '**/build/**', '**/build-*/**'
+        }
+        importOrder()
+        licenseHeader("/*\n" +
+                " * Copyright OpenSearch Contributors\n" +
+                " * SPDX-License-Identifier: Apache-2.0\n" +
+                " */\n\n")
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+        googleJavaFormat('1.32.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
+    }
+}

@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.opensearch.data.utils;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Iterators;
 import java.io.IOException;
 import java.util.Iterator;
@@ -23,6 +22,7 @@ import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.xcontent.DeprecationHandler;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
+import tools.jackson.databind.JsonNode;
 
 /** The Implementation of Content to represent {@link JsonNode}. */
 @RequiredArgsConstructor
@@ -62,7 +62,7 @@ public class OpenSearchJsonContent implements Content {
 
   @Override
   public String stringValue() {
-    return value().asText();
+    return value().asString();
   }
 
   @Override
@@ -75,14 +75,14 @@ public class OpenSearchJsonContent implements Content {
     LinkedHashMap<String, Content> map = new LinkedHashMap<>();
     final JsonNode mapValue = value();
     mapValue
-        .fieldNames()
-        .forEachRemaining(field -> map.put(field, new OpenSearchJsonContent(mapValue.get(field))));
+        .propertyNames()
+        .forEach(field -> map.put(field, new OpenSearchJsonContent(mapValue.get(field))));
     return map.entrySet().iterator();
   }
 
   @Override
   public Iterator<? extends Content> array() {
-    return Iterators.transform(value.elements(), OpenSearchJsonContent::new);
+    return Iterators.transform(value.values().iterator(), OpenSearchJsonContent::new);
   }
 
   @Override
@@ -127,7 +127,7 @@ public class OpenSearchJsonContent implements Content {
 
   @Override
   public boolean isString() {
-    return value().isTextual();
+    return value().isString();
   }
 
   @Override

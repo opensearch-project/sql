@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.NESTED_WITHOUT_ARRAYS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS;
+import static org.opensearch.sql.util.Capability.FLATTEN_COMMAND;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -20,8 +21,11 @@ import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
+@RequiresCapability(FLATTEN_COMMAND)
 public class CalciteFlattenCommandIT extends PPLIntegTestCase {
   @Override
   public void init() throws Exception {
@@ -89,14 +93,24 @@ public class CalciteFlattenCommandIT extends PPLIntegTestCase {
   @Test
   public void testFlattenNullField() throws IOException {
     final int docId = 6;
-    Request insertRequest =
-        new Request(
-            "PUT",
-            String.format(
-                "/%s/_doc/%d?refresh=true", TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS, docId));
-    insertRequest.setJsonEntity(
-        "{\"message\": null,\"comment\":null,\"myNum\":0,\"someField\":\"\"}\n");
-    client().performRequest(insertRequest);
+    // The seed runs once per suite execution and the test executes in both pushdown modes against
+    // the shared cluster: a fixed-_id PUT is an idempotent overwrite on the standard route, but the
+    // analytics route's append-only store rejects it, and a plain POST re-seed would add a second
+    // matching row in the second mode. Seed only when the doc is absent.
+    Request countRequest =
+        new Request("GET", String.format("/%s/_count", TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS));
+    countRequest.setJsonEntity("{\"query\":{\"term\":{\"someField\":\"\"}}}");
+    JSONObject countResponse =
+        new JSONObject(
+            new String(
+                client().performRequest(countRequest).getEntity().getContent().readAllBytes()));
+    if (countResponse.getInt("count") == 0) {
+      Request insertRequest =
+          TestUtils.seedDocRequest(TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS, String.valueOf(docId));
+      insertRequest.setJsonEntity(
+          "{\"message\": null,\"comment\":null,\"myNum\":0,\"someField\":\"\"}\n");
+      client().performRequest(insertRequest);
+    }
 
     JSONObject result =
         executeQuery(

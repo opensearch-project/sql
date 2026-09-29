@@ -9,7 +9,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.Map;
 import java.util.Set;
-import lombok.RequiredArgsConstructor;
+import java.util.function.Supplier;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.rex.RexBuilder;
@@ -18,6 +18,7 @@ import org.opensearch.script.FilterScript;
 import org.opensearch.script.ScriptContext;
 import org.opensearch.script.ScriptEngine;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.opensearch.storage.serde.DefaultExpressionSerializer;
 import org.opensearch.sql.opensearch.storage.serde.SerializationWrapper;
 import org.opensearch.sql.opensearch.storage.serde.SerializationWrapper.LangScriptWrapper;
@@ -26,21 +27,25 @@ import org.opensearch.sql.opensearch.storage.serde.SerializationWrapper.LangScri
  * Custom expression script engine that supports using core engine expression code in DSL as a new
  * script language just like built-in Painless language.
  */
-@RequiredArgsConstructor
 public class CompoundedScriptEngine implements ScriptEngine {
 
   /** Expression script language name. */
   public static final String COMPOUNDED_LANG_NAME = "opensearch_compounded_script";
 
-  private static final ExpressionScriptEngine v2ExpressionScriptEngine =
-      new ExpressionScriptEngine(new DefaultExpressionSerializer());
+  private final ExpressionScriptEngine v2ExpressionScriptEngine;
 
   private final CalciteScriptEngine calciteScriptEngine;
 
   public CompoundedScriptEngine() {
+    this(null);
+  }
+
+  public CompoundedScriptEngine(Supplier<Settings> settingsSupplier) {
+    this.v2ExpressionScriptEngine =
+        new ExpressionScriptEngine(new DefaultExpressionSerializer(settingsSupplier));
     RexBuilder rexBuilder = new RexBuilder(OpenSearchTypeFactory.TYPE_FACTORY);
     RelOptCluster cluster = RelOptCluster.create(new VolcanoPlanner(), rexBuilder);
-    this.calciteScriptEngine = new CalciteScriptEngine(cluster);
+    this.calciteScriptEngine = new CalciteScriptEngine(cluster, settingsSupplier);
   }
 
   @Override

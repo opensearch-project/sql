@@ -74,6 +74,40 @@ The group by expression could be expression::
     +---------------------+----------+
 
 
+Bucket Function
+---------------
+
+The group by expression could be a bucket function, which splits a field into
+fixed-width buckets. ``date_histogram`` takes a time interval, ``histogram`` a
+numeric width, and the field is given first. The interval parameter is one of
+``interval``, ``fixed_interval`` or ``calendar_interval``. A bucket has to be
+projected in a subquery before it can be grouped on::
+
+    os> SELECT b, count(*) FROM (SELECT date_histogram(field=timestamp, interval='1w') AS b FROM nyc_taxi) sub GROUP BY b ORDER BY b;
+    fetched rows / total rows = 4/4
+    +---------------------+----------+
+    | b                   | count(*) |
+    |---------------------+----------|
+    | 2014-06-30 00:00:00 | 288      |
+    | 2014-07-07 00:00:00 | 336      |
+    | 2014-07-14 00:00:00 | 336      |
+    | 2014-07-21 00:00:00 | 13       |
+    +---------------------+----------+
+
+The time units are millisecond (``ms``), second (``s``), minute (``m``), hour
+(``h``), day (``d``), week (``w``), month (``M``), quarter (``q``) and year
+(``y``). A numeric field is bucketed the same way, with the width as a number::
+
+    os> SELECT b, count(*) FROM (SELECT histogram(field=age, interval=10) AS b FROM accounts) sub GROUP BY b ORDER BY b;
+    fetched rows / total rows = 2/2
+    +----+----------+
+    | b  | count(*) |
+    |----+----------|
+    | 20 | 1        |
+    | 30 | 3        |
+    +----+----------+
+
+
 Aggregation
 ===========
 

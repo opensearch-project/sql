@@ -55,7 +55,9 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import org.antlr.v4.runtime.CommonTokenStream;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.sql.ast.Node;
@@ -65,10 +67,50 @@ import org.opensearch.sql.ast.expression.RelevanceFieldList;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.Chart;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
+import org.opensearch.sql.common.antlr.AstBuildGuard;
+import org.opensearch.sql.common.antlr.CaseInsensitiveCharStream;
+import org.opensearch.sql.common.antlr.SyntaxAnalysisErrorListener;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLLexer;
+import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 
 public class AstExpressionBuilderTest extends AstBuilderTest {
+
+  @Test
+  public void deeplyNestedExpressionShouldBeRejected() {
+    for (String expr :
+        List.of(
+            nest(30, "a = 0", e -> "(" + e + " or a = 1)"),
+            nest(30, "a = 0", e -> "(" + e + " and a = 1)"),
+            nest(30, "a", e -> "abs(" + e + ")") + " = 1")) {
+      assertThrows(IllegalArgumentException.class, () -> parseWithGuard(expr, 20));
+    }
+  }
+
+  @Test
+  public void shallowExpressionWithinLimitIsAccepted() {
+    parseWithGuard("a = 0 or a = 1 or a = 2", 20);
+  }
+
+  private void parseWithGuard(String expr, int maxDepth) {
+    OpenSearchPPLParser parser =
+        new OpenSearchPPLParser(
+            new CommonTokenStream(new OpenSearchPPLLexer(new CaseInsensitiveCharStream(expr))));
+    parser.addErrorListener(new SyntaxAnalysisErrorListener());
+    parser
+        .logicalExpression()
+        .accept(new AstExpressionBuilder(new AstBuilder(expr), new AstBuildGuard(maxDepth)));
+  }
+
+  private static String nest(int depth, String base, UnaryOperator<String> wrap) {
+    String expr = base;
+    for (int i = 0; i < depth; i++) {
+      expr = wrap.apply(expr);
+    }
+    return expr;
+  }
+
   @Test
   public void testLogicalNotExpr() {
     assertEqual(

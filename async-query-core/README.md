@@ -16,7 +16,7 @@ Following is the list of extension points where the consumer of the library need
 
 - Data store interface
   - [AsyncQueryJobMetadataStorageService](src/main/java/org/opensearch/sql/spark/asyncquery/AsyncQueryJobMetadataStorageService.java)
-  - [SessionStorageService](java/org/opensearch/sql/spark/execution/statestore/SessionStorageService.java)
+  - [SessionStorageService](src/main/java/org/opensearch/sql/spark/execution/statestore/SessionStorageService.java)
   - [StatementStorageService](src/main/java/org/opensearch/sql/spark/execution/statestore/StatementStorageService.java)
   - [FlintIndexMetadataService](src/main/java/org/opensearch/sql/spark/flint/FlintIndexMetadataService.java)
   - [FlintIndexStateModelService](src/main/java/org/opensearch/sql/spark/flint/FlintIndexStateModelService.java)

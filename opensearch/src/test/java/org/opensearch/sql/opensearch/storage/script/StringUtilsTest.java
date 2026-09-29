@@ -47,4 +47,22 @@ public class StringUtilsTest {
     assertEquals("foo\\*bar", StringUtils.convertSqlWildcardToLuceneSafe("foo*bar"));
     assertEquals("foo\\?bar", StringUtils.convertSqlWildcardToLuceneSafe("foo?bar"));
   }
+
+  @Test
+  public void test_escaping_backslash_itself() {
+    assertEquals("\\", StringUtils.convertSqlWildcardToLucene("\\\\"));
+    assertEquals("\\", StringUtils.convertSqlWildcardToLuceneSafe("\\\\"));
+    assertEquals("*\\*", StringUtils.convertSqlWildcardToLucene("%\\\\%"));
+    assertEquals("*\\*", StringUtils.convertSqlWildcardToLuceneSafe("%\\\\%"));
+    assertEquals("\\*", StringUtils.convertSqlWildcardToLucene("\\\\%"));
+    assertEquals("\\*", StringUtils.convertSqlWildcardToLuceneSafe("\\\\%"));
+    assertEquals("*\\", StringUtils.convertSqlWildcardToLucene("%\\\\"));
+    assertEquals("*\\", StringUtils.convertSqlWildcardToLuceneSafe("%\\\\"));
+    assertEquals("\\\\", StringUtils.convertSqlWildcardToLucene("\\\\\\\\"));
+    assertEquals("\\\\", StringUtils.convertSqlWildcardToLuceneSafe("\\\\\\\\"));
+    assertEquals("\\\\*", StringUtils.convertSqlWildcardToLucene("\\\\\\\\%"));
+    assertEquals("\\\\*", StringUtils.convertSqlWildcardToLuceneSafe("\\\\\\\\%"));
+    assertEquals("\\%", StringUtils.convertSqlWildcardToLucene("\\\\\\%"));
+    assertEquals("\\%", StringUtils.convertSqlWildcardToLuceneSafe("\\\\\\%"));
+  }
 }

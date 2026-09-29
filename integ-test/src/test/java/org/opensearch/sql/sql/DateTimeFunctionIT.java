@@ -8,6 +8,8 @@ package org.opensearch.sql.sql;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
+import static org.opensearch.sql.util.Capability.DATETIME_FORMAT_RENDERING;
+import static org.opensearch.sql.util.Capability.FUNCTION_TYPE_COMPAT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -31,6 +33,7 @@ import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class DateTimeFunctionIT extends SQLIntegTestCase {
 
@@ -503,8 +506,8 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     JSONObject datetimeResult =
         executeQuery(
             String.format(
-                "SELECT extract(DAY_SECOND FROM timestamp(cast(datetime0 AS STRING))) FROM %s LIMIT"
-                    + " 1",
+                "SELECT extract(DAY_SECOND FROM timestamp(cast(datetime0 AS STRING))) FROM %s ORDER"
+                    + " BY `key` LIMIT 1",
                 TEST_INDEX_CALCS));
     verifyDataRows(datetimeResult, rows(9101735));
   }
@@ -514,7 +517,8 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     JSONObject timeResult =
         executeQuery(
             String.format(
-                "SELECT extract(HOUR_SECOND FROM time0) FROM %s LIMIT 1", TEST_INDEX_CALCS));
+                "SELECT extract(HOUR_SECOND FROM time0) FROM %s ORDER BY `key` LIMIT 1",
+                TEST_INDEX_CALCS));
     verifyDataRows(timeResult, rows(210732));
   }
 
@@ -523,7 +527,8 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     JSONObject dateResult =
         executeQuery(
             String.format(
-                "SELECT extract(YEAR_MONTH FROM date0) FROM %s LIMIT 1", TEST_INDEX_CALCS));
+                "SELECT extract(YEAR_MONTH FROM date0) FROM %s ORDER BY `key` LIMIT 1",
+                TEST_INDEX_CALCS));
     verifyDataRows(dateResult, rows(200404));
   }
 
@@ -576,15 +581,21 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   @Test
   public void testLastDay() throws IOException {
     JSONObject result =
-        executeQuery(String.format("SELECT last_day(date0) FROM %s LIMIT 3", TEST_INDEX_CALCS));
+        executeQuery(
+            String.format(
+                "SELECT last_day(date0) FROM %s ORDER BY `key` LIMIT 3", TEST_INDEX_CALCS));
     verifyDataRows(result, rows("2004-04-30"), rows("1972-07-31"), rows("1975-11-30"));
 
     result =
-        executeQuery(String.format("SELECT last_day(date0) FROM %s LIMIT 3", TEST_INDEX_CALCS));
+        executeQuery(
+            String.format(
+                "SELECT last_day(date0) FROM %s ORDER BY `key` LIMIT 3", TEST_INDEX_CALCS));
     verifyDataRows(result, rows("2004-04-30"), rows("1972-07-31"), rows("1975-11-30"));
 
     result =
-        executeQuery(String.format("SELECT last_day(date0) FROM %s LIMIT 3", TEST_INDEX_CALCS));
+        executeQuery(
+            String.format(
+                "SELECT last_day(date0) FROM %s ORDER BY `key` LIMIT 3", TEST_INDEX_CALCS));
     verifyDataRows(result, rows("2004-04-30"), rows("1972-07-31"), rows("1975-11-30"));
   }
 
@@ -819,7 +830,10 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   @Test
   public void testSecToTime() throws IOException {
     JSONObject result =
-        executeQuery(String.format("SELECT sec_to_time(balance) FROM %s LIMIT 3", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(
+                "SELECT sec_to_time(balance) FROM %s ORDER BY account_number LIMIT 3",
+                TEST_INDEX_BANK));
     verifyDataRows(result, rows("10:53:45"), rows("01:34:46"), rows("09:07:18"));
   }
 
@@ -901,7 +915,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
         executeQuery(
             String.format(
                 "SELECT str_to_date(CAST(birthdate AS STRING),"
-                    + " '%%Y-%%m-%%d %%h:%%i:%%s') FROM %s LIMIT 2",
+                    + " '%%Y-%%m-%%d %%h:%%i:%%s') FROM %s ORDER BY account_number LIMIT 2",
                 TEST_INDEX_BANK));
     verifyDataRows(result, rows("2017-10-23 00:00:00"), rows("2017-11-20 00:00:00"));
 
@@ -909,7 +923,8 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result =
         executeQuery(
             String.format(
-                "SELECT str_to_date(CAST(birthdate AS STRING)," + " '%%Y %%s') FROM %s LIMIT 2",
+                "SELECT str_to_date(CAST(birthdate AS STRING),"
+                    + " '%%Y %%s') FROM %s ORDER BY account_number LIMIT 2",
                 TEST_INDEX_BANK));
     verifyDataRows(result, rows((Object) null), rows((Object) null));
 
@@ -917,7 +932,8 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result =
         executeQuery(
             String.format(
-                "SELECT str_to_date(firstname," + " '%%Y-%%m-%%d %%h:%%i:%%s') FROM %s LIMIT 2",
+                "SELECT str_to_date(firstname,"
+                    + " '%%Y-%%m-%%d %%h:%%i:%%s') FROM %s ORDER BY account_number LIMIT 2",
                 TEST_INDEX_BANK));
     verifyDataRows(result, rows((Object) null), rows((Object) null));
 
@@ -994,7 +1010,9 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   public void testTimstampadd() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("SELECT timestampadd(WEEK, 2, time0) FROM %s LIMIT 3", TEST_INDEX_CALCS));
+            String.format(
+                "SELECT timestampadd(WEEK, 2, time0) FROM %s ORDER BY `key` LIMIT 3",
+                TEST_INDEX_CALCS));
 
     verifyDataRows(
         result,
@@ -1008,7 +1026,8 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "SELECT timestampdiff(DAY, time0, datetime0) FROM %s LIMIT 3", TEST_INDEX_CALCS));
+                "SELECT timestampdiff(DAY, time0, datetime0) FROM %s ORDER BY `key` LIMIT 3",
+                TEST_INDEX_CALCS));
 
     verifyDataRows(result, rows(38176), rows(38191), rows(38198));
   }
@@ -1038,19 +1057,23 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   @Test
   public void testToSeconds() throws IOException {
     JSONObject result =
-        executeQuery(String.format("select to_seconds(date0) FROM %s LIMIT 2", TEST_INDEX_CALCS));
+        executeQuery(
+            String.format(
+                "select to_seconds(date0) FROM %s ORDER BY `key` LIMIT 2", TEST_INDEX_CALCS));
     verifyDataRows(result, rows(63249206400L), rows(62246275200L));
 
     result =
         executeQuery(
             String.format(
-                "SELECT to_seconds(timestamp(cast(datetime0 AS string))) FROM %s LIMIT 2",
+                "SELECT to_seconds(timestamp(cast(datetime0 AS string))) FROM %s ORDER BY `key`"
+                    + " LIMIT 2",
                 TEST_INDEX_CALCS));
     verifyDataRows(result, rows(63256587455L), rows(63258064234L));
 
     result =
         executeQuery(
-            String.format("select to_seconds(datetime0) FROM %s LIMIT 2", TEST_INDEX_CALCS));
+            String.format(
+                "select to_seconds(datetime0) FROM %s ORDER BY `key` LIMIT 2", TEST_INDEX_CALCS));
     verifyDataRows(result, rows(63256587455L), rows(63258064234L));
   }
 
@@ -1092,7 +1115,9 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   @Test
   public void testWeekday() throws IOException {
     JSONObject result =
-        executeQuery(String.format("SELECT weekday(date0) FROM %s LIMIT 3", TEST_INDEX_CALCS));
+        executeQuery(
+            String.format(
+                "SELECT weekday(date0) FROM %s ORDER BY `key` LIMIT 3", TEST_INDEX_CALCS));
     verifyDataRows(result, rows(3), rows(1), rows(2));
   }
 
@@ -1151,7 +1176,8 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "SELECT yearweek(time0), yearweek(time0, 4) FROM %s LIMIT 2", TEST_INDEX_CALCS));
+                "SELECT yearweek(time0), yearweek(time0, 4) FROM %s ORDER BY `key` LIMIT 2",
+                TEST_INDEX_CALCS));
 
     verifyDataRows(result, rows(189952, 189952), rows(189953, 190001));
   }
@@ -1170,6 +1196,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DATETIME_FORMAT_RENDERING)
   public void testDateFormat() throws IOException {
     String timestamp = "1998-01-31 13:14:15.012345";
     String timestampFormat =
@@ -1397,6 +1424,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testDateStringAsTimestamp() throws IOException {
     JSONObject result = executeQuery("select {timestamp '2025-07-10'} as t");
     verifySchema(result, schema("{timestamp '2025-07-10'}", "t", "timestamp"));
@@ -1404,6 +1432,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testTimestampBracket() throws IOException {
     JSONObject result = executeQuery("select {timestamp '2020-09-16 17:30:00'}");
     verifySchema(result, schema("{timestamp '2020-09-16 17:30:00'}", null, "timestamp"));
@@ -1423,6 +1452,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testTimeBracket() throws IOException {
     JSONObject result = executeQuery("select {time '17:30:00'}");
     verifySchema(result, schema("{time '17:30:00'}", null, "time"));
@@ -1461,6 +1491,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testBracketedEquivalent() throws IOException {
     compareBrackets("timestamp", "timestamp", "2020-09-16 17:30:00");
     compareBrackets("timestamp", "ts", "2020-09-16 17:30:00");

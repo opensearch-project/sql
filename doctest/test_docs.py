@@ -59,6 +59,7 @@ TEST_DATA = {
     'time_data2': 'time_test_data2.json',
     'time_test': 'time_test.json',
     'mvcombine_data': 'mvcombine.json',
+    'timewrap_test': 'timewrap_test.json',
 }
 
 DEBUG_MODE = os.environ.get('DOCTEST_DEBUG', 'false').lower() == 'true'
@@ -308,7 +309,10 @@ class DataManager:
         def load_json():
             with open(data_file_path, 'r') as f:
                 for line in f:
-                    yield json.loads(line)
+                    doc = json.loads(line)
+                    # Skip bulk API metadata lines ({"index": {"_id": "..."}})
+                    if 'index' not in doc:
+                        yield doc
 
         helpers.bulk(self.client, load_json(), stats_only=True, index=index_name, refresh="wait_for")
 

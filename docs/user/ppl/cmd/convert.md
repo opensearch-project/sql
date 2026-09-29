@@ -1,6 +1,14 @@
 # convert
 
-The `convert` command uses conversion functions to transform field values into numeric values. Original field values are overwritten unless the AS clause is used to create new fields with the converted values.
+The `convert` command uses conversion functions to transform field values into numeric values. Original field values are overwritten unless the `AS` clause is used to create new fields with the converted values.
+
+The `convert` command has the following properties:
+
+- All conversion functions return `null` if a value cannot be converted to a number.
+- All numeric conversion functions return double-precision values to support aggregations.
+- Converted values are displayed using decimal notation (for example, `1234.0` or `1234.56`).
+
+Use the `AS` clause to preserve the original field while creating a converted field. You can apply multiple conversions within a single command (see [Example 4](#example-4-converting-multiple-fields)).
 
 ## Syntax
 
@@ -18,25 +26,25 @@ The `convert` command supports the following parameters.
 | --- | --- | --- | --- |
 | `<convert-function>` | Required | One of the conversion functions: `auto()`, `ctime()`, `dur2sec()`, `memk()`, `mktime()`, `mstime()`, `none()`, `num()`, `rmcomma()`, or `rmunit()`. | N/A |
 | `<field>` | Required | Single field name to convert. | N/A |
-| `AS <field>` | Optional | Create new field with converted value, preserving original field. | N/A |
+| `AS <field>` | Optional | Creates a new field using the converted value and preserves the original field. | N/A |
 | `timeformat=<string>` | Optional | A strftime format string used by `ctime()` and `mktime()`. | `%m/%d/%Y %H:%M:%S`. |
 
 ## Conversion Functions
 
 | Function | Description |
 | --- | --- |
-| `auto(field)` | Automatically converts fields to numbers using intelligent conversion. Handles memory sizes (k/m/g), commas, units, and scientific notation. Returns `null` for non-convertible values. |
+| `auto(field)` | Automatically converts fields to numbers using intelligent conversion. Supports units, including memory unit prefixes such as `k`, `m`, or `g`, commas, and scientific notation. Returns `null` for non-convertible values. |
 | `ctime(field)` | Converts a UNIX epoch timestamp to a human-readable time string. Uses the `timeformat` parameter if specified, otherwise defaults to `%m/%d/%Y %H:%M:%S`. All timestamps are interpreted in UTC timezone. |
 | `dur2sec(field)` | Converts a duration string in `HH:MM:SS` format to total seconds. Hours must be less than 24. Returns `null` for invalid formats. |
-| `memk(field)` | Converts memory size strings to kilobytes. Accepts numbers with optional k/m/g suffix (case-insensitive). Default unit is kilobytes. Returns `null` for invalid formats. |
+| `memk(field)` | Converts values containing memory unit suffixes to kilobytes. Accepts numbers containing optional unit suffixes such as `k`, `m`, or `g` (case insensitive). If the input is a numeric string with no unit suffix, the value is assumed to be in kilobytes. Returns `null` for invalid formats. |
 | `mktime(field)` | Converts a human-readable time string to a UNIX epoch timestamp. Uses the `timeformat` parameter if specified, otherwise defaults to `%m/%d/%Y %H:%M:%S`. Input strings are interpreted as UTC timezone. |
 | `mstime(field)` | Converts a time string in `[MM:]SS.SSS` format to total seconds. The minutes portion is optional. Returns `null` for invalid formats. |
-| `none(field)` | No-op function that preserves the original field value. |
-| `num(field)` | Extracts leading numbers from strings. For strings without letters: removes commas as thousands separators. For strings with letters: extracts leading number, stops at letters or commas. Returns `null` for non-convertible values. |
-| `rmcomma(field)` | Removes commas from field values and converts to a number. Returns `null` if the value contains letters. |
-| `rmunit(field)` | Extracts leading numeric values from strings. Stops at the first non-numeric character (including commas). Returns `null` for non-convertible values. |
+| `none(field)` | A no-op function that preserves the original field value. |
+| `num(field)` | Extracts leading numeric portion of a string. For strings without letters, commas are interpreted as thousands separators and removed. For strings containing letters, extraction stops at the first occurrence of a letter or comma. Returns `null` for non-convertible values. |
+| `rmcomma(field)` | Removes commas (thousands separators) from numeric strings and converts the result to a number. Returns `null` if the value contains letters. |
+| `rmunit(field)` | Extracts the leading numeric portion of a string. Stops at the first letter or comma. Returns `null` for non-convertible values. |
 
-## Example 1: Basic auto() conversion
+## Example 1: Converting a field automatically
 
 The following query converts the `balance` field to a number using the `auto()` function:
 
@@ -60,7 +68,7 @@ fetched rows / total rows = 3/3
 +----------------+---------+
 ```
 
-## Example 2: Convert with commas using num()
+## Example 2: Converting a field containing commas
 
 The following query converts a field containing comma-separated numbers:
 
@@ -74,19 +82,22 @@ source=accounts
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 1/1
-+---------+
-| price   |
-|---------|
-| 1234.0  |
-+---------+
+fetched rows / total rows = 4/4
++--------+
+| price  |
+|--------|
+| 1234.0 |
+| 1234.0 |
+| 1234.0 |
+| 1234.0 |
++--------+
 ```
 
-## Example 3: Memory size conversion with memk()
+## Example 3: Converting a field containing memory units
 
 The following query converts memory size strings to kilobytes:
 
-```ppl
+```ppl ignore
 source=system_metrics
 | eval memory='100m'
 | convert memk(memory)
@@ -104,7 +115,7 @@ fetched rows / total rows = 1/1
 +----------+
 ```
 
-## Example 4: Multiple field conversions
+## Example 4: Converting multiple fields
 
 The following query converts multiple fields using different conversion functions:
 
@@ -128,9 +139,9 @@ fetched rows / total rows = 3/3
 +----------------+---------+------+
 ```
 
-## Example 5: Using AS clause to preserve original values
+## Example 5: Using an AS clause to preserve original values
 
-The following query creates a new field with the converted value while preserving the original:
+The following query creates a new field that contains the converted value while preserving the original field:
 
 ```ppl
 source=accounts
@@ -152,12 +163,13 @@ fetched rows / total rows = 3/3
 +----------------+---------+-------------+
 ```
 
-## Example 6: Extract numbers from strings with units
+## Example 6: Extracting numbers from strings containing units
 
 The following query extracts numeric values from strings containing units:
 
 ```ppl
-source=metrics
+source=accounts
+| head 1
 | eval duration='2.000 sec'
 | convert rmunit(duration)
 | fields duration
@@ -174,7 +186,7 @@ fetched rows / total rows = 1/1
 +----------+
 ```
 
-## Example 7: Integration with aggregation functions
+## Example 7: Using aggregation functions
 
 The following query converts values and uses them in aggregations:
 
@@ -191,14 +203,14 @@ fetched rows / total rows = 2/2
 +----------+--------+
 | sum(age) | gender |
 |----------+--------|
-| 15224    | M      |
-| 14947    | F      |
+| 28.0     | F      |
+| 101.0    | M      |
 +----------+--------+
 ```
 
 ## Example 8: Using none() to preserve field values
 
-The `none()` function acts as a pass-through, returning the field value unchanged. This is useful for explicitly preserving fields in multi-field conversions:
+The `none()` function returns the unchanged field value. This is useful for explicitly preserving fields in multi-field conversions:
 
 ```ppl
 source=accounts
@@ -220,7 +232,7 @@ fetched rows / total rows = 3/3
 +----------------+---------+------+
 ```
 
-### Using none() with AS for field renaming
+### Using none() with an AS clause for field renaming
 
 The `none()` function can be combined with the `AS` clause to rename a field without modifying its value:
 
@@ -241,12 +253,14 @@ fetched rows / total rows = 3/3
 | 1          | Amber     | Duke     |
 | 6          | Hattie    | Bond     |
 | 13         | Nanette   | Bates    |
-+------------+-----------+----------|
++------------+-----------+----------+
 ```
 
-**Note:** The `none()` function is particularly useful when wildcard support is implemented, allowing you to exclude specific fields from bulk conversions.
+>**Note**: The `none()` function is useful with wildcard support, allowing you to exclude specific fields from bulk conversions.
 
-## Example 9: Convert epoch timestamp to time string with ctime()
+## Example 9: Converting epoch timestamp to time string with ctime()
+
+The following query converts a UNIX epoch timestamp to a human-readable time string using the ctime() function with the default format `%m/%d/%Y %H:%M:%S`:
 
 ```ppl
 source=accounts
@@ -258,15 +272,20 @@ source=accounts
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 1/1
+fetched rows / total rows = 4/4
 +---------------------+
 | timestamp           |
 |---------------------|
 | 10/18/2003 20:07:13 |
+| 10/18/2003 20:07:13 |
+| 10/18/2003 20:07:13 |
+| 10/18/2003 20:07:13 |
 +---------------------+
 ```
 
-## Example 10: Convert time string to epoch with mktime()
+## Example 10: Converting time string to epoch with mktime()
+
+The following query converts a human-readable time string to a UNIX epoch timestamp using the `mktime()` function:
 
 ```ppl
 source=accounts
@@ -278,17 +297,20 @@ source=accounts
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 1/1
+fetched rows / total rows = 4/4
 +--------------+
 | date_str     |
 |--------------|
-| 1.066507633E9|
+| 1066507633.0 |
+| 1066507633.0 |
+| 1066507633.0 |
+| 1066507633.0 |
 +--------------+
 ```
 
 ## Example 11: Using timeformat with ctime() and mktime()
 
-The `timeformat` parameter specifies a strftime format string for `ctime()` and `mktime()`:
+The following query uses the `timeformat` parameter to specify a custom strftime format when converting an epoch timestamp with `ctime()`:
 
 ```ppl
 source=accounts
@@ -300,15 +322,18 @@ source=accounts
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 1/1
+fetched rows / total rows = 4/4
 +---------------------+
 | timestamp           |
 |---------------------|
 | 2003-10-18 20:07:13 |
+| 2003-10-18 20:07:13 |
+| 2003-10-18 20:07:13 |
+| 2003-10-18 20:07:13 |
 +---------------------+
 ```
 
-Similarly, you can use `timeformat` with `mktime()` to parse dates in custom formats:
+The following query uses the `timeformat` parameter to parse a custom date format when converting a time string to an epoch timestamp with `mktime()`:
 
 ```ppl
 source=accounts
@@ -320,15 +345,20 @@ source=accounts
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 1/1
-+------------+
-| date_str   |
-|------------|
-| 9.466848E8 |
-+------------+
+fetched rows / total rows = 4/4
++-------------+
+| date_str    |
+|-------------|
+| 946684800.0 |
+| 946684800.0 |
+| 946684800.0 |
+| 946684800.0 |
++-------------+
 ```
 
-## Example 12: Convert duration to seconds with dur2sec()
+## Example 12: Converting duration to seconds with dur2sec()
+
+The following query converts a duration string in `HH:MM:SS` format to total seconds using the `dur2sec()` function:
 
 ```ppl
 source=accounts
@@ -340,15 +370,20 @@ source=accounts
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 1/1
+fetched rows / total rows = 4/4
 +----------+
 | duration |
 |----------|
 | 5025.0   |
+| 5025.0   |
+| 5025.0   |
+| 5025.0   |
 +----------+
 ```
 
-## Example 13: Convert minutes and seconds with mstime()
+## Example 13: Converting minutes and seconds with mstime()
+
+The following query converts a time string in `[MM:]SS.SSS` format to total seconds using the `mstime()` function:
 
 ```ppl
 source=accounts
@@ -360,24 +395,19 @@ source=accounts
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 1/1
+fetched rows / total rows = 4/4
 +----------+
 | time_str |
 |----------|
 | 225.5    |
+| 225.5    |
+| 225.5    |
+| 225.5    |
 +----------+
 ```
 
-## Notes
-
-- All conversion functions return `null` for values that cannot be converted to a number
-- All numeric conversion functions return double precision numbers to support aggregations
-- Converted numbers display with decimal notation (e.g., `1234.0`, `1234.56`)
-- Use the `AS` clause to preserve original fields while creating converted versions
-- Multiple conversions can be applied in a single command
-
 ## Limitations
 
-The `convert` command can only work with `plugins.calcite.enabled=true`.
+The `convert` command requires `plugins.calcite.enabled` to be set to `true`.
 
-When Calcite is disabled, attempting to use convert functions will result in an "unsupported function" error.
+If Apache Calcite is disabled, using any convert function results in an unsupported function error.

@@ -32,6 +32,20 @@ parser grammar OpenSearchSQLParser;
 
 
 options { tokenVocab = OpenSearchSQLLexer; }
+
+@members {
+  /**
+   * Returns true if the next token is a join keyword that should not be consumed as a table alias.
+   * LEFT/RIGHT are valid identifiers (text function names), so without this predicate ANTLR4
+   * greedily consumes them as implicit table aliases (e.g., FROM t1 LEFT becomes alias='LEFT'
+   * instead of starting a LEFT JOIN clause).
+   */
+  private boolean isJoinKeyword() {
+    int t = _input.LT(1).getType();
+    return t == LEFT || t == RIGHT || t == INNER || t == CROSS || t == JOIN;
+  }
+}
+
 // Top Level Description
 
 //    Root rule
@@ -54,7 +68,8 @@ dmlStatement
 
 // Primary DML Statements
 selectStatement
-   : querySpecification # simpleSelect
+   : querySpecification                                          # simpleSelect
+   | querySpecification (UNION ALL? querySpecification)+         # unionSelect
    ;
 
 adminStatement
@@ -104,12 +119,18 @@ selectElement
    ;
 
 fromClause
-   : FROM relation (whereClause)? (groupByClause)? (havingClause)? (orderByClause)? // Place it under FROM for now but actually not necessary ex. A UNION B ORDER BY
+   : FROM relation joinClause* (whereClause)? (groupByClause)? (havingClause)? (orderByClause)? // Place it under FROM for now but actually not necessary ex. A UNION B ORDER BY
    
    ;
 
+joinClause
+   : (INNER | CROSS)? JOIN relation (ON expression)?
+   | (LEFT | RIGHT) OUTER? JOIN relation (ON expression)?
+   ;
+
 relation
-   : tableName (AS? alias)?                                            # tableAsRelation
+   // The predicate guarantees only match implicit alias if next token is NOT a join keyword
+   : tableName (AS alias | {!isJoinKeyword()}? alias)?                 # tableAsRelation
    | LR_BRACKET subquery = querySpecification RR_BRACKET AS? alias     # subqueryAsRelation
    | qualifiedName LR_BRACKET tableFunctionArgs RR_BRACKET (AS? alias)? # tableFunctionRelation
    ;
@@ -302,6 +323,7 @@ predicate
    | left = predicate NOT? LIKE right = predicate           # likePredicate
    | left = predicate REGEXP right = predicate              # regexpPredicate
    | predicate NOT? IN '(' expressions ')'                  # inPredicate
+   | predicate NOT? IN '(' querySpecification ')'           # inSubqueryPredicate
    ;
 
 expressions
@@ -313,6 +335,7 @@ expressionAtom
    | columnName                                                                             # fullColumnNameExpressionAtom
    | functionCall                                                                           # functionCallExpressionAtom
    | LR_BRACKET expression RR_BRACKET                                                       # nestedExpressionAtom
+   | EXISTS LR_BRACKET querySpecification RR_BRACKET                                        # existsSubqueryExpressionAtom
    | left = expressionAtom mathOperator = (STAR | SLASH | MODULE) right = expressionAtom    # mathExpressionAtom
    | left = expressionAtom mathOperator = (PLUS | MINUS) right = expressionAtom             # mathExpressionAtom
    ;
@@ -345,6 +368,7 @@ functionCall
    | extractFunction                                            # extractFunctionCall
    | getFormatFunction                                          # getFormatFunctionCall
    | timestampFunction                                          # timestampFunctionCall
+   | bucketFunction                                             # bucketFunctionCall
    ;
 
 timestampFunction
@@ -406,6 +430,17 @@ highlightFunction
    : HIGHLIGHT LR_BRACKET relevanceField (COMMA highlightArg)* RR_BRACKET
    ;
 
+bucketFunction
+   : bucketFunctionName LR_BRACKET FIELD EQUAL_SYMBOL field = bucketArgValue COMMA
+     intervalArgName EQUAL_SYMBOL interval = constant RR_BRACKET
+   ;
+
+intervalArgName
+   : INTERVAL
+   | FIXED_INTERVAL
+   | CALENDAR_INTERVAL
+   ;
+
 positionFunction
    : POSITION LR_BRACKET functionArg IN functionArg RR_BRACKET
    ;
@@ -421,6 +456,11 @@ scalarFunctionName
    | flowControlFunctionName
    | systemFunctionName
    | nestedFunctionName
+   ;
+
+bucketFunctionName
+   : HISTOGRAM
+   | DATE_HISTOGRAM
    ;
 
 specificFunction
@@ -790,6 +830,11 @@ relevanceArgValue
    | constant
    ;
 
+bucketArgValue
+   : constant
+   | qualifiedName
+   ;
+
 highlightArgValue
    : stringLiteral
    ;
@@ -840,6 +885,8 @@ ident
 keywordsCanBeId
    : FULL
    | FIELD
+   | FIXED_INTERVAL
+   | CALENDAR_INTERVAL
    | D
    | T
    | TS // OD SQL and ODBC special

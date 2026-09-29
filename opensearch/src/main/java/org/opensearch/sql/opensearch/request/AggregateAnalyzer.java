@@ -38,6 +38,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -88,11 +89,14 @@ import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.ScriptQueryExpression;
 import org.opensearch.sql.opensearch.response.agg.ArgMaxMinParser;
 import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
+import org.opensearch.sql.opensearch.response.agg.CheckedLongSumParser;
 import org.opensearch.sql.opensearch.response.agg.CountAsTotalHitsParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
@@ -157,7 +161,13 @@ public class AggregateAnalyzer {
     <T> T build(RexNode node, Function<String, T> fieldBuilder, Function<Script, T> scriptBuilder) {
       if (node == null) return fieldBuilder.apply(METADATA_FIELD);
       else if (node instanceof RexInputRef ref) {
-        return fieldBuilder.apply(inferNamedField(node).getReferenceForTermQuery());
+        String fieldRef = inferNamedField(node).getReferenceForTermQuery();
+        // Text field with no .keyword sub-field is not aggregatable directly. Fall back to a
+        // Calcite script that reads the value from _source.
+        if (fieldRef == null) {
+          return scriptBuilder.apply(inferScript(node).getScript());
+        }
+        return fieldBuilder.apply(fieldRef);
       } else if (node instanceof RexCall || node instanceof RexLiteral) {
         return scriptBuilder.apply(inferScript(node).getScript());
       }
@@ -174,7 +184,7 @@ public class AggregateAnalyzer {
     }
 
     ScriptQueryExpression inferScript(RexNode node) {
-      if (node instanceof RexCall || node instanceof RexLiteral) {
+      if (node instanceof RexCall || node instanceof RexLiteral || node instanceof RexInputRef) {
         return new ScriptQueryExpression(
             node, rowType, fieldTypes, cluster, Collections.emptyMap());
       }
@@ -476,6 +486,10 @@ public class AggregateAnalyzer {
       AggregateBuilderHelper helper,
       List<PPLHintUtils.DedupSortKey> dedupSortKeys) {
 
+    if (aggCall.getAggregation() == PPLBuiltinOperators.CHECKED_LONG_SUM) {
+      return createCheckedLongSumAggregation(args, aggName, helper);
+    }
+
     return switch (aggCall.getAggregation().kind) {
       case AVG ->
           Pair.of(
@@ -613,17 +627,58 @@ public class AggregateAnalyzer {
         // (ASC -> NULLS FIRST, DESC -> NULLS LAST) so dedup picks the same row whether
         // pushdown is on or off.
         for (PPLHintUtils.DedupSortKey key : dedupSortKeys) {
+          // The hint carries a raw field name, so it never reaches the binary refusal in
+          // NamedFieldExpression. A field sort on a binary field is rejected by the shard.
+          if (helper.fieldTypes.get(key.field()) instanceof OpenSearchBinaryType) {
+            throw new AggregateAnalyzer.AggregateAnalyzerException(
+                String.format("Cannot push down a dedup sort on binary field [%s]", key.field()));
+          }
           SortOrder order = "DESC".equals(key.order()) ? SortOrder.DESC : SortOrder.ASC;
           String missing = order == SortOrder.ASC ? "_first" : "_last";
           topHitsAggregationBuilder.sort(
               SortBuilders.fieldSort(key.field()).order(order).missing(missing));
         }
-        yield Pair.of(topHitsAggregationBuilder, new TopHitsParser(aggName, false, false));
+        // Build a mapping from original index field name to output (renamed) field names.
+        // top_hits returns _source / fields keyed by the original index name, but the Calcite
+        // row-type uses the renamed output name. A single original field may map to multiple
+        // output names when both a rename and an eval column-ref resolve to the same source
+        // field (issue #5197), so the value is a List rather than a single String.
+        Map<String, List<String>> fieldNameMapping = new HashMap<>();
+        for (Pair<RexNode, String> arg : args) {
+          if (arg.getKey() instanceof RexInputRef) {
+            NamedFieldExpression namedField = helper.inferNamedField(arg.getKey());
+            if (namedField == null) {
+              continue;
+            }
+            String originalName = namedField.getRootName();
+            String outputName = arg.getValue();
+            if (!originalName.equals(outputName)) {
+              fieldNameMapping
+                  .computeIfAbsent(originalName, k -> new ArrayList<>())
+                  .add(outputName);
+            }
+          }
+        }
+        yield Pair.of(
+            topHitsAggregationBuilder,
+            new TopHitsParser(
+                aggName, false, false, fieldNameMapping.isEmpty() ? null : fieldNameMapping));
       }
       default ->
           throw new AggregateAnalyzer.AggregateAnalyzerException(
               String.format("unsupported aggregator %s", aggCall.getAggregation()));
     };
+  }
+
+  private static Pair<AggregationBuilder, MetricParser> createCheckedLongSumAggregation(
+      List<Pair<RexNode, String>> args, String aggName, AggregateBuilderHelper helper) {
+    if (args.size() != 1) {
+      throw new AggregateAnalyzerException("CHECKED_LONG_SUM requires exactly one argument");
+    }
+
+    return Pair.of(
+        helper.build(args.getFirst().getKey(), AggregationBuilders.sum(aggName)),
+        new CheckedLongSumParser(aggName));
   }
 
   private static boolean supportsMaxMinAggregation(ExprType fieldType) {

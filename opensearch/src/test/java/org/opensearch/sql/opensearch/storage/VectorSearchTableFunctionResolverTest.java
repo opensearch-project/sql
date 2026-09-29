@@ -21,6 +21,7 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionBuilder;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.FunctionProperties;
@@ -180,6 +181,64 @@ class VectorSearchTableFunctionResolverTest {
             () -> builder.apply(functionProperties, expressions));
     assertTrue(ex.getMessage().contains("Duplicate argument name"));
     assertTrue(ex.getMessage().contains("table"));
+  }
+
+  @Test
+  void resolverArityGuardRejectsExtraNamedArgument() {
+    // The resolver's own builder runs validateArguments() first, so applying it directly to a
+    // duplicate named argument plus all four required arguments (five total) throws a clean
+    // ExpressionEvaluationException. This covers the resolver's arity guard only; the
+    // repository-level cast path that originally crashed is covered by
+    // resolveThroughRepositoryRejectsExtraNamedArgument and BuiltinFunctionRepositoryTest.
+    VectorSearchTableFunctionResolver resolver =
+        new VectorSearchTableFunctionResolver(client, settings);
+    FunctionName functionName = FunctionName.of("vectorsearch");
+    List<Expression> expressions =
+        List.of(
+            DSL.namedArgument("table", DSL.literal("a")),
+            DSL.namedArgument("table", DSL.literal("b")),
+            DSL.namedArgument("field", DSL.literal("embedding")),
+            DSL.namedArgument("vector", DSL.literal("[1.0]")),
+            DSL.namedArgument("option", DSL.literal("k=5")));
+    FunctionSignature functionSignature =
+        new FunctionSignature(
+            functionName, expressions.stream().map(Expression::type).collect(Collectors.toList()));
+    FunctionBuilder builder = resolver.resolve(functionSignature).getValue();
+
+    ExpressionEvaluationException ex =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> builder.apply(functionProperties, expressions));
+    assertTrue(ex.getMessage().contains("requires 4 arguments"));
+  }
+
+  @Test
+  void resolveThroughRepositoryRejectsExtraNamedArgument() {
+    // Routes the vectorSearch resolver through BuiltinFunctionRepository the way production does
+    // (storage-engine resolver registered as a datasource function). A duplicate named argument
+    // plus all four required arguments gives five arguments against the resolver's fixed four-arg
+    // signature, which exercises the cast-wrapper path that originally crashed with an unchecked
+    // IndexOutOfBoundsException (surfacing as HTTP 500). It must now fail with a clean
+    // ExpressionEvaluationException instead.
+    VectorSearchTableFunctionResolver resolver =
+        new VectorSearchTableFunctionResolver(client, settings);
+    BuiltinFunctionRepository repository = BuiltinFunctionRepository.getInstance();
+    List<Expression> expressions =
+        List.of(
+            DSL.namedArgument("table", DSL.literal("a")),
+            DSL.namedArgument("table", DSL.literal("b")),
+            DSL.namedArgument("field", DSL.literal("embedding")),
+            DSL.namedArgument("vector", DSL.literal("[1.0]")),
+            DSL.namedArgument("option", DSL.literal("k=5")));
+
+    assertThrows(
+        ExpressionEvaluationException.class,
+        () ->
+            repository.compile(
+                functionProperties,
+                List.of(resolver),
+                FunctionName.of("vectorsearch"),
+                expressions));
   }
 
   @Test

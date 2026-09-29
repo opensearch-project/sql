@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.request;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.spy;
 
 import com.google.common.collect.ImmutableList;
@@ -829,7 +830,8 @@ public class PredicateAnalyzerTest {
   }
 
   @Test
-  void isNullOr_ScriptPushDown() throws ExpressionNotAnalyzableException {
+  void isEmpty_pushesIsNullArmAsExistsAndCharLengthArmAsScript()
+      throws ExpressionNotAnalyzableException {
     final RelDataType rowType =
         builder
             .getTypeFactory()
@@ -838,15 +840,56 @@ public class PredicateAnalyzerTest {
             .add("a", builder.getTypeFactory().createSqlType(SqlTypeName.BIGINT))
             .add("b", builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR))
             .build();
-    // PPL IS_EMPTY is translated to OR(IS_NULL(arg), IS_EMPTY(arg))
+    // PPL isempty(x) lowers to OR(IS_NULL(x), CHAR_LENGTH(x) = 0) (see PPLFuncImpTable).
+    // The IS_NULL arm has a native DSL form (bool.must_not.exists); the CHAR_LENGTH arm
+    // has no DSL equivalent and falls back to opensearch_compounded_script. The analyzer
+    // emits a bool.should that mixes the two — not a single fully-script_query, which is
+    // strictly better for matching null docs since the IS_NULL arm avoids the script
+    // engine entirely.
+    //
+    // This shape is also why no special-case detector is needed in PredicateAnalyzer.andOr:
+    // CHAR_LENGTH(null) returns null (Calcite NullPolicy.STRICT) rather than NPE, so DSL's
+    // non-short-circuiting `should` evaluation is safe even when the field is null. Prior
+    // to the OR(IS_NULL, CHAR_LENGTH=0) lowering the right arm was IS_EMPTY which compiled
+    // to `name.isEmpty()` and would NPE on null operands — that is what containIsEmptyFunction
+    // used to guard against, and is no longer needed.
     RexNode call = PPLFuncImpTable.INSTANCE.resolve(builder, BuiltinFunctionName.IS_EMPTY, field2);
     Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(0L));
     QueryExpression expression =
         PredicateAnalyzer.analyzeExpression(call, schema, fieldTypes, rowType, cluster);
-    assert (expression
-        .builder()
-        .toString()
-        .contains("\"lang\" : \"opensearch_compounded_script\""));
+
+    QueryBuilder builderResult = expression.builder();
+    assertInstanceOf(BoolQueryBuilder.class, builderResult);
+    BoolQueryBuilder bool = (BoolQueryBuilder) builderResult;
+    assertEquals(
+        2,
+        bool.should().size(),
+        "isempty pushes down as a bool.should mixing native IS_NULL and a script for"
+            + " CHAR_LENGTH=0");
+    assertTrue(bool.must().isEmpty(), "must clauses are not used by isempty pushdown");
+    assertTrue(
+        bool.mustNot().isEmpty(),
+        "must_not clauses at the top level are not used by isempty pushdown");
+
+    // Arm 1: IS_NULL($field) → bool.must_not.exists
+    QueryBuilder isNullArm = bool.should().get(0);
+    assertInstanceOf(BoolQueryBuilder.class, isNullArm);
+    BoolQueryBuilder isNullBool = (BoolQueryBuilder) isNullArm;
+    assertEquals(1, isNullBool.mustNot().size());
+    assertInstanceOf(
+        ExistsQueryBuilder.class,
+        isNullBool.mustNot().get(0),
+        "IS_NULL arm must lower to bool.must_not.exists, not to a script");
+
+    // Arm 2: CHAR_LENGTH($field) = 0 → script (CHAR_LENGTH has no native DSL form)
+    QueryBuilder charLengthArm = bool.should().get(1);
+    assertInstanceOf(
+        ScriptQueryBuilder.class,
+        charLengthArm,
+        "CHAR_LENGTH=0 arm must lower to a script_query (no native DSL equivalent)");
+    assertTrue(
+        charLengthArm.toString().contains("\"lang\" : \"opensearch_compounded_script\""),
+        "script arm uses the Calcite-RexNode-based opensearch_compounded_script lang");
   }
 
   @Test
@@ -1098,6 +1141,138 @@ public class PredicateAnalyzerTest {
             ],
             "adjust_pure_negative" : true,
             "boost" : 1.0
+          }
+        }\
+        """,
+        result.toString());
+  }
+
+  /**
+   * RexSimplify can strip the EXPR_TIMESTAMP UDT off a literal when a sibling clause is folded into
+   * a Sarg (e.g. {@code @timestamp > X AND severityText IN (...)}), leaving the literal as plain
+   * VARCHAR. The comparison must still emit a {@code format("date_time")} range query keyed off the
+   * field's type so the shard's default date parser accepts the value.
+   */
+  @Test
+  void gt_normalizesVarcharLiteralAgainstTimestampField() throws ExpressionNotAnalyzableException {
+    RexLiteral varcharLiteral = (RexLiteral) builder.makeLiteral("1987-02-03 04:34:56");
+    RexNode call = builder.makeCall(SqlStdOperatorTable.GREATER_THAN, field4, varcharLiteral);
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+
+    assertInstanceOf(RangeQueryBuilder.class, result);
+    assertEquals(
+        """
+        {
+          "range" : {
+            "d" : {
+              "from" : "1987-02-03T04:34:56.000Z",
+              "to" : null,
+              "include_lower" : false,
+              "include_upper" : true,
+              "format" : "date_time",
+              "boost" : 1.0
+            }
+          }
+        }\
+        """,
+        result.toString());
+  }
+
+  // Companion stripped-VARCHAR-literal tests for the remaining range shapes (equals -> gte+lte,
+  // notEquals -> two-should bool, lte -> single range). Each must produce the same DSL as its
+  // intact-UDT counterpart, proving the field-type fallback in isFieldOrLiteralDateTime keeps
+  // ISO-8601 normalization + format("date_time") on every comparison op, not just gt. See #5481.
+  @Test
+  void equals_normalizesVarcharLiteralAgainstTimestampField()
+      throws ExpressionNotAnalyzableException {
+    RexLiteral varcharLiteral = (RexLiteral) builder.makeLiteral("1987-02-03 04:34:56");
+    RexNode call = builder.makeCall(SqlStdOperatorTable.EQUALS, field4, varcharLiteral);
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+
+    assertInstanceOf(RangeQueryBuilder.class, result);
+    assertEquals(
+        """
+        {
+          "range" : {
+            "d" : {
+              "from" : "1987-02-03T04:34:56.000Z",
+              "to" : "1987-02-03T04:34:56.000Z",
+              "include_lower" : true,
+              "include_upper" : true,
+              "format" : "date_time",
+              "boost" : 1.0
+            }
+          }
+        }\
+        """,
+        result.toString());
+  }
+
+  @Test
+  void notEquals_normalizesVarcharLiteralAgainstTimestampField()
+      throws ExpressionNotAnalyzableException {
+    RexLiteral varcharLiteral = (RexLiteral) builder.makeLiteral("1987-02-03 04:34:56");
+    RexNode call = builder.makeCall(SqlStdOperatorTable.NOT_EQUALS, field4, varcharLiteral);
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+
+    assertInstanceOf(BoolQueryBuilder.class, result);
+    assertEquals(
+        """
+        {
+          "bool" : {
+            "should" : [
+              {
+                "range" : {
+                  "d" : {
+                    "from" : "1987-02-03T04:34:56.000Z",
+                    "to" : null,
+                    "include_lower" : false,
+                    "include_upper" : true,
+                    "format" : "date_time",
+                    "boost" : 1.0
+                  }
+                }
+              },
+              {
+                "range" : {
+                  "d" : {
+                    "from" : null,
+                    "to" : "1987-02-03T04:34:56.000Z",
+                    "include_lower" : true,
+                    "include_upper" : false,
+                    "format" : "date_time",
+                    "boost" : 1.0
+                  }
+                }
+              }
+            ],
+            "adjust_pure_negative" : true,
+            "boost" : 1.0
+          }
+        }\
+        """,
+        result.toString());
+  }
+
+  @Test
+  void lte_normalizesVarcharLiteralAgainstTimestampField() throws ExpressionNotAnalyzableException {
+    RexLiteral varcharLiteral = (RexLiteral) builder.makeLiteral("1987-02-03 04:34:56");
+    RexNode call = builder.makeCall(SqlStdOperatorTable.LESS_THAN_OR_EQUAL, field4, varcharLiteral);
+    QueryBuilder result = PredicateAnalyzer.analyze(call, schema, fieldTypes);
+
+    assertInstanceOf(RangeQueryBuilder.class, result);
+    assertEquals(
+        """
+        {
+          "range" : {
+            "d" : {
+              "from" : null,
+              "to" : "1987-02-03T04:34:56.000Z",
+              "include_lower" : true,
+              "include_upper" : true,
+              "format" : "date_time",
+              "boost" : 1.0
+            }
           }
         }\
         """,
@@ -1473,5 +1648,49 @@ public class PredicateAnalyzerTest {
         }\
         """,
         result.toString());
+  }
+
+  @Test
+  void andWithUnpushableLike_partiallyPushesOtherPredicates()
+      throws ExpressionNotAnalyzableException {
+    // field3 (c) is text without .keyword → LIKE throws PredicateAnalyzerException
+    // field4 (d) is date → timestamp range should push as RangeQueryBuilder
+    final RelDataType rowType =
+        builder
+            .getTypeFactory()
+            .builder()
+            .kind(StructKind.FULLY_QUALIFIED)
+            .add("a", typeFactory.createSqlType(SqlTypeName.INTEGER))
+            .add("b", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+            .add("c", typeFactory.createSqlType(SqlTypeName.VARCHAR))
+            .add("d", typeFactory.createUDT(ExprUDT.EXPR_TIMESTAMP))
+            .add("e", typeFactory.createSqlType(SqlTypeName.BOOLEAN))
+            .build();
+    Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(0L));
+
+    RexInputRef field3 = builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.VARCHAR), 2);
+    RexNode likeCall =
+        builder.makeCall(
+            SqlStdOperatorTable.LIKE, field3, stringLiteral, builder.makeLiteral("\\"));
+    RexNode rangeCall =
+        builder.makeCall(SqlStdOperatorTable.GREATER_THAN_OR_EQUAL, field4, dateTimeLiteral);
+    RexNode andCall = builder.makeCall(SqlStdOperatorTable.AND, rangeCall, likeCall);
+
+    QueryBuilder result = PredicateAnalyzer.analyze(andCall, schema, fieldTypes, rowType, cluster);
+
+    // Should be a BoolQueryBuilder with range in must[] and LIKE as script
+    assertInstanceOf(BoolQueryBuilder.class, result);
+    BoolQueryBuilder boolQuery = (BoolQueryBuilder) result;
+    assertEquals(2, boolQuery.must().size());
+
+    // First must clause should be the range query (pushable)
+    QueryBuilder firstMust = boolQuery.must().get(0);
+    assertInstanceOf(RangeQueryBuilder.class, firstMust);
+    RangeQueryBuilder rangeQuery = (RangeQueryBuilder) firstMust;
+    assertEquals("d", rangeQuery.fieldName());
+
+    // Second must clause should be script query (unpushable LIKE)
+    QueryBuilder secondMust = boolQuery.must().get(1);
+    assertInstanceOf(ScriptQueryBuilder.class, secondMust);
   }
 }

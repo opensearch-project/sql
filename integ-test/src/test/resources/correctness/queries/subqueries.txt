@@ -18,4 +18,4 @@ SELECT Origin FROM (SELECT Origin, AvgTicketPrice FROM opensearch_dashboards_sam
 SELECT avg_price FROM (SELECT AVG(AvgTicketPrice) AS avg_price FROM opensearch_dashboards_sample_data_flights) AS flights
 SELECT Dest FROM (SELECT Dest, OriginWeather FROM (SELECT Dest, OriginWeather, AvgTicketPrice FROM (SELECT Dest, Origin, OriginWeather, AvgTicketPrice FROM opensearch_dashboards_sample_data_flights WHERE Origin = 'Zurich Airport') AS flights_data WHERE AvgTicketPrice < 10000) AS flights WHERE OriginWeather = 'Clear') AS f
 SELECT * FROM (SELECT Origin FROM opensearch_dashboards_sample_data_flights) AS flights
-SELECT price FROM (SELECT AvgTicketPrice AS price FROM opensearch_dashboards_sample_data_flights LIMIT 10) AS flights ORDER BY price LIMIT 5, 5
+SELECT price FROM (SELECT AvgTicketPrice AS price FROM opensearch_dashboards_sample_data_flights ORDER BY AvgTicketPrice, FlightNum LIMIT 10) AS flights ORDER BY price LIMIT 5, 5

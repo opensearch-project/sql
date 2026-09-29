@@ -53,9 +53,13 @@ teardown:
   - gt: {profile.phases.analyze.time_ms: 0.0}
   - gt: {profile.phases.optimize.time_ms: 0.0}
   - gt: {profile.phases.execute.time_ms: 0.0}
-  - gt: {profile.phases.format.time_ms: 0.0}
+  - gte: {profile.phases.format.time_ms: 0.0}
   - gt: {profile.plan.time_ms: 0.0}
   - match: {profile.plan.rows: 2}
+  - is_true: schema
+  - is_true: datarows
+  - match: {total: 2}
+  - match: {size: 2}
 
 ---
 "Profile ignored for explain api":

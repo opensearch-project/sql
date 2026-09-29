@@ -8,8 +8,6 @@ package org.opensearch.sql.expression.function.jsonUDF;
 import static org.opensearch.sql.calcite.utils.PPLReturnTypes.STRING_FORCE_NULLABLE;
 import static org.opensearch.sql.expression.function.jsonUDF.JsonUtils.*;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -25,6 +23,8 @@ import org.apache.calcite.schema.impl.ScalarFunctionImpl;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
 
 public class JsonExtendFunctionImpl extends ImplementorUDF {
   public JsonExtendFunctionImpl() {
@@ -53,7 +53,7 @@ public class JsonExtendFunctionImpl extends ImplementorUDF {
     }
   }
 
-  public static Object eval(Object... args) throws JsonProcessingException {
+  public static Object eval(Object... args) throws JacksonException {
     String jsonStr = (String) args[0];
     List<Object> keys = Arrays.asList(args).subList(1, args.length);
     if (keys.size() % 2 != 0) {

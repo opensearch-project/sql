@@ -17,6 +17,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import org.apache.commons.lang3.tuple.Pair;
@@ -135,6 +136,57 @@ class OpenSearchRequestBuilderTest {
             TimeValue.timeValueMinutes(1),
             "samplePITId"),
         requestBuilder.build(indexName, DEFAULT_QUERY_TIMEOUT, client));
+  }
+
+  @Test
+  void build_PIT_request_does_not_prune_when_pruning_disabled() {
+    when(client.createPit(any(CreatePitRequest.class))).thenReturn("samplePITId");
+    when(settings.getSettingValue(Settings.Key.QUERY_PRUNING_ENABLED)).thenReturn(false);
+    OpenSearchRequest.IndexName wildcard = new OpenSearchRequest.IndexName("test-*");
+    requestBuilder.pushDownFilter(rangeQuery("@timestamp").gte("now-1d"));
+    requestBuilder.pushDownLimit(1, 0);
+    requestBuilder.pushDownPageSize(2);
+
+    assertEquals(
+        OpenSearchQueryRequest.pitOf(
+            new OpenSearchRequest.IndexName("test-*"),
+            new SearchSourceBuilder()
+                .from(0)
+                .size(2)
+                .timeout(DEFAULT_QUERY_TIMEOUT)
+                .query(rangeQuery("@timestamp").gte("now-1d")),
+            exprValueFactory,
+            List.of(),
+            TimeValue.timeValueMinutes(1),
+            "samplePITId"),
+        requestBuilder.build(wildcard, DEFAULT_QUERY_TIMEOUT, client));
+    verify(client, never()).getNodeClient();
+  }
+
+  @Test
+  void build_PIT_request_does_not_prune_without_a_node_client() {
+    when(client.createPit(any(CreatePitRequest.class))).thenReturn("samplePITId");
+    when(settings.getSettingValue(Settings.Key.QUERY_PRUNING_ENABLED)).thenReturn(true);
+    // Only the node client can issue the pruning probes, so a REST client leaves the wildcard be.
+    when(client.getNodeClient()).thenReturn(Optional.empty());
+    OpenSearchRequest.IndexName wildcard = new OpenSearchRequest.IndexName("test-*");
+    requestBuilder.pushDownFilter(rangeQuery("@timestamp").gte("now-1d"));
+    requestBuilder.pushDownLimit(1, 0);
+    requestBuilder.pushDownPageSize(2);
+
+    assertEquals(
+        OpenSearchQueryRequest.pitOf(
+            new OpenSearchRequest.IndexName("test-*"),
+            new SearchSourceBuilder()
+                .from(0)
+                .size(2)
+                .timeout(DEFAULT_QUERY_TIMEOUT)
+                .query(rangeQuery("@timestamp").gte("now-1d")),
+            exprValueFactory,
+            List.of(),
+            TimeValue.timeValueMinutes(1),
+            "samplePITId"),
+        requestBuilder.build(wildcard, DEFAULT_QUERY_TIMEOUT, client));
   }
 
   @Test

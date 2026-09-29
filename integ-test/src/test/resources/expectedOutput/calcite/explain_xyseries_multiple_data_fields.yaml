@@ -1,0 +1,16 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(sort0=[$0], dir0=[ASC], fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalSort(sort0=[$0], dir0=[ASC])
+        LogicalProject(state=[$0], avg_balance: F=[$1], avg_balance: M=[$3], cnt: F=[$2], cnt: M=[$4])
+          LogicalAggregate(group=[{2}], F_avg_balance=[MAX($0) FILTER $3], F_cnt=[MAX($1) FILTER $3], M_avg_balance=[MAX($0) FILTER $4], M_cnt=[MAX($1) FILTER $4])
+            LogicalProject(avg_balance=[$2], cnt=[$3], state=[$1], $f4=[IS TRUE(=($0, 'F'))], $f5=[IS TRUE(=($0, 'M'))])
+              LogicalAggregate(group=[{0, 1}], avg_balance=[AVG($2)], cnt=[COUNT()])
+                LogicalProject(gender=[$4], state=[$9], balance=[$7])
+                  CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
+  physical: |
+    CalciteEnumerableTopK(sort0=[$0], dir0=[ASC], fetch=[10000])
+      EnumerableCalc(expr#0..4=[{inputs}], proj#0..1=[{exprs}], avg_balance: M=[$t3], cnt: F=[$t2], cnt: M=[$t4])
+        EnumerableAggregate(group=[{2}], F_avg_balance=[MAX($0) FILTER $3], F_cnt=[MAX($1) FILTER $3], M_avg_balance=[MAX($0) FILTER $4], M_cnt=[MAX($1) FILTER $4])
+          EnumerableCalc(expr#0..3=[{inputs}], expr#4=['F'], expr#5=[=($t0, $t4)], expr#6=[IS TRUE($t5)], expr#7=['M'], expr#8=[=($t0, $t7)], expr#9=[IS TRUE($t8)], avg_balance=[$t2], cnt=[$t3], state=[$t1], $f4=[$t6], $f5=[$t9])
+            CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={0, 1},avg_balance=AVG($2),cnt=COUNT())], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"gender":{"terms":{"field":"gender.keyword","missing_bucket":true,"missing_order":"first","order":"asc"}}},{"state":{"terms":{"field":"state.keyword","missing_bucket":true,"missing_order":"first","order":"asc"}}}]},"aggregations":{"avg_balance":{"avg":{"field":"balance"}}}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

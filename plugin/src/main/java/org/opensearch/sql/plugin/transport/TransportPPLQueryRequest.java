@@ -56,7 +56,21 @@ public class TransportPPLQueryRequest extends ActionRequest {
   @Setter
   @Getter
   @Accessors(fluent = true)
+  private boolean analyze = false;
+
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
   private String queryId = null;
+
+  /**
+   * Per-request override for partial-result mode; null means defer to the cluster setting. See
+   * {@link PPLQueryRequest#partialResult()}.
+   */
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
+  private Boolean partialResult = null;
 
   /** Constructor of TransportPPLQueryRequest from PPLQueryRequest. */
   public TransportPPLQueryRequest(PPLQueryRequest pplQueryRequest) {
@@ -67,8 +81,10 @@ public class TransportPPLQueryRequest extends ActionRequest {
     sanitize = pplQueryRequest.sanitize();
     style = pplQueryRequest.style();
     profile = pplQueryRequest.profile();
+    analyze = pplQueryRequest.analyze();
     explainMode = pplQueryRequest.mode().getModeName();
     queryId = pplQueryRequest.queryId();
+    partialResult = pplQueryRequest.partialResult();
   }
 
   /** Constructor of TransportPPLQueryRequest from StreamInput. */
@@ -83,7 +99,9 @@ public class TransportPPLQueryRequest extends ActionRequest {
     sanitize = in.readBoolean();
     style = in.readEnum(JsonResponseFormatter.Style.class);
     profile = in.readBoolean();
+    analyze = in.readBoolean();
     queryId = in.readOptionalString();
+    partialResult = in.readOptionalBoolean();
   }
 
   /** Re-create the object from the actionRequest. */
@@ -116,7 +134,9 @@ public class TransportPPLQueryRequest extends ActionRequest {
     out.writeBoolean(sanitize);
     out.writeEnum(style);
     out.writeBoolean(profile);
+    out.writeBoolean(analyze);
     out.writeOptionalString(queryId);
+    out.writeOptionalBoolean(partialResult);
   }
 
   public String getRequest() {
@@ -172,10 +192,11 @@ public class TransportPPLQueryRequest extends ActionRequest {
   /** Convert to PPLQueryRequest. */
   public PPLQueryRequest toPPLQueryRequest() {
     PPLQueryRequest pplQueryRequest =
-        new PPLQueryRequest(pplQuery, jsonContent, path, format, explainMode, profile);
+        new PPLQueryRequest(pplQuery, jsonContent, path, format, explainMode, profile, analyze);
     pplQueryRequest.sanitize(sanitize);
     pplQueryRequest.style(style);
     pplQueryRequest.queryId(queryId);
+    pplQueryRequest.partialResult(partialResult);
     return pplQueryRequest;
   }
 }

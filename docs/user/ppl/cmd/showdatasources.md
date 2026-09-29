@@ -15,7 +15,7 @@ show datasources
 
 The `show datasources` command takes no parameters.  
 
-## Example 1: Fetch all Prometheus data sources
+## Example 1: Fetching all Prometheus data sources
 
 The following query fetches all Prometheus data sources:
   

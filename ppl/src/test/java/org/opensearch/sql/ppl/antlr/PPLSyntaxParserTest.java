@@ -90,6 +90,57 @@ public class PPLSyntaxParserTest {
   }
 
   @Test
+  public void testForeachCommandShouldPass() {
+    ParseTree tree =
+        new PPLSyntaxParser()
+            .parse("source=t | foreach a* b [ eval <<FIELD>>_double = <<FIELD>> * 2 ]");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testForeachCommandWithModeShouldPass() {
+    ParseTree tree =
+        new PPLSyntaxParser()
+            .parse(
+                "source=t | foreach mode=multifield value_* [ eval"
+                    + " total_<<MATCHSTR>> = <<FIELD>> + 1 ]");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testForeachCollectionModesShouldPass() {
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse(
+                "source=t | foreach mode=multivalue itemstr=<<NUMBER>> nums [ eval total = total +"
+                    + " <<NUMBER>> ]"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse(
+                "source=t | foreach mode=json_array '[1,2,3]' [ eval total = total + <<ITEM>> ]"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("source=t | foreach mode=auto_collections nums [ eval total = total + ITEM ]"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("source=t | foreach mode=auto_collections [ eval total = total + <<ITEM>> ]"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("source=t | foreach json_array(1, 2, 3) [ eval total = total + <<ITEM>> ]"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse(
+                "source=t | foreach mode=multivalue iterstr=IDX nums [ eval total = total + IDX"
+                    + " ]"));
+  }
+
+  @Test
   public void testSearchFieldsCommandCrossClusterShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("search source=c:t a=1 b=2 | fields a,b");
     assertNotEquals(null, tree);
@@ -348,6 +399,25 @@ public class PPLSyntaxParserTest {
   }
 
   @Test
+  public void testRareCommandWithShowPercShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("source=t a=1 | rare showperc=true a");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testRareCommandWithShowPercAndGroupByShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("source=t | rare showperc=true a by b");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testRareCommandWithPercentFieldShouldPass() {
+    ParseTree tree =
+        new PPLSyntaxParser().parse("source=t | rare showperc=true percentfield='pct' a");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
   public void testTopCommandWithoutNShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("source=t a=1 | top a");
     assertNotEquals(null, tree);
@@ -368,6 +438,25 @@ public class PPLSyntaxParserTest {
   @Test
   public void testTopCommandWithoutNAndGroupByShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("source=t a=1 | top a by b");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testTopCommandWithShowPercShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("source=t | top showperc=true a");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testTopCommandWithShowPercAndGroupByShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("source=t | top showperc=true a by b");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testTopCommandWithPercentFieldShouldPass() {
+    ParseTree tree =
+        new PPLSyntaxParser().parse("source=t | top showperc=true percentfield='pct' a");
     assertNotEquals(null, tree);
   }
 

@@ -1,0 +1,15 @@
+{
+  "mappings": {
+    "properties": {
+      "name": {
+        "type": "keyword"
+      },
+      "mgr": {
+        "type": "keyword"
+      },
+      "tag": {
+        "type": "keyword"
+      }
+    }
+  }
+}

@@ -152,8 +152,120 @@ calcite:
   physical: |
     CalciteEnumerableIndexScan(table=[[OpenSearch, state_country]], PushDownContext=[[PROJECT->[name, country, state, month, year, age], FILTER->>($5, 30), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10000,"timeout":"1m","query":{"range":{"age":{"from":30,"to":null,"include_lower":false,"include_upper":true,"boost":1.0}}},"_source":{"includes":["name","country","state","month","year","age"]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])
 ```
+## Analyze (Experimental)
 
-## Profile (Experimental)
+You can enable analysis on the PPL endpoint to capture query execution details including per-phase timings, logical and physical plans, and optimization recommendations. Analysis is returned only for regular query execution (not explain) and only when using the default `format=jdbc`.
+
+### Example
+
+```bash ppl ignore
+curl -sS -H 'Content-Type: application/json' \
+  -X POST localhost:9200/_plugins/_ppl \
+  -d '{
+        "query": "source=test_data | where bytes_sent < 30 | eval full_trip =  client_city + \" \" + client_country | fields full_trip",
+        "analyze": true
+      }'
+```
+
+Expected output (trimmed):
+
+```json
+{
+  "logicalPlan": [
+    "LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT]): rowcount = 5000.0, cumulative cost = {645000.0 rows, 95000.0 cpu, 0.0 io}, id = 15952",
+    "LogicalProject(full_trip=[||(||($22, ' '), $59)]): rowcount = 5000.0, cumulative cost = {640000.0 rows, 15000.0 cpu, 0.0 io}, id = 15951",
+    "LogicalFilter(condition=[<($50, 30)]): rowcount = 5000.0, cumulative cost = {635000.0 rows, 10000.0 cpu, 0.0 io}, id = 15949",
+    "CalciteLogicalIndexScan(table=[[OpenSearch, test_data]]): rowcount = 10000.0, cumulative cost = {630000.0 rows, 0.0 cpu, 0.0 io}, id = 15948"
+  ],
+  "physicalPlan": [
+    "EnumerableCalc(expr#0..1=[{inputs}], expr#2=[' '], expr#3=[||($t0, $t2)], expr#4=[||($t3, $t1)], full_trip=[$t4]): rowcount = 5000.0, cumulative cost = {13998.2 rows, 30000.0 cpu, 0.0 io}, id = 16035",
+    "CalciteEnumerableIndexScan(table=[[OpenSearch, test_data]], PushDownContext=[[PROJECT->[client_city, bytes_sent, client_country], FILTER-><($1, 30), LIMIT->10000, PROJECT->[client_city, client_country]], OpenSearchRequestBuilder(sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"query\":{\"range\":{\"bytes_sent\":{\"from\":null,\"to\":30,\"include_lower\":true,\"include_upper\":false,\"boost\":1.0}}},\"_source\":{\"includes\":[\"client_city\",\"client_country\"]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)]): rowcount = 5000.0, cumulative cost = {8998.2 rows, 0.0 cpu, 0.0 io}, id = 16027"
+  ],
+  "profile": {
+    "summary": {
+      "total_time_ms": 40.85
+    },
+    "phases": {
+      "analyze": {
+        "time_ms": 4.52
+      },
+      "optimize": {
+        "time_ms": 20.04
+      },
+      "execute": {
+        "time_ms": 16.17
+      },
+      "format": {
+        "time_ms": 0.0
+      }
+    },
+    "plan": {
+      "node": "EnumerableCalc",
+      "time_ms": 14.4,
+      "rows": 0,
+      "children": [
+        {
+          "node": "CalciteEnumerableIndexScan",
+          "time_ms": 14.19,
+          "rows": 0
+        }
+      ]
+    },
+    "thread_pool": "sql-worker"
+  },
+  "recommendations": [
+    {
+      "severity": "INFO",
+      "rule": "Bottleneck Stage",
+      "message": "CalciteEnumerableIndexScan took 14.19 ms (88% of execution)",
+      "affected_node": "CalciteEnumerableIndexScan"
+    }
+  ],
+  "schema": [
+    {
+      "name": "full_trip",
+      "type": "STRING"
+    }
+  ],
+  "datarows": [],
+  "total": 0,
+  "size": 0
+}
+```
+
+### Response fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `logicalPlan` | Array | Calcite logical plan nodes (top-down). |
+| `physicalPlan` | Array | Calcite physical plan nodes after optimization. |
+| `recommendations` | Array | Optimization suggestions generated from the execution profile. |
+| `profile` | Object | Per-phase timing breakdown (same format as the profile endpoint). |
+| `schema` | Array | Column names and types of the query result. |
+| `datarows` | Array | Query result rows. |
+| `total` | Integer | Total number of result rows. |
+| `size` | Integer | Number of result rows returned. |
+
+
+### Rules For Recommendations
+| Rule | Severity | Trigger | Default threshold | Suggestion |
+|------|----------|---------------|-------------------|------------|
+| Ineffective Filter | WARNING | An in-memory filter operator passes through nearly all of its input rows (`rows_out / rows_in`). | ratio > 0.95 | Consider removing the filter or making it more selective. |
+| Join Row Explosion | WARNING / CRITICAL | A join produces far more rows than its combined inputs (`rows_out / rows_in`). | ratio > 5 (WARNING); ≥ 20 (CRITICAL) | Add filters to the subqueries before the join to reduce rows. |
+| Expensive Sort | WARNING | A sort (including a limit-fused top-N) runs in-memory over a large input and consumes a large share of execution time. | self-time > 20% of execute and input rows > 50,000 | Filter or limit rows before sorting (e.g. add `head` or a `where`). |
+| Bottleneck Stage | INFO | A single operator's self-time dominates total execution time. | self-time > 75% of execute | — |
+| Optimize Phase Dominates | INFO | Query planning takes longer than execution. | optimize > execute **and** optimize > 75 ms | — |
+
+
+### Notes
+- Analyze output is only returned when the query finishes successfully.
+- Analyze requires the Calcite engine to be enabled (`plugins.calcite.enabled=true`).
+- The `profile` section uses the same format as the `profile` endpoint.
+- In rule calculation: `rows_in` is the sum of an operator's child row counts; self-time is an operator's own duration (`time_ms − max(child time_ms)`), since profile `time_ms` is cumulative
+  wall-time.
+
+
+## Profile (Experimental) (Deprecated)
 
 You can enable profiling on the PPL endpoint to capture per-stage timings in milliseconds. Profiling is returned only for regular query execution (not explain) and only when using the default `format=jdbc`.
 
@@ -189,7 +301,8 @@ Expected output (trimmed):
          "children": [
             { "node": "CalciteEnumerableIndexScan", "time_ms": 4.12, "rows": 2 }
          ]
-      }
+      },
+      "thread_pool": "sql-worker"
    }
 }
 ```
@@ -201,6 +314,7 @@ Expected output (trimmed):
 - Plan node names use Calcite physical operator names (for example, `EnumerableCalc` or `CalciteEnumerableIndexScan`).
 - Plan `time_ms` is inclusive of child operators and represents wall-clock time; overlapping work can make summed plan times exceed `summary.total_time_ms`.
 - Scan nodes reflect operator wall-clock time; background prefetch can make scan time smaller than total request latency.
+- `thread_pool` indicates which thread pool executed the query. Possible values are `sql-worker` (default, pushdown-only queries) and `sql-complex-worker` (queries requiring in-memory evaluation such as scripted fields).
 
 ## Highlight
 
@@ -325,3 +439,221 @@ Expected output (trimmed):
   "rulesToVisit": [200, 201, "..."]
 }
 ```
+
+## Include Metadata
+
+### Description
+
+You can add an `include_metadata` parameter to control whether metadata fields (`_id`, `_index`, `_score`, `_maxscore`, `_sort`, `_routing`) are returned. This parameter can be specified either as a URL parameter or in the request body JSON.
+
+It applies whenever a query returns all columns, which happens in two cases: an explicit `source=... | fields *`, or a query with no `fields` clause at all (such as `source=... | head 1`), where an all-columns projection is added implicitly. It does not affect explicitly listed fields.
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `include_metadata` | boolean | `false` | When `true`, metadata fields are returned alongside data fields for all-columns selections. When `false` (default), they are excluded. Can be specified as a URL parameter or in the request body JSON. |
+
+### Behavior
+
+- **Default behavior (`include_metadata=false`)**: all-columns selections return only data fields; the metadata fields listed above are excluded.
+- **With `include_metadata=true`**: all-columns selections return both data fields and all six metadata fields.
+- **Queries with no `fields` clause**: also affected, because an all-columns projection is added implicitly. For example, `source=accounts | head 1` returns metadata fields when the parameter is `true`.
+- **Explicit field selection**: not affected. `fields _id, firstname` returns `_id` regardless of the `include_metadata` setting.
+- **Aggregations**: not affected; aggregation results never contain metadata fields.
+
+### Example 1: Include metadata fields (URL parameter)
+
+```bash ppl ignore
+curl -sS -H 'Content-Type: application/json' \
+-X POST "localhost:9200/_plugins/_ppl?include_metadata=true" \
+-d '{"query" : "source=accounts | fields * | head 1"}'
+```
+
+This produces the same result as Example 2 below.
+
+### Example 2: Include metadata fields (request body)
+
+```bash ppl ignore
+curl -sS -H 'Content-Type: application/json' \
+-X POST localhost:9200/_plugins/_ppl \
+-d '{"query" : "source=accounts | fields * | head 1", "include_metadata": true}'
+```
+
+Expected output (metadata fields included):
+
+```json
+{
+  "schema": [
+    {
+      "name": "account_number",
+      "type": "bigint"
+    },
+    {
+      "name": "firstname",
+      "type": "string"
+    },
+    {
+      "name": "address",
+      "type": "string"
+    },
+    {
+      "name": "balance",
+      "type": "bigint"
+    },
+    {
+      "name": "gender",
+      "type": "string"
+    },
+    {
+      "name": "city",
+      "type": "string"
+    },
+    {
+      "name": "employer",
+      "type": "string"
+    },
+    {
+      "name": "state",
+      "type": "string"
+    },
+    {
+      "name": "age",
+      "type": "bigint"
+    },
+    {
+      "name": "email",
+      "type": "string"
+    },
+    {
+      "name": "lastname",
+      "type": "string"
+    },
+    {
+      "name": "_id",
+      "type": "string"
+    },
+    {
+      "name": "_index",
+      "type": "string"
+    },
+    {
+      "name": "_score",
+      "type": "float"
+    },
+    {
+      "name": "_maxscore",
+      "type": "float"
+    },
+    {
+      "name": "_sort",
+      "type": "bigint"
+    },
+    {
+      "name": "_routing",
+      "type": "string"
+    }
+  ],
+  "datarows": [
+    [
+      1,
+      "Amber",
+      "880 Holmes Lane",
+      39225,
+      "M",
+      "Brogan",
+      "Pyrami",
+      "IL",
+      32,
+      "amberduke@pyrami.com",
+      "Duke",
+      "<document id>",
+      "accounts",
+      1.0,
+      1.0,
+      -2,
+      "<routing value>"
+    ]
+  ],
+  "total": 1,
+  "size": 1
+}
+```
+
+`_id` and `_routing` are shown as placeholders: their values are generated per document and per cluster, so they differ on every run.
+
+### Example 3: Explicit field selection (unaffected by include_metadata)
+
+```bash ppl ignore
+curl -sS -H 'Content-Type: application/json' \
+-X POST "localhost:9200/_plugins/_ppl?include_metadata=true" \
+-d '{"query" : "source=accounts | fields firstname, lastname | head 1"}'
+```
+
+Expected output (only explicitly selected fields):
+
+```json
+{
+  "schema": [
+    {
+      "name": "firstname",
+      "type": "string"
+    },
+    {
+      "name": "lastname",
+      "type": "string"
+    }
+  ],
+  "datarows": [
+    [
+      "Amber",
+      "Duke"
+    ]
+  ],
+  "total": 1,
+  "size": 1
+}
+```
+
+### Example 4: Explicit metadata field selection (works with the parameter off)
+
+```bash ppl ignore
+curl -sS -H 'Content-Type: application/json' \
+-X POST "localhost:9200/_plugins/_ppl?include_metadata=false" \
+-d '{"query" : "source=accounts | fields firstname, _id | head 1"}'
+```
+
+Expected output (the explicitly selected metadata field is returned even though `include_metadata` is `false`):
+
+```json
+{
+  "schema": [
+    {
+      "name": "firstname",
+      "type": "string"
+    },
+    {
+      "name": "_id",
+      "type": "string"
+    }
+  ],
+  "datarows": [
+    [
+      "Amber",
+      "<document id>"
+    ]
+  ],
+  "total": 1,
+  "size": 1
+}
+```
+
+### Notes
+
+- The `include_metadata` parameter applies only to selections that return all columns, either an explicit `fields *` or a query with no `fields` clause. It never adds fields to an explicitly listed selection.
+- Explicitly selected metadata fields are always returned, regardless of this parameter. For example, `source=accounts | fields firstname, _id` returns `_id` whether `include_metadata` is `true`, `false`, or unset.
+- The metadata fields are `_id`, `_index`, `_score`, `_maxscore`, `_sort` and `_routing`. All six are part of the index schema, so `include_metadata=true` returns all of them, not only `_id` and `_index`.
+- `_score` is returned even when the query does not search (for example `source=accounts | fields *`); it only carries a meaningful relevance value for scoring queries such as `source=accounts "Holmes"`.
+- Aggregation queries are not affected by this parameter, as they never include metadata fields in their results.
+- The parameter can be specified as a URL parameter (`?include_metadata=true`) or in the request body JSON (`{"include_metadata": true}`).
+- When both URL parameter and request body specify the parameter, the request body takes precedence.

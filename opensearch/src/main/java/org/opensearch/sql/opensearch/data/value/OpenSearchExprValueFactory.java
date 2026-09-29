@@ -20,9 +20,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.utils.DateTimeFormatters.STRICT_HOUR_MINUTE_SECOND_FORMATTER;
 import static org.opensearch.sql.utils.DateTimeFormatters.STRICT_YEAR_MONTH_DAY_FORMATTER;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -69,6 +66,11 @@ import org.opensearch.sql.opensearch.data.utils.Content;
 import org.opensearch.sql.opensearch.data.utils.ObjectContent;
 import org.opensearch.sql.opensearch.data.utils.OpenSearchJsonContent;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 /** Construct ExprValue from OpenSearch response. */
 public class OpenSearchExprValueFactory {
@@ -100,7 +102,8 @@ public class OpenSearchExprValueFactory {
 
   private static final String TOP_PATH = "";
 
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final ObjectMapper OBJECT_MAPPER =
+      JsonMapper.builder().disable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS).build();
 
   private static final Map<ExprType, BiFunction<Content, ExprType, ExprValue>> typeActionMap =
       new ImmutableMap.Builder<ExprType, BiFunction<Content, ExprType, ExprValue>>()
@@ -122,10 +125,10 @@ public class OpenSearchExprValueFactory {
           .put(
               OpenSearchDataType.of(OpenSearchDataType.MappingType.Double),
               (c, dt) -> new ExprDoubleValue(c.doubleValue()))
-          .put(OpenSearchTextType.of(), (c, dt) -> new OpenSearchExprTextValue(c.stringValue()))
+          .put(OpenSearchTextType.of(), (c, dt) -> new OpenSearchExprTextValue(stringOf(c)))
           .put(
               OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword),
-              (c, dt) -> new ExprStringValue(c.stringValue()))
+              (c, dt) -> new ExprStringValue(stringOf(c)))
           .put(
               OpenSearchDataType.of(OpenSearchDataType.MappingType.Boolean),
               (c, dt) -> ExprBooleanValue.of(c.booleanValue()))
@@ -171,7 +174,7 @@ public class OpenSearchExprValueFactory {
           TOP_PATH,
           Optional.of(STRUCT),
           fieldTypeTolerance || supportArrays);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new IllegalStateException(String.format("invalid json: %s.", jsonString), e);
     }
   }
@@ -209,21 +212,53 @@ public class OpenSearchExprValueFactory {
     final ExprType type = fieldType.get();
 
     if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint))) {
-      return parseGeoPoint(content, supportArrays);
+      try {
+        return parseGeoPoint(content, supportArrays);
+      } catch (Exception e) {
+        return ExprNullValue.of();
+      }
     } else if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Nested))
         || content.isArray()) {
       return parseArray(content, field, type, supportArrays);
     } else if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Object))
         || type == STRUCT) {
-      return parseStruct(content, field, supportArrays);
+      // A scalar under an object-typed field (wildcard over indices with conflicting mappings)
+      // would throw here; return null instead. CCE-scoped: this is also the whole-document parse
+      // entry, so a broader catch would hide unrelated errors deeper in the recursion.
+      try {
+        return parseStruct(content, field, supportArrays);
+      } catch (ClassCastException e) {
+        return ExprNullValue.of();
+      }
     } else if (typeActionMap.containsKey(type)) {
-      return content.isArray()
-          ? parseArray(content, field, type, supportArrays)
-          : typeActionMap.get(type).apply(content, type);
+      if (content.isArray()) {
+        return parseArray(content, field, type, supportArrays);
+      }
+      try {
+        return typeActionMap.get(type).apply(content, type);
+      } catch (Exception e) {
+        return ExprNullValue.of();
+      }
     } else {
       throw new IllegalStateException(
           String.format(
               "Unsupported type: %s for value: %s.", type.typeName(), content.objectValue()));
+    }
+  }
+
+  /**
+   * String form of scalar content destined for a text/keyword column. A numeric or boolean bucket
+   * key can land in a string column -- e.g. a partial-result aggregation over an index where the
+   * field is numeric while the conflict's merged type is text. Render it as its string form rather
+   * than letting the {@code (String) value} cast fail and null the value out.
+   */
+  private static String stringOf(Content content) {
+    try {
+      return content.stringValue();
+    } catch (RuntimeException e) {
+      // Not a string value (e.g. a numeric aggregation bucket key landing in a text column via a
+      // partial-result narrowing) -- render its string form instead of failing the cast to null.
+      return String.valueOf(content.objectValue());
     }
   }
 

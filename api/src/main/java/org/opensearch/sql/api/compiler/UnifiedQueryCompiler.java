@@ -55,6 +55,11 @@ public class UnifiedQueryCompiler {
   }
 
   private PreparedStatement doCompile(RelNode plan) throws Exception {
+    // Apply pre-compilation rules (e.g., late-binding function impl)
+    for (var rule : context.getLangSpec().preCompilationRules()) {
+      plan = plan.accept(rule);
+    }
+
     // Apply shuttle to convert LogicalTableScan to BindableTableScan
     final RelHomogeneousShuttle shuttle =
         new RelHomogeneousShuttle() {

@@ -33,7 +33,7 @@ import org.opensearch.sql.sql.parser.context.QuerySpecification;
 @RequiredArgsConstructor
 public class AstSortBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
 
-  private final QuerySpecification querySpec;
+  protected final QuerySpecification querySpec;
 
   @Override
   public UnresolvedPlan visitOrderByClause(OrderByClauseContext ctx) {
@@ -57,7 +57,7 @@ public class AstSortBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPla
    * Argument "asc" is required. Argument "nullFirst" is optional and determined by Analyzer later
    * if absent.
    */
-  private List<Argument> createSortArguments(SortOption option) {
+  protected List<Argument> createSortArguments(SortOption option) {
     SortOrder sortOrder = option.getSortOrder();
     NullOrder nullOrder = option.getNullOrder();
     ImmutableList.Builder<Argument> args = ImmutableList.builder();

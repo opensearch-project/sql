@@ -20,7 +20,7 @@ The `explain` command supports the following parameters.
 | `<queryStatement>` | Required | A PPL query to explain. |
 | `<mode>` | Optional | The explain mode. Valid values are: <br> - `standard`: Displays the logical and physical plan along with pushdown information (query domain-specific language [DSL]). Available in both v2 and v3 engines. <br> - `simple`: Displays the logical plan tree without attributes. Requires the v3 engine (`plugins.calcite.enabled` = `true`). <br> - `cost`: Displays the standard information plus plan cost attributes. Requires the v3 engine (`plugins.calcite.enabled` = `true`). <br> - `extended`: Displays the standard information plus the generated code. If the whole plan is able to pushdown, it is equal to the standard mode. Requires the v3 engine (`plugins.calcite.enabled` = `true`). <br><br> Default is `standard`. |
 
-## Example 1: Explain a PPL query in the v2 engine  
+## Example 1: Explaining a PPL query in the v2 engine
 
 When Apache Calcite is disabled (`plugins.calcite.enabled` is set to `false`), `explain` obtains its physical plan and pushdown information from the v2 engine:
   
@@ -53,7 +53,7 @@ The query returns the following results:
 ```
   
 
-## Example 2: Explain a PPL query in the v3 engine  
+## Example 2: Explaining a PPL query in the v3 engine
 
 When Apache Calcite is enabled (`plugins.calcite.enabled` is set to `true`), `explain` obtains its logical and physical plan and pushdown information from the v3 engine:  
   
@@ -81,7 +81,7 @@ The query returns the following results:
 ```
   
 
-## Example 3: Explain a PPL query in the simple mode  
+## Example 3: Explaining a PPL query in the simple mode
 
 The following query uses the `explain` command in the `simple` mode to show a simplified logical plan tree: 
   
@@ -106,7 +106,7 @@ The query returns the following results:
 ```
   
 
-## Example 4: Explain a PPL query in the cost mode  
+## Example 4: Explaining a PPL query in the cost mode
 
 The following query uses the `explain` command in the `cost` mode to show plan cost attributes:
   
@@ -134,7 +134,7 @@ The query returns the following results:
 ```
   
 
-## Example 5: Explain a PPL query in the extended mode
+## Example 5: Explaining a PPL query in the extended mode
 
 The following query uses the `explain` command in the `extended` mode to show the generated code:
 

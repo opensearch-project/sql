@@ -78,6 +78,7 @@ import org.opensearch.sql.ast.tree.Expand;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.Foreach;
 import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
@@ -96,6 +97,7 @@ import org.opensearch.sql.ast.tree.Regex;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Replace;
+import org.opensearch.sql.ast.tree.RestRelation;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
@@ -105,12 +107,14 @@ import org.opensearch.sql.ast.tree.SpanBin;
 import org.opensearch.sql.ast.tree.StreamWindow;
 import org.opensearch.sql.ast.tree.SubqueryAlias;
 import org.opensearch.sql.ast.tree.TableFunction;
+import org.opensearch.sql.ast.tree.Timewrap;
 import org.opensearch.sql.ast.tree.Transpose;
 import org.opensearch.sql.ast.tree.Trendline;
 import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.ast.tree.Xyseries;
 import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
@@ -122,6 +126,7 @@ import org.opensearch.sql.planner.logical.LogicalRareTopN;
 import org.opensearch.sql.planner.logical.LogicalRemove;
 import org.opensearch.sql.planner.logical.LogicalRename;
 import org.opensearch.sql.planner.logical.LogicalSort;
+import org.opensearch.sql.utils.SystemIndexUtils;
 
 /** Utility class to mask sensitive information in incoming PPL queries. */
 public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> {
@@ -165,6 +170,23 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
 
   @Override
   public String visitRelation(Relation node, String context) {
+    if (node instanceof RestRelation) {
+      SystemIndexUtils.RestSpec spec =
+          SystemIndexUtils.decodeRestSpec(node.getTableQualifiedName().toString());
+      StringBuilder sb = new StringBuilder("rest ").append(spec.getEndpoint());
+      if (spec.getCount() != null) {
+        sb.append(" count=").append(MASK_LITERAL);
+      }
+      if (spec.getTimeout() != null) {
+        sb.append(" timeout=").append(MASK_LITERAL);
+      }
+      if (spec.getArgs() != null) {
+        for (String key : spec.getArgs().keySet()) {
+          sb.append(' ').append(key).append('=').append(MASK_LITERAL);
+        }
+      }
+      return sb.toString();
+    }
     if (node instanceof DescribeRelation) {
       return StringUtils.format("describe %s", MASK_TABLE);
     }
@@ -457,13 +479,16 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     Integer noOfResults = node.getNoOfResults();
     String countField = (String) arguments.get(RareTopN.Option.countField.name()).getValue();
     Boolean showCount = (Boolean) arguments.get(RareTopN.Option.showCount.name()).getValue();
+    String percentField = (String) arguments.get(RareTopN.Option.percentField.name()).getValue();
+    Boolean showPerc = (Boolean) arguments.get(RareTopN.Option.showPerc.name()).getValue();
     Boolean useNull = (Boolean) arguments.get(RareTopN.Option.useNull.name()).getValue();
     String fields = visitFieldList(node.getFields());
     String group = visitExpressionList(node.getGroupExprList());
     String options =
         UnresolvedPlanHelper.isCalciteEnabled(settings)
             ? StringUtils.format(
-                "countield='%s' showcount=%s usenull=%s ", countField, showCount, useNull)
+                "countfield='%s' showcount=%s percentfield='%s' showperc=%s usenull=%s ",
+                countField, showCount, percentField, showPerc, useNull)
             : "";
     return StringUtils.format(
         "%s | %s %d %s%s",
@@ -584,6 +609,31 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     return StringUtils.format("%s | mvexpand %s", child, field);
   }
 
+  @Override
+  public String visitForeach(Foreach node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    StringBuilder command = new StringBuilder(child).append(" | foreach");
+    if (node.getMode() != Foreach.Mode.MULTIFIELD) {
+      command.append(" mode=").append(node.getMode());
+    }
+    // Placeholder rename options (itemstr=X etc.) carry user-chosen identifiers, not data; the
+    // mode key is already rendered above.
+    node.getOptions().keySet().stream()
+        .filter(key -> !"mode".equals(key))
+        .forEach(key -> command.append(' ').append(key).append('=').append(MASK_COLUMN));
+    // Targets are field names or patterns in multifield mode; collection targets may embed
+    // literals (e.g. a JSON array string), so mask them all.
+    node.getFieldPatterns().forEach(pattern -> command.append(' ').append(MASK_COLUMN));
+    String evalClauses =
+        node.getEvalClauses().stream()
+            .map(
+                clause ->
+                    StringUtils.format(
+                        "%s = %s", MASK_COLUMN, visitExpression(clause.getExpression())))
+            .collect(Collectors.joining(", "));
+    return command.append(" [ eval ").append(evalClauses).append(" ]").toString();
+  }
+
   /** Build {@link LogicalSort}. */
   @Override
   public String visitSort(Sort node, String context) {
@@ -624,6 +674,25 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   public String visitReverse(Reverse node, String context) {
     String child = node.getChild().get(0).accept(this, context);
     return StringUtils.format("%s | reverse", child);
+  }
+
+  @Override
+  public String visitTimewrap(Timewrap node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    StringBuilder command = new StringBuilder();
+    // span magnitude is masked like other span literals (see visitChart); align/series are
+    // constrained keywords, not user data, so they are rendered verbatim.
+    command.append(" | timewrap ").append(MASK_LITERAL);
+    if (node.getAlign() != null) {
+      command.append(" align=").append(node.getAlign());
+    }
+    if (node.getSeries() != null) {
+      command.append(" series=").append(node.getSeries());
+    }
+    if (node.getTimeFormat() != null) {
+      command.append(" time_format=").append(MASK_LITERAL);
+    }
+    return StringUtils.format("%s%s", child, command);
   }
 
   @Override
@@ -779,6 +848,26 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   }
 
   @Override
+  public String visitXyseries(Xyseries node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    StringBuilder command = new StringBuilder();
+    command.append(" | xyseries");
+    if (node.getSeparator() != null && !": ".equals(node.getSeparator())) {
+      command.append(" sep=").append(MASK_LITERAL);
+    }
+    if (node.getFormat() != null) {
+      command.append(" format=").append(MASK_LITERAL);
+    }
+    command.append(" ").append(visitExpression(node.getXField()));
+    command.append(" ").append(visitExpression(node.getYNameField()));
+    command.append(" in (").append(MASK_LITERAL).append(")");
+    String dataFields =
+        node.getYDataFields().stream().map(this::visitExpression).collect(Collectors.joining(","));
+    command.append(" ").append(dataFields);
+    return StringUtils.format("%s%s", child, command.toString());
+  }
+
+  @Override
   public String visitAppendCol(AppendCol node, String context) {
     String child = node.getChild().get(0).accept(this, context);
     UnresolvedPlan relation = getRelation(node);
@@ -836,6 +925,11 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     // In case legacy SQL relies on it, return empty to fail open anyway.
     // Don't expect it to fail the query execution.
     return "";
+  }
+
+  @Override
+  public String visitMakeResults(org.opensearch.sql.ast.tree.MakeResults node, String context) {
+    return "makeresults";
   }
 
   private String visitFieldList(List<Field> fieldList) {
@@ -1205,6 +1299,13 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     @Override
     public String visitQualifiedName(
         org.opensearch.sql.ast.expression.QualifiedName node, String context) {
+      return MASK_COLUMN;
+    }
+
+    @Override
+    public String visitForeachPlaceholder(
+        org.opensearch.sql.ast.expression.ForeachPlaceholder node, String context) {
+      // Placeholder names are user-chosen identifiers; mask like any other column reference.
       return MASK_COLUMN;
     }
   }

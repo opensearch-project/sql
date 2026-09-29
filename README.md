@@ -55,8 +55,6 @@ The following projects are related to the SQL plugin, but stored in the differen
 | [![untriaged open][untriaged-badge]][untriaged-link]           |
 | [![nolabel open][nolabel-badge]][nolabel-link]                 |
 
-[dco-badge]: https://github.com/opensearch-project/sql/actions/workflows/dco.yml/badge.svg
-[dco-badge-link]: https://github.com/opensearch-project/sql/actions/workflows/dco.yml
 [link-check-badge]: https://github.com/opensearch-project/sql/actions/workflows/link-checker.yml/badge.svg
 [link-check-link]: https://github.com/opensearch-project/sql/actions/workflows/link-checker.yml
 [bwc-tests-badge]: https://img.shields.io/badge/BWC%20tests-in%20progress-yellow

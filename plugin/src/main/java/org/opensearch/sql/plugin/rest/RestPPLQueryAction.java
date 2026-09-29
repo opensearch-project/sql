@@ -22,6 +22,7 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.action.RestCancellableNodeClient;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.datasources.exceptions.DataSourceClientException;
@@ -104,7 +105,8 @@ public class RestPPLQueryAction extends BaseRestHandler {
   @Override
   protected Set<String> responseParams() {
     Set<String> responseParams = new HashSet<>(super.responseParams());
-    responseParams.addAll(Arrays.asList("format", "mode", "sanitize", "fetch_size"));
+    responseParams.addAll(
+        Arrays.asList("format", "mode", "sanitize", "fetch_size", "include_metadata"));
     return responseParams;
   }
 
@@ -113,27 +115,32 @@ public class RestPPLQueryAction extends BaseRestHandler {
     TransportPPLQueryRequest transportPPLQueryRequest =
         new TransportPPLQueryRequest(PPLQueryRequestFactory.getPPLRequest(request));
 
-    return channel ->
-        nodeClient.execute(
-            PPLQueryAction.INSTANCE,
-            transportPPLQueryRequest,
-            new ActionListener<>() {
-              @Override
-              public void onResponse(TransportPPLQueryResponse response) {
-                sendResponse(channel, OK, response.getContentType(), response.getResult());
-              }
+    // RestCancellableNodeClient cancels the PPLQueryTask on client disconnect, which cascades to
+    // the analytics query + fragments.
+    return channel -> {
+      RestCancellableNodeClient cancellableClient =
+          new RestCancellableNodeClient(nodeClient, request.getHttpChannel());
+      cancellableClient.execute(
+          PPLQueryAction.INSTANCE,
+          transportPPLQueryRequest,
+          new ActionListener<>() {
+            @Override
+            public void onResponse(TransportPPLQueryResponse response) {
+              sendResponse(channel, OK, response.getContentType(), response.getResult());
+            }
 
-              @Override
-              public void onFailure(Exception e) {
-                RestStatus status = loggedErrorCode(e);
-                if (transportPPLQueryRequest.isExplainRequest()) {
-                  LOG.error("Error happened during explain (status {})", status, e);
-                } else {
-                  LOG.error("Error happened during query handling (status {})", status, e);
-                }
-                reportError(channel, e, status);
+            @Override
+            public void onFailure(Exception e) {
+              RestStatus status = loggedErrorCode(e);
+              if (transportPPLQueryRequest.isExplainRequest()) {
+                LOG.error("Error happened during explain (status {})", status, e);
+              } else {
+                LOG.error("Error happened during query handling (status {})", status, e);
               }
-            });
+              reportError(channel, e, status);
+            }
+          });
+    };
   }
 
   private void sendResponse(

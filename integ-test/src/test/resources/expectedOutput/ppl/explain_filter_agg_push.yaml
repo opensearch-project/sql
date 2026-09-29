@@ -1,9 +1,6 @@
 root:
-  name: ProjectOperator
-  description:
-    fields: "[avg_age, state, city]"
   children:
-    - name: OpenSearchIndexScan
+    - children: []
       description:
         request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account,\
           \ sourceBuilder={\"from\":0,\"size\":0,\"timeout\":\"1m\",\"query\":{\"\
@@ -15,4 +12,7 @@ root:
           missing_order\":\"first\",\"order\":\"asc\"}}}]},\"aggregations\":{\"avg_age\"\
           :{\"avg\":{\"field\":\"age\"}}}}}}, pitId=*, cursorKeepAlive=null, searchAfter=null,\
           \ searchResponse=null)"
-      children: []
+      name: OpenSearchIndexScan
+  description:
+    fields: "[avg_age, state, city]"
+  name: ProjectOperator

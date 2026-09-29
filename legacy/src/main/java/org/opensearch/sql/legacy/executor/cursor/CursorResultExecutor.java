@@ -115,7 +115,10 @@ public class CursorResultExecutor implements CursorRestExecutor {
     SearchSourceBuilder source = cursor.getSearchSourceBuilder();
     source.searchAfter(cursor.getSortFields());
     source.pointInTimeBuilder(new PointInTimeBuilder(pitId));
-    SearchRequest searchRequest = new SearchRequest();
+    // Scope continuation to the original query's indices; an empty-indices SearchRequest
+    // resolves to a wildcard under Security FGAC and gets denied on page 2.
+    String[] indices = cursor.getIndices();
+    SearchRequest searchRequest = new SearchRequest(indices == null ? new String[0] : indices);
     searchRequest.source(source);
     scrollResponse = client.search(searchRequest).actionGet();
 

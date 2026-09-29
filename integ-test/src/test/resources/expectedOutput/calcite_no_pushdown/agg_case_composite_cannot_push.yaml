@@ -7,7 +7,7 @@ calcite:
             CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
   physical: |
     EnumerableLimit(fetch=[10000])
-      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[0], expr#5=[=($t3, $t4)], expr#6=[null:BIGINT], expr#7=[CASE($t5, $t6, $t2)], expr#8=[CAST($t7):DOUBLE], expr#9=[/($t8, $t3)], avg_balance=[$t9], age_range=[$t0], state=[$t1])
-        EnumerableAggregate(group=[{0, 1}], agg#0=[$SUM0($2)], agg#1=[COUNT($2)])
+      EnumerableCalc(expr#0..2=[{inputs}], avg_balance=[$t2], age_range=[$t0], state=[$t1])
+        EnumerableAggregate(group=[{0, 1}], avg_balance=[AVG($2)])
           EnumerableCalc(expr#0..18=[{inputs}], expr#19=[35], expr#20=[<($t10, $t19)], expr#21=['u35':VARCHAR], expr#22=[CASE($t20, $t21, $t11)], age_range=[$t22], state=[$t9], balance=[$t7])
             CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])

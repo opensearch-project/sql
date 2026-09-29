@@ -6,6 +6,7 @@
 package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.legacy.TestsConstants.*;
+import static org.opensearch.sql.util.Capability.PAGINATION_CURSOR;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -15,7 +16,9 @@ import org.junit.After;
 import org.junit.Test;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
+@RequiresCapability(PAGINATION_CURSOR)
 public class PaginationWindowIT extends SQLIntegTestCase {
   @Override
   public void init() throws IOException {

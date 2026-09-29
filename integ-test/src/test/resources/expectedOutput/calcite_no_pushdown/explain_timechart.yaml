@@ -31,7 +31,7 @@ calcite:
                       EnumerableCalc(expr#0..15=[{inputs}], expr#16=[1], expr#17=['m'], expr#18=[SPAN($t1, $t16, $t17)], expr#19=[IS NOT NULL($t1)], expr#20=[IS NOT NULL($t7)], expr#21=[AND($t19, $t20)], host=[$t4], cpu_usage=[$t7], @timestamp0=[$t18], $condition=[$t21])
                         CalciteEnumerableIndexScan(table=[[OpenSearch, events]])
                 EnumerableSort(sort0=[$0], dir0=[ASC])
-                  EnumerableCalc(expr#0..2=[{inputs}], host=[$t0], $1=[$t2])
+                  EnumerableCalc(expr#0..2=[{inputs}], host=[$t0], _row_number_chart_=[$t2])
                     EnumerableWindow(window#0=[window(order by [1 DESC-nulls-last] rows between UNBOUNDED PRECEDING and CURRENT ROW aggs [ROW_NUMBER()])])
                       EnumerableAggregate(group=[{0}], __grand_total__=[SUM($2)])
                         EnumerableCalc(expr#0..3=[{inputs}], expr#4=[0], expr#5=[=($t3, $t4)], expr#6=[null:DOUBLE], expr#7=[CASE($t5, $t6, $t2)], expr#8=[/($t7, $t3)], proj#0..1=[{exprs}], avg(cpu_usage)=[$t8])

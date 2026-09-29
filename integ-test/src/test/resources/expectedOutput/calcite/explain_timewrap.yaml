@@ -1,0 +1,18 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(sort0=[$0], sort1=[$3], dir0=[ASC], dir1=[ASC], fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalSort(sort0=[$0], sort1=[$3], dir0=[ASC], dir1=[ASC])
+        LogicalProject(@timestamp=[FROM_UNIXTIME(+(-(MAX(CAST(UNIX_TIMESTAMP($0)):BIGINT NOT NULL) OVER (), MOD(MAX(CAST(UNIX_TIMESTAMP($0)):BIGINT NOT NULL) OVER (), 86400:BIGINT)), MOD(CAST(UNIX_TIMESTAMP($0)):BIGINT NOT NULL, 86400:BIGINT)))], avg(cpu_usage)=[$1], __base_offset__=[CAST(FLOOR(/(CAST(-(1720029600, MAX(CAST(UNIX_TIMESTAMP($0)):BIGINT NOT NULL) OVER ())):DOUBLE NOT NULL, 86400:BIGINT))):BIGINT NOT NULL], __period__=[+(/(-(MAX(CAST(UNIX_TIMESTAMP($0)):BIGINT NOT NULL) OVER (), CAST(UNIX_TIMESTAMP($0)):BIGINT NOT NULL), 86400), 1)])
+          LogicalSort(sort0=[$0], dir0=[ASC])
+            LogicalProject(@timestamp=[$0], avg(cpu_usage)=[$1])
+              LogicalAggregate(group=[{1}], avg(cpu_usage)=[AVG($0)])
+                LogicalProject(cpu_usage=[$7], @timestamp0=[SPAN($1, 6, 'h')])
+                  LogicalFilter(condition=[AND(IS NOT NULL($1), IS NOT NULL($7))])
+                    LogicalFilter(condition=[<=($1, TIMESTAMP('2024-07-03 18:00:00':VARCHAR))])
+                      CalciteLogicalIndexScan(table=[[OpenSearch, events]])
+  physical: |
+    CalciteEnumerableTopK(sort0=[$0], sort1=[$3], dir0=[ASC], dir1=[ASC], fetch=[10000])
+      EnumerableCalc(expr#0..3=[{inputs}], expr#4=[86400:BIGINT], expr#5=[MOD($t3, $t4)], expr#6=[-($t3, $t5)], expr#7=[+($t6, $t2)], expr#8=[FROM_UNIXTIME($t7)], expr#9=[1720029600:BIGINT], expr#10=[-($t9, $t3)], expr#11=[CAST($t10):DOUBLE NOT NULL], expr#12=[/($t11, $t4)], expr#13=[FLOOR($t12)], expr#14=[CAST($t13):BIGINT NOT NULL], expr#15=[-($t3, $t1)], expr#16=[/($t15, $t4)], expr#17=[1:BIGINT], expr#18=[+($t16, $t17)], @timestamp=[$t8], avg(cpu_usage)=[$t0], __base_offset__=[$t14], __period__=[$t18])
+        EnumerableWindow(window#0=[window(aggs [MAX($1)])])
+          EnumerableCalc(expr#0..1=[{inputs}], expr#2=[UNIX_TIMESTAMP($t0)], expr#3=[CAST($t2):BIGINT NOT NULL], expr#4=[86400:BIGINT], expr#5=[MOD($t3, $t4)], avg(cpu_usage)=[$t1], $1=[$t3], $2=[$t5])
+            CalciteEnumerableIndexScan(table=[[OpenSearch, events]], PushDownContext=[[FILTER->AND(<=($0, '2024-07-03 18:00:00'), IS NOT NULL($1)), AGGREGATION->rel#:LogicalAggregate.NONE.[](input=RelSubset#,group={1},avg(cpu_usage)=AVG($0)), SORT->[0]], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","query":{"bool":{"must":[{"range":{"@timestamp":{"from":null,"to":"2024-07-03T18:00:00.000Z","include_lower":true,"include_upper":true,"format":"date_time","boost":1.0}}},{"exists":{"field":"cpu_usage","boost":1.0}}],"adjust_pure_negative":true,"boost":1.0}},"aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"@timestamp0":{"date_histogram":{"field":"@timestamp","missing_bucket":false,"order":"asc","fixed_interval":"6h"}}}]},"aggregations":{"avg(cpu_usage)":{"avg":{"field":"cpu_usage"}}}}}}, requestedTotalSize=2147483647, pageSize=null, startFrom=0)])

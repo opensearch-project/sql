@@ -21,63 +21,71 @@ The `replace` command supports the following parameters.
 | `<replacement>` | Required | The text to use as the replacement. |
 | `<field-name>` | Required | One or more fields to which the replacement should be applied. |
 
-## Example 1: Replace text in one field  
+## Example 1: Replacing text in one field
 
 The following query replaces text in one field:
   
 ```ppl
-source=accounts
-| replace "IL" WITH "Illinois" IN state
-| fields state
+source=otellogs
+| replace "product-catalog" WITH "product catalog" IN `resource.attributes.service.name`
+| fields `resource.attributes.service.name`, severityText
+| head 5
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+----------+
-| state    |
-|----------|
-| Illinois |
-| TN       |
-| VA       |
-| MD       |
-+----------+
+fetched rows / total rows = 5/5
++----------------------------------+--------------+
+| resource.attributes.service.name | severityText |
+|----------------------------------+--------------|
+| frontend                         | INFO         |
+| cart                             | INFO         |
+| product catalog                  | WARN         |
+| payment                          | ERROR        |
+| cart                             | DEBUG        |
++----------------------------------+--------------+
 ```
   
 
-## Example 2: Replace text in multiple fields  
+## Example 2: Replacing text in multiple fields
 
 The following query replaces text in multiple fields:
   
 ```ppl
-source=accounts
-| replace "IL" WITH "Illinois" IN state, address
-| fields state, address
+source=otellogs
+| replace "ERROR" WITH "Error", "WARN" WITH "Warning" IN severityText
+| fields severityText, `resource.attributes.service.name`
+| head 5
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+----------+----------------------+
-| state    | address              |
-|----------+----------------------|
-| Illinois | 880 Holmes Lane      |
-| TN       | 671 Bristol Street   |
-| VA       | 789 Madison Street   |
-| MD       | 467 Hutchinson Court |
-+----------+----------------------+
+fetched rows / total rows = 5/5
++--------------+----------------------------------+
+| severityText | resource.attributes.service.name |
+|--------------+----------------------------------|
+| INFO         | frontend                         |
+| INFO         | cart                             |
+| Warning      | product-catalog                  |
+| Error        | payment                          |
+| DEBUG        | cart                             |
++--------------+----------------------------------+
 ```
   
 
-## Example 3: Use the replace command in a pipeline
+## Example 3: Using the replace command in a pipeline
 
 The following query uses the `replace` command with other commands in a query pipeline:
   
 ```ppl
-source=accounts
-| replace "IL" WITH "Illinois" IN state
+source=otellogs
+| where severityText = 'ERROR'
+| replace "frontend-proxy" WITH "frontend proxy" IN `resource.attributes.service.name`
+| fields `resource.attributes.service.name`, body
+| head 3
+```
 | where age > 30
 | fields state, age
 ```
@@ -86,17 +94,17 @@ The query returns the following results:
   
 ```text
 fetched rows / total rows = 3/3
-+----------+-----+
-| state    | age |
-|----------+-----|
-| Illinois | 32  |
-| TN       | 36  |
-| MD       | 33  |
-+----------+-----+
++----------------------------------+-------------------------------------------------------------------------+
+| resource.attributes.service.name | body                                                                    |
+|----------------------------------+-------------------------------------------------------------------------|
+| payment                          | Payment failed: connection timeout to payment gateway after 30000ms     |
+| checkout                         | NullPointerException in CheckoutService.placeOrder at line 142          |
+| payment                          | Out of memory: Java heap space - shutting down pod payment-6f8d4b-ht7q3 |
++----------------------------------+-------------------------------------------------------------------------+
 ```
   
 
-## Example 4: Replace text using multiple pattern-replacement pairs
+## Example 4: Replacing text using multiple pattern-replacement pairs
 
 The following query uses the `replace` command with multiple pattern and replacement pairs in a single replace command. The replacements are applied sequentially:
   
@@ -219,7 +227,7 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 9: Multiple wildcards for pattern transformation  
+## Example 9: Transforming patterns with multiple wildcards  
 
 The following query uses multiple wildcards to transform patterns. Each wildcard in the replacement is substituted with the corresponding captured value:
   
@@ -244,7 +252,7 @@ fetched rows / total rows = 4/4
 ```
   
 
-## Example 10: Replace any match with a fixed value  
+## Example 10: Replacing any match with a fixed value
 
 The following query shows that when the replacement contains zero wildcards, all matching values are replaced with the literal replacement string:
   
@@ -294,7 +302,7 @@ fetched rows / total rows = 4/4
 +------------+
 ```
 
-## Example 12: Replace text with literal asterisk symbols  
+## Example 12: Replacing text with literal asterisk symbols
 
 The following query shows how to insert literal asterisk symbols into text while using wildcards to preserve other parts of the pattern:
   

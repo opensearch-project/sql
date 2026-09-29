@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.datasource.model.DataSourceType;
+import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
 import org.opensearch.sql.spark.utils.SQLQueryUtils;
 
 /** Validate input SQL query based on the DataSourceType. */
@@ -38,10 +39,18 @@ public class SQLQueryValidator {
   }
 
   /**
-   * Validates a query from the Flint extension grammar. The method is currently a no-op.
+   * Validates a Flint extension query by extracting and validating any embedded SQL subquery. For
+   * CREATE MATERIALIZED VIEW statements, the inner query is validated against the same deny list
+   * used for standard SQL queries.
    *
    * @param sqlQuery The Flint extension query to be validated
    * @param dataSourceType The type of the datasource the query is being run on
    */
-  public void validateFlintExtensionQuery(String sqlQuery, DataSourceType dataSourceType) {}
+  public void validateFlintExtensionQuery(String sqlQuery, DataSourceType dataSourceType) {
+    IndexQueryDetails indexQueryDetails = SQLQueryUtils.extractIndexDetails(sqlQuery);
+    String mvQuery = indexQueryDetails.getMvQuery();
+    if (mvQuery != null) {
+      validate(mvQuery, dataSourceType);
+    }
+  }
 }

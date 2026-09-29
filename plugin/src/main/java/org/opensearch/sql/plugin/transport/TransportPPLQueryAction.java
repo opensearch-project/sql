@@ -10,12 +10,19 @@ import static org.opensearch.sql.executor.ExecutionEngine.ExplainResponse.normal
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
+import org.apache.calcite.rel.RelNode;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
+import org.opensearch.analytics.exec.QueryPlanExecutor;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Guice;
 import org.opensearch.common.inject.Inject;
@@ -27,14 +34,21 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
+import org.opensearch.sql.executor.AnalyzeResponse;
 import org.opensearch.sql.executor.ExecutionEngine;
+import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
+import org.opensearch.sql.monitor.profile.ProfileScope;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
+import org.opensearch.sql.opensearch.executor.tracing.TracingPhaseListener;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.plugin.config.EngineExtensionsHolder;
 import org.opensearch.sql.plugin.config.OpenSearchPluginModule;
+import org.opensearch.sql.plugin.rest.AnalyticsEngineFormatSupport;
+import org.opensearch.sql.plugin.rest.AnalyticsExecutorHolder;
+import org.opensearch.sql.plugin.rest.RestUnifiedQueryAction;
 import org.opensearch.sql.ppl.PPLService;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
@@ -47,6 +61,12 @@ import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.VisualizationResponseFormatter;
 import org.opensearch.sql.protocol.response.format.YamlResponseFormatter;
 import org.opensearch.tasks.Task;
+import org.opensearch.telemetry.tracing.Span;
+import org.opensearch.telemetry.tracing.SpanCreationContext;
+import org.opensearch.telemetry.tracing.SpanScope;
+import org.opensearch.telemetry.tracing.Tracer;
+import org.opensearch.telemetry.tracing.attributes.Attributes;
+import org.opensearch.telemetry.tracing.listener.TraceableActionListener;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -54,11 +74,21 @@ import org.opensearch.transport.client.node.NodeClient;
 public class TransportPPLQueryAction
     extends HandledTransportAction<ActionRequest, TransportPPLQueryResponse> {
 
+  private static final Logger LOG = LogManager.getLogger(TransportPPLQueryAction.class);
+
   private final Injector injector;
+
+  private final Tracer tracer;
 
   private final Supplier<Boolean> pplEnabled;
 
-  /** Constructor of TransportPPLQueryAction. */
+  /** Null when analytics-engine plugin is absent; set via {@link #setQueryPlanExecutor}. */
+  private volatile RestUnifiedQueryAction unifiedQueryHandler;
+
+  private final NodeClient clientRef;
+  private final ClusterService clusterServiceRef;
+  private final org.opensearch.sql.common.setting.Settings pluginSettingsRef;
+
   @Inject
   public TransportPPLQueryAction(
       TransportService transportService,
@@ -67,19 +97,26 @@ public class TransportPPLQueryAction
       ClusterService clusterService,
       DataSourceServiceImpl dataSourceService,
       org.opensearch.common.settings.Settings clusterSettings,
-      EngineExtensionsHolder extensionsHolder) {
+      EngineExtensionsHolder extensionsHolder,
+      Tracer tracer) {
     super(PPLQueryAction.NAME, transportService, actionFilters, TransportPPLQueryRequest::new);
+    this.clientRef = client;
+    this.clusterServiceRef = clusterService;
 
     ModulesBuilder modules = new ModulesBuilder();
-    modules.add(new OpenSearchPluginModule(extensionsHolder.engines()));
+    modules.add(new OpenSearchPluginModule(extensionsHolder.engines(), tracer));
+    org.opensearch.sql.common.setting.Settings pluginSettings =
+        new OpenSearchSettings(clusterService.getClusterSettings());
+    this.pluginSettingsRef = pluginSettings;
     modules.add(
         b -> {
           b.bind(NodeClient.class).toInstance(client);
-          b.bind(org.opensearch.sql.common.setting.Settings.class)
-              .toInstance(new OpenSearchSettings(clusterService.getClusterSettings()));
+          b.bind(org.opensearch.sql.common.setting.Settings.class).toInstance(pluginSettings);
           b.bind(DataSourceService.class).toInstance(dataSourceService);
         });
     this.injector = Guice.createInjector(modules);
+    this.tracer = tracer;
+    ProfileScope.installListener(new TracingPhaseListener(tracer));
     this.pplEnabled =
         () ->
             MULTI_ALLOW_EXPLICIT_INDEX.get(clusterSettings)
@@ -87,6 +124,40 @@ public class TransportPPLQueryAction
                     injector
                         .getInstance(org.opensearch.sql.common.setting.Settings.class)
                         .getSettingValue(Settings.Key.PPL_ENABLED);
+  }
+
+  /** Invoked by Guice iff analytics-engine bound {@code QueryPlanExecutor}. */
+  @Inject(optional = true)
+  public void setQueryPlanExecutor(
+      QueryPlanExecutor<RelNode, Iterable<Object[]>> queryPlanExecutor) {
+    AnalyticsExecutorHolder.set(queryPlanExecutor);
+    // Build the SQL router once both bridges are populated (engine context might arrive
+    // first or last depending on Guice ordering). buildUnifiedQueryHandler is idempotent.
+    buildUnifiedQueryHandlerIfReady();
+  }
+
+  /** Invoked by Guice iff analytics-engine bound {@code EngineContextProvider}. */
+  @Inject(optional = true)
+  public void setEngineContext(org.opensearch.analytics.EngineContextProvider contextProvider) {
+    org.opensearch.sql.plugin.rest.EngineContextProviderHolder.set(contextProvider);
+    buildUnifiedQueryHandlerIfReady();
+  }
+
+  private void buildUnifiedQueryHandlerIfReady() {
+    QueryPlanExecutor<RelNode, Iterable<Object[]>> executor = AnalyticsExecutorHolder.get();
+    org.opensearch.analytics.EngineContextProvider contextProvider =
+        org.opensearch.sql.plugin.rest.EngineContextProviderHolder.get();
+    if (executor != null && contextProvider != null) {
+      this.unifiedQueryHandler =
+          new RestUnifiedQueryAction(
+              clientRef,
+              clusterServiceRef,
+              executor,
+              contextProvider,
+              pluginSettingsRef,
+              new org.opensearch.sql.opensearch.executor.ThreadPoolExecutionDispatcher(
+                  clientRef.threadPool(), pluginSettingsRef));
+    }
   }
 
   /**
@@ -120,21 +191,120 @@ public class TransportPPLQueryAction
 
     QueryContext.addRequestId();
 
-    PPLService pplService = injector.getInstance(PPLService.class);
     // in order to use PPL service, we need to convert TransportPPLQueryRequest to PPLQueryRequest
     PPLQueryRequest transformedRequest = transportRequest.toPPLQueryRequest();
     QueryContext.setProfile(transformedRequest.profile());
-    ActionListener<TransportPPLQueryResponse> clearingListener = wrapWithProfilingClear(listener);
+    // Only the JSON shape carries warnings; gate partial results on it so CSV/RAW/VIZ never drop
+    // data silently. Carried on the request (not Log4j ThreadContext) so it survives the
+    // transport→worker handoff, which the security plugin's interceptor does not preserve.
+    transformedRequest.warningsSupported(warningsSupported(transformedRequest));
+    // The per-request partial-result override (e.g. a Dashboards toggle) rides on the request →
+    // plan → worker thread (see PPLService/QueryPlan), not Log4j ThreadContext, for the same
+    // handoff-survival reason as warningsSupported. null defers to the cluster setting.
 
-    if (transformedRequest.isExplainRequest()) {
-      pplService.explain(
-          transformedRequest, createExplainResponseListener(transformedRequest, clearingListener));
-    } else {
-      pplService.execute(
-          transformedRequest,
-          createListener(transformedRequest, clearingListener),
-          createExplainResponseListener(transformedRequest, clearingListener));
+    // Start root span with OTel DB semantic convention attributes
+    Span rootSpan =
+        tracer.startSpan(
+            SpanCreationContext.client()
+                .name("opensearch.query")
+                .attributes(
+                    Attributes.create()
+                        .addAttribute("db.system.name", "opensearch")
+                        .addAttribute("db.query.type", "ppl")
+                        .addAttribute("db.query.id", QueryContext.getRequestId())
+                        .addAttribute(
+                            "db.operation.name",
+                            transformedRequest.isExplainRequest() ? "EXPLAIN" : "EXECUTE")));
+
+    // Put span in scope so ThreadContext propagation captures it
+    SpanScope spanScope = tracer.withSpanInScope(rootSpan);
+
+    // Trace wrapper: ends span in async callback, sets error on failure.
+    ActionListener<TransportPPLQueryResponse> tracedListener =
+        TraceableActionListener.create(listener, rootSpan, tracer);
+    ActionListener<TransportPPLQueryResponse> clearingListener =
+        wrapWithProfilingClear(tracedListener);
+
+    try {
+      // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices.
+      if (unifiedQueryHandler != null
+          && unifiedQueryHandler.isAnalyticsIndex(transformedRequest.getRequest(), QueryType.PPL)) {
+        LOG.info("[{}] Routing PPL query to analytics engine", QueryContext.getRequestId());
+        // Pass this PPL task so the analytics engine links its query task to it for cancellation.
+        if (transformedRequest.isExplainRequest()) {
+          unifiedQueryHandler.explain(
+              transformedRequest.getRequest(),
+              QueryType.PPL,
+              transformedRequest.mode(),
+              task,
+              createExplainResponseListener(transformedRequest, clearingListener));
+        } else {
+          // Analytics route only emits JSON; reject unsupported formats (e.g. csv) with a 4xx.
+          try {
+            AnalyticsEngineFormatSupport.validateFormat(format(transformedRequest));
+          } catch (Exception e) {
+            clearingListener.onFailure(e);
+            return;
+          }
+          unifiedQueryHandler.execute(
+              transformedRequest.getRequest(),
+              QueryType.PPL,
+              transformedRequest.profile(),
+              transformedRequest.getFetchSize(),
+              task,
+              clearingListener);
+        }
+        return;
+      }
+
+      Consumer<String> anonymizedQuerySink =
+          anonymized -> rootSpan.addAttribute("db.query.text", anonymized);
+      PPLService pplService = injector.getInstance(PPLService.class);
+      if (transformedRequest.isExplainRequest()) {
+        pplService.explain(
+            transformedRequest,
+            createExplainResponseListener(transformedRequest, clearingListener),
+            anonymizedQuerySink);
+      } else if (transformedRequest.analyze()) {
+        pplService.analyze(
+            transformedRequest,
+            createAnalyzeResponseListener(transformedRequest, clearingListener),
+            anonymizedQuerySink);
+      } else {
+        pplService.execute(
+            transformedRequest,
+            createListener(transformedRequest, clearingListener),
+            createExplainResponseListener(transformedRequest, clearingListener),
+            anonymizedQuerySink);
+      }
+    } catch (Exception e) {
+      clearingListener.onFailure(e);
+    } finally {
+      spanScope.close();
     }
+  }
+
+  private ResponseListener<AnalyzeResponse> createAnalyzeResponseListener(
+      PPLQueryRequest request, ActionListener<TransportPPLQueryResponse> listener) {
+    return new ResponseListener<AnalyzeResponse>() {
+      @Override
+      public void onResponse(AnalyzeResponse response) {
+        JsonResponseFormatter<AnalyzeResponse> formatter =
+            new JsonResponseFormatter<>(PRETTY) {
+              @Override
+              protected Object buildJsonObject(AnalyzeResponse response) {
+                return response;
+              }
+            };
+        listener.onResponse(
+            new TransportPPLQueryResponse(formatter.format(response), formatter.contentType()));
+      }
+
+      @Override
+      public void onFailure(Exception e) {
+        listener.onFailure(e);
+      }
+    };
   }
 
   /**
@@ -163,6 +333,18 @@ public class TransportPPLQueryAction
               new JsonResponseFormatter<>(PRETTY) {
                 @Override
                 protected Object buildJsonObject(ExecutionEngine.ExplainResponse response) {
+                  // For json_tree format, use parsed tree objects instead of strings
+                  if (response.getCalcite() != null
+                      && response.getCalcite().getLogicalTree() != null) {
+                    Map<String, Object> result = new LinkedHashMap<>();
+                    Map<String, Object> calcite = new LinkedHashMap<>();
+                    calcite.put("logical", response.getCalcite().getLogicalTree());
+                    if (response.getCalcite().getPhysicalTree() != null) {
+                      calcite.put("physical", response.getCalcite().getPhysicalTree());
+                    }
+                    result.put("calcite", calcite);
+                    return result;
+                  }
                   return response;
                 }
               };
@@ -198,7 +380,11 @@ public class TransportPPLQueryAction
         String responseContent =
             formatter.format(
                 new QueryResult(
-                    response.getSchema(), response.getResults(), response.getCursor(), PPL_SPEC));
+                    response.getSchema(),
+                    response.getResults(),
+                    response.getCursor(),
+                    PPL_SPEC,
+                    response.getWarnings()));
         listener.onResponse(new TransportPPLQueryResponse(responseContent));
       }
 
@@ -220,6 +406,22 @@ public class TransportPPLQueryAction
     }
   }
 
+  /**
+   * Whether the requested response format carries a warnings channel. Only the JSON shape (built by
+   * {@code SimpleJsonResponseFormatter} -- the fallback for anything that is not CSV/RAW/VIZ) emits
+   * warnings; the others have no slot for them. Mirrors the format branching in {@link
+   * #createListener}. Explain requests are excluded up front: their {@code format} is an
+   * explain-only value (e.g. {@code json}/{@code yaml}) that {@link #format} cannot resolve, and an
+   * explain response never carries query warnings.
+   */
+  private boolean warningsSupported(PPLQueryRequest pplRequest) {
+    if (pplRequest.isExplainRequest()) {
+      return false;
+    }
+    Format format = format(pplRequest);
+    return !(format.equals(Format.CSV) || format.equals(Format.RAW) || format.equals(Format.VIZ));
+  }
+
   private ActionListener<TransportPPLQueryResponse> wrapWithProfilingClear(
       ActionListener<TransportPPLQueryResponse> delegate) {
     return new ActionListener<>() {
@@ -228,7 +430,7 @@ public class TransportPPLQueryAction
         try {
           delegate.onResponse(transportPPLQueryResponse);
         } finally {
-          QueryProfiling.clear();
+          clearRequestScopedState();
         }
       }
 
@@ -237,9 +439,19 @@ public class TransportPPLQueryAction
         try {
           delegate.onFailure(e);
         } finally {
-          QueryProfiling.clear();
+          clearRequestScopedState();
         }
       }
     };
+  }
+
+  /**
+   * Clear the per-request state carried in {@link QueryContext}'s thread-locals. Transport threads
+   * are pooled, so anything left behind is inherited by the next query to run on this thread. (The
+   * partial-result override no longer lives here -- it rides on the plan to the worker thread and
+   * is reset per query in {@code CalcitePlanContext}.)
+   */
+  private static void clearRequestScopedState() {
+    QueryProfiling.clear();
   }
 }

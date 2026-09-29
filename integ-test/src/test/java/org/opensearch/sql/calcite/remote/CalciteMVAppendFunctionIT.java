@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.util.Capability.ARRAY_HIGHER_ORDER_FUNC;
 import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
@@ -13,6 +14,7 @@ import java.util.List;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalciteMVAppendFunctionIT extends PPLIntegTestCase {
   @Override
@@ -80,6 +82,7 @@ public class CalciteMVAppendFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ARRAY_HIGHER_ORDER_FUNC)
   public void testMvappendWithMixedTypes() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -107,8 +110,8 @@ public class CalciteMVAppendFunctionIT extends PPLIntegTestCase {
         executeQuery(
             source(
                 TEST_INDEX_BANK,
-                "eval result = mvappend(firstname, lastname) | head 1 | fields firstname, lastname,"
-                    + " result"));
+                "eval result = mvappend(firstname, lastname) | sort account_number | head 1 |"
+                    + " fields firstname, lastname, result"));
 
     verifySchema(
         actual,
@@ -122,18 +125,24 @@ public class CalciteMVAppendFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ARRAY_HIGHER_ORDER_FUNC)
   public void testMvappendWithFieldsAndLiterals() throws IOException {
+    // `head` without a preceding sort selects an undefined row, so the asserted age only holds by
+    // accident of scan order. Sort by account_number as the neighbouring real-field tests do; the
+    // expected values are unchanged.
     JSONObject actual =
         executeQuery(
             source(
                 TEST_INDEX_BANK,
-                "eval result = mvappend(age, 'years', 'old') | head 1 | fields age, result"));
+                "eval result = mvappend(age, 'years', 'old') | sort account_number | head 1 |"
+                    + " fields age, result"));
 
     verifySchema(actual, schema("age", "int"), schema("result", "array"));
     verifyDataRows(actual, rows(32, List.of(32, "years", "old")));
   }
 
   @Test
+  @RequiresCapability(ARRAY_HIGHER_ORDER_FUNC)
   public void testMvappendWithEmptyArray() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -179,7 +188,7 @@ public class CalciteMVAppendFunctionIT extends PPLIntegTestCase {
             source(
                 TEST_INDEX_BANK,
                 "eval combined = mvappend(firstname, lastname) | where array_length(combined) = 2 |"
-                    + " head 1 | fields firstname, lastname, combined"));
+                    + " sort account_number | head 1 | fields firstname, lastname, combined"));
 
     verifySchema(
         actual,
@@ -198,14 +207,15 @@ public class CalciteMVAppendFunctionIT extends PPLIntegTestCase {
         executeQuery(
             source(
                 TEST_INDEX_BANK,
-                "eval result = mvappend(array(age), array(age * 2), age + 10) | head 1 | fields"
-                    + " age, result"));
+                "eval result = mvappend(array(age), array(age * 2), age + 10) | sort"
+                    + " account_number | head 1 | fields age, result"));
 
     verifySchema(actual, schema("age", "int"), schema("result", "array"));
     verifyDataRows(actual, rows(32, List.of(32, 64, 42)));
   }
 
   @Test
+  @RequiresCapability(ARRAY_HIGHER_ORDER_FUNC)
   public void testMvappendWithNull() throws IOException {
     JSONObject actual =
         executeQuery(

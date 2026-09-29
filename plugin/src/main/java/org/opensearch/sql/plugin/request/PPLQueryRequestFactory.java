@@ -30,7 +30,10 @@ public class PPLQueryRequestFactory {
   private static final String DEFAULT_EXPLAIN_MODE = "standard";
   private static final String QUERY_PARAMS_PRETTY = "pretty";
   private static final String QUERY_PARAMS_PROFILE = "profile";
+  private static final String QUERY_PARAMS_ANALYZE = "analyze";
   private static final String QUERY_PARAMS_FETCH_SIZE = "fetch_size";
+  private static final String QUERY_PARAMS_INCLUDE_METADATA = "include_metadata";
+  private static final String QUERY_PARAMS_PARTIAL_RESULT = "partial_result";
 
   /**
    * Build {@link PPLQueryRequest} from {@link RestRequest}.
@@ -82,9 +85,12 @@ public class PPLQueryRequestFactory {
     try {
       jsonContent = new JSONObject(content);
       boolean profileRequested = jsonContent.optBoolean(QUERY_PARAMS_PROFILE, false);
+      boolean analyzeRequested = jsonContent.optBoolean(QUERY_PARAMS_ANALYZE, false);
       String queryString = jsonContent.optString(PPL_FIELD_NAME, "");
-      boolean enableProfile =
-          profileRequested && isProfileSupported(restRequest.path(), format, queryString);
+      // if both profile and analyze are requested, profile overrides analyze
+      boolean profileSupported = isProfileSupported(restRequest.path(), format, queryString);
+      boolean enableProfile = profileRequested && profileSupported;
+      boolean enableAnalyze = analyzeRequested && !profileRequested && profileSupported;
       // Support fetch_size as a URL parameter if not already in the JSON body
       if (!jsonContent.has(QUERY_PARAMS_FETCH_SIZE)
           && restRequest.params().containsKey(QUERY_PARAMS_FETCH_SIZE)) {
@@ -97,6 +103,13 @@ public class PPLQueryRequestFactory {
               "Invalid fetch_size parameter: must be a valid integer", e);
         }
       }
+      // Support include_metadata as a URL parameter if not already in the JSON body
+      if (!jsonContent.has(QUERY_PARAMS_INCLUDE_METADATA)
+          && restRequest.params().containsKey(QUERY_PARAMS_INCLUDE_METADATA)) {
+        jsonContent.put(
+            QUERY_PARAMS_INCLUDE_METADATA,
+            Boolean.parseBoolean(restRequest.params().get(QUERY_PARAMS_INCLUDE_METADATA)));
+      }
       PPLQueryRequest pplRequest =
           new PPLQueryRequest(
               jsonContent.getString(PPL_FIELD_NAME),
@@ -104,7 +117,8 @@ public class PPLQueryRequestFactory {
               restRequest.path(),
               format.getFormatName(),
               explainMode,
-              enableProfile);
+              enableProfile,
+              enableAnalyze);
       // set sanitize option if csv format
       if (format.equals(Format.CSV)) {
         pplRequest.sanitize(getSanitizeOption(restRequest.params()));
@@ -117,6 +131,11 @@ public class PPLQueryRequestFactory {
       String queryId = jsonContent.optString("queryId", null);
       if (queryId != null) {
         pplRequest.queryId(queryId);
+      }
+      // Set the override only when present, so a request that omits it defers to the cluster
+      // setting.
+      if (jsonContent.has(QUERY_PARAMS_PARTIAL_RESULT)) {
+        pplRequest.partialResult(jsonContent.optBoolean(QUERY_PARAMS_PARTIAL_RESULT));
       }
       return pplRequest;
     } catch (JSONException e) {

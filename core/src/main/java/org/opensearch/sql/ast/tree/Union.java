@@ -21,15 +21,33 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 @RequiredArgsConstructor
 @AllArgsConstructor
 public class Union extends UnresolvedPlan {
+  /** Input subplans (operands) combined by this UNION. */
   private final List<UnresolvedPlan> datasets;
 
+  /** Whether inputs are unified to a common schema by name (PPL) vs combined positionally (SQL). */
+  private boolean unifySchema;
+
+  /** Optional cap on output rows (PPL {@code maxout}); {@code null} if unbounded. */
   private Integer maxout;
+
+  /** Whether duplicate rows are removed: SQL {@code UNION} sets it, {@code UNION ALL} does not. */
+  private boolean distinct;
+
+  /** PPL constructor: UNION ALL with schema unification. */
+  public Union(List<UnresolvedPlan> datasets, Integer maxout) {
+    this(datasets, true, maxout, false);
+  }
+
+  /** SQL constructor: inputs combined positionally, with or without deduplication. */
+  public Union(List<UnresolvedPlan> datasets, boolean distinct) {
+    this(datasets, false, null, distinct);
+  }
 
   @Override
   public UnresolvedPlan attach(UnresolvedPlan child) {
     List<UnresolvedPlan> newDatasets =
         ImmutableList.<UnresolvedPlan>builder().add(child).addAll(datasets).build();
-    return new Union(newDatasets, maxout);
+    return new Union(newDatasets, unifySchema, maxout, distinct);
   }
 
   @Override

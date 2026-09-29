@@ -86,6 +86,26 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testTimechartAvgByTextHost() throws IOException {
+    // `host` is mapped as text with no .keyword sub-field, so this timechart pushes down via the
+    // text-field aggregation path (composite terms(script over _source) + date_histogram, with
+    // avg(cpu_usage) as a numeric metric on the composite).
+    JSONObject result = executeQuery("source=events | timechart span=1m avg(cpu_usage) by host");
+    verifySchema(
+        result,
+        schema("@timestamp", "timestamp"),
+        schema("host", "string"),
+        schema("avg(cpu_usage)", "double"));
+    verifyDataRows(
+        result,
+        rows("2024-07-01 00:00:00", "web-01", 45.2),
+        rows("2024-07-01 00:01:00", "web-02", 38.7),
+        rows("2024-07-01 00:02:00", "web-01", 55.3),
+        rows("2024-07-01 00:03:00", "db-01", 42.1),
+        rows("2024-07-01 00:04:00", "web-02", 41.8));
+  }
+
+  @Test
   public void testTimechartWithMinuteSpanNoGroupBy() throws IOException {
     JSONObject result = executeQuery("source=events | timechart span=1m avg(cpu_usage)");
     verifySchema(result, schema("@timestamp", "timestamp"), schema("avg(cpu_usage)", "double"));

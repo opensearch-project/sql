@@ -17,16 +17,21 @@ import java.util.Stack;
 import java.util.function.BiFunction;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexCorrelVariable;
 import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.FrameworkConfig;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.sql.ast.expression.AggregateFunction;
+import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelBuilder;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.executor.Warning;
 import org.opensearch.sql.expression.function.FunctionProperties;
 
 public class CalcitePlanContext {
@@ -41,6 +46,50 @@ public class CalcitePlanContext {
 
   /** This thread local variable is only used to skip script encoding in script pushdown. */
   public static final ThreadLocal<Boolean> skipEncoding = ThreadLocal.withInitial(() -> false);
+
+  /** When true, the execution engine strips all-null columns from the result (used by timewrap). */
+  public static final ThreadLocal<Boolean> stripNullColumns = ThreadLocal.withInitial(() -> false);
+
+  /**
+   * Timewrap span unit name for column renaming in the execution engine. When set, the execution
+   * engine uses __base_offset__ to compute absolute period names (e.g., "501days_before").
+   */
+  public static final ThreadLocal<String> timewrapUnitName = new ThreadLocal<>();
+
+  /** Timewrap series mode: "relative", "short", or "exact". */
+  public static final ThreadLocal<String> timewrapSeries = new ThreadLocal<>();
+
+  /**
+   * Thread-local tracking which pool executed this query ("sql-worker" or "sql-complex-worker").
+   */
+  public static final ThreadLocal<String> executionPool = new ThreadLocal<>();
+
+  /**
+   * Non-fatal warnings raised during planning (e.g. a partial result over a subset of indices) to
+   * be attached to the query response by the execution engine. Drained in {@code
+   * OpenSearchExecutionEngine.buildResultSet} and cleared with the other lifecycle signals so it
+   * never leaks onto the next query on a pooled worker thread.
+   */
+  private static final ThreadLocal<List<Warning>> pendingWarnings =
+      ThreadLocal.withInitial(ArrayList::new);
+
+  /**
+   * Whether the current query's response format can carry a warnings channel. Set on the worker
+   * thread from the plan (see {@code QueryPlan#execute}) rather than the transport thread, so the
+   * partial-result gate survives the transport→worker handoff — the security plugin's interceptor
+   * drops Log4j {@code ThreadContext}, which is where this used to live. Cleared per query.
+   */
+  private static final ThreadLocal<Boolean> warningsSupported =
+      ThreadLocal.withInitial(() -> false);
+
+  /**
+   * Per-request partial-result override, carried off Log4j {@code ThreadContext} onto the plan (see
+   * {@code QueryPlan#execute}) for the same reason as {@link #warningsSupported}: the security
+   * plugin's interceptor drops {@code ThreadContext} on the transport→worker handoff. {@code null}
+   * defers to the cluster setting; {@code true}/{@code false} force partial mode on/off for this
+   * query. Cleared per query.
+   */
+  private static final ThreadLocal<Boolean> partialResultOverride = new ThreadLocal<>();
 
   /** Thread-local switch that tells whether the current query prefers legacy behavior. */
   private static final ThreadLocal<Boolean> legacyPreferredFlag =
@@ -59,10 +108,46 @@ public class CalcitePlanContext {
    */
   @Getter @Setter private boolean isProjectVisited = false;
 
+  /**
+   * Whether to include metadata fields like _id, _index, _score in the result. When true, metadata
+   * fields are included in wildcard field selections. When false (default), metadata fields are
+   * excluded.
+   */
+  @Getter @Setter private boolean includeMetadata = false;
+
   private final Stack<RexCorrelVariable> correlVar = new Stack<>();
   private final Stack<List<RexNode>> windowPartitions = new Stack<>();
 
   @Getter public Map<String, RexLambdaRef> rexLambdaRefMap;
+
+  /**
+   * Foreach placeholder bindings active in this context, keyed by upper-cased placeholder name.
+   * Multifield mode activates bindings directly (placeholders resolve against the current row);
+   * collection modes stage bindings via {@link #stageForeachLambdaBindings} instead, so they only
+   * become active inside the lambda context cloned for the generated {@code reduce} call.
+   */
+  @Getter private Map<String, ForeachBinding> foreachBindings = new HashMap<>();
+
+  /** Bare identifiers enabled by explicit options such as {@code itemstr=ITEM}. */
+  @Getter private Map<String, ForeachBinding> foreachIdentifierBindings = new HashMap<>();
+
+  /** Bindings that become active in lambda contexts cloned from this one. */
+  private Map<String, ForeachBinding> stagedForeachLambdaBindings = new HashMap<>();
+
+  /** Bare identifier bindings staged for a generated foreach lambda. */
+  private Map<String, ForeachBinding> stagedForeachIdentifierBindings = new HashMap<>();
+
+  /** Expressions computed by earlier assignments in the same foreach eval iteration. */
+  @Getter private Map<String, RexNode> foreachComputedBindings = new HashMap<>();
+
+  /**
+   * Maps AggregateFunction AST nodes to their output field index for HAVING/post-aggregate
+   * resolution.
+   */
+  @Getter private final Map<AggregateFunction, Integer> aggregateOutputIndex = new HashMap<>();
+
+  /** Maps GROUP BY Function AST nodes to their output field index for post-aggregate resolution. */
+  @Getter private final Map<Function, Integer> groupKeyOutputIndex = new HashMap<>();
 
   /**
    * List of captured variables from outer scope for lambda functions. When a lambda body references
@@ -99,9 +184,16 @@ public class CalcitePlanContext {
     this.rexBuilder = parent.rexBuilder; // Share the same rexBuilder
     this.functionProperties = parent.functionProperties;
     this.highlightConfig = parent.highlightConfig;
+    this.includeMetadata = parent.includeMetadata; // Preserve parent's metadata setting
     this.rexLambdaRefMap = new HashMap<>(); // New map for lambda variables
     this.capturedVariables = new ArrayList<>(); // New list for captured variables
     this.inLambdaContext = true; // Mark that we're inside a lambda
+    // Active bindings carry over; staged bindings become active inside the lambda.
+    this.foreachBindings = new HashMap<>(parent.foreachBindings);
+    this.foreachBindings.putAll(parent.stagedForeachLambdaBindings);
+    this.foreachIdentifierBindings = new HashMap<>(parent.foreachIdentifierBindings);
+    this.foreachIdentifierBindings.putAll(parent.stagedForeachIdentifierBindings);
+    this.foreachComputedBindings = new HashMap<>(parent.foreachComputedBindings);
   }
 
   public RexNode resolveJoinCondition(
@@ -147,6 +239,13 @@ public class CalcitePlanContext {
     return new CalcitePlanContext(config, sysLimit, queryType);
   }
 
+  public static CalcitePlanContext create(
+      FrameworkConfig config, SysLimit sysLimit, QueryType queryType, boolean includeMetadata) {
+    CalcitePlanContext context = new CalcitePlanContext(config, sysLimit, queryType);
+    context.setIncludeMetadata(includeMetadata);
+    return context;
+  }
+
   /**
    * Executes {@code action} with the thread-local legacy flag set according to the supplied
    * settings.
@@ -158,6 +257,7 @@ public class CalcitePlanContext {
       action.run();
     } finally {
       legacyPreferredFlag.remove();
+      clearTimewrapSignals();
     }
   }
 
@@ -166,6 +266,166 @@ public class CalcitePlanContext {
    */
   public static boolean isLegacyPreferred() {
     return legacyPreferredFlag.get();
+  }
+
+  /**
+   * Resets the timewrap thread-locals set by {@code CalciteRelNodeVisitor.visitTimewrap}. Called
+   * from the query lifecycle's {@code finally} on every path (execute, explain, and exceptions) so
+   * the signals never leak onto the next query that reuses this pooled worker thread.
+   */
+  public static void clearTimewrapSignals() {
+    stripNullColumns.set(false);
+    timewrapUnitName.set(null);
+    timewrapSeries.set(null);
+    executionPool.set(null);
+    pendingWarnings.remove();
+    warningsSupported.set(false);
+    partialResultOverride.remove();
+  }
+
+  /** Records a non-fatal warning to be attached to the response for the current query. */
+  public static void addWarning(Warning warning) {
+    pendingWarnings.get().add(warning);
+  }
+
+  /** Records whether the current query's response format can surface warnings. */
+  public static void setWarningsSupported(boolean supported) {
+    warningsSupported.set(supported);
+  }
+
+  /**
+   * @return whether the current query's response format can surface warnings; false when unset, so
+   *     a caller that never declared support cannot get a silent partial result.
+   */
+  public static boolean isWarningsSupported() {
+    return warningsSupported.get();
+  }
+
+  /**
+   * Records the per-request partial-result override for the current query. {@code null} defers to
+   * the cluster setting; {@code true}/{@code false} force partial mode on/off.
+   */
+  public static void setPartialResultOverride(Boolean override) {
+    partialResultOverride.set(override);
+  }
+
+  /**
+   * @return the per-request partial-result override, or {@code null} to defer to the cluster
+   *     setting.
+   */
+  public static Boolean getPartialResultOverride() {
+    return partialResultOverride.get();
+  }
+
+  /**
+   * Returns and clears the warnings collected for the current query, de-duplicated by value. The
+   * planner may fire a rule that raises a warning more than once for equivalent plan alternatives,
+   * so identical warnings are collapsed to one.
+   */
+  public static List<Warning> drainWarnings() {
+    List<Warning> warnings = pendingWarnings.get();
+    if (warnings.isEmpty()) {
+      return List.of();
+    }
+    List<Warning> drained = warnings.stream().distinct().toList();
+    pendingWarnings.remove();
+    return drained;
+  }
+
+  /**
+   * Snapshot of all thread-local state in CalcitePlanContext. Used when dispatching queries to the
+   * complex worker pool — capture state on the caller thread, restore on the worker thread.
+   */
+  public static class ThreadLocalSnapshot {
+    final boolean skipEncoding;
+    final boolean stripNullColumns;
+    final String timewrapUnitName;
+    final String timewrapSeries;
+    final String executionPool;
+    final boolean warningsSupported;
+    final Boolean partialResultOverride;
+
+    private ThreadLocalSnapshot(
+        boolean skipEncoding,
+        boolean stripNullColumns,
+        String timewrapUnitName,
+        String timewrapSeries,
+        String executionPool,
+        boolean warningsSupported,
+        Boolean partialResultOverride) {
+      this.skipEncoding = skipEncoding;
+      this.stripNullColumns = stripNullColumns;
+      this.timewrapUnitName = timewrapUnitName;
+      this.timewrapSeries = timewrapSeries;
+      this.executionPool = executionPool;
+      this.warningsSupported = warningsSupported;
+      this.partialResultOverride = partialResultOverride;
+    }
+  }
+
+  /** Capture current thread-local state for cross-thread propagation. */
+  public static ThreadLocalSnapshot snapshotThreadLocals() {
+    return new ThreadLocalSnapshot(
+        skipEncoding.get(),
+        stripNullColumns.get(),
+        timewrapUnitName.get(),
+        timewrapSeries.get(),
+        executionPool.get(),
+        warningsSupported.get(),
+        partialResultOverride.get());
+  }
+
+  /** Restore thread-local state from a snapshot. */
+  public static void restoreThreadLocals(ThreadLocalSnapshot snapshot) {
+    skipEncoding.set(snapshot.skipEncoding);
+    stripNullColumns.set(snapshot.stripNullColumns);
+    timewrapUnitName.set(snapshot.timewrapUnitName);
+    timewrapSeries.set(snapshot.timewrapSeries);
+    executionPool.set(snapshot.executionPool);
+    warningsSupported.set(snapshot.warningsSupported);
+    partialResultOverride.set(snapshot.partialResultOverride);
+  }
+
+  public void pushForeachBindings(
+      Map<String, ForeachBinding> bindings, Map<String, ForeachBinding> identifierBindings) {
+    foreachBindings = new HashMap<>(bindings);
+    foreachIdentifierBindings = new HashMap<>(identifierBindings);
+  }
+
+  public void stageForeachLambdaBindings(
+      Map<String, ForeachBinding> bindings, Map<String, ForeachBinding> identifierBindings) {
+    stagedForeachLambdaBindings = new HashMap<>(bindings);
+    stagedForeachIdentifierBindings = new HashMap<>(identifierBindings);
+  }
+
+  public void putForeachComputedBinding(String name, RexNode expression) {
+    foreachComputedBindings.put(name.toUpperCase(java.util.Locale.ROOT), expression);
+  }
+
+  public void clearForeachBindings() {
+    foreachBindings.clear();
+    foreachIdentifierBindings.clear();
+    stagedForeachLambdaBindings.clear();
+    stagedForeachIdentifierBindings.clear();
+    foreachComputedBindings.clear();
+  }
+
+  /**
+   * A foreach placeholder binding. {@code FIELD} resolves to the named row field, {@code LITERAL}
+   * to a string literal, and {@code PAIR_SLOT} to slot {@code pairIndex} (typed {@code pairType})
+   * of the named lambda pair variable.
+   */
+  public record ForeachBinding(
+      String value, ForeachBindingType type, int pairIndex, @Nullable RelDataType pairType) {
+    public ForeachBinding(String value, ForeachBindingType type) {
+      this(value, type, -1, null);
+    }
+  }
+
+  public enum ForeachBindingType {
+    FIELD,
+    LITERAL,
+    PAIR_SLOT
   }
 
   public void putRexLambdaRefMap(Map<String, RexLambdaRef> candidateMap) {

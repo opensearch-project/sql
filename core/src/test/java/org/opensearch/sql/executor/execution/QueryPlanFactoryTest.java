@@ -59,14 +59,14 @@ class QueryPlanFactoryTest {
 
   @Test
   public void create_from_query_should_success() {
-    Statement query = new Query(plan, 0, queryType);
+    Statement query = new Query(plan, 0, queryType, false);
     AbstractPlan queryExecution = factory.create(query, queryListener, explainListener);
     assertTrue(queryExecution instanceof QueryPlan);
   }
 
   @Test
   public void create_from_explain_should_success() {
-    Statement query = new Explain(new Query(plan, 0, queryType), queryType);
+    Statement query = new Explain(new Query(plan, 0, queryType, false), queryType);
     AbstractPlan queryExecution = factory.create(query, queryListener, explainListener);
     assertTrue(queryExecution instanceof ExplainPlan);
   }
@@ -103,7 +103,7 @@ class QueryPlanFactoryTest {
   public void create_query_with_fetch_size_which_can_be_paged() {
     when(plan.accept(any(CanPaginateVisitor.class), any())).thenReturn(Boolean.TRUE);
     factory = new QueryPlanFactory(queryService);
-    Statement query = new Query(plan, 10, queryType);
+    Statement query = new Query(plan, 10, queryType, false);
     AbstractPlan queryExecution = factory.create(query, queryListener, explainListener);
     assertTrue(queryExecution instanceof QueryPlan);
   }
@@ -112,7 +112,7 @@ class QueryPlanFactoryTest {
   public void create_query_with_fetch_size_which_cannot_be_paged() {
     when(plan.accept(any(CanPaginateVisitor.class), any())).thenReturn(Boolean.FALSE);
     factory = new QueryPlanFactory(queryService);
-    Statement query = new Query(plan, 10, queryType);
+    Statement query = new Query(plan, 10, queryType, false);
     assertThrows(
         UnsupportedCursorRequestException.class,
         () -> factory.create(query, queryListener, explainListener));

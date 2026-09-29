@@ -152,6 +152,7 @@ public class PrettyFormatRestExecutor implements RestExecutor {
     cursor.setLimit(queryAction.getSelect().getRowCount());
     cursor.setFetchSize(fetchSize);
     cursor.setPitId(pit.getPitId());
+    cursor.setIndices(queryAction.getSelect().getIndexArr());
     cursor.setSearchSourceBuilder(queryAction.getRequestBuilder().request().source());
 
     if (response.getHits().getHits().length > 0) {

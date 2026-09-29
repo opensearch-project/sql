@@ -60,6 +60,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_WEEK;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DAY_OF_YEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DEGREES;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.DISTINCT_COUNT_APPROX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DIVIDEFUNCTION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.DUR2SEC;
@@ -74,6 +75,9 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.FILTER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FIRST;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FLOOR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FORALL;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.FOREACH_JSON_ARRAY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.FOREACH_PAIR_COLLECTION;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.FOREACH_STATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FROM_DAYS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.FROM_UNIXTIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.GET_FORMAT;
@@ -92,6 +96,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNA
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_5;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_REGEXP_REPLACE_PG_4;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.INTERNAL_TRANSLATE3;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ISNULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_BLANK;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_EMPTY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
@@ -133,9 +138,13 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAP_APP
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAP_CONCAT;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAP_REMOVE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCHPHRASE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCHPHRASEQUERY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCHQUERY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_BOOL_PREFIX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_PHRASE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_PHRASE_PREFIX;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MATCH_QUERY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MAX;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MD5;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MEDIAN;
@@ -154,6 +163,8 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTHNAME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MONTH_OF_YEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MSTIME;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIMATCH;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIMATCHQUERY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTIPLYFUNCTION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.MULTI_MATCH;
@@ -178,6 +189,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.POSITIO
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.POW;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.POWER;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.QUARTER;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.QUERY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.QUERY_STRING;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RADIANS;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.RAND;
@@ -226,6 +238,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBTRAC
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SYSDATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TAKE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TAN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMEDIFF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMP;
@@ -254,6 +267,8 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEKDAY
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEKOFYEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.WEEK_OF_YEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.WIDTH_BUCKET;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.WILDCARDQUERY;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.WILDCARD_QUERY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.XOR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEAR;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.YEARWEEK;
@@ -262,22 +277,28 @@ import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLambda;
+import org.apache.calcite.rex.RexLambdaRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
@@ -291,6 +312,7 @@ import org.apache.calcite.sql.type.SameOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.tools.RelBuilder;
@@ -412,6 +434,63 @@ public class PPLFuncImpTable {
     aggBuilder.map.forEach(aggMapBuilder::put);
     this.aggFunctionRegistry = ImmutableMap.copyOf(aggMapBuilder.build());
     this.aggExternalFunctionRegistry = new ConcurrentHashMap<>();
+  }
+
+  /** Returns whether every known signature requires a numeric value at the given argument. */
+  public boolean requiresNumericArgument(String functionName, int argumentIndex) {
+    Optional<BuiltinFunctionName> builtin = BuiltinFunctionName.of(functionName);
+    if (builtin.isEmpty()) {
+      return false;
+    }
+    List<Pair<CalciteFuncSignature, FunctionImp>> implementations =
+        new ArrayList<>(functionRegistry.getOrDefault(builtin.get(), List.of()));
+    implementations.addAll(externalFunctionRegistry.getOrDefault(builtin.get(), List.of()));
+    boolean foundArgument = false;
+    for (Pair<CalciteFuncSignature, FunctionImp> implementation : implementations) {
+      PPLTypeChecker checker = implementation.getKey().typeChecker();
+      if (checker == null) {
+        return false;
+      }
+      try {
+        List<List<RelDataType>> signatures =
+            checker.getParameterTypes().stream()
+                .filter(parameters -> argumentIndex < parameters.size())
+                .toList();
+        if (signatures.isEmpty()) {
+          return false;
+        }
+        foundArgument = true;
+        List<RelDataType> acceptedTypes =
+            signatures.stream().map(parameters -> parameters.get(argumentIndex)).toList();
+        if (acceptedTypes.stream().allMatch(SqlTypeUtil::isNumeric)) {
+          continue;
+        }
+        if (acceptedTypes.stream().anyMatch(type -> type.getSqlTypeName() != SqlTypeName.ANY)
+            || !requiresNumericByValidation(checker, signatures, argumentIndex)) {
+          return false;
+        }
+      } catch (RuntimeException e) {
+        return false;
+      }
+    }
+    return foundArgument;
+  }
+
+  private boolean requiresNumericByValidation(
+      PPLTypeChecker checker, List<List<RelDataType>> signatures, int argumentIndex) {
+    RelDataType numericType = TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE);
+    RelDataType stringType = TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR);
+    return signatures.stream()
+        .anyMatch(
+            signature -> {
+              List<RelDataType> numericArguments =
+                  new ArrayList<>(Collections.nCopies(signature.size(), numericType));
+              if (!checker.checkOperandTypes(numericArguments)) {
+                return false;
+              }
+              numericArguments.set(argumentIndex, stringType);
+              return !checker.checkOperandTypes(numericArguments);
+            });
   }
 
   /**
@@ -561,6 +640,10 @@ public class PPLFuncImpTable {
     // return type of the lambda function.
     compulsoryCast(builder, functionName, args);
 
+    // Align integer operand widths when a comparison has a scalar subquery on one side; see
+    // coerceNumericComparisonOperands for why this is needed for correct decorrelated join keys.
+    args = coerceNumericComparisonOperands(builder, functionName, args);
+
     List<RelDataType> argTypes = Arrays.stream(args).map(RexNode::getType).toList();
     try {
       for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
@@ -593,6 +676,62 @@ public class PPLFuncImpTable {
         String.format(
             "%s function expects {%s}, but got %s",
             functionName, allowedSignatures, PlanUtils.getActualSignature(argTypes)));
+  }
+
+  /**
+   * Widens the operands of a binary comparison against a scalar subquery to a common integer type
+   * when the two operands are integers of differing width (e.g. INT vs BIGINT, SMALLINT vs INT).
+   * Returns the original array unchanged for every other case, so only the ambiguous
+   * integer-width-against-a-subquery case is touched.
+   *
+   * <p>Calcite's comparison operators accept mixed integer widths by family, so {@code makeCall(=,
+   * int, bigint)} type-checks and evaluates correctly as an ordinary scalar predicate (against a
+   * column or literal), which is why those comparisons are left alone. But when one side is a
+   * scalar subquery, Calcite's decorrelator turns the comparison into a join whose keys keep their
+   * original widths; the generated key extractors then box the two sides as different Java types
+   * (e.g. {@code Integer} vs {@code Long}) that never compare equal, so the join silently drops
+   * every row. Casting both sides to their least-restrictive common integer type keeps the boolean
+   * result identical while making the derived join keys share a single type. This surfaces once
+   * integer arithmetic widens (e.g. {@code min(salary) + 1000} is BIGINT) so a subquery result is
+   * compared against a narrower column.
+   */
+  private static RexNode[] coerceNumericComparisonOperands(
+      RexBuilder builder, BuiltinFunctionName functionName, RexNode... args) {
+    if (args.length != 2 || !BuiltinFunctionName.COMPARATORS.contains(functionName)) {
+      return args;
+    }
+    if (!containsSubQuery(args[0]) && !containsSubQuery(args[1])) {
+      return args;
+    }
+    RelDataType leftType = args[0].getType();
+    RelDataType rightType = args[1].getType();
+    if (!SqlTypeName.INT_TYPES.contains(leftType.getSqlTypeName())
+        || !SqlTypeName.INT_TYPES.contains(rightType.getSqlTypeName())
+        || leftType.getSqlTypeName() == rightType.getSqlTypeName()) {
+      return args;
+    }
+    RelDataType commonType =
+        builder.getTypeFactory().leastRestrictive(List.of(leftType, rightType));
+    if (commonType == null) {
+      return args;
+    }
+    return new RexNode[] {
+      builder.makeCast(
+          TYPE_FACTORY.createTypeWithNullability(commonType, leftType.isNullable()), args[0]),
+      builder.makeCast(
+          TYPE_FACTORY.createTypeWithNullability(commonType, rightType.isNullable()), args[1])
+    };
+  }
+
+  /** Whether {@code node} is, or transitively contains, a {@link RexSubQuery}. */
+  private static boolean containsSubQuery(RexNode node) {
+    if (node instanceof RexSubQuery) {
+      return true;
+    }
+    if (node instanceof RexCall call) {
+      return call.getOperands().stream().anyMatch(PPLFuncImpTable::containsSubQuery);
+    }
+    return false;
   }
 
   /**
@@ -716,6 +855,89 @@ public class PPLFuncImpTable {
           PPLTypeChecker.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC));
     }
 
+    /**
+     * Register an arithmetic operator ({@code +}, {@code -}, {@code *}) that widens narrow integer
+     * operands before applying the operation, deriving the type checker from the operator.
+     *
+     * <p>Calcite infers {@code SMALLINT op SMALLINT -> SMALLINT} (via {@code ReturnTypes.PLUS} /
+     * {@code PRODUCT_NULLABLE}, which fall through to {@code LEAST_RESTRICTIVE}), so the product of
+     * two {@code short} columns overflows: DataFusion silently wraps the {@code i16} result while
+     * the Calcite Enumerable engine throws {@code ArithmeticException: value out of range}. Casting
+     * the operands up (byte/short -> int, int -> long) makes the arithmetic compute at a width that
+     * cannot overflow for the widened tier, matching v2 arithmetic intent across all backends.
+     */
+    protected void registerWideningIntegerOperator(
+        BuiltinFunctionName functionName, SqlOperator operator) {
+      PPLTypeChecker typeChecker =
+          wrapSqlOperandTypeChecker(operator.getOperandTypeChecker(), operator.getName(), false);
+      register(functionName, wideningIntegerArithmetic(operator), typeChecker);
+    }
+
+    /** Same as above but with an explicit {@link PPLTypeChecker}. */
+    protected void registerWideningIntegerOperator(
+        BuiltinFunctionName functionName, SqlOperator operator, PPLTypeChecker typeChecker) {
+      register(functionName, wideningIntegerArithmetic(operator), typeChecker);
+    }
+
+    private static FunctionImp wideningIntegerArithmetic(SqlOperator operator) {
+      // +, -, * are strictly binary; FunctionImp2 documents and enforces the two-operand contract.
+      return (FunctionImp2)
+          (builder, left, right) ->
+              builder.makeCall(operator, widenIntegerOperands(builder, left, right));
+    }
+
+    private static RexNode[] widenIntegerOperands(RexBuilder builder, RexNode... args) {
+      SqlTypeName promoted = promotedIntegerType(args);
+      if (promoted == null) {
+        return args;
+      }
+      // Skip widening arithmetic inside higher-order-function lambda bodies (reduce/mvmap/...).
+      // Those operands reference lambda parameters whose types are placeholders resolved later by
+      // the HOF's own return-type inference (see LambdaUtils.inferReturnTypeFromLambda); wrapping a
+      // RexLambdaRef in a CAST breaks that index-based resolution. They also execute JVM-side via
+      // linq4j (operands already promote to int), so they never hit the backend wrap path.
+      for (RexNode arg : args) {
+        if (referencesLambdaParameter(arg)) {
+          return args;
+        }
+      }
+      RexNode[] widened = new RexNode[args.length];
+      for (int i = 0; i < args.length; i++) {
+        RelDataType target = TYPE_FACTORY.createSqlType(promoted, args[i].getType().isNullable());
+        widened[i] = builder.makeCast(target, args[i]);
+      }
+      return widened;
+    }
+
+    private static boolean referencesLambdaParameter(RexNode node) {
+      if (node instanceof RexLambdaRef) {
+        return true;
+      }
+      if (node instanceof RexCall call) {
+        return call.getOperands().stream().anyMatch(AbstractBuilder::referencesLambdaParameter);
+      }
+      return false;
+    }
+
+    /**
+     * Target integer type that all operands should widen to, or {@code null} to leave the call
+     * untouched (any non-integral operand, e.g. FLOAT/DOUBLE/DECIMAL/DATETIME, defers to Calcite's
+     * default inference). byte/short -> INTEGER; anything involving int/long -> BIGINT.
+     */
+    private static SqlTypeName promotedIntegerType(RexNode... args) {
+      boolean needsLong = false;
+      for (RexNode arg : args) {
+        switch (arg.getType().getSqlTypeName()) {
+          case TINYINT, SMALLINT -> {}
+          case INTEGER, BIGINT -> needsLong = true;
+          default -> {
+            return null;
+          }
+        }
+      }
+      return needsLong ? SqlTypeName.BIGINT : SqlTypeName.INTEGER;
+    }
+
     void populate() {
       // register operators for comparison
       registerOperator(NOTEQUAL, PPLBuiltinOperators.NOT_EQUALS_IP, SqlStdOperatorTable.NOT_EQUALS);
@@ -730,23 +952,25 @@ public class PPLFuncImpTable {
       registerOperator(OR, SqlStdOperatorTable.OR);
       registerOperator(NOT, SqlStdOperatorTable.NOT);
 
-      // Register ADDFUNCTION for numeric addition only
-      registerOperator(ADDFUNCTION, SqlStdOperatorTable.PLUS);
-      registerOperator(
+      // Register ADDFUNCTION for numeric addition only. Widen narrow integer operands so the sum
+      // cannot overflow the (mis-)inferred SMALLINT/TINYINT result type; see
+      // registerWideningIntegerOperator.
+      registerWideningIntegerOperator(ADDFUNCTION, SqlStdOperatorTable.PLUS);
+      registerWideningIntegerOperator(
           SUBTRACTFUNCTION,
           SqlStdOperatorTable.MINUS,
           PPLTypeChecker.wrapFamily((FamilyOperandTypeChecker) OperandTypes.NUMERIC_NUMERIC));
-      registerOperator(
+      registerWideningIntegerOperator(
           SUBTRACT,
           SqlStdOperatorTable.MINUS,
           PPLTypeChecker.wrapFamily((FamilyOperandTypeChecker) OperandTypes.NUMERIC_NUMERIC));
-      // Add DATETIME-DATETIME variant for timestamp binning support
+      // Add DATETIME-DATETIME variant for timestamp binning support (no integer widening)
       registerOperator(
           SUBTRACT,
           SqlStdOperatorTable.MINUS,
           PPLTypeChecker.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME));
-      registerOperator(MULTIPLY, SqlStdOperatorTable.MULTIPLY);
-      registerOperator(MULTIPLYFUNCTION, SqlStdOperatorTable.MULTIPLY);
+      registerWideningIntegerOperator(MULTIPLY, SqlStdOperatorTable.MULTIPLY);
+      registerWideningIntegerOperator(MULTIPLYFUNCTION, SqlStdOperatorTable.MULTIPLY);
       registerOperator(TRUNCATE, SqlStdOperatorTable.TRUNCATE);
       registerOperator(ASCII, SqlStdOperatorTable.ASCII);
       registerOperator(LENGTH, SqlStdOperatorTable.CHAR_LENGTH);
@@ -797,11 +1021,17 @@ public class PPLFuncImpTable {
           wrapSqlOperandTypeChecker(
               SqlLibraryOperators.REGEXP_REPLACE_3.getOperandTypeChecker(), REPLACE.name(), false));
       registerOperator(UPPER, SqlStdOperatorTable.UPPER);
-      registerOperator(ABS, SqlStdOperatorTable.ABS);
-      registerOperator(ACOS, SqlStdOperatorTable.ACOS);
-      registerOperator(ASIN, SqlStdOperatorTable.ASIN);
-      registerOperator(ATAN, SqlStdOperatorTable.ATAN);
-      registerOperator(ATAN2, SqlStdOperatorTable.ATAN2);
+      registerOperator(ABS, SqlStdOperatorTable.ABS, PPLTypeChecker.family(SqlTypeFamily.NUMERIC));
+      registerOperator(
+          ACOS, SqlStdOperatorTable.ACOS, PPLTypeChecker.family(SqlTypeFamily.NUMERIC));
+      registerOperator(
+          ASIN, SqlStdOperatorTable.ASIN, PPLTypeChecker.family(SqlTypeFamily.NUMERIC));
+      registerOperator(
+          ATAN, SqlStdOperatorTable.ATAN, PPLTypeChecker.family(SqlTypeFamily.NUMERIC));
+      registerOperator(
+          ATAN2,
+          SqlStdOperatorTable.ATAN2,
+          PPLTypeChecker.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC));
       // TODO, workaround to support sequence CompositeOperandTypeChecker.
       registerOperator(
           CEIL,
@@ -852,6 +1082,7 @@ public class PPLFuncImpTable {
       registerOperator(SIGN, SqlStdOperatorTable.SIGN);
       registerOperator(SIGNUM, SqlStdOperatorTable.SIGN);
       registerOperator(SIN, SqlStdOperatorTable.SIN);
+      registerOperator(TAN, SqlStdOperatorTable.TAN);
       registerOperator(CBRT, SqlStdOperatorTable.CBRT);
 
       registerOperator(IFNULL, SqlStdOperatorTable.COALESCE);
@@ -908,6 +1139,15 @@ public class PPLFuncImpTable {
       registerOperator(SIMPLE_QUERY_STRING, PPLBuiltinOperators.SIMPLE_QUERY_STRING);
       registerOperator(QUERY_STRING, PPLBuiltinOperators.QUERY_STRING);
       registerOperator(MULTI_MATCH, PPLBuiltinOperators.MULTI_MATCH);
+      registerOperator(QUERY, PPLBuiltinOperators.QUERY);
+      registerOperator(WILDCARD_QUERY, PPLBuiltinOperators.WILDCARD_QUERY);
+      registerOperator(WILDCARDQUERY, PPLBuiltinOperators.WILDCARD_QUERY);
+      registerOperator(MATCH_QUERY, PPLBuiltinOperators.MATCH);
+      registerOperator(MATCHQUERY, PPLBuiltinOperators.MATCH);
+      registerOperator(MATCHPHRASE, PPLBuiltinOperators.MATCH_PHRASE);
+      registerOperator(MATCHPHRASEQUERY, PPLBuiltinOperators.MATCH_PHRASE);
+      registerOperator(MULTIMATCH, PPLBuiltinOperators.MULTI_MATCH);
+      registerOperator(MULTIMATCHQUERY, PPLBuiltinOperators.MULTI_MATCH);
       registerOperator(REX_EXTRACT, PPLBuiltinOperators.REX_EXTRACT);
       registerOperator(REX_EXTRACT_MULTI, PPLBuiltinOperators.REX_EXTRACT_MULTI);
       registerOperator(REX_OFFSET, PPLBuiltinOperators.REX_OFFSET);
@@ -1067,6 +1307,9 @@ public class PPLFuncImpTable {
       registerOperator(FILTER, PPLBuiltinOperators.FILTER);
       registerOperator(TRANSFORM, PPLBuiltinOperators.TRANSFORM);
       registerOperator(REDUCE, PPLBuiltinOperators.REDUCE);
+      registerOperator(FOREACH_JSON_ARRAY, PPLBuiltinOperators.FOREACH_JSON_ARRAY);
+      registerOperator(FOREACH_PAIR_COLLECTION, PPLBuiltinOperators.FOREACH_PAIR_COLLECTION);
+      registerOperator(FOREACH_STATE, PPLBuiltinOperators.FOREACH_STATE);
 
       // Register Json function
       register(
@@ -1105,8 +1348,9 @@ public class PPLFuncImpTable {
           SqlStdOperatorTable.CONCAT,
           PPLTypeChecker.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER));
       // Register ADD (+ symbol) for numeric addition
-      // Replace type checker since PLUS also supports binary addition
-      registerOperator(
+      // Replace type checker since PLUS also supports binary addition. Widen narrow integer
+      // operands so the sum cannot overflow the (mis-)inferred SMALLINT/TINYINT result type.
+      registerWideningIntegerOperator(
           ADD,
           SqlStdOperatorTable.PLUS,
           PPLTypeChecker.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.NUMERIC));
@@ -1122,6 +1366,37 @@ public class PPLFuncImpTable {
                   OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.INTEGER)
                       .or(OperandTypes.family(SqlTypeFamily.MAP, SqlTypeFamily.ANY)),
               false));
+      // A `nested` mapping is exposed as ARRAY<ROW<...>>, so `events.name` becomes
+      // ITEM(<array-of-rows>, 'name'). By default, Calcite types this as the whole ROW because it
+      // never looks at the field name — so a later `events.count > 4` fails with
+      // "Unsupported conversion for Relational Data type: ROW".
+      // Fix: look 'name' up in the ROW and type the result as that field. Must be registered before
+      // the (IGNORE, CHARACTER) catch-all in the next registration below — that fallback would
+      // otherwise match ITEM(<array-of-rows>, 'name') first and re-apply the stock whole-ROW
+      // typing.
+      register(
+          INTERNAL_ITEM,
+          (FunctionImp2)
+              (builder, array, key) -> {
+                RelDataType arrayType = array.getType();
+                RelDataType component = arrayType.getComponentType();
+                if (component != null
+                    && component.isStruct()
+                    && key instanceof RexLiteral literal
+                    && SqlTypeFamily.CHARACTER.contains(literal.getType())) {
+                  String fieldName = literal.getValueAs(String.class);
+                  RelDataTypeField field = component.getField(fieldName, true, false);
+                  if (field != null) {
+                    // Nullable: an empty array yields NULL, independent of field nullability.
+                    RelDataType fieldType =
+                        builder.getTypeFactory().createTypeWithNullability(field.getType(), true);
+                    return builder.makeCall(
+                        fieldType, SqlStdOperatorTable.ITEM, List.of(array, key));
+                  }
+                }
+                return builder.makeCall(SqlStdOperatorTable.ITEM, array, key);
+              },
+          PPLTypeChecker.family(SqlTypeFamily.ARRAY, SqlTypeFamily.CHARACTER));
       registerOperator(
           INTERNAL_ITEM,
           SqlStdOperatorTable.ITEM,
@@ -1147,6 +1422,8 @@ public class PPLFuncImpTable {
           IS_PRESENT, SqlStdOperatorTable.IS_NOT_NULL, PPLTypeChecker.family(SqlTypeFamily.IGNORE));
       registerOperator(
           IS_NULL, SqlStdOperatorTable.IS_NULL, PPLTypeChecker.family(SqlTypeFamily.IGNORE));
+      registerOperator(
+          ISNULL, SqlStdOperatorTable.IS_NULL, PPLTypeChecker.family(SqlTypeFamily.IGNORE));
 
       // Register implementation.
       // Note, make the implementation an individual class if too complex.
@@ -1260,6 +1537,19 @@ public class PPLFuncImpTable {
                       builder.makeNullLiteral(arg1.getType()),
                       arg1),
           PPLTypeChecker.wrapComparable((SameOperandTypeChecker) OperandTypes.SAME_SAME));
+      // PPL isempty(x) — TRUE iff x is NULL or an empty string. We express this as
+      //   OR(IS_NULL(x), CHAR_LENGTH(x) = 0)
+      // rather than reusing SqlStdOperatorTable.IS_EMPTY: the latter is the SQL:2003
+      // multiset/collection IS EMPTY predicate (its OperandTypeChecker is
+      // OperandTypes.COLLECTION_OR_MAP and its enumerable runtime calls
+      // java.util.Collection.isEmpty() reflectively). Passing a string operand only
+      // worked by coincidence — RexBuilder.makeCall bypasses the operand checker, and
+      // Calcite's enumerable codegen emits a bare `target.isEmpty()` call that happens
+      // to bind to String.isEmpty() at Janino compile time. The CHAR_LENGTH form makes
+      // the string semantics explicit, lets every backend translate the predicate
+      // through their normal length / equality bindings, and works on any code path
+      // that doesn't go through Calcite's enumerable runtime (e.g. Substrait emission
+      // for analytics-engine, which has no IS EMPTY mapping).
       register(
           IS_EMPTY,
           (FunctionImp1)
@@ -1267,7 +1557,10 @@ public class PPLFuncImpTable {
                   builder.makeCall(
                       SqlStdOperatorTable.OR,
                       builder.makeCall(SqlStdOperatorTable.IS_NULL, arg),
-                      builder.makeCall(SqlStdOperatorTable.IS_EMPTY, arg)),
+                      builder.makeCall(
+                          SqlStdOperatorTable.EQUALS,
+                          builder.makeCall(SqlStdOperatorTable.CHAR_LENGTH, arg),
+                          builder.makeExactLiteral(BigDecimal.ZERO))),
           PPLTypeChecker.family(SqlTypeFamily.ANY));
       register(
           IS_BLANK,
@@ -1277,12 +1570,15 @@ public class PPLFuncImpTable {
                       SqlStdOperatorTable.OR,
                       builder.makeCall(SqlStdOperatorTable.IS_NULL, arg),
                       builder.makeCall(
-                          SqlStdOperatorTable.IS_EMPTY,
+                          SqlStdOperatorTable.EQUALS,
                           builder.makeCall(
-                              SqlStdOperatorTable.TRIM,
-                              builder.makeFlag(Flag.BOTH),
-                              builder.makeLiteral(" "),
-                              arg))),
+                              SqlStdOperatorTable.CHAR_LENGTH,
+                              builder.makeCall(
+                                  SqlStdOperatorTable.TRIM,
+                                  builder.makeFlag(Flag.BOTH),
+                                  builder.makeLiteral(" "),
+                                  arg)),
+                          builder.makeExactLiteral(BigDecimal.ZERO))),
           PPLTypeChecker.family(SqlTypeFamily.ANY));
       register(
           ILIKE,
@@ -1334,7 +1630,14 @@ public class PPLFuncImpTable {
     }
 
     void registerOperator(BuiltinFunctionName functionName, SqlAggFunction aggFunction) {
-      SqlOperandTypeChecker innerTypeChecker = extractTypeCheckerFromUDF(aggFunction);
+      registerOperator(functionName, aggFunction, field -> aggFunction);
+    }
+
+    void registerOperator(
+        BuiltinFunctionName functionName,
+        SqlAggFunction typeCheckerSource,
+        Function<RexNode, SqlAggFunction> aggFunctionSelector) {
+      SqlOperandTypeChecker innerTypeChecker = extractTypeCheckerFromUDF(typeCheckerSource);
       PPLTypeChecker typeChecker =
           wrapSqlOperandTypeChecker(innerTypeChecker, functionName.name(), true);
       AggHandler handler =
@@ -1342,15 +1645,30 @@ public class PPLFuncImpTable {
             List<RexNode> newArgList =
                 argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
             return UserDefinedFunctionUtils.makeAggregateCall(
-                aggFunction, List.of(field), newArgList, ctx.relBuilder);
+                aggFunctionSelector.apply(field), List.of(field), newArgList, ctx.relBuilder);
           };
       register(functionName, handler, typeChecker);
+    }
+
+    /** Registers checked integral sums while retaining standard SUM behavior for other types. */
+    void registerSumOperator() {
+      registerOperator(
+          SUM,
+          SqlStdOperatorTable.SUM,
+          field ->
+              isIntegral(field.getType().getSqlTypeName())
+                  ? PPLBuiltinOperators.CHECKED_LONG_SUM
+                  : SqlStdOperatorTable.SUM);
+    }
+
+    private static boolean isIntegral(SqlTypeName typeName) {
+      return SqlTypeName.INT_TYPES.contains(typeName);
     }
 
     void populate() {
       registerOperator(MAX, SqlStdOperatorTable.MAX);
       registerOperator(MIN, SqlStdOperatorTable.MIN);
-      registerOperator(SUM, SqlStdOperatorTable.SUM);
+      registerSumOperator();
       registerOperator(VARSAMP, PPLBuiltinOperators.VAR_SAMP_NULLABLE);
       registerOperator(VARPOP, PPLBuiltinOperators.VAR_POP_NULLABLE);
       registerOperator(STDDEV_SAMP, PPLBuiltinOperators.STDDEV_SAMP_NULLABLE);
@@ -1359,10 +1677,24 @@ public class PPLFuncImpTable {
       registerOperator(INTERNAL_PATTERN, PPLBuiltinOperators.INTERNAL_PATTERN);
       registerOperator(LIST, PPLBuiltinOperators.LIST);
       registerOperator(VALUES, PPLBuiltinOperators.VALUES);
+      // Logical marker so PPL parser succeeds on dc()/distinct_count()/distinct_count_approx()
+      // regardless of which execution path the query takes. OpenSearchExecutionEngine registers
+      // a real HyperLogLog++ implementation in aggExternalFunctionRegistry which overrides this
+      // marker via the external-first lookup precedence in getImplementation(). Other backends
+      // (DataFusion / analytics-engine) rewrite the operator before substrait emission and never
+      // execute the marker.
+      registerOperator(DISTINCT_COUNT_APPROX, PPLBuiltinOperators.DISTINCT_COUNT_APPROX);
 
       register(
           AVG,
-          (distinct, field, argList, ctx) -> ctx.relBuilder.avg(distinct, null, field),
+          (distinct, field, argList, ctx) -> {
+            if (field.getType().getSqlTypeName() == SqlTypeName.BIGINT) {
+              return ctx.relBuilder
+                  .aggregateCall(PPLBuiltinOperators.BIGINT_AVG, field)
+                  .distinct(distinct);
+            }
+            return ctx.relBuilder.avg(distinct, null, field);
+          },
           wrapSqlOperandTypeChecker(
               SqlStdOperatorTable.AVG.getOperandTypeChecker(), AVG.name(), false));
 

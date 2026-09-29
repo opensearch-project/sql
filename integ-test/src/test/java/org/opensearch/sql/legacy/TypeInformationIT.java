@@ -96,11 +96,11 @@ public class TypeInformationIT extends SQLIntegTestCase {
   public void testLengthWithGroupByExpr() {
     JSONObject response =
         executeJdbcRequest(
-            "SELECT Length(firstname) FROM "
+            "SELECT LENGTH(firstname) FROM "
                 + TestsConstants.TEST_INDEX_ACCOUNT
                 + " GROUP BY LENGTH(firstname) LIMIT 5");
 
-    verifySchema(response, schema("Length(firstname)", null, "integer"));
+    verifySchema(response, schema("LENGTH(firstname)", null, "integer"));
   }
 
   /*

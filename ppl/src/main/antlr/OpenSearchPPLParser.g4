@@ -45,7 +45,9 @@ subSearch
 // commands
 pplCommands
    : describeCommand
+   | restCommand
    | showDataSourcesCommand
+   | makeresultsCommand
    | searchCommand
    | multisearchCommand
    | graphLookupCommand
@@ -64,6 +66,7 @@ commands
    | dedupCommand
    | sortCommand
    | evalCommand
+   | foreachCommand
    | headCommand
    | binCommand
    | rareTopCommand
@@ -97,12 +100,15 @@ commands
    | fieldformatCommand
    | nomvCommand
    | graphLookupCommand
+   | xyseriesCommand
    | unionCommand
+   | timewrapCommand
    ;
 
 commandName
    : SEARCH
    | DESCRIBE
+   | REST
    | SHOW
    | WHERE
    | FIELDS
@@ -115,6 +121,7 @@ commandName
    | DEDUP
    | SORT
    | EVAL
+   | FOREACH
    | FIELDFORMAT
    | HEAD
    | BIN
@@ -149,6 +156,9 @@ commandName
    | NOMV
    | TRANSPOSE
    | GRAPHLOOKUP
+   | XYSERIES
+   | TIMEWRAP
+   | MAKERESULTS
    ;
 
 searchCommand
@@ -206,8 +216,28 @@ describeCommand
    : DESCRIBE tableSourceClause
    ;
 
+
+restCommand
+   : REST stringLiteral (restArgument)*
+   ;
+
+restArgument
+   : COUNT EQUAL integerLiteral
+   | TIMEOUT EQUAL stringLiteral
+   | ident EQUAL literalValue
+   ;
 showDataSourcesCommand
    : SHOW DATASOURCES
+   ;
+
+makeresultsCommand
+   : MAKERESULTS makeresultsArg*
+   ;
+
+makeresultsArg
+   : COUNT EQUAL integerLiteral
+   | FORMAT EQUAL (CSV | JSON)
+   | DATA EQUAL stringLiteral
    ;
 
 whereCommand
@@ -355,6 +385,27 @@ transposeParameter
    | (COLUMN_NAME EQUAL stringLiteral)
    ;
 
+timewrapCommand
+   : TIMEWRAP spanLiteral timewrapParameter*
+   ;
+
+timewrapParameter
+   : ALIGN EQUAL timewrapAlign
+   | SERIES EQUAL timewrapSeries
+   | TIME_FORMAT EQUAL stringLiteral
+   ;
+
+timewrapAlign
+   : NOW
+   | END
+   ;
+
+timewrapSeries
+   : RELATIVE
+   | SHORT
+   | EXACT
+   ;
+
 
 timechartParameter
    : LIMIT EQUAL integerLiteral
@@ -375,12 +426,44 @@ evalCommand
    : EVAL evalClause (COMMA evalClause)*
    ;
 
+foreachCommand
+   : FOREACH foreachArgument* LT_SQR_PRTHS foreachEvalCommand RT_SQR_PRTHS
+   ;
+
+foreachArgument
+   : foreachOption
+   | foreachTarget
+   ;
+
+foreachTarget
+   : functionCall
+   | stringLiteral
+   | wcFieldExpression
+   | STAR
+   ;
+
+foreachOption
+   : ident EQUAL (ident | foreachPlaceholder)
+   ;
+
+foreachEvalCommand
+   : EVAL foreachEvalClause (COMMA foreachEvalClause)*
+   ;
+
+foreachEvalClause
+   : target = foreachEvalTarget EQUAL logicalExpression
+   ;
+
+foreachEvalTarget
+   : (foreachPlaceholder | ident | DOT | MODULE)+
+   ;
+
 fieldformatCommand
    : FIELDFORMAT fieldFormatEvalClause (COMMA fieldFormatEvalClause)*
    ;
 
 headCommand
-   : HEAD (number = integerLiteral)? (FROM from = integerLiteral)?
+   : HEAD ((LIMIT EQUAL)? number = integerLiteral)? (FROM from = integerLiteral)?
    ;
 
 binCommand
@@ -412,12 +495,14 @@ logSpanValue
    ;
 
 rareTopCommand
-   : (TOP | RARE) (number = integerLiteral)? rareTopOption* fieldList (byClause)?
+   : (TOP | RARE) ((LIMIT EQUAL)? number = integerLiteral)? rareTopOption* fieldList (byClause)?
    ;
 
 rareTopOption
    : COUNTFIELD EQUAL countField = stringLiteral
    | SHOWCOUNT EQUAL showCount = booleanLiteral
+   | PERCENTFIELD EQUAL percentField = stringLiteral
+   | SHOWPERC EQUAL showPerc = booleanLiteral
    | USENULL EQUAL useNull = booleanLiteral
    ;
 
@@ -695,6 +780,19 @@ graphLookupArgs
    | (FILTER EQUAL LT_PRTHS logicalExpression RT_PRTHS)
    ;
 
+xyseriesCommand
+   : XYSERIES xyseriesOption* xField = fieldExpression yNameField = fieldExpression IN LT_PRTHS xyseriesPivotValues RT_PRTHS yDataFields = fieldList
+   ;
+
+xyseriesOption
+   : SEP EQUAL sep = stringLiteral
+   | FORMAT EQUAL format = stringLiteral
+   ;
+
+xyseriesPivotValues
+   : stringLiteral (COMMA stringLiteral)*
+   ;
+
 // clauses
 fromClause
    : SOURCE EQUAL tableOrSubqueryClause
@@ -729,8 +827,9 @@ sourceFilterArg
 
 // join
 joinCommand
-   : JOIN (joinOption)* (fieldList)? right = tableOrSubqueryClause
-   | sqlLikeJoinType? JOIN (joinOption)* sideAlias joinHintList? joinCriteria right = tableOrSubqueryClause
+   // Criteria alt listed first - so `join on a` reads `on` as the criteria keyword, not a field.
+   : sqlLikeJoinType? JOIN (joinOption)* sideAlias joinHintList? joinCriteria right = tableOrSubqueryClause
+   | JOIN (joinOption)* (fieldList)? right = tableOrSubqueryClause
    ;
 
 sqlLikeJoinType
@@ -941,6 +1040,7 @@ valueExpression
    | literalValue                                                                                               # literalValueExpr
    | functionCall                                                                                               # functionCallExpr
    | lambda                                                                                                     # lambdaExpr
+   | foreachPlaceholder                                                                                         # foreachPlaceholderExpr
    | LT_SQR_PRTHS subSearch RT_SQR_PRTHS                                                                        # scalarSubqueryExpr
    | valueExpression NOT? IN LT_SQR_PRTHS subSearch RT_SQR_PRTHS                                                # inSubqueryExpr
    | LT_PRTHS valueExpression (COMMA valueExpression)* RT_PRTHS NOT? IN LT_SQR_PRTHS subSearch RT_SQR_PRTHS     # inSubqueryExpr
@@ -1041,6 +1141,16 @@ fieldExpression
 
 wcFieldExpression
    : wcQualifiedName
+   ;
+
+foreachPlaceholder
+   : LESS LESS foreachPlaceholderName GREATER GREATER
+   ;
+
+foreachPlaceholderName
+   : FIELD
+   | ID
+   | NUMERIC_ID
    ;
 
 selectFieldExpression
@@ -1656,6 +1766,7 @@ searchableKeyWord
    | FREQUENCY_THRESHOLD_PERCENTAGE
    | MAX_SAMPLE_COUNT
    | BUFFER_LIMIT
+   | LIMIT
    | SHOW_NUMBERED_TOKEN
    | WITH
    | REGEX
@@ -1679,6 +1790,9 @@ searchableKeyWord
    // ARGUMENT KEYWORDS
    | KEEPEMPTY
    | CONSECUTIVE
+   | FORMAT
+   | CSV
+   | DATA
    | DEDUP_SPLITVALUES
    | PARTITIONS
    | ALLNUM
@@ -1706,6 +1820,8 @@ searchableKeyWord
    | ANOMALY_SCORE_THRESHOLD
    | COUNTFIELD
    | SHOWCOUNT
+   | PERCENTFIELD
+   | SHOWPERC
    | MAXOUT
    | PATH
    | INPUT
@@ -1771,4 +1887,7 @@ searchableKeyWord
    | MAX_DEPTH
    | DEPTH_FIELD
    | EDGE
+   // rest command token, also usable as a free-text search term / identifier
+   | TIMEOUT
+   | SEP
    ;

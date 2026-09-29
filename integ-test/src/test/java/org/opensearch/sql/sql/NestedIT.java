@@ -10,6 +10,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_TYPE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_WITH_NULLS;
+import static org.opensearch.sql.util.Capability.NESTED_FIELDS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -27,7 +28,9 @@ import org.json.JSONObject;
 import org.junit.Test;
 import org.junit.jupiter.api.Disabled;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
+@RequiresCapability(NESTED_FIELDS)
 public class NestedIT extends SQLIntegTestCase {
   @Override
   public void init() throws IOException {
@@ -129,8 +132,13 @@ public class NestedIT extends SQLIntegTestCase {
 
   @Test
   public void nested_all_function_with_limit_test() {
+    // Add a strict, unique total order before LIMIT so the 3 returned rows are deterministic
+    // across shard counts. (message.info, myNum) is unique over the dataset and yields the same
+    // first three docs the test already asserts. The nested projection itself is unchanged.
     String query =
-        "SELECT nested(message.*) FROM " + TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS + " LIMIT 3";
+        "SELECT nested(message.*) FROM "
+            + TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS
+            + " ORDER BY nested(message.info, message), myNum LIMIT 3";
     JSONObject result = executeJdbcRequest(query);
     verifyDataRows(result, rows("e", 1, "a"), rows("f", 2, "b"), rows("g", 1, "c"));
   }

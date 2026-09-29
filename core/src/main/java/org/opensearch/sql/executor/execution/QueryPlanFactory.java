@@ -19,6 +19,7 @@ import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.exception.UnsupportedCursorRequestException;
+import org.opensearch.sql.executor.AnalyzeResponse;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
@@ -115,7 +116,8 @@ public class QueryPlanFactory
             node.getPlan(),
             node.getFetchSize(),
             queryService,
-            context.getLeft());
+            context.getLeft(),
+            node.isIncludeMetadata());
       } else {
         // This should be picked up by the legacy engine.
         throw new UnsupportedCursorRequestException();
@@ -127,7 +129,8 @@ public class QueryPlanFactory
           node.getPlan(),
           queryService,
           context.getLeft(),
-          node.getHighlightConfig());
+          node.getHighlightConfig(),
+          node.isIncludeMetadata());
     }
   }
 
@@ -144,6 +147,13 @@ public class QueryPlanFactory
         node.getQueryType(),
         create(node.getStatement(), NO_CONSUMER_RESPONSE_LISTENER, context.getRight()),
         node.getMode(),
+        node.getFormat(),
         context.getRight());
+  }
+
+  /** Create an AnalyzePlan that produces AST node and logical plan RelNode. */
+  public AbstractPlan createAnalyzePlan(
+      UnresolvedPlan plan, QueryType queryType, ResponseListener<AnalyzeResponse> listener) {
+    return new AnalyzePlan(QueryId.queryId(), queryType, plan, queryService, listener);
   }
 }

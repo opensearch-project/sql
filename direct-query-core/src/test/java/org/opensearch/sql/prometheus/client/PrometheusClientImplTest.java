@@ -1119,4 +1119,109 @@ public class PrometheusClientImplTest {
             PrometheusClientException.class, () -> nullBodyClient.getAlertmanagerStatus());
     assertTrue(exception.getMessage().contains("No response body"));
   }
+
+  // Prometheus-compatible backends (e.g. Cortex) may return {"status":"success"} with no
+  // "data" key when there is nothing to report. Each of the following tests verifies the
+  // corresponding client method returns an empty result instead of throwing JSONException.
+
+  @Test
+  public void testGetAllMetricsReturnsEmptyWhenDataFieldMissing() throws IOException {
+    String emptyResponse = "{\"status\":\"success\"}";
+    mockWebServer.enqueue(new MockResponse().setBody(emptyResponse));
+
+    var result = client.getAllMetrics();
+
+    assertNotNull(result);
+    assertTrue(result.isEmpty());
+  }
+
+  @Test
+  public void testGetAllMetricsWithParamsReturnsEmptyWhenDataFieldMissing() throws IOException {
+    String emptyResponse = "{\"status\":\"success\"}";
+    mockWebServer.enqueue(new MockResponse().setBody(emptyResponse));
+
+    HashMap<String, String> params = new HashMap<>();
+    params.put("limit", "10");
+    var result = client.getAllMetrics(params);
+
+    assertNotNull(result);
+    assertTrue(result.isEmpty());
+  }
+
+  @Test
+  public void testQueryRangeReturnsEmptyWhenDataFieldMissing() throws IOException {
+    String emptyResponse = "{\"status\":\"success\"}";
+    mockWebServer.enqueue(new MockResponse().setBody(emptyResponse));
+
+    JSONObject result = client.queryRange("up", 1435781430L, 1435781460L, "15s");
+
+    assertNotNull(result);
+    assertTrue(result.isEmpty());
+  }
+
+  @Test
+  public void testQueryReturnsEmptyWhenDataFieldMissing() throws IOException {
+    String emptyResponse = "{\"status\":\"success\"}";
+    mockWebServer.enqueue(new MockResponse().setBody(emptyResponse));
+
+    JSONObject result = client.query("up", 1435781460L, 100, 30);
+
+    assertNotNull(result);
+    assertTrue(result.isEmpty());
+  }
+
+  @Test
+  public void testGetLabelsReturnsEmptyWhenDataFieldMissing() throws IOException {
+    String emptyResponse = "{\"status\":\"success\"}";
+    mockWebServer.enqueue(new MockResponse().setBody(emptyResponse));
+
+    List<String> result = client.getLabels(new HashMap<>());
+
+    assertNotNull(result);
+    assertTrue(result.isEmpty());
+  }
+
+  @Test
+  public void testGetLabelReturnsEmptyWhenDataFieldMissing() throws IOException {
+    String emptyResponse = "{\"status\":\"success\"}";
+    mockWebServer.enqueue(new MockResponse().setBody(emptyResponse));
+
+    List<String> result = client.getLabel("job", new HashMap<>());
+
+    assertNotNull(result);
+    assertTrue(result.isEmpty());
+  }
+
+  @Test
+  public void testGetSeriesReturnsEmptyWhenDataFieldMissing() throws IOException {
+    String emptyResponse = "{\"status\":\"success\"}";
+    mockWebServer.enqueue(new MockResponse().setBody(emptyResponse));
+
+    var result = client.getSeries(new HashMap<>());
+
+    assertNotNull(result);
+    assertTrue(result.isEmpty());
+  }
+
+  @Test
+  public void testQueryExemplarsReturnsEmptyWhenDataFieldMissing() throws IOException {
+    String emptyResponse = "{\"status\":\"success\"}";
+    mockWebServer.enqueue(new MockResponse().setBody(emptyResponse));
+
+    JSONArray result = client.queryExemplars("http_request_duration_seconds_bucket", 1L, 2L);
+
+    assertNotNull(result);
+    assertEquals(0, result.length());
+  }
+
+  @Test
+  public void testGetAlertsReturnsEmptyWhenDataFieldMissing() throws IOException {
+    String emptyResponse = "{\"status\":\"success\"}";
+    mockWebServer.enqueue(new MockResponse().setBody(emptyResponse));
+
+    JSONObject result = client.getAlerts();
+
+    assertNotNull(result);
+    assertTrue(result.isEmpty());
+  }
 }

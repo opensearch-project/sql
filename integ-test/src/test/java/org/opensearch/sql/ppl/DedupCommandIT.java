@@ -7,6 +7,7 @@ package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
+import static org.opensearch.sql.util.Capability.DEDUP_NONDETERMINISTIC;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
@@ -16,6 +17,7 @@ import java.util.List;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class DedupCommandIT extends PPLIntegTestCase {
 
@@ -34,6 +36,7 @@ public class DedupCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DEDUP_NONDETERMINISTIC)
   public void testConsecutiveDedup() throws IOException {
     JSONObject result =
         executeQuery(
@@ -56,6 +59,27 @@ public class DedupCommandIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(String.format("source=%s | dedup 2 male | fields male", TEST_INDEX_BANK));
     verifyDataRows(result, rows(true), rows(true), rows(false), rows(false));
+  }
+
+  @Test
+  public void testDedupOnTextField() throws IOException {
+    // `email` is mapped as text with no .keyword sub-field, so dedup runs via the text-field
+    // aggregation pushdown path (composite terms + top_hits with the field read from _source).
+    // Assert not just the dedup key set but also the associated projected columns per row, so
+    // the top_hits round-trip is exercised end-to-end.
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | dedup email | fields email, firstname, balance", TEST_INDEX_BANK));
+    verifyDataRows(
+        result,
+        rows("amberduke@pyrami.com", "Amber JOHnny", 39225),
+        rows("hattiebond@netagy.com", "Hattie", 5686),
+        rows("nanettebates@quility.com", "Nanette", 32838),
+        rows("daleadams@boink.com", "Dale", 4180),
+        rows("elinorratliff@scentric.com", "Elinor", 16418),
+        rows("virginiaayala@filodyne.com", "Virginia", 40540),
+        rows("dillardmcpherson@quailcom.com", "Dillard", 48086));
   }
 
   @Test

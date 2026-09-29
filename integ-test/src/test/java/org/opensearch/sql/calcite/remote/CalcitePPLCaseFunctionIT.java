@@ -5,10 +5,12 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OTEL_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY_WITH_NULL;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
+import static org.opensearch.sql.util.Capability.BIN_TIME_FIELD_BUCKETING;
 import static org.opensearch.sql.util.MatcherUtils.closeTo;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -21,44 +23,53 @@ import org.json.JSONObject;
 import org.junit.Assume;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.legacy.TestsConstants;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
+
   @Override
   public void init() throws Exception {
     super.init();
     enableCalcite();
 
+    // Seed only on first creation: the AE parquet store is append-only on same-_id PUT.
+    boolean weblogsExisted = isIndexExist(client(), TEST_INDEX_WEBLOGS);
     loadIndex(Index.WEBLOG);
     loadIndex(Index.TIME_TEST_DATA);
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
     loadIndex(Index.BANK);
-    loadIndex(Index.OTELLOGS);
-    appendDataForBadResponse();
+    // otel_logs has a multi-value keyword the AE store rejects at load; only the (AE-skipped)
+    // testNestedCaseAggWithAutoDateHistogram needs it.
+    if (!isAnalyticsParquetIndicesEnabled()) {
+      loadIndex(Index.OTELLOGS);
+    }
+    if (!weblogsExisted) {
+      appendDataForBadResponse();
+    }
   }
 
   private void appendDataForBadResponse() throws IOException {
-    Request request1 = new Request("PUT", "/" + TEST_INDEX_WEBLOGS + "/_doc/7?refresh=true");
+    Request request1 = TestUtils.seedDocRequest(TEST_INDEX_WEBLOGS, "7");
     request1.setJsonEntity(
         "{\"host\": \"::1\", \"method\": \"GET\", \"url\": \"/history/apollo/\", \"response\":"
             + " \"301\", \"bytes\": \"6245\"}");
     client().performRequest(request1);
-    Request request2 =
-        new Request("PUT", "/" + TestsConstants.TEST_INDEX_WEBLOGS + "/_doc/8?refresh=true");
+    Request request2 = TestUtils.seedDocRequest(TestsConstants.TEST_INDEX_WEBLOGS, "8");
     request2.setJsonEntity(
         "{\"host\": \"0.0.0.2\", \"method\": \"GET\", \"url\":"
-            + " \"/shuttle/missions/sts-73/mission-sts-73.html\", \"response\": \"500\", \"bytes\":"
-            + " \"4085\"}");
+            + " \"/shuttle/missions/sts-73/mission-sts-73.html\", \"response\": \"500\","
+            + " \"bytes\": \"4085\"}");
     client().performRequest(request2);
-    Request request3 =
-        new Request("PUT", "/" + TestsConstants.TEST_INDEX_WEBLOGS + "/_doc/9?refresh=true");
+    Request request3 = TestUtils.seedDocRequest(TestsConstants.TEST_INDEX_WEBLOGS, "9");
     request3.setJsonEntity(
-        "{\"host\": \"::3\", \"method\": \"GET\", \"url\": \"/shuttle/countdown/countdown.html\","
-            + " \"response\": \"403\", \"bytes\": \"3985\"}");
+        "{\"host\": \"::3\", \"method\": \"GET\", \"url\":"
+            + " \"/shuttle/countdown/countdown.html\", \"response\": \"403\", \"bytes\":"
+            + " \"3985\"}");
     client().performRequest(request3);
-    Request request4 =
-        new Request("PUT", "/" + TestsConstants.TEST_INDEX_WEBLOGS + "/_doc/10?refresh=true");
+    Request request4 = TestUtils.seedDocRequest(TestsConstants.TEST_INDEX_WEBLOGS, "10");
     request4.setJsonEntity(
         "{\"host\": \"1.2.3.5\", \"method\": \"GET\", \"url\": \"/history/voyager2/\","
             + " \"response\": null, \"bytes\": \"4321\"}");
@@ -308,7 +319,7 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
                 TEST_INDEX_BANK));
     verifySchema(actual4, schema("avg(balance)", "double"), schema("age_range", "string"));
     // There's such a discrepancy because null cannot be the key for a range query
-    if (isPushdownDisabled()) {
+    if (isPushdownDisabled() || isAnalyticsParquetIndicesEnabled()) {
       verifyDataRows(
           actual4,
           rows(32838.0, "u30"),
@@ -463,7 +474,7 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
     verifySchema(actual, schema("avg(age)", "double"), schema("age_category", "string"));
     // There is such discrepancy because range aggregations will ignore null values
-    if (isPushdownDisabled()) {
+    if (isPushdownDisabled() || isAnalyticsParquetIndicesEnabled()) {
       verifyDataRows(
           actual,
           rows(10, "teenager"),
@@ -476,6 +487,9 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = BIN_TIME_FIELD_BUCKETING,
+      note = "bin @timestamp then group by it: bucket column typed string (not timestamp) on AE.")
   public void testNestedCaseAggWithAutoDateHistogram() throws IOException {
     // TODO: Remove after resolving: https://github.com/opensearch-project/sql/issues/4578
     Assume.assumeFalse(
@@ -520,5 +534,23 @@ public class CalcitePPLCaseFunctionIT extends PPLIntegTestCase {
         schema("severity_range", "string"),
         schema("flags", "bigint"));
     verifyNumOfRows(actual2, 32);
+  }
+
+  /** Case with no common branch supertype must return a clean 4xx, not a 500. */
+  @Test
+  public void testCaseWithIncompatibleBranchTypesRejectsCleanly() {
+    org.opensearch.client.ResponseException e =
+        org.junit.Assert.assertThrows(
+            org.opensearch.client.ResponseException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | eval x = case(age > 30, 'old', age > 20, 1 else 0.0) | fields"
+                            + " x",
+                        TEST_INDEX_BANK)));
+    org.junit.Assert.assertEquals(
+        "expected 400 status, got: " + e.getMessage(),
+        400,
+        e.getResponse().getStatusLine().getStatusCode());
   }
 }

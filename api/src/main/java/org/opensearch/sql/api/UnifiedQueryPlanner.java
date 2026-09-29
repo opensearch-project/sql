@@ -7,23 +7,30 @@ package org.opensearch.sql.api;
 
 import static org.opensearch.sql.monitor.profile.MetricName.ANALYZE;
 
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelCollation;
-import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.core.Sort;
 import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.runtime.CalciteException;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Planner;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.api.parser.UnifiedQueryParser;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
-import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.common.error.ErrorReport;
+import org.opensearch.sql.exception.CalciteUnsupportedException;
+import org.opensearch.sql.exception.QueryEngineException;
+import org.opensearch.sql.exception.SemanticCheckException;
 
 /**
  * {@code UnifiedQueryPlanner} provides a high-level API for parsing and analyzing queries using the
@@ -31,6 +38,8 @@ import org.opensearch.sql.executor.QueryType;
  * such as Spark or command-line tools, abstracting away Calcite internals.
  */
 public class UnifiedQueryPlanner {
+
+  private static final Logger LOG = LogManager.getLogger(UnifiedQueryPlanner.class);
 
   /** Planning strategy selected at construction time based on query type. */
   private final PlanningStrategy strategy;
@@ -45,10 +54,7 @@ public class UnifiedQueryPlanner {
    */
   public UnifiedQueryPlanner(UnifiedQueryContext context) {
     this.context = context;
-    this.strategy =
-        context.getPlanContext().queryType == QueryType.SQL
-            ? new CalciteNativeStrategy(context)
-            : new CustomVisitorStrategy(context);
+    this.strategy = new CustomVisitorStrategy(context);
   }
 
   /**
@@ -60,11 +66,39 @@ public class UnifiedQueryPlanner {
    */
   public RelNode plan(String query) {
     try {
-      return context.measure(ANALYZE, () -> strategy.plan(query));
-    } catch (SyntaxCheckException | UnsupportedOperationException e) {
+      return context.measure(
+          ANALYZE,
+          () -> {
+            RelNode plan = strategy.plan(query);
+            for (var shuttle : context.getLangSpec().postAnalysisRules()) {
+              plan = plan.accept(shuttle);
+            }
+            return plan;
+          });
+    } catch (CalciteUnsupportedException e) {
+      // Unsupported feature (e.g. table functions) is an invalid query, i.e. a client error.
+      // Must precede the QueryEngineException branch as it is a subclass.
+      throw new SemanticCheckException(e.getMessage(), e);
+    } catch (SyntaxCheckException
+        | QueryEngineException
+        | UnsupportedOperationException
+        | IllegalArgumentException
+        | ErrorReport e) {
+      LOG.warn("Failed to plan query: {}", e.getMessage());
       throw e;
+    } catch (CalciteException e) {
+      // Calcite validation errors (e.g. table not found) indicate an invalid query.
+      LOG.warn("Failed to plan query, invalid query: {}", e.getMessage());
+      throw new SemanticCheckException(e.getMessage(), e);
+    } catch (AssertionError e) {
+      // Calcite throws assertion error directly when building bad RelNode
+      String message = "Failed to plan query: invalid plan structure";
+      LOG.warn(message, e);
+      throw new SemanticCheckException(message, e);
     } catch (Exception e) {
-      throw new IllegalStateException("Failed to plan query", e);
+      String message = "Failed to plan query: unexpected error";
+      LOG.error(message, e);
+      throw new IllegalStateException(message, e);
     }
   }
 
@@ -121,9 +155,15 @@ public class UnifiedQueryPlanner {
     }
 
     private RelNode preserveCollation(RelNode logical) {
-      RelCollation collation = logical.getTraitSet().getCollation();
-      if (!(logical instanceof Sort) && collation != RelCollations.EMPTY) {
-        return LogicalSort.create(logical, collation, null, null);
+      if (logical instanceof Sort) {
+        return logical;
+      }
+      List<RelCollation> collations =
+          logical.getTraitSet().getTraits(RelCollationTraitDef.INSTANCE);
+      if (collations != null
+          && collations.size() == 1
+          && !collations.get(0).getFieldCollations().isEmpty()) {
+        return LogicalSort.create(logical, collations.get(0), null, null);
       }
       return logical;
     }

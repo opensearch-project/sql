@@ -83,8 +83,8 @@ public class LogicalSystemLimit extends Sort {
   @Override
   public RelWriter explainTerms(RelWriter pw) {
     super.explainTerms(pw);
-    // Show type in the explain
-    pw.item("type", type);
+    // Show type in the explain - convert to string for JSON serialization compatibility
+    pw.item("type", type.name());
     return pw;
   }
 }

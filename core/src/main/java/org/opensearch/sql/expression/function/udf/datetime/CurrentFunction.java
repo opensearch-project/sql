@@ -20,8 +20,6 @@ import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
-import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.datetime.DateTimeFunctions;
 import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -39,21 +37,28 @@ import org.opensearch.sql.expression.function.UDFOperandMetadata;
  * <p>It returns the current date, time, or timestamp based on the specified return type.
  */
 public class CurrentFunction extends ImplementorUDF {
-  private final ExprType returnType;
 
-  public CurrentFunction(ExprType returnType) {
-    super(new CurrentFunctionImplementor(returnType), NullPolicy.NONE);
-    this.returnType = returnType;
+  /** Discriminates the temporal flavour at registration time, decoupled from {@code ExprType}. */
+  public enum Kind {
+    DATE,
+    TIME,
+    TIMESTAMP
+  }
+
+  private final Kind kind;
+
+  public CurrentFunction(Kind kind) {
+    super(new CurrentFunctionImplementor(kind), NullPolicy.NONE);
+    this.kind = kind;
   }
 
   @Override
   public SqlReturnTypeInference getReturnTypeInference() {
     return opBinding ->
-        switch (returnType) {
-          case ExprCoreType.DATE -> UserDefinedFunctionUtils.NULLABLE_DATE_UDT;
-          case ExprCoreType.TIME -> UserDefinedFunctionUtils.NULLABLE_TIME_UDT;
-          case ExprCoreType.TIMESTAMP -> UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT;
-          default -> throw new IllegalArgumentException("Unsupported return type: " + returnType);
+        switch (kind) {
+          case DATE -> UserDefinedFunctionUtils.NULLABLE_DATE_UDT;
+          case TIME -> UserDefinedFunctionUtils.NULLABLE_TIME_UDT;
+          case TIMESTAMP -> UserDefinedFunctionUtils.NULLABLE_TIMESTAMP_UDT;
         };
   }
 
@@ -64,18 +69,17 @@ public class CurrentFunction extends ImplementorUDF {
 
   @RequiredArgsConstructor
   public static class CurrentFunctionImplementor implements NotNullImplementor {
-    private final ExprType returnType;
+    private final Kind kind;
 
     @Override
     public Expression implement(
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
 
       String functionName =
-          switch (returnType) {
-            case ExprCoreType.DATE -> "currentDate";
-            case ExprCoreType.TIME -> "currentTime";
-            case ExprCoreType.TIMESTAMP -> "currentTimestamp";
-            default -> throw new IllegalArgumentException("Unsupported return type: " + returnType);
+          switch (kind) {
+            case DATE -> "currentDate";
+            case TIME -> "currentTime";
+            case TIMESTAMP -> "currentTimestamp";
           };
 
       Expression properties =

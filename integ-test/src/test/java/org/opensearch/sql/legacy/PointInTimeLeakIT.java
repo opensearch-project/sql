@@ -7,6 +7,7 @@ package org.opensearch.sql.legacy;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.opensearch.sql.util.Capability.PAGINATION_CURSOR;
 
 import java.io.IOException;
 import org.json.JSONArray;
@@ -17,12 +18,14 @@ import org.opensearch.client.Request;
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.legacy.utils.StringUtils;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * Integration test verifying PIT contexts are created only when needed and properly cleaned up.
  *
  * @see <a href="https://github.com/opensearch-project/sql/issues/5002">Issue #5002</a>
  */
+@RequiresCapability(PAGINATION_CURSOR)
 public class PointInTimeLeakIT extends SQLIntegTestCase {
 
   private static final String TEST_INDEX = "test-logs-2025.01.01";

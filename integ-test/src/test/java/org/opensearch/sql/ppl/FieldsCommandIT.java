@@ -6,6 +6,10 @@
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.*;
+import static org.opensearch.sql.util.Capability.CROSS_INDEX_OBJECT_LEAF_MERGE;
+import static org.opensearch.sql.util.Capability.ID_METADATA;
+import static org.opensearch.sql.util.Capability.INDEX_METADATA;
+import static org.opensearch.sql.util.Capability.NESTED_FIELDS;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.columnPattern;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -16,9 +20,13 @@ import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.stream.Stream;
 import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class FieldsCommandIT extends PPLIntegTestCase {
 
@@ -26,25 +34,37 @@ public class FieldsCommandIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     loadIndex(Index.ACCOUNT);
+    loadIndex(Index.ACCOUNT_EXTENDED);
     loadIndex(Index.BANK);
+    loadIndex(Index.BANK_EXTENDED);
     loadIndex(Index.MERGE_TEST_1);
     loadIndex(Index.MERGE_TEST_2);
   }
 
-  @Test
-  public void testBasicFieldSelection() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("source=%s | fields firstname, lastname", TEST_INDEX_ACCOUNT));
+  // --- Parameterized sources ---
+
+  static Stream<String> accountIndexSources() {
+    return sourceViews(TEST_INDEX_ACCOUNT);
+  }
+
+  static Stream<String> bankIndexSources() {
+    return sourceViews(TEST_INDEX_BANK);
+  }
+
+  // --- Tests ---
+
+  @ParameterizedTest(name = "querySource={0}")
+  @MethodSource("accountIndexSources")
+  public void testBasicFieldSelection(String querySource) throws IOException {
+    JSONObject result = executeQuery(querySource + " | fields firstname, lastname");
     verifyColumn(result, columnName("firstname"), columnName("lastname"));
     verifySchema(result, schema("firstname", "string"), schema("lastname", "string"));
   }
 
-  @Test
-  public void testMultipleFieldSelection() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | fields firstname, lastname, age | head 3", TEST_INDEX_ACCOUNT));
+  @ParameterizedTest(name = "querySource={0}")
+  @MethodSource("accountIndexSources")
+  public void testMultipleFieldSelection(String querySource) throws IOException {
+    JSONObject result = executeQuery(querySource + " | fields firstname, lastname, age | head 3");
     verifySchema(
         result,
         schema("firstname", "string"),
@@ -57,12 +77,11 @@ public class FieldsCommandIT extends PPLIntegTestCase {
         rows("Nanette", "Bates", 28));
   }
 
-  @Test
-  public void testSpecialDataTypes() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("source=%s | fields birthdate", TEST_INDEX_BANK));
+  @ParameterizedTest(name = "querySource={0}")
+  @MethodSource("bankIndexSources")
+  public void testSpecialDataTypes(String querySource) throws IOException {
+    JSONObject result = executeQuery(querySource + " | fields birthdate");
     verifySchema(result, schema("birthdate", null, "timestamp"));
-
     verifyDataRows(
         result,
         rows("2017-10-23 00:00:00"),
@@ -75,6 +94,9 @@ public class FieldsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = {ID_METADATA, INDEX_METADATA},
+      note = "queries _id and _index, which parquet-backed scans don't expose on the AE route.")
   public void testMetadataFields() throws IOException {
     // Test basic metadata fields
     JSONObject basicResult =
@@ -114,6 +136,11 @@ public class FieldsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = {CROSS_INDEX_OBJECT_LEAF_MERGE, NESTED_FIELDS},
+      note =
+          "an object leaf present in only one merge_test_* index is FIELD_NOT_FOUND on the AE"
+              + " route; also reads a nested array field.")
   public void testMergedObjectFields() throws IOException {
     JSONObject result =
         executeQuery(

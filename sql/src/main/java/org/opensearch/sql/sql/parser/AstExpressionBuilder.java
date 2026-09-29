@@ -20,6 +20,7 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.AlternateM
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BetweenPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BinaryComparisonPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BooleanContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BucketFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CaseFuncAlternativeContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CaseFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ColumnFilterContext;
@@ -28,6 +29,7 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CountStarF
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DataTypeFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DateLiteralContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DistinctCountFunctionCallContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ExistsSubqueryExpressionAtomContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ExtractFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.FilterClauseContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.FilteredAggregationFunctionCallContext;
@@ -35,6 +37,7 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.FunctionAr
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.GetFormatFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.HighlightFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.InPredicateContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.InSubqueryPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.IsNullPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.LikePredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.MathExpressionAtomContext;
@@ -77,11 +80,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.antlr.v4.runtime.RuleContext;
+import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.RuleNode;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.*;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.common.antlr.AstBuildGuard;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
@@ -97,6 +104,26 @@ import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
 
 /** Expression builder to parse text to expression in AST. */
 public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedExpression> {
+
+  private final AstBuildGuard guard;
+
+  public AstExpressionBuilder() {
+    this(new AstBuildGuard());
+  }
+
+  public AstExpressionBuilder(AstBuildGuard guard) {
+    this.guard = guard;
+  }
+
+  @Override
+  public UnresolvedExpression visit(ParseTree tree) {
+    return guard.enforce(() -> super.visit(tree));
+  }
+
+  @Override
+  public UnresolvedExpression visitChildren(RuleNode node) {
+    return guard.enforce(() -> super.visitChildren(node));
+  }
 
   @Override
   public UnresolvedExpression visitTableName(TableNameContext ctx) {
@@ -137,6 +164,26 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitScalarFunctionCall(ScalarFunctionCallContext ctx) {
     return buildFunction(ctx.scalarFunctionName().getText(), ctx.functionArgs().functionArg());
+  }
+
+  /**
+   * Lowers {@code histogram} and {@code date_histogram} to a {@link Span}, the same node PPL's
+   * {@code span()} produces. Anything the grammar does not admit here is a syntax error, which
+   * RestSQLQueryAction hands to the legacy engine.
+   */
+  @Override
+  public UnresolvedExpression visitBucketFunctionCall(BucketFunctionCallContext ctx) {
+    OpenSearchSQLParser.BucketFunctionContext bucket = ctx.bucketFunction();
+    return AstDSL.spanFromSpanLengthLiteral(
+        normalizeField(visit(bucket.field)), (Literal) visit(bucket.interval));
+  }
+
+  /** A string literal naming a column is coerced so downstream sees a column reference. */
+  private static UnresolvedExpression normalizeField(UnresolvedExpression field) {
+    if (field instanceof Literal literal && literal.getType() == DataType.STRING) {
+      return AstDSL.qualifiedName(literal.getValue().toString());
+    }
+    return field;
   }
 
   @Override
@@ -219,7 +266,14 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
               .map(item -> ImmutablePair.of(createSortOption(item), visit(item.expression())))
               .collect(Collectors.toList());
     }
-    return new WindowFunction(visit(ctx.function), partitionByList, sortList);
+    UnresolvedExpression function = visit(ctx.function);
+    WindowFunction windowFunction = new WindowFunction(function, partitionByList, sortList);
+
+    // Aggregate window with ORDER BY defaults to a running RANGE frame (ranking ignores it).
+    if (function instanceof AggregateFunction && !sortList.isEmpty()) {
+      windowFunction.setWindowFrame(WindowFrame.rangeToCurrentRow());
+    }
+    return windowFunction;
   }
 
   @Override
@@ -667,5 +721,18 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
             new Literal(ctx.extractFunction().datetimePart().getText(), DataType.STRING),
             visitFunctionArg(ctx.extractFunction().functionArg()));
     return args;
+  }
+
+  @Override
+  public UnresolvedExpression visitInSubqueryPredicate(InSubqueryPredicateContext ctx) {
+    throw new SyntaxCheckException(
+        "IN subquery is not supported in the V2 SQL engine. Falling back to legacy engine.");
+  }
+
+  @Override
+  public UnresolvedExpression visitExistsSubqueryExpressionAtom(
+      ExistsSubqueryExpressionAtomContext ctx) {
+    throw new SyntaxCheckException(
+        "EXISTS subquery is not supported in the V2 SQL engine. Falling back to legacy engine.");
   }
 }

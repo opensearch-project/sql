@@ -6,6 +6,7 @@
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STRINGS;
+import static org.opensearch.sql.util.Capability.FUNCTION_TYPE_COMPAT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -14,6 +15,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class TextFunctionIT extends PPLIntegTestCase {
   @Override
@@ -78,6 +80,7 @@ public class TextFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testRegexp() throws IOException {
     if (isCalciteEnabled()) {
       verifyRegexQuery("hello", true, false, true);

@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.ppl.domain;
 
+import static org.opensearch.sql.calcite.plan.OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -14,18 +16,27 @@ import java.util.Optional;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.ast.tree.HighlightConfig;
+import org.opensearch.sql.executor.TimeBounds;
 import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 
 public class PPLQueryRequest {
 
+  private static final Logger LOG = LogManager.getLogger(PPLQueryRequest.class);
+
   private static final String DEFAULT_PPL_PATH = "/_plugins/_ppl";
   private static final String FETCH_SIZE_FIELD = "fetch_size";
   private static final String HIGHLIGHT_FIELD = "highlight";
+  private static final String INCLUDE_METADATA_FIELD = "include_metadata";
+  private static final String START_TIME_FIELD = "start_time";
+  private static final String END_TIME_FIELD = "end_time";
+  private static final String TIME_FIELD_FIELD = "time_field";
   private static final int MAX_HIGHLIGHT_FIELDS = 100;
   private static final int MAX_TAG_ENTRIES = 10;
 
@@ -55,14 +66,48 @@ public class PPLQueryRequest {
   @Setter
   @Getter
   @Accessors(fluent = true)
+  private boolean analyze = false;
+
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
   private String queryId = null;
+
+  /**
+   * Per-request override for partial-result mode. {@code null} means the request expressed no
+   * preference and the cluster setting decides; non-null forces partial mode on/off for this query.
+   */
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
+  private Boolean partialResult = null;
+
+  /**
+   * Whether the requested response format can carry a warnings channel. Derived from the format on
+   * the transport thread and threaded to the worker via the plan, so the partial-result gate does
+   * not rely on Log4j ThreadContext (dropped across the security plugin's thread handoff).
+   */
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
+  private boolean warningsSupported = false;
 
   public PPLQueryRequest(String pplQuery, JSONObject jsonContent, String path) {
     this(pplQuery, jsonContent, path, "");
   }
 
   public PPLQueryRequest(String pplQuery, JSONObject jsonContent, String path, String format) {
-    this(pplQuery, jsonContent, path, format, ExplainMode.STANDARD.getModeName(), false);
+    this(pplQuery, jsonContent, path, format, ExplainMode.STANDARD.getModeName(), false, false);
+  }
+
+  public PPLQueryRequest(
+      String pplQuery,
+      JSONObject jsonContent,
+      String path,
+      String format,
+      String explainMode,
+      boolean profile) {
+    this(pplQuery, jsonContent, path, format, explainMode, profile, false);
   }
 
   /** Constructor of PPLQueryRequest. */
@@ -72,13 +117,15 @@ public class PPLQueryRequest {
       String path,
       String format,
       String explainMode,
-      boolean profile) {
+      boolean profile,
+      boolean analyze) {
     this.pplQuery = pplQuery;
     this.jsonContent = jsonContent;
     this.path = Optional.ofNullable(path).orElse(DEFAULT_PPL_PATH);
     this.format = format;
     this.explainMode = explainMode;
     this.profile = profile;
+    this.analyze = analyze;
   }
 
   public String getRequest() {
@@ -122,6 +169,50 @@ public class PPLQueryRequest {
       return 0;
     }
     return jsonContent.optInt(FETCH_SIZE_FIELD, 0);
+  }
+
+  /**
+   * Get whether to include metadata fields (_id, _index, _score, etc.) in the response. When
+   * enabled, metadata fields will be included alongside regular fields in wildcard field selections
+   * (e.g., fields *).
+   *
+   * @return true if metadata fields should be included, false otherwise (default: false)
+   */
+  public boolean getIncludeMetadata() {
+    if (jsonContent == null) {
+      return false;
+    }
+    return jsonContent.optBoolean(INCLUDE_METADATA_FIELD, false);
+  }
+
+  /**
+   * Request-level time bounds from {@code start_time} / {@code end_time} / {@code time_field}, the
+   * last defaulting to {@code @timestamp}.
+   *
+   * @return the bounds, or null if absent or unusable
+   */
+  public TimeBounds getTimeBounds() {
+    if (jsonContent == null) {
+      return null;
+    }
+    boolean hasStart = jsonContent.has(START_TIME_FIELD);
+    boolean hasEnd = jsonContent.has(END_TIME_FIELD);
+    if (!hasStart || !hasEnd) {
+      if (hasStart || hasEnd) {
+        LOG.warn(
+            "Ignoring time bounds: both {} and {} are required", START_TIME_FIELD, END_TIME_FIELD);
+      }
+      return null;
+    }
+    try {
+      return new TimeBounds(
+          jsonContent.optString(TIME_FIELD_FIELD, IMPLICIT_FIELD_TIMESTAMP),
+          jsonContent.optString(START_TIME_FIELD, null),
+          jsonContent.optString(END_TIME_FIELD, null));
+    } catch (RuntimeException e) {
+      LOG.warn("Ignoring unusable time bounds: {}", e.getMessage());
+      return null;
+    }
   }
 
   /**

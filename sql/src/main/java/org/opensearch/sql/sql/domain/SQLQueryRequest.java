@@ -26,8 +26,9 @@ import org.opensearch.sql.protocol.response.format.Format;
 @RequiredArgsConstructor
 public class SQLQueryRequest {
   private static final String QUERY_FIELD_CURSOR = "cursor";
+  private static final String QUERY_FIELD_PROFILE = "profile";
   private static final Set<String> SUPPORTED_FIELDS =
-      Set.of("query", "fetch_size", "parameters", QUERY_FIELD_CURSOR);
+      Set.of("query", "fetch_size", "parameters", QUERY_FIELD_CURSOR, QUERY_FIELD_PROFILE);
   private static final String QUERY_PARAMS_FORMAT = "format";
   private static final String QUERY_PARAMS_SANITIZE = "sanitize";
   private static final String QUERY_PARAMS_PRETTY = "pretty";
@@ -116,6 +117,14 @@ public class SQLQueryRequest {
    */
   public boolean isExplainRequest() {
     return path.endsWith("/_explain");
+  }
+
+  /** Check if profiling should run for this request. */
+  public boolean isProfileEnabled() {
+    return jsonContent != null
+        && jsonContent.optBoolean(QUERY_FIELD_PROFILE, false)
+        && !isExplainRequest()
+        && Format.JDBC.getFormatName().equalsIgnoreCase(format);
   }
 
   public boolean isCursorCloseRequest() {

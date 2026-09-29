@@ -20,6 +20,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_GAME_OF_THRONE
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_TYPE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_WITH_QUOTES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ONLINE;
+import static org.opensearch.sql.util.Capability.RESPONSE_FORMAT;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -39,8 +40,10 @@ import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.sql.legacy.executor.csv.CSVResult;
+import org.opensearch.sql.util.RequiresCapability;
 
 /** Tests to cover requests with "?format=csv" parameter */
+@RequiresCapability(RESPONSE_FORMAT)
 public class CsvFormatResponseIT extends SQLIntegTestCase {
 
   private boolean flatOption = false;
@@ -641,7 +644,7 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
             + "  \"-cmd|' /C notepad'!_xlbgnm.A1\": \"@cmd|' /C notepad'!_xlbgnm.A1\"\n"
             + "}";
 
-    Request request = new Request("PUT", "/userdata/_doc/1?refresh=true");
+    Request request = TestUtils.seedDocRequest("userdata", "1");
     request.setJsonEntity(requestBody);
     TestUtils.performRequest(client(), request);
 
@@ -666,7 +669,7 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
             + "  \"-cmd|' /C notepad,,'!_xlbgnm.A1\": \",,,@cmd|' /C notepad'!_xlbgnm.A1\"\n"
             + "}";
 
-    Request request = new Request("PUT", "/userdata2/_doc/1?refresh=true");
+    Request request = TestUtils.seedDocRequest("userdata2", "1");
     request.setJsonEntity(requestBody);
     TestUtils.performRequest(client(), request);
 

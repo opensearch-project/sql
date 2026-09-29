@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,6 +22,7 @@ import static org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -71,7 +72,9 @@ class OpenSearchExecutionEngineTest {
 
   @BeforeEach
   void setUp() {
-    doAnswer(
+    // lenient: the static PIT-detection tests below exercise no mock, so this stub is unused there.
+    lenient()
+        .doAnswer(
             invocation -> {
               // Run task immediately
               Runnable task = invocation.getArgument(0);
@@ -260,6 +263,45 @@ class OpenSearchExecutionEngineTest {
     assertTrue(plan.hasOpen);
     assertEquals(expected, actual);
     assertTrue(plan.hasClosed);
+  }
+
+  @Test
+  void detects_pit_context_limit_in_nested_cause() {
+    // The create-PIT rejection surfaces wrapped several layers deep, mirroring the real chain:
+    // SQLException -> RuntimeException -> ExecutionException(all shards failed) -> rejection.
+    Throwable rejection =
+        new IllegalStateException(
+            "Trying to create too many Point In Time contexts. Must be less than or equal to: [0]."
+                + " This limit can be set by changing the [search.max_open_pit_context] setting.");
+    Throwable chain =
+        new SQLException(
+            "exception while executing query: Error occurred while creating PIT",
+            new RuntimeException("all shards failed", rejection));
+
+    assertTrue(OpenSearchExecutionEngine.isPitContextLimitReached(chain));
+  }
+
+  @Test
+  void does_not_flag_unrelated_failures_as_pit_context_limit() {
+    Throwable chain =
+        new SQLException(
+            "exception while executing query", new RuntimeException("all shards failed"));
+
+    assertFalse(OpenSearchExecutionEngine.isPitContextLimitReached(chain));
+  }
+
+  @Test
+  void pit_context_limit_check_survives_self_referential_cause() {
+    // A throwable whose cause is itself must not loop forever (getCause() == this).
+    RuntimeException selfReferential =
+        new RuntimeException("boom") {
+          @Override
+          public synchronized Throwable getCause() {
+            return this;
+          }
+        };
+
+    assertFalse(OpenSearchExecutionEngine.isPitContextLimitReached(selfReferential));
   }
 
   @RequiredArgsConstructor

@@ -9,6 +9,10 @@ import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import org.hamcrest.Matcher;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
@@ -61,12 +65,41 @@ public class CalciteReplaceCommandIT extends PPLIntegTestCase {
         schema("year", "int"),
         schema("age", "int"));
 
-    verifyDataRows(
+    // Match by column name — analytics-engine and v2 paths return columns in different orders.
+    verifyDataRowsByColumn(
         result,
-        rows("Jake", "United States", "California", 4, 2023, 70),
-        rows("Hello", "United States", "New York", 4, 2023, 30),
-        rows("John", "Canada", "Ontario", 4, 2023, 25),
-        rows("Joseph", "Canada", "Quebec", 4, 2023, 20));
+        rowOf(
+            "name",
+            "Jake",
+            "country",
+            "United States",
+            "state",
+            "California",
+            "month",
+            4,
+            "year",
+            2023,
+            "age",
+            70),
+        rowOf(
+            "name",
+            "Hello",
+            "country",
+            "United States",
+            "state",
+            "New York",
+            "month",
+            4,
+            "year",
+            2023,
+            "age",
+            30),
+        rowOf(
+            "name", "John", "country", "Canada", "state", "Ontario", "month", 4, "year", 2023,
+            "age", 25),
+        rowOf(
+            "name", "Joseph", "country", "Canada", "state", "Quebec", "month", 4, "year", 2023,
+            "age", 20));
   }
 
   @Test
@@ -121,12 +154,40 @@ public class CalciteReplaceCommandIT extends PPLIntegTestCase {
         schema("year", "int"),
         schema("age", "int"));
 
-    verifyDataRows(
+    verifyDataRowsByColumn(
         result,
-        rows("Jake", "", "California", 4, 2023, 70),
-        rows("Hello", "", "New York", 4, 2023, 30),
-        rows("John", "Canada", "Ontario", 4, 2023, 25),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20));
+        rowOf(
+            "name",
+            "Jake",
+            "country",
+            "",
+            "state",
+            "California",
+            "month",
+            4,
+            "year",
+            2023,
+            "age",
+            70),
+        rowOf(
+            "name",
+            "Hello",
+            "country",
+            "",
+            "state",
+            "New York",
+            "month",
+            4,
+            "year",
+            2023,
+            "age",
+            30),
+        rowOf(
+            "name", "John", "country", "Canada", "state", "Ontario", "month", 4, "year", 2023,
+            "age", 25),
+        rowOf(
+            "name", "Jane", "country", "Canada", "state", "Quebec", "month", 4, "year", 2023, "age",
+            20));
   }
 
   @Test
@@ -146,12 +207,40 @@ public class CalciteReplaceCommandIT extends PPLIntegTestCase {
         schema("year", "int"),
         schema("age", "int"));
 
-    verifyDataRows(
+    verifyDataRowsByColumn(
         result,
-        rows("Jake", "United States", "California", 4, 2023, 70),
-        rows("Hello", "United States", "New York", 4, 2023, 30),
-        rows("John", "Canada", "Ontario", 4, 2023, 25),
-        rows("Jane", "Canada", "Quebec", 4, 2023, 20));
+        rowOf(
+            "name",
+            "Jake",
+            "country",
+            "United States",
+            "state",
+            "California",
+            "month",
+            4,
+            "year",
+            2023,
+            "age",
+            70),
+        rowOf(
+            "name",
+            "Hello",
+            "country",
+            "United States",
+            "state",
+            "New York",
+            "month",
+            4,
+            "year",
+            2023,
+            "age",
+            30),
+        rowOf(
+            "name", "John", "country", "Canada", "state", "Ontario", "month", 4, "year", 2023,
+            "age", 25),
+        rowOf(
+            "name", "Jane", "country", "Canada", "state", "Quebec", "month", 4, "year", 2023, "age",
+            20));
   }
 
   @Test
@@ -164,10 +253,16 @@ public class CalciteReplaceCommandIT extends PPLIntegTestCase {
                     String.format(
                         "source = %s | replace 'USA' WITH 'United States' IN non_existent_field",
                         TEST_INDEX_STATE_COUNTRY)));
-    verifyErrorMessageContains(
-        e,
-        "field [non_existent_field] not found; input fields are: [name, country, state, month,"
-            + " year, age, _id, _index, _score, _maxscore, _sort, _routing]");
+    // Order-agnostic — analytics-engine and v2 paths emit the input-field list in different
+    // orders (parquet preserves storage order, Lucene preserves _source iteration order).
+    // Assert that the prefix and every expected field name appear somewhere in the message.
+    verifyErrorMessageContains(e, "field [non_existent_field] not found; input fields are:");
+    verifyErrorMessageContains(e, "name");
+    verifyErrorMessageContains(e, "country");
+    verifyErrorMessageContains(e, "state");
+    verifyErrorMessageContains(e, "month");
+    verifyErrorMessageContains(e, "year");
+    verifyErrorMessageContains(e, "age");
   }
 
   @Test
@@ -259,12 +354,40 @@ public class CalciteReplaceCommandIT extends PPLIntegTestCase {
         schema("year", "int"),
         schema("age", "int"));
 
-    verifyDataRows(
+    verifyDataRowsByColumn(
         result,
-        rows("Jake", "United States", "California", 4, 2023, 70),
-        rows("Hello", "United States", "New York", 4, 2023, 30),
-        rows("John", "CA", "Ontario", 4, 2023, 25),
-        rows("Jane", "CA", "Quebec", 4, 2023, 20));
+        rowOf(
+            "name",
+            "Jake",
+            "country",
+            "United States",
+            "state",
+            "California",
+            "month",
+            4,
+            "year",
+            2023,
+            "age",
+            70),
+        rowOf(
+            "name",
+            "Hello",
+            "country",
+            "United States",
+            "state",
+            "New York",
+            "month",
+            4,
+            "year",
+            2023,
+            "age",
+            30),
+        rowOf(
+            "name", "John", "country", "CA", "state", "Ontario", "month", 4, "year", 2023, "age",
+            25),
+        rowOf(
+            "name", "Jane", "country", "CA", "state", "Quebec", "month", 4, "year", 2023, "age",
+            20));
   }
 
   @Test
@@ -401,5 +524,62 @@ public class CalciteReplaceCommandIT extends PPLIntegTestCase {
     verifySchema(result, schema("test", "string"));
     // Pattern "foo\*bar" matches literal "foo*bar", not "fooXbar", so original value returned
     verifyDataRows(result, rows("fooXbar"));
+  }
+
+  /**
+   * Build a {@code column -> value} map from interleaved varargs ({@code key1, val1, key2, val2,
+   * ...}). Preserves insertion order so the expected-row mapping reads naturally at the call site.
+   */
+  private static Map<String, Object> rowOf(Object... pairs) {
+    if (pairs.length % 2 != 0) {
+      throw new IllegalArgumentException("rowOf expects an even number of args (key, value, ...)");
+    }
+    Map<String, Object> row = new LinkedHashMap<>();
+    for (int i = 0; i < pairs.length; i += 2) {
+      row.put((String) pairs[i], pairs[i + 1]);
+    }
+    return row;
+  }
+
+  /**
+   * Match expected rows against the response by column name, ignoring the response's column
+   * emission order. The two paths the analytics-engine route can take return columns in different
+   * orders (parquet preserves storage order, the v2 / Lucene path preserves {@code _source}
+   * iteration order), and either is valid given the contract {@code verifySchema} declares (set
+   * equality on column names). To avoid baking either order into the test, this helper reorders
+   * each expected row to match whatever column order the response actually returned.
+   *
+   * <p>Mirrors the helper in {@code CalcitePPLRenameIT} (commit 59c728b) — same pattern applied to
+   * PPL {@code replace} command tests.
+   */
+  @SafeVarargs
+  @SuppressWarnings("varargs")
+  private final void verifyDataRowsByColumn(
+      JSONObject result, Map<String, Object>... expectedRows) {
+    JSONArray schema = result.getJSONArray("schema");
+    int n = schema.length();
+    String[] columnOrder = new String[n];
+    for (int i = 0; i < n; i++) {
+      columnOrder[i] = schema.getJSONObject(i).getString("name");
+    }
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    Matcher<JSONArray>[] rowMatchers = new Matcher[expectedRows.length];
+    for (int r = 0; r < expectedRows.length; r++) {
+      Object[] reordered = new Object[n];
+      for (int c = 0; c < n; c++) {
+        if (!expectedRows[r].containsKey(columnOrder[c])) {
+          throw new IllegalArgumentException(
+              "Expected row at index "
+                  + r
+                  + " is missing canonical value for response column ["
+                  + columnOrder[c]
+                  + "]; provided keys: "
+                  + expectedRows[r].keySet());
+        }
+        reordered[c] = expectedRows[r].get(columnOrder[c]);
+      }
+      rowMatchers[r] = rows(reordered);
+    }
+    verifyDataRows(result, rowMatchers);
   }
 }

@@ -39,8 +39,8 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
         ""
             + "SELECT *\n"
             + "FROM `scott`.`EMP`\n"
-            + "WHERE `SAL` > (((SELECT AVG(`SAL`) `AVG(SAL)`\n"
-            + "FROM `scott`.`EMP`)))";
+            + "WHERE `SAL` > (SELECT AVG(`SAL`) `AVG(SAL)`\n"
+            + "FROM `scott`.`EMP` `EMP0`)";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -66,9 +66,9 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         ""
-            + "SELECT (((SELECT MIN(`EMPNO`) `min(EMPNO)`\n"
-            + "FROM `scott`.`EMP`))) `min_empno`, `SAL`\n"
-            + "FROM `scott`.`EMP`";
+            + "SELECT (SELECT MIN(`EMPNO`) `min(EMPNO)`\n"
+            + "FROM `scott`.`EMP` `EMP0`) `min_empno`, `SAL`\n"
+            + "FROM `scott`.`EMP` `EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -107,11 +107,11 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT `min_empno`, `SAL`\n"
             + "FROM (SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`,"
-            + " (((SELECT MIN(`EMPNO`) `min(EMPNO)`\n"
-            + "FROM `scott`.`EMP`))) `min_empno`\n"
-            + "FROM `scott`.`EMP`) `t1`\n"
-            + "WHERE `SAL` > (((SELECT AVG(`SAL`) `AVG(SAL)`\n"
-            + "FROM `scott`.`EMP`)))";
+            + " (SELECT MIN(`EMPNO`) `min(EMPNO)`\n"
+            + "FROM `scott`.`EMP` `EMP0`) `min_empno`\n"
+            + "FROM `scott`.`EMP` `EMP`) `t1`\n"
+            + "WHERE `SAL` > (SELECT AVG(`SAL`) `AVG(SAL)`\n"
+            + "FROM `scott`.`EMP` `EMP1`)";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -140,9 +140,9 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
         ""
             + "SELECT *\n"
             + "FROM `scott`.`EMP`\n"
-            + "WHERE `SAL` > (((SELECT AVG(`EMP`.`SAL`) `AVG(SAL)`\n"
+            + "WHERE `SAL` > (SELECT AVG(`EMP`.`SAL`) `AVG(SAL)`\n"
             + "FROM `scott`.`SALGRADE`\n"
-            + "WHERE `EMP`.`SAL` = `HISAL`)))";
+            + "WHERE `EMP`.`SAL` = `HISAL`)";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -170,10 +170,10 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
 
     String expectedSparkSql =
         ""
-            + "SELECT (((SELECT MIN(`EMP`.`EMPNO`) `min(EMPNO)`\n"
+            + "SELECT (SELECT MIN(`EMP`.`EMPNO`) `min(EMPNO)`\n"
             + "FROM `scott`.`SALGRADE`\n"
-            + "WHERE `EMP`.`SAL` = `HISAL`))) `min_empno`, `SAL`\n"
-            + "FROM `scott`.`EMP`";
+            + "WHERE `EMP`.`SAL` = `HISAL`) `min_empno`, `SAL`\n"
+            + "FROM `scott`.`EMP` `EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -201,9 +201,9 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
         ""
             + "SELECT *\n"
             + "FROM `scott`.`EMP`\n"
-            + "WHERE (((SELECT COUNT(*) `COUNT()`\n"
+            + "WHERE (SELECT COUNT(*) `COUNT()`\n"
             + "FROM `scott`.`SALGRADE`\n"
-            + "WHERE `EMP`.`SAL` = `HISAL` OR `HISAL` > 1000.0))) > 0";
+            + "WHERE `EMP`.`SAL` = `HISAL` OR `HISAL` > 1000.0) > 0";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -230,10 +230,10 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT *\n"
             + "FROM `scott`.`EMP`\n"
-            + "WHERE (((SELECT COUNT(*) `COUNT()`\n"
+            + "WHERE (SELECT COUNT(*) `COUNT()`\n"
             + "FROM `scott`.`SALGRADE`\n"
             + "WHERE `EMP`.`SAL` = `HISAL` AND `HISAL` > 1000.0 OR `EMP`.`SAL` = `HISAL` AND"
-            + " `LOSAL` > 1000.0))) > 0";
+            + " `LOSAL` > 1000.0) > 0";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -268,14 +268,14 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
     String expectedSparkSql =
         "SELECT *\n"
             + "FROM `scott`.`EMP`\n"
-            + "WHERE `SAL` = (((SELECT MAX(`HISAL`) `max(HISAL)`\n"
+            + "WHERE `SAL` = (SELECT MAX(`HISAL`) `max(HISAL)`\n"
             + "FROM (SELECT `HISAL`\n"
             + "FROM `scott`.`SALGRADE`\n"
-            + "ORDER BY `LOSAL`) `t0`))) OR `SAL` = (((SELECT MIN(`HISAL`) `min(HISAL)`\n"
+            + "ORDER BY `LOSAL`) `t0`) OR `SAL` = (SELECT MIN(`HISAL`) `min(HISAL)`\n"
             + "FROM (SELECT `HISAL`\n"
             + "FROM `scott`.`SALGRADE`\n"
             + "WHERE `LOSAL` > 1000.0\n"
-            + "ORDER BY `HISAL` DESC) `t4`)))";
+            + "ORDER BY `HISAL` DESC) `t4`)";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -331,13 +331,13 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
         ""
             + "SELECT *\n"
             + "FROM `scott`.`EMP`\n"
-            + "WHERE `SAL` = (((SELECT MAX(`HISAL`) `max_hisal`\n"
+            + "WHERE `SAL` = (SELECT MAX(`HISAL`) `max_hisal`\n"
             + "FROM `scott`.`SALGRADE`\n"
-            + "WHERE `HISAL` = (((SELECT MAX(`SAL`) `max_sal`\n"
-            + "FROM `scott`.`EMP`\n"
-            + "GROUP BY `JOB`)))\n"
+            + "WHERE `HISAL` = (SELECT MAX(`SAL`) `max_sal`\n"
+            + "FROM `scott`.`EMP` `EMP0`\n"
+            + "GROUP BY `JOB`)\n"
             + "GROUP BY `GRADE`\n"
-            + "LIMIT 1)))";
+            + "LIMIT 1)";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
@@ -366,9 +366,9 @@ public class CalcitePPLScalarSubqueryTest extends CalcitePPLAbstractTest {
         ""
             + "SELECT *\n"
             + "FROM `scott`.`EMP`\n"
-            + "WHERE `SAL` > (((SELECT AVG(`EMP`.`SAL`) `AVG(SAL)`\n"
+            + "WHERE `SAL` > (SELECT AVG(`EMP`.`SAL`) `AVG(SAL)`\n"
             + "FROM `scott`.`SALGRADE`\n"
-            + "WHERE `EMP`.`SAL` = `HISAL`)))";
+            + "WHERE `EMP`.`SAL` = `HISAL`)";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 }

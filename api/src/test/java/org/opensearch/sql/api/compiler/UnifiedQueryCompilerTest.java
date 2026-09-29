@@ -57,6 +57,27 @@ public class UnifiedQueryCompilerTest extends UnifiedQueryTestBase implements Re
     }
   }
 
+  @Test
+  public void testCompositeCollationQueryExecutes() throws Exception {
+    RelNode plan = planner.plan("source = catalog.employees | sort age | eval x = age");
+    try (PreparedStatement statement = compiler.compile(plan)) {
+      ResultSet resultSet = statement.executeQuery();
+
+      verify(resultSet)
+          .expectSchema(
+              col("id", INTEGER),
+              col("name", VARCHAR),
+              col("age", INTEGER),
+              col("department", VARCHAR),
+              col("x", INTEGER))
+          .expectData(
+              row(1, "Alice", 25, "Engineering", 25),
+              row(2, "Bob", 35, "Sales", 35),
+              row(3, "Charlie", 45, "Engineering", 45),
+              row(4, "Diana", 28, "Marketing", 28));
+    }
+  }
+
   @Test(expected = IllegalStateException.class)
   public void testCompileFailure() {
     RelNode mockPlan = Mockito.mock(RelNode.class);

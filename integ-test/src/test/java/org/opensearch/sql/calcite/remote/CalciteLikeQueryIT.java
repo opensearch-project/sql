@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WILDCARD;
+import static org.opensearch.sql.util.Capability.LIKE_CASE_SENSITIVITY;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
@@ -15,6 +16,7 @@ import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.LikeQueryIT;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalciteLikeQueryIT extends LikeQueryIT {
   @Override
@@ -49,6 +51,9 @@ public class CalciteLikeQueryIT extends LikeQueryIT {
   }
 
   @Test
+  @RequiresCapability(
+      value = LIKE_CASE_SENSITIVITY,
+      note = "case-sensitive LIKE (legacy=false) expects 0 rows; AE LIKE is case-insensitive.")
   public void test_the_default_3rd_option() throws IOException {
     // only work in v3
     String query =

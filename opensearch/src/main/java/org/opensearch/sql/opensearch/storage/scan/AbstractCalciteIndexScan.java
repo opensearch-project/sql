@@ -33,6 +33,7 @@ import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.TableScan;
+import org.apache.calcite.rel.externalize.RelJsonWriter;
 import org.apache.calcite.rel.externalize.RelWriterImpl;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.logical.LogicalAggregate;
@@ -55,6 +56,7 @@ import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer;
@@ -105,13 +107,29 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
 
   @Override
   public RelWriter explainTerms(RelWriter pw) {
+    // Build explain string with context and request builder info
     String explainString = String.valueOf(pushDownContext);
-    if (pw instanceof RelWriterImpl) {
-      // Only add request builder to the explain plan
-      explainString += ", " + pushDownContext.createRequestBuilder();
+    if (pw instanceof RelJsonWriter) {
+      // For JSON output, add structured items
+      super.explainTerms(pw);
+      if (!pushDownContext.isEmpty()) {
+        pw.item("PushDownContext", explainString);
+        try {
+          OpenSearchRequestBuilder requestBuilder = pushDownContext.createRequestBuilder();
+          pw.item("sourceBuilder", requestBuilder.getSourceBuilder().toString());
+        } catch (Exception e) {
+          // Ignore if request builder cannot be created
+        }
+      }
+      return pw;
+    } else {
+      // For text output, use original chained format
+      if (pw instanceof RelWriterImpl && !pushDownContext.isEmpty()) {
+        explainString += ", " + pushDownContext.createRequestBuilder();
+      }
+      return super.explainTerms(pw)
+          .itemIf("PushDownContext", explainString, !pushDownContext.isEmpty());
     }
-    return super.explainTerms(pw)
-        .itemIf("PushDownContext", explainString, !pushDownContext.isEmpty());
   }
 
   protected Integer getQuerySizeLimit() {
@@ -323,7 +341,7 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
         // aggregators.
         return null;
       }
-      RelTraitSet traitsWithCollations = getTraitSet().plus(RelCollations.of(collations));
+      RelTraitSet traitsWithCollations = getTraitSet().replace(RelCollations.of(collations));
       PushDownContext pushDownContextWithoutSort = this.pushDownContext.cloneWithoutSort();
       AbstractAction<?> action;
       Object digest;
@@ -375,8 +393,14 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
                   case LAST -> "_last";
                   default -> null;
                 };
-            // Keyword field is optimized for sorting in OpenSearch
             ExprType fieldType = osIndex.getFieldTypes().get(fieldName);
+            if (fieldType instanceof OpenSearchBinaryType) {
+              if (LOG.isDebugEnabled()) {
+                LOG.debug("Cannot pushdown the sort on binary field {}", fieldName);
+              }
+              return null;
+            }
+            // Keyword field is optimized for sorting in OpenSearch
             String field = OpenSearchTextType.toKeywordSubField(fieldName, fieldType);
             sortBuilder = SortBuilders.fieldSort(field).missing(missing);
           }
@@ -424,6 +448,14 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
             Direction.DESCENDING.equals(digest.getDirection()) ? SortOrder.DESC : SortOrder.ASC;
 
         if (digest.isSimpleFieldReference()) {
+          // Only the field sort needs a guard. The script sort below reads the field from
+          // _source, see the OpenSearchBinaryType branch in RexStandardizer#visitInputRef.
+          if (osIndex.getFieldTypes().get(digest.getFieldName()) instanceof OpenSearchBinaryType) {
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("Cannot pushdown the sort on binary field {}", digest.getFieldName());
+            }
+            return null;
+          }
           String missing =
               switch (digest.getNullDirection()) {
                 case FIRST -> "_first";

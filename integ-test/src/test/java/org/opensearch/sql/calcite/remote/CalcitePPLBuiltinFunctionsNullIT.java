@@ -8,6 +8,8 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS_WITH_NULL;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NULL_MISSING;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY_WITH_NULL;
+import static org.opensearch.sql.util.Capability.MULTISHARD_EXCHANGE_TYPE_MISMATCH;
+import static org.opensearch.sql.util.Capability.TIME_TYPE_WIDENED_TO_TIMESTAMP;
 import static org.opensearch.sql.util.MatcherUtils.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 
@@ -17,6 +19,7 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalcitePPLBuiltinFunctionsNullIT extends PPLIntegTestCase {
   @Override
@@ -162,6 +165,11 @@ public class CalcitePPLBuiltinFunctionsNullIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = MULTISHARD_EXCHANGE_TYPE_MISMATCH,
+      note =
+          "AE multi-shard: Field 'timestamp' Substrait Float64 vs table Int64 -> Failed to create"
+              + " exchange sink (HTTP 500).")
   public void testUnixTimestampNull() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -887,6 +895,11 @@ public class CalcitePPLBuiltinFunctionsNullIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = TIME_TYPE_WIDENED_TO_TIMESTAMP,
+      note =
+          "the TIME field reads back as TIMESTAMP on the AE route, defeating TIMEDIFF's [TIME,TIME]"
+              + " signature (TIME_TYPE_WIDENED_TO_TIMESTAMP).")
   public void testTimediffNull() throws IOException {
     JSONObject actual =
         executeQuery(

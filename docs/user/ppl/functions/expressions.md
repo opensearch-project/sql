@@ -11,6 +11,17 @@ Arithmetic expressions are formed by combining numeric literals and binary arith
 4. `/`: Division. When [`plugins.ppl.syntax.legacy.preferred`](../admin/settings.md) is `true` (default), integer operands follow the legacy truncating result. When the setting is `false`, the operands are promoted to floating-point, preserving the fractional part. Division by zero returns `NULL`.
 5. `%`: Modulo. This operator can only be used with integers and returns the remainder of the division.
 
+### Overflow behavior
+
+Long (`BIGINT`) arithmetic operations (`+`, `-`, `*`) in `eval` expressions detect overflow and return an error instead of silently wrapping. Narrower integer operands are widened before arithmetic, so crossing the 32-bit integer boundary does not overflow. Floating-point (`float`, `double`) arithmetic follows IEEE 754 and does not produce overflow errors.
+
+The accumulator used by `stats sum(integral_field)` depends on whether Calcite pushdown is enabled:
+
+- With `plugins.calcite.pushdown.enabled=true` (the default), OpenSearch uses its native double-based `sum`, then the result is checked and narrowed to `BIGINT`. Large in-range sums can lose low-order precision. A small overflow that rounds to a signed `BIGINT` boundary can also be indistinguishable from an in-range sum and may saturate at the boundary instead of returning an error.
+- With `plugins.calcite.pushdown.enabled=false`, Calcite uses an exact `BIGINT` accumulator and `Math.addExact` for every addition. It returns an error as soon as the running sum exceeds the `BIGINT` range.
+
+For example, summing `4611686018427387904` (`2^62`) and `1` returns the exact `4611686018427387905` without pushdown. With pushdown enabled, the double accumulator cannot represent the low-order `1`, so the result is `4611686018427387904`.
+
 ### Precedence
 
 You can use parentheses to control the precedence of arithmetic operators. Otherwise, operators with higher precedence are performed first.
@@ -185,4 +196,3 @@ fetched rows / total rows = 2/2
 | 28  |
 +-----+
 ```
-  

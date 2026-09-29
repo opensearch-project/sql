@@ -46,6 +46,10 @@ import org.apache.calcite.sql.SqlCollation;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.analytics.schema.BinaryType;
+import org.opensearch.analytics.schema.DateOnlyType;
+import org.opensearch.analytics.schema.IpType;
+import org.opensearch.analytics.schema.TimeOnlyType;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.type.ExprBinaryType;
 import org.opensearch.sql.calcite.type.ExprDateType;
@@ -174,6 +178,8 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
           return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIME, nullable);
         case TIMESTAMP:
           return TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP, nullable);
+        case BINARY:
+          return TYPE_FACTORY.createSqlType(SqlTypeName.VARBINARY, nullable);
         case ARRAY:
           return TYPE_FACTORY.createArrayType(
               TYPE_FACTORY.createSqlType(SqlTypeName.ANY, nullable), -1);
@@ -225,6 +231,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       case FLOAT, REAL -> FLOAT;
       case DOUBLE, DECIMAL -> DOUBLE; // TODO the decimal is only used for literal
       case CHAR, VARCHAR, MULTISET -> STRING; // call toString() for MULTISET
+      case VARBINARY, BINARY -> BINARY;
       case BOOLEAN -> BOOLEAN;
       case DATE -> DATE;
       case TIME, TIME_TZ, TIME_WITH_LOCAL_TIME_ZONE -> TIME;
@@ -245,6 +252,11 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
           INTERVAL;
       case ARRAY -> ARRAY;
       case MAP -> STRUCT;
+      // Calcite spells a struct as ROW. convertExprTypeToRelDataType builds STRUCT as
+      // MAP<VARCHAR, ANY> since the v2 path only passes _source JSON through, so a genuine ROW —
+      // from an engine that builds a struct out of typed columns — matched nothing and fell
+      // through to UNKNOWN.
+      case ROW -> STRUCT;
       case GEOMETRY -> GEO_POINT;
       case NULL, ANY, OTHER -> UNDEFINED;
       default -> UNKNOWN;
@@ -256,6 +268,18 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     ExprType type = convertRelDataTypeToExprType(relDataType);
     return (queryType == PPL ? PPL_SPEC.typeName(type) : type.legacyTypeName())
         .toUpperCase(Locale.ROOT);
+  }
+
+  /**
+   * Name a multi-value type the way a query author sees it in a mapping, for error messages:
+   * "object" for an object field, "array" for an array one. Returns null for scalar types.
+   */
+  public static @Nullable String getContainerTypeName(RelDataType relDataType) {
+    return switch (relDataType.getSqlTypeName()) {
+      case MAP, ROW -> "object";
+      case ARRAY, MULTISET -> "array";
+      default -> null;
+    };
   }
 
   /** Converts a Calcite data type to OpenSearch ExprCoreType. */
@@ -270,6 +294,42 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
           "Unsupported conversion for Relational Data type: " + type.getSqlTypeName());
     }
     return exprType;
+  }
+
+  /** DATE check for return-type inference; recognizes the analytics-route {@link DateOnlyType}. */
+  public static boolean isDateExprType(RelDataType type) {
+    return type instanceof DateOnlyType || convertRelDataTypeToExprType(type) == ExprCoreType.DATE;
+  }
+
+  /** TIME counterpart of {@link #isDateExprType}; recognizes {@link TimeOnlyType}. */
+  public static boolean isTimeExprType(RelDataType type) {
+    return type instanceof TimeOnlyType || convertRelDataTypeToExprType(type) == ExprCoreType.TIME;
+  }
+
+  /**
+   * Result-schema-only variant of {@link #convertRelDataTypeToExprType} that recognizes the
+   * analytics-engine {@link IpType} / {@link BinaryType} markers as {@link ExprCoreType#IP} /
+   * {@link ExprCoreType#BINARY}.
+   *
+   * <p>Kept off the general path because Calcite's planner-internal coercion would round-trip
+   * through {@link #convertExprTypeToRelDataType} and synthesize {@code CAST(... AS ExprIPType)}
+   * casts the substrait converter can't handle.
+   */
+  public static ExprType convertAnalyticsEngineRelDataTypeToExprType(RelDataType type) {
+    if (type instanceof IpType) {
+      return IP;
+    }
+    if (type instanceof BinaryType) {
+      return BINARY;
+    }
+    // span() over date / time UDT — schema label is DATE / TIME, not TIMESTAMP.
+    if (type instanceof DateOnlyType) {
+      return DATE;
+    }
+    if (type instanceof TimeOnlyType) {
+      return TIME;
+    }
+    return convertRelDataTypeToExprType(type);
   }
 
   public static ExprValue getExprValueByExprType(ExprType type, Object value) {
@@ -411,8 +471,32 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         }
         return first;
       }
+      // When the list has a VARBINARY column plus VARCHAR literals, treat VARBINARY
+      // as the common type so IN / BETWEEN can insert casts.
+      RelDataType varbinaryResult = leastRestrictiveVarbinaryVarchar(types);
+      if (varbinaryResult != null) {
+        return varbinaryResult;
+      }
     }
     return super.leastRestrictive(types);
+  }
+
+  private @Nullable RelDataType leastRestrictiveVarbinaryVarchar(List<RelDataType> types) {
+    boolean hasVarbinary = false;
+    boolean anyNullable = false;
+    for (RelDataType t : types) {
+      SqlTypeName name = t.getSqlTypeName();
+      if (name == SqlTypeName.VARBINARY) {
+        hasVarbinary = true;
+      } else if (name != SqlTypeName.VARCHAR && name != SqlTypeName.CHAR) {
+        return null;
+      }
+      anyNullable |= t.isNullable();
+    }
+    if (!hasVarbinary) {
+      return null;
+    }
+    return createTypeWithNullability(createSqlType(SqlTypeName.VARBINARY), anyNullable);
   }
 
   /**

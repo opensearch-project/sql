@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ast.expression;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 public abstract class WindowBound {
@@ -25,6 +26,7 @@ public abstract class WindowBound {
     }
   }
 
+  @EqualsAndHashCode(callSuper = false)
   public static class CurrentRowWindowBound extends WindowBound {
     CurrentRowWindowBound() {}
 

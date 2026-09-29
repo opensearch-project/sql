@@ -15,6 +15,7 @@ import org.opensearch.sql.analysis.ExpressionAnalyzer;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.executor.DelegatingExecutionEngine;
+import org.opensearch.sql.executor.ExecutionDispatcher;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.QueryService;
@@ -26,6 +27,7 @@ import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
 import org.opensearch.sql.opensearch.executor.OpenSearchExecutionEngine;
 import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
+import org.opensearch.sql.opensearch.executor.ThreadPoolExecutionDispatcher;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
 import org.opensearch.sql.opensearch.executor.protector.OpenSearchExecutionProtector;
 import org.opensearch.sql.opensearch.monitor.OpenSearchMemoryHealthy;
@@ -38,16 +40,19 @@ import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.sql.SQLService;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.storage.StorageEngine;
+import org.opensearch.telemetry.tracing.Tracer;
+import org.opensearch.telemetry.tracing.noop.NoopTracer;
 import org.opensearch.transport.client.node.NodeClient;
 
 @RequiredArgsConstructor
 public class OpenSearchPluginModule extends AbstractModule {
 
   private final List<ExecutionEngine> executionEngineExtensions;
+  private final Tracer tracer;
 
   /** Default constructor for when no engines are available. */
   public OpenSearchPluginModule() {
-    this(List.of());
+    this(List.of(), NoopTracer.INSTANCE);
   }
 
   private final BuiltinFunctionRepository functionRepository =
@@ -89,8 +94,8 @@ public class OpenSearchPluginModule extends AbstractModule {
   }
 
   @Provides
-  public PlanSerializer planSerializer(StorageEngine storageEngine) {
-    return new PlanSerializer(storageEngine);
+  public PlanSerializer planSerializer(StorageEngine storageEngine, Settings settings) {
+    return new PlanSerializer(storageEngine, settings);
   }
 
   @Provides
@@ -106,20 +111,33 @@ public class OpenSearchPluginModule extends AbstractModule {
   }
 
   @Provides
-  public SQLService sqlService(QueryManager queryManager, QueryPlanFactory queryPlanFactory) {
-    return new SQLService(new SQLSyntaxParser(), queryManager, queryPlanFactory);
+  public SQLService sqlService(
+      QueryManager queryManager, QueryPlanFactory queryPlanFactory, Settings settings) {
+    return new SQLService(new SQLSyntaxParser(), queryManager, queryPlanFactory, settings);
+  }
+
+  @Provides
+  @Singleton
+  public Tracer tracer() {
+    return tracer;
   }
 
   /** {@link QueryPlanFactory}. */
   @Provides
   public QueryPlanFactory queryPlanFactory(
-      DataSourceService dataSourceService, ExecutionEngine executionEngine, Settings settings) {
+      DataSourceService dataSourceService,
+      ExecutionEngine executionEngine,
+      Settings settings,
+      NodeClient nodeClient) {
     Analyzer analyzer =
         new Analyzer(
             new ExpressionAnalyzer(functionRepository), dataSourceService, functionRepository);
-    Planner planner = new Planner(LogicalPlanOptimizer.create());
+    Planner planner = new Planner(LogicalPlanOptimizer.create(), settings);
+    ExecutionDispatcher executionDispatcher =
+        new ThreadPoolExecutionDispatcher(nodeClient.threadPool(), settings);
     QueryService queryService =
-        new QueryService(analyzer, executionEngine, planner, dataSourceService, settings);
+        new QueryService(
+            analyzer, executionEngine, planner, dataSourceService, settings, executionDispatcher);
     return new QueryPlanFactory(queryService);
   }
 }

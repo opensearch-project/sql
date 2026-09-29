@@ -142,8 +142,8 @@ public class CalciteAddColTotalsCommandIT extends PPLIntegTestCase {
     var result =
         executeQuery(
             String.format(
-                "source=%s | where age > 25 | head 2|fields age, balance | addcoltotals label='Sum'"
-                    + " labelfield='Grand Total'",
+                "source=%s | where age > 25 | sort account_number | head 2 | fields age, balance |"
+                    + " addcoltotals label='Sum' labelfield='Grand Total'",
                 TEST_INDEX_ACCOUNT));
 
     verifySchema(
@@ -178,8 +178,8 @@ public class CalciteAddColTotalsCommandIT extends PPLIntegTestCase {
     var result =
         executeQuery(
             String.format(
-                "source=%s | where age > 25 |head 3| fields age, balance,firstname | addcoltotals "
-                    + " age balance  label='Sum'  labelfield='firstname'",
+                "source=%s | where age > 25 | sort account_number | head 3 | fields age, balance,"
+                    + " firstname | addcoltotals age balance label='Sum' labelfield='firstname'",
                 TEST_INDEX_ACCOUNT));
 
     // Verify schema includes custom fieldname

@@ -1,20 +1,20 @@
 root:
-  name: ProjectOperator
-  description:
-    fields: "[age]"
   children:
-    - name: LimitOperator
-      description:
-        limit: 5
-        offset: 0
-      children:
-        - name: FilterOperator
-          description:
-            conditions: ">(age, 30)"
-          children:
-            - name: OpenSearchIndexScan
+    - children:
+        - children:
+            - children: []
               description:
                 request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account,\
                   \ sourceBuilder={\"from\":0,\"size\":10,\"timeout\":\"1m\"}, pitId=*,\
                   \ cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
-              children: []
+              name: OpenSearchIndexScan
+          description:
+            conditions: ">(age, 30)"
+          name: FilterOperator
+      description:
+        limit: 5
+        offset: 0
+      name: LimitOperator
+  description:
+    fields: "[age]"
+  name: ProjectOperator

@@ -17,6 +17,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalcitePPLLookupIT extends PPLIntegTestCase {
@@ -330,20 +331,20 @@ public class CalcitePPLLookupIT extends PPLIntegTestCase {
 
   @Test
   public void testCorrectnessCombination() throws IOException {
-    Request requestS = new Request("PUT", "/s/_doc/1?refresh=true");
+    Request requestS = TestUtils.seedDocRequest("s", "1");
     requestS.setJsonEntity("{\"id\": 1, \"col1\": \"a\", \"col2\": \"b\"}");
     client().performRequest(requestS);
-    requestS = new Request("PUT", "/s/_doc/2?refresh=true");
+    requestS = TestUtils.seedDocRequest("s", "2");
     requestS.setJsonEntity("{\"id\": 2, \"col1\": \"aa\", \"col2\": \"bb\"}");
     client().performRequest(requestS);
-    requestS = new Request("PUT", "/s/_doc/3?refresh=true");
+    requestS = TestUtils.seedDocRequest("s", "3");
     requestS.setJsonEntity("{\"id\": 3, \"col1\": null, \"col2\": \"ccc\"}");
     client().performRequest(requestS);
 
-    Request requestL = new Request("PUT", "/l/_doc/1?refresh=true");
+    Request requestL = TestUtils.seedDocRequest("l", "1");
     requestL.setJsonEntity("{\"id\": 1, \"col1\": \"x\", \"col3\": \"y\"}");
     client().performRequest(requestL);
-    requestL = new Request("PUT", "/l/_doc/3?refresh=true");
+    requestL = TestUtils.seedDocRequest("l", "3");
     requestL.setJsonEntity("{\"id\": 3, \"col1\": \"xx\", \"col3\": \"yy\"}");
     client().performRequest(requestL);
 

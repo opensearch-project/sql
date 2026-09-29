@@ -1,0 +1,170 @@
+# Issue: https://github.com/opensearch-project/sql/issues/5164
+# Integer/long arithmetic (+, -, *) must not silently wrap on overflow.
+#
+# byte/short/int overflow is prevented by operand widening (short/byte -> INT, any int/long ->
+# BIGINT) in PPLFuncImpTable, so those produce the correct wider value (HTTP 200). long (BIGINT)
+# arithmetic has no wider integer type to widen into, so overflow is detected via checked
+# arithmetic (Math.addExact / multiplyExact) and surfaced as a 4xx client error instead of wrapping.
+
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+  - do:
+      indices.create:
+        index: test_overflow_5164
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              int_field:
+                type: integer
+              long_field:
+                type: long
+              small_int:
+                type: integer
+              short_field:
+                type: short
+  - do:
+      bulk:
+        index: test_overflow_5164
+        refresh: true
+        body:
+          - '{"index": {"_id": "1"}}'
+          - '{"int_field": 2147483647, "long_field": 9223372036854775807, "small_int": 10, "short_field": 30000}'
+          - '{"index": {"_id": "2"}}'
+          - '{"int_field": 100, "long_field": 200, "small_int": 5, "short_field": 3}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+  - do:
+      indices.delete:
+        index: test_overflow_5164
+        ignore_unavailable: true
+
+---
+"Normal integer addition does not error":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_overflow_5164 | where small_int = 5 | eval sum = int_field + small_int | fields int_field, small_int, sum
+  - match: { total: 1 }
+  - match: { datarows: [[100, 5, 105]] }
+
+---
+"Integer addition overflow widens instead of wrapping":
+  - skip:
+      features:
+        - headers
+  # int + int is widened to BIGINT before the operation; 2147483647 + 1 = 2147483648 fits exactly.
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_overflow_5164 | where int_field = 2147483647 | eval widened = int_field + 1 | fields widened
+  - match: { total: 1 }
+  - match: { datarows: [[2147483648]] }
+
+---
+"Integer multiplication overflow widens instead of wrapping":
+  - skip:
+      features:
+        - headers
+  # 2147483647 * 2 = 4294967294 exceeds INT range but is exact once widened to BIGINT.
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_overflow_5164 | where int_field = 2147483647 | eval widened = int_field * 2 | fields widened
+  - match: { total: 1 }
+  - match: { datarows: [[4294967294]] }
+
+---
+"Short multiplication overflow widens instead of wrapping":
+  - skip:
+      features:
+        - headers
+  # short * short historically wrapped into the 16-bit SMALLINT range (bug bash #8: 30000 * 30000
+  # wrapped). Widening to INT keeps the exact value 900000000.
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_overflow_5164 | where short_field = 30000 | eval widened = short_field * short_field | fields widened
+  - match: { total: 1 }
+  - match: { datarows: [[900000000]] }
+
+---
+"Long addition overflow throws error":
+  - skip:
+      features:
+        - headers
+  # long + long has no wider integer type; overflow is detected and surfaced as a 4xx.
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_overflow_5164 | where long_field = 9223372036854775807 | eval overflow = long_field + 1 | fields overflow
+  - match: { "$body": "/overflow/" }
+
+---
+"Long multiplication overflow throws error":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_overflow_5164 | where long_field = 9223372036854775807 | eval overflow = long_field * 2 | fields overflow
+  - match: { "$body": "/overflow/" }
+
+---
+"Long subtraction overflow throws error":
+  - skip:
+      features:
+        - headers
+  # long_field is i64::MAX; subtracting -1 overflows past the top of the BIGINT range.
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_overflow_5164 | where long_field = 9223372036854775807 | eval overflow = long_field - (-1) | fields overflow
+  - match: { "$body": "/overflow/" }
+
+---
+"Normal long arithmetic does not error":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=test_overflow_5164 | where long_field = 200 | eval product = long_field * 2 | fields product
+  - match: { total: 1 }
+  - match: { datarows: [[400]] }

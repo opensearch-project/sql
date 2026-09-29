@@ -1,0 +1,10 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12])
+        LogicalFilter(condition=[<=($19, 1)])
+          LogicalProject(account_number=[$0], firstname=[$1], address=[$2], birthdate=[$3], gender=[$4], city=[$5], lastname=[$6], balance=[$7], employer=[$8], state=[$9], age=[$10], email=[$11], male=[$12], _id=[$13], _index=[$14], _score=[$15], _maxscore=[$16], _sort=[$17], _routing=[$18], _row_number_dedup_=[ROW_NUMBER() OVER (PARTITION BY $11)])
+            LogicalFilter(condition=[IS NOT NULL($11)])
+              CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
+  physical: |
+    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]], PushDownContext=[[AGGREGATION->rel#:LogicalAggregate.NONE.[](input=LogicalProject#,group={0},agg#0=LITERAL_AGG(1)), LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":0,"timeout":"1m","aggregations":{"composite_buckets":{"composite":{"size":1000,"sources":[{"email":{"terms":{"script":{"source":"{\"langType\":\"calcite\",\"script\":\"rO0ABXQAaXsKICAiZHluYW1pY1BhcmFtIjogMCwKICAidHlwZSI6IHsKICAgICJ0eXBlIjogIlZBUkNIQVIiLAogICAgIm51bGxhYmxlIjogdHJ1ZSwKICAgICJwcmVjaXNpb24iOiAtMQogIH0KfQ==\"}","lang":"opensearch_compounded_script","params":{"utcTimestamp": 0,"SOURCES":[1],"DIGESTS":["email"]}},"missing_bucket":false,"order":"asc"}}}]},"aggregations":{"$f1":{"top_hits":{"from":0,"size":1,"version":false,"seq_no_primary_term":false,"explain":false,"fields":[{"field":"email"},{"field":"account_number"},{"field":"firstname"},{"field":"address"},{"field":"birthdate"},{"field":"gender"},{"field":"city"},{"field":"lastname"},{"field":"balance"},{"field":"employer"},{"field":"state"},{"field":"age"},{"field":"male"}]}}}}}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])

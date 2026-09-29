@@ -1,9 +1,6 @@
 root:
-  name: ProjectOperator
-  description:
-    fields: "[count(), span(`@timestamp`,1h)]"
   children:
-    - name: OpenSearchIndexScan
+    - children: []
       description:
         request: "OpenSearchQueryRequest(indexName=big5, sourceBuilder={\"from\":0,\"\
           size\":0,\"timeout\":\"1m\",\"aggregations\":{\"composite_buckets\":{\"\
@@ -12,4 +9,7 @@ root:
           fixed_interval\":\"1h\"}}}]},\"aggregations\":{\"count()\":{\"value_count\"\
           :{\"field\":\"_index\"}}}}}}, pitId=*, cursorKeepAlive=null, searchAfter=null,\
           \ searchResponse=null)"
-      children: []
+      name: OpenSearchIndexScan
+  description:
+    fields: "[count(), span(`@timestamp`,1h)]"
+  name: ProjectOperator

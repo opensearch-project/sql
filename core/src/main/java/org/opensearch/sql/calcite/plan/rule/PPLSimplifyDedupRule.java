@@ -6,11 +6,14 @@
 package org.opensearch.sql.calcite.plan.rule;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.calcite.plan.RelOptRuleCall;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelRule;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollations;
@@ -22,6 +25,7 @@ import org.apache.calcite.rex.RexFieldCollation;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.rex.RexWindow;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -115,8 +119,41 @@ public class PPLSimplifyDedupRule extends RelRule<PPLSimplifyDedupRule.Config> {
 
     RelCollation inputCollation = extractCollationFromWindow(windows.get(0));
 
+    // Split the bucket-non-null filter into two parts:
+    //   1) IS_NOT_NULL conjuncts on a partition key — these are the bucket-non-null guards PPL
+    //      emits as part of the dedup pattern; LogicalDedup absorbs their semantics.
+    //   2) Everything else — for example, a user `where` predicate that FilterMergeRule may
+    //      have folded into the same conjunction, or a user IS_NOT_NULL filter on a non-partition
+    //      column. These must be preserved as a separate filter below the new LogicalDedup so
+    //      user-visible behavior is unchanged regardless of whether FilterMergeRule fired.
+    Set<Integer> partitionKeyIndices = new HashSet<>();
+    for (RexNode key : dedupColumns) {
+      if (key instanceof RexInputRef ref) {
+        partitionKeyIndices.add(ref.getIndex());
+      }
+    }
+    List<RexNode> bucketNonNullConjuncts = new ArrayList<>();
+    List<RexNode> remainingConjuncts = new ArrayList<>();
+    for (RexNode conjunct : RelOptUtil.conjunctions(bucketNonNullFilter.getCondition())) {
+      if (isNotNullOnPartitionKey(conjunct, partitionKeyIndices)) {
+        bucketNonNullConjuncts.add(conjunct);
+      } else {
+        remainingConjuncts.add(conjunct);
+      }
+    }
+    // Defensive: if no IS_NOT_NULL conjunct on a partition key is present, this filter is not
+    // actually a bucket-non-null filter — bail out without transforming. The loose operand
+    // predicate may have matched on an unrelated AND that happens to contain an IS_NOT_NULL on
+    // some other ref.
+    if (bucketNonNullConjuncts.isEmpty()) {
+      return;
+    }
+
     RelBuilder relBuilder = call.builder();
     relBuilder.push(bucketNonNullFilter.getInput());
+    if (!remainingConjuncts.isEmpty()) {
+      relBuilder.filter(RexUtil.composeConjunction(relBuilder.getRexBuilder(), remainingConjuncts));
+    }
     List<Pair<RexNode, String>> targetProjections =
         projectWithWindow.getNamedProjects().stream()
             .filter(p -> !p.getKey().isA(SqlKind.ROW_NUMBER))
@@ -132,6 +169,14 @@ public class PPLSimplifyDedupRule extends RelRule<PPLSimplifyDedupRule.Config> {
     relBuilder.project(finalProject.getProjects(), finalProject.getRowType().getFieldNames());
 
     call.transformTo(relBuilder.build());
+  }
+
+  private static boolean isNotNullOnPartitionKey(RexNode rex, Set<Integer> partitionKeyIndices) {
+    if (!PlanUtils.isNotNullOnRef(rex)) {
+      return false;
+    }
+    RexInputRef ref = (RexInputRef) ((RexCall) rex).getOperands().get(0);
+    return partitionKeyIndices.contains(ref.getIndex());
   }
 
   private static @Nullable RelCollation extractCollationFromWindow(RexWindow window) {

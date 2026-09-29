@@ -8,6 +8,7 @@ package org.opensearch.sql.expression.function;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.adaptExprMethodToUDF;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.adaptExprMethodWithPropertiesToUDF;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.adaptMathFunctionToUDF;
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.createReflectiveAggFunction;
 import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.createUserDefinedAggFunction;
 
 import com.google.common.base.Suppliers;
@@ -29,6 +30,9 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlTypeTransforms;
 import org.apache.calcite.sql.util.ReflectiveSqlOperatorTable;
 import org.apache.calcite.util.BuiltInMethod;
+import org.opensearch.sql.calcite.udf.udaf.BigintAvgAggFunction;
+import org.opensearch.sql.calcite.udf.udaf.CheckedLongSumAggFunction;
+import org.opensearch.sql.calcite.udf.udaf.DistinctCountApproxLogicalAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.FirstAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.LastAggFunction;
 import org.opensearch.sql.calcite.udf.udaf.ListAggFunction;
@@ -46,6 +50,9 @@ import org.opensearch.sql.expression.function.CollectionUDF.ArrayFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.ExistsFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.FilterFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.ForallFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.ForeachPairCollectionFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.ForeachPairItemFunctionImpl;
+import org.opensearch.sql.expression.function.CollectionUDF.ForeachStateFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.MVAppendFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.MVFindFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.MVZipFunctionImpl;
@@ -53,6 +60,7 @@ import org.opensearch.sql.expression.function.CollectionUDF.MapAppendFunctionImp
 import org.opensearch.sql.expression.function.CollectionUDF.MapRemoveFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.ReduceFunctionImpl;
 import org.opensearch.sql.expression.function.CollectionUDF.TransformFunctionImpl;
+import org.opensearch.sql.expression.function.jsonUDF.ForeachJsonArrayFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonAppendFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonArrayLengthFunctionImpl;
 import org.opensearch.sql.expression.function.jsonUDF.JsonDeleteFunctionImpl;
@@ -83,6 +91,7 @@ import org.opensearch.sql.expression.function.udf.ToStringFunction;
 import org.opensearch.sql.expression.function.udf.condition.EarliestFunction;
 import org.opensearch.sql.expression.function.udf.condition.EnhancedCoalesceFunction;
 import org.opensearch.sql.expression.function.udf.condition.LatestFunction;
+import org.opensearch.sql.expression.function.udf.conversion.BinaryFunction;
 import org.opensearch.sql.expression.function.udf.datetime.AddSubDateFunction;
 import org.opensearch.sql.expression.function.udf.datetime.CurrentFunction;
 import org.opensearch.sql.expression.function.udf.datetime.DateAddSubFunction;
@@ -179,6 +188,9 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator EARLIEST = new EarliestFunction().toUDF("EARLIEST");
   public static final SqlOperator LATEST = new LatestFunction().toUDF("LATEST");
 
+  // VARBINARY conversion (placeholder for ip/binary fields rewritten by analytics backend adapter)
+  public static final SqlOperator BINARY = new BinaryFunction().toUDF("BINARY");
+
   // Datetime function
   public static final SqlOperator TIMESTAMP = new TimestampFunction().toUDF("TIMESTAMP");
   public static final SqlOperator DATE =
@@ -237,11 +249,12 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator SECOND = new DatePartFunction(TimeUnit.SECOND).toUDF("SECOND");
   public static final SqlOperator MICROSECOND =
       new DatePartFunction(TimeUnit.MICROSECOND).toUDF("MICROSECOND");
-  public static final SqlOperator NOW = new CurrentFunction(ExprCoreType.TIMESTAMP).toUDF("NOW");
+  public static final SqlOperator NOW =
+      new CurrentFunction(CurrentFunction.Kind.TIMESTAMP).toUDF("NOW");
   public static final SqlOperator CURRENT_TIME =
-      new CurrentFunction(ExprCoreType.TIME).toUDF("CURRENT_TIME");
+      new CurrentFunction(CurrentFunction.Kind.TIME).toUDF("CURRENT_TIME");
   public static final SqlOperator CURRENT_DATE =
-      new CurrentFunction(ExprCoreType.DATE).toUDF("CURRENT_DATE");
+      new CurrentFunction(CurrentFunction.Kind.DATE).toUDF("CURRENT_DATE");
   public static final SqlOperator DATE_FORMAT =
       new FormatFunction(ExprCoreType.DATE).toUDF("DATE_FORMAT");
   public static final SqlOperator TIME_FORMAT =
@@ -400,6 +413,14 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator FORALL = new ForallFunctionImpl().toUDF("forall");
   public static final SqlOperator EXISTS = new ExistsFunctionImpl().toUDF("exists");
   public static final SqlOperator ARRAY = new ArrayFunctionImpl().toUDF("array");
+  public static final SqlOperator FOREACH_JSON_ARRAY =
+      new ForeachJsonArrayFunctionImpl().toUDF("foreach_json_array");
+  public static final SqlOperator FOREACH_PAIR_COLLECTION =
+      new ForeachPairCollectionFunctionImpl().toUDF("foreach_pair_collection");
+  public static final SqlOperator FOREACH_PAIR_ITEM =
+      new ForeachPairItemFunctionImpl().toUDF("foreach_pair_item");
+  public static final SqlOperator FOREACH_STATE =
+      new ForeachStateFunctionImpl().toUDF("foreach_state");
   public static final SqlOperator MAP_APPEND = new MapAppendFunctionImpl().toUDF("map_append");
   public static final SqlOperator MAP_REMOVE = new MapRemoveFunctionImpl().toUDF("MAP_REMOVE");
   public static final SqlOperator MVAPPEND = new MVAppendFunctionImpl().toUDF("mvappend");
@@ -424,11 +445,13 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("query_string", false);
   public static final SqlOperator MULTI_MATCH =
       RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("multi_match", false);
+  public static final SqlOperator QUERY = RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("query");
+  public static final SqlOperator WILDCARD_QUERY =
+      RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("wildcard_query");
   public static final SqlOperator NUMBER_TO_STRING =
       new NumberToStringFunction().toUDF("NUMBER_TO_STRING");
   public static final SqlOperator TONUMBER = new ToNumberFunction().toUDF("TONUMBER");
   public static final SqlOperator TOSTRING = new ToStringFunction().toUDF("TOSTRING");
-
   // PPL Convert command functions
   public static final SqlOperator AUTO = new AutoConvertFunction().toUDF("AUTO");
   public static final SqlOperator NUM = new NumConvertFunction().toUDF("NUM");
@@ -467,6 +490,20 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
       new NullableSqlAvgAggFunction(SqlKind.VAR_POP);
   public static final SqlAggFunction VAR_SAMP_NULLABLE =
       new NullableSqlAvgAggFunction(SqlKind.VAR_SAMP);
+  public static final SqlAggFunction CHECKED_LONG_SUM =
+      createReflectiveAggFunction(
+          CheckedLongSumAggFunction.class,
+          "CHECKED_LONG_SUM",
+          SqlKind.SUM,
+          ReturnTypes.BIGINT_FORCE_NULLABLE,
+          PPLOperandTypes.NUMERIC);
+  public static final SqlAggFunction BIGINT_AVG =
+      createReflectiveAggFunction(
+          BigintAvgAggFunction.class,
+          "AVG",
+          SqlKind.AVG,
+          ReturnTypes.DOUBLE_NULLABLE,
+          PPLOperandTypes.NUMERIC);
   public static final SqlAggFunction TAKE =
       createUserDefinedAggFunction(
           TakeAggFunction.class,
@@ -500,6 +537,23 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
           "VALUES",
           PPLReturnTypes.STRING_ARRAY,
           PPLOperandTypes.ANY_SCALAR_OPTIONAL_INTEGER);
+
+  /**
+   * Logical marker for {@code DISTINCT_COUNT_APPROX} (also exposed as {@code dc} and {@code
+   * distinct_count} aliases). PPL parser uses this to produce a RelNode; backends override or
+   * rewrite it before execution. {@code OpenSearchExecutionEngine} registers a real HyperLogLog++
+   * implementation in the external registry of {@code PPLFuncImpTable}, which has lookup precedence
+   * and serves the OpenSearch V3 path. Other backends (DataFusion / analytics-engine) rewrite the
+   * operator on their own. Operand metadata is {@code null} to match the existing external
+   * registration's permissive policy and avoid introducing new type rejections.
+   */
+  public static final SqlAggFunction DISTINCT_COUNT_APPROX =
+      createUserDefinedAggFunction(
+          DistinctCountApproxLogicalAggFunction.class,
+          // Substrait-standard name the analytics-engine backend resolves by (V3 overrides it).
+          "APPROX_COUNT_DISTINCT",
+          ReturnTypes.BIGINT_FORCE_NULLABLE,
+          null);
 
   public static final SqlOperator ENHANCED_COALESCE =
       new EnhancedCoalesceFunction().toUDF("COALESCE");

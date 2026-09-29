@@ -78,59 +78,70 @@ The `streamstats` command supports the following aggregation functions:
   
 For detailed documentation of each function, see [Aggregation Functions](../functions/aggregations.md).
 
-## Example 1: Calculate the running average, sum, and count of a field by group  
+## Example 1: Calculating the running count of errors by service
 
-The following query calculates the running average `age`, running sum of `age`, and running count of events for all accounts, grouped by `gender`:
+The following query calculates a running count of error logs, grouped by service. This is useful for tracking how errors accumulate across services during an incident:
   
 ```ppl
-source=accounts
-| streamstats avg(age) as running_avg, sum(age) as running_sum, count() as running_count by gender
+source=otellogs
+| where severityText IN ('ERROR', 'WARN')
+| sort `resource.attributes.service.name`
+| streamstats count() as running_count by `resource.attributes.service.name`
+| fields `resource.attributes.service.name`, severityText, running_count
 ```
   
 The query returns the following results:
   
 ```text
-fetched rows / total rows = 4/4
-+----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+-------------+---------------+
-| account_number | firstname | address              | balance | gender | city   | employer | state | age | email                 | lastname | running_avg        | running_sum | running_count |
-|----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+-------------+---------------|
-| 1              | Amber     | 880 Holmes Lane      | 39225   | M      | Brogan | Pyrami   | IL    | 32  | amberduke@pyrami.com  | Duke     | 32.0               | 32          | 1             |
-| 6              | Hattie    | 671 Bristol Street   | 5686    | M      | Dante  | Netagy   | TN    | 36  | hattiebond@netagy.com | Bond     | 34.0               | 68          | 2             |
-| 13             | Nanette   | 789 Madison Street   | 32838   | F      | Nogal  | Quility  | VA    | 28  | null                  | Bates    | 28.0               | 28          | 1             |
-| 18             | Dale      | 467 Hutchinson Court | 4180    | M      | Orick  | null     | MD    | 33  | daleadams@boink.com   | Adams    | 33.666666666666664 | 101         | 3             |
-+----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+--------------------+-------------+---------------+
+fetched rows / total rows = 11/11
++----------------------------------+--------------+---------------+
+| resource.attributes.service.name | severityText | running_count |
+|----------------------------------+--------------+---------------|
+| checkout                         | ERROR        | 1             |
+| checkout                         | ERROR        | 2             |
+| frontend-proxy                   | ERROR        | 1             |
+| frontend-proxy                   | WARN         | 2             |
+| frontend-proxy                   | WARN         | 3             |
+| payment                          | ERROR        | 1             |
+| payment                          | ERROR        | 2             |
+| product-catalog                  | WARN         | 1             |
+| product-catalog                  | WARN         | 2             |
+| product-catalog                  | ERROR        | 3             |
+| recommendation                   | ERROR        | 1             |
++----------------------------------+--------------+---------------+
 ```
   
 
-## Example 2: Calculate the running maximum over a 2-row window
+## Example 2: Calculating running maximum severity over a sliding window
 
-The following query calculates the running maximum `age` over a 2-row window, excluding the current event:
-  
+The following query calculates the running maximum severity level over the previous 2 log entries, excluding the current event. This is useful for alerting when severity escalates beyond recent patterns:
+
 ```ppl
-source=state_country
-| streamstats current=false window=2 max(age) as prev_max_age
+source=otellogs
+| sort @timestamp
+| streamstats current=false window=2 max(severityNumber) as prev_max_severity
+| fields @timestamp, severityText, severityNumber, prev_max_severity
+| head 6
 ```
-  
+
 The query returns the following results:
-  
+
 ```text
-fetched rows / total rows = 8/8
-+-------+---------+------------+-------+------+-----+--------------+
-| name  | country | state      | month | year | age | prev_max_age |
-|-------+---------+------------+-------+------+-----+--------------|
-| Jake  | USA     | California | 4     | 2023 | 70  | null         |
-| Hello | USA     | New York   | 4     | 2023 | 30  | 70           |
-| John  | Canada  | Ontario    | 4     | 2023 | 25  | 70           |
-| Jane  | Canada  | Quebec     | 4     | 2023 | 20  | 30           |
-| Jim   | Canada  | B.C        | 4     | 2023 | 27  | 25           |
-| Peter | Canada  | B.C        | 4     | 2023 | 57  | 27           |
-| Rick  | Canada  | B.C        | 4     | 2023 | 70  | 57           |
-| David | USA     | Washington | 4     | 2023 | 40  | 70           |
-+-------+---------+------------+-------+------+-----+--------------+
+fetched rows / total rows = 6/6
++---------------------+--------------+----------------+-------------------+
+| @timestamp          | severityText | severityNumber | prev_max_severity |
+|---------------------+--------------+----------------+-------------------|
+| 2024-02-01 09:10:00 | INFO         | 9              | null              |
+| 2024-02-01 09:11:00 | INFO         | 9              | 9                 |
+| 2024-02-01 09:12:00 | WARN         | 13             | 9                 |
+| 2024-02-01 09:13:00 | ERROR        | 17             | 13                |
+| 2024-02-01 09:14:00 | DEBUG        | 5              | 17                |
+| 2024-02-01 09:15:00 | ERROR        | 17             | 17                |
++---------------------+--------------+----------------+-------------------+
 ```
   
 
-## Example 3: Global compared to group-specific windows  
+## Example 3: Comparing global with group-specific windows 
 
 The `global` parameter takes the following values:
 
@@ -209,7 +220,7 @@ fetched rows / total rows = 8/8
 ```
   
 
-## Example 4: Conditional statistics reset  
+## Example 4: Resetting statistics conditionally  
 
 The following query calculates the running average of `age` across accounts by `country`, with resets applied:
   
@@ -236,6 +247,7 @@ fetched rows / total rows = 8/8
 +-------+---------+------------+-------+------+-----+---------+
 ```
   
+
 
 ## Example 5: Null bucket behavior
 
@@ -282,4 +294,3 @@ fetched rows / total rows = 4/4
 | 18             | Dale      | null     | 1   |
 +----------------+-----------+----------+-----+
 ```
-  

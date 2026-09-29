@@ -21,6 +21,7 @@ import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
+import org.opensearch.sql.protocol.response.format.Format;
 
 /** Build {@link Statement} from PPL Query. */
 @RequiredArgsConstructor
@@ -37,7 +38,7 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
       rawPlan = new Head(context.getFetchSize(), 0).attach(rawPlan);
     }
     UnresolvedPlan plan = addSelectAll(rawPlan);
-    Query query = new Query(plan, 0, PPL);
+    Query query = new Query(plan, 0, PPL, context.isIncludeMetadata());
     if (context.getHighlightConfig() != null
         && context.getHighlightConfig().fields() != null
         && !context.getHighlightConfig().fields().isEmpty()) {
@@ -45,12 +46,15 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
     }
     if (ctx.explainStatement() != null) {
       if (ctx.explainStatement().explainMode() == null) {
-        return new Explain(query, PPL);
+        return new Explain(query, PPL, null, context.format);
       } else {
-        return new Explain(query, PPL, ctx.explainStatement().explainMode().getText());
+        return new Explain(
+            query, PPL, ctx.explainStatement().explainMode().getText(), context.format);
       }
     } else {
-      return context.isExplain ? new Explain(query, PPL, context.explainMode) : query;
+      return context.isExplain
+          ? new Explain(query, PPL, context.explainMode, context.format)
+          : query;
     }
   }
 
@@ -74,8 +78,11 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
     /** Highlight config from the API request. */
     private final HighlightConfig highlightConfig;
 
-    private final String format;
+    private final Format format;
     private final String explainMode;
+
+    /** Whether to include metadata fields like _id, _index, _score in the result. */
+    private final boolean includeMetadata;
   }
 
   private UnresolvedPlan addSelectAll(UnresolvedPlan plan) {

@@ -6,6 +6,7 @@
 package org.opensearch.sql.sql.parser;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.and;
 import static org.opensearch.sql.ast.dsl.AstDSL.between;
@@ -35,6 +36,8 @@ import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
+import java.util.List;
+import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -44,9 +47,15 @@ import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
+import org.opensearch.sql.ast.expression.Span;
+import org.opensearch.sql.ast.expression.SpanUnit;
+import org.opensearch.sql.ast.expression.WindowFrame;
+import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.common.antlr.AstBuildGuard;
 import org.opensearch.sql.common.antlr.CaseInsensitiveCharStream;
 import org.opensearch.sql.common.antlr.SyntaxAnalysisErrorListener;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
 
@@ -308,12 +317,23 @@ class AstExpressionBuilderTest {
 
   @Test
   public void canBuildAggregateWindowFunction() {
+    WindowFunction expected =
+        new WindowFunction(
+            aggregate("AVG", qualifiedName("age")),
+            ImmutableList.of(qualifiedName("state")),
+            ImmutableList.of(ImmutablePair.of(new SortOption(null, null), qualifiedName("age"))));
+    expected.setWindowFrame(WindowFrame.rangeToCurrentRow());
+    assertEquals(expected, buildExprAst("AVG(age) OVER (PARTITION BY state ORDER BY age)"));
+  }
+
+  @Test
+  public void canBuildAggregateWindowFunctionWithoutOrderBy() {
     assertEquals(
         window(
             aggregate("AVG", qualifiedName("age")),
             ImmutableList.of(qualifiedName("state")),
-            ImmutableList.of(ImmutablePair.of(new SortOption(null, null), qualifiedName("age")))),
-        buildExprAst("AVG(age) OVER (PARTITION BY state ORDER BY age)"));
+            ImmutableList.of()),
+        buildExprAst("AVG(age) OVER (PARTITION BY state)"));
   }
 
   @Test
@@ -814,10 +834,140 @@ class AstExpressionBuilderTest {
         buildExprAst("age in (abs(20), abs(30))"));
   }
 
+  @Test
+  public void deeplyNestedExpressionShouldBeRejected() {
+    AstExpressionBuilder guarded = new AstExpressionBuilder(new AstBuildGuard(20));
+    for (String expr :
+        List.of(
+            nest(30, "a = 0", e -> "(" + e + " or a = 1)"),
+            nest(30, "a = 0", e -> "(" + e + " and a = 1)"),
+            nest(30, "a", e -> "abs(" + e + ")"),
+            nest(30, "a", e -> "case when " + e + " > 0 then 1 else 0 end"))) {
+      assertThrows(IllegalArgumentException.class, () -> buildExprAst(expr, guarded));
+    }
+  }
+
+  @Test
+  public void shallowExpressionWithinLimitIsAccepted() {
+    AstExpressionBuilder guarded = new AstExpressionBuilder(new AstBuildGuard(20));
+    assertEquals(
+        buildExprAst("a = 0 or a = 1 or a = 2", guarded),
+        buildExprAst("a = 0 or a = 1 or a = 2", guarded));
+  }
+
+  private static String nest(int depth, String base, UnaryOperator<String> wrap) {
+    String expr = base;
+    for (int i = 0; i < depth; i++) {
+      expr = wrap.apply(expr);
+    }
+    return expr;
+  }
+
+  @Test
+  public void canBuildDateHistogramAsSpan() {
+    assertEquals(
+        new Span(qualifiedName("ts"), intLiteral(1), SpanUnit.H),
+        buildExprAst("date_histogram(field=ts, interval='1h')"));
+  }
+
+  /** Bare argument names are the spelling the legacy engine accepts; both forms lower alike. */
+  @Test
+  public void canBuildBucketFunctionWithUnquotedArgumentNames() {
+    assertEquals(
+        new Span(qualifiedName("ts"), intLiteral(1), SpanUnit.H),
+        buildExprAst("date_histogram(field=ts, interval='1h')"));
+    assertEquals(
+        new Span(qualifiedName("age"), intLiteral(10), SpanUnit.NONE),
+        buildExprAst("histogram(field=age, interval=10)"));
+  }
+
+  @Test
+  public void canBuildDateHistogramWithIntervalSynonyms() {
+    Span expected = new Span(qualifiedName("ts"), intLiteral(1), SpanUnit.D);
+    assertEquals(expected, buildExprAst("date_histogram(field=ts, fixed_interval='1d')"));
+    assertEquals(expected, buildExprAst("date_histogram(field=ts, calendar_interval='1d')"));
+  }
+
+  @Test
+  public void canBuildDateHistogramWithStringFieldName() {
+    assertEquals(
+        new Span(qualifiedName("ts"), intLiteral(30), SpanUnit.m),
+        buildExprAst("date_histogram(field='ts', interval='30m')"));
+  }
+
+  /** A numeric literal field is left alone rather than coerced to a column reference. */
+  @Test
+  public void bucketFieldGivenNonStringLiteralIsPassedThrough() {
+    assertEquals(
+        new Span(intLiteral(1), intLiteral(10), SpanUnit.NONE),
+        buildExprAst("histogram(field=1, interval=10)"));
+  }
+
+  @Test
+  public void canBuildNumericHistogramAsSpan() {
+    assertEquals(
+        new Span(qualifiedName("age"), intLiteral(10), SpanUnit.NONE),
+        buildExprAst("histogram(field=age, interval=10)"));
+  }
+
+  /**
+   * A parameter with no lowering here has to raise SyntaxCheckException -- the one type
+   * RestSQLQueryAction falls back on -- because the legacy engine implements alias, min_doc_count
+   * and order, and has answered queries using them for years.
+   */
+  @Test
+  public void unsupportedBucketParameterDefersToLegacyEngine() {
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> buildExprAst("date_histogram(field=ts, interval='1d', 'alias'='days')"));
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> buildExprAst("histogram(field=age, interval=10, 'min_doc_count'=1)"));
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> buildExprAst("date_histogram(field=ts, interval='1d', 'format'='yyyy-MM-dd')"));
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> buildExprAst("date_histogram(field=ts, interval='1h', 'time_zone'='+05:30')"));
+    for (String name : List.of("children", "extended_bounds", "nested", "reverse_nested")) {
+      assertThrows(
+          SyntaxCheckException.class,
+          () ->
+              buildExprAst(
+                  String.format("date_histogram(field=ts, interval='1d', '%s'='x')", name)));
+    }
+  }
+
+  /** A shape the grammar does not admit is a syntax error, which routes to the legacy engine. */
+  @Test
+  public void badBucketArgumentIsASyntaxError() {
+    for (String call :
+        List.of(
+            "date_histogram(interval='1d')",
+            "date_histogram(field=ts)",
+            "date_histogram(field=ts, interval='1d', fixed_interval='2d')",
+            "date_histogram(field=ts, interval=ts)",
+            "date_histogram(field=ts, interval='1d', interval='2d')")) {
+      assertThrows(SyntaxCheckException.class, () -> buildExprAst(call));
+    }
+  }
+
+  /** A name the grammar does not list is a parse error, which routes to the legacy engine. */
+  @Test
+  public void unknownBucketParameterIsASyntaxError() {
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> buildExprAst("date_histogram(field=ts, interval='1d', 'feild'='ts')"));
+  }
+
   private Node buildExprAst(String expr) {
+    return buildExprAst(expr, astExprBuilder);
+  }
+
+  private Node buildExprAst(String expr, AstExpressionBuilder builder) {
     OpenSearchSQLLexer lexer = new OpenSearchSQLLexer(new CaseInsensitiveCharStream(expr));
     OpenSearchSQLParser parser = new OpenSearchSQLParser(new CommonTokenStream(lexer));
     parser.addErrorListener(new SyntaxAnalysisErrorListener());
-    return parser.expression().accept(astExprBuilder);
+    return parser.expression().accept(builder);
   }
 }

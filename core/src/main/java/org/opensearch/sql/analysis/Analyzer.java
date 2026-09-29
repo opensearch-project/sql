@@ -74,6 +74,7 @@ import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Flatten;
+import org.opensearch.sql.ast.tree.Foreach;
 import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
@@ -81,6 +82,7 @@ import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.MakeResults;
 import org.opensearch.sql.ast.tree.Multisearch;
 import org.opensearch.sql.ast.tree.MvCombine;
 import org.opensearch.sql.ast.tree.MvExpand;
@@ -110,6 +112,7 @@ import org.opensearch.sql.ast.tree.Union;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
+import org.opensearch.sql.ast.tree.Xyseries;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -423,7 +426,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
     child = processNestedAnalysis(node.getProjectList(), namedExpressions, child, context);
 
-    context.push();
+    context.pushIsolated();
     TypeEnvironment newEnv = context.peek();
     namedExpressions.forEach(
         expr ->
@@ -562,6 +565,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   @Override
+  public LogicalPlan visitMakeResults(MakeResults node, AnalysisContext context) {
+    throw getOnlyForCalciteException("makeresults");
+  }
+
+  @Override
   public LogicalPlan visitMvExpand(MvExpand node, AnalysisContext context) {
     throw getOnlyForCalciteException("mvexpand");
   }
@@ -569,6 +577,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitGraphLookup(GraphLookup node, AnalysisContext context) {
     throw getOnlyForCalciteException("graphlookup");
+  }
+
+  @Override
+  public LogicalPlan visitForeach(Foreach node, AnalysisContext context) {
+    throw getOnlyForCalciteException("foreach");
   }
 
   /** Build {@link ParseExpression} to context and skip to child nodes. */
@@ -828,6 +841,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitChart(Chart node, AnalysisContext context) {
     throw getOnlyForCalciteException("Chart");
+  }
+
+  @Override
+  public LogicalPlan visitXyseries(Xyseries node, AnalysisContext context) {
+    throw getOnlyForCalciteException("Xyseries");
   }
 
   @Override

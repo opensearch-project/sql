@@ -37,6 +37,11 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testMakeResultsCommand() {
+    assertEquals("makeresults", anonymize("makeresults count=5"));
+  }
+
+  @Test
   public void testTableFunctionCommand() {
     assertEquals(
         "source=prometheus.query_range(***,***,***,***)",
@@ -46,6 +51,18 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testPrometheusPPLCommand() {
     assertEquals("source=table", anonymize("source=prometheus.http_requests_process"));
+  }
+
+  @Test
+  public void testRestCommand() {
+    assertEquals("rest /_cluster/health", anonymize("| rest \"/_cluster/health\""));
+  }
+
+  @Test
+  public void testRestCommandMasksArgValues() {
+    assertEquals(
+        "rest /_cluster/health count=*** timeout=*** level=***",
+        anonymize("| rest \"/_cluster/health\" count=5 timeout=\"30s\" level=\"indices\""));
   }
 
   @Test
@@ -284,6 +301,17 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testTimewrapCommand() {
+    assertEquals(
+        "source=table | timechart count() | timewrap *** align=end series=relative",
+        anonymize("source=t | timechart count() | timewrap 1day"));
+
+    assertEquals(
+        "source=table | timechart count() | timewrap *** align=now series=short",
+        anonymize("source=t | timechart count() | timewrap 1week align=now series=short"));
+  }
+
+  @Test
   public void testChartCommand() {
     assertEquals(
         "source=table | chart count(identifier) by identifier identifier",
@@ -309,6 +337,29 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=table | chart sum(identifier) by identifier identifier",
         anonymize("source=t | chart sum(amount) over gender by age"));
+  }
+
+  @Test
+  public void testXyseriesCommand() {
+    assertEquals(
+        "source=table | stats avg(identifier) by identifier,identifier"
+            + " | xyseries identifier identifier in (***) identifier",
+        anonymize(
+            "source=t | stats avg(balance) by gender, state"
+                + " | xyseries state gender in (\"F\",\"M\") avg_balance"));
+  }
+
+  @Test
+  public void testXyseriesCommandWithOptions() {
+    assertEquals(
+        "source=table | stats avg(identifier),max(identifier) by identifier,identifier"
+            + " | xyseries sep=*** format=*** identifier identifier in (***)"
+            + " identifier,identifier",
+        anonymize(
+            "source=t | stats avg(balance) as avg_balance, max(balance) as max_balance"
+                + " by gender, state"
+                + " | xyseries sep=\"_\" format=\"$AGG$_$VAL$\" state gender"
+                + " in (\"F\",\"M\") avg_balance, max_balance"));
   }
 
   // todo, sort order is ignored, it doesn't impact the log analysis.
@@ -390,18 +441,36 @@ public class PPLQueryDataAnonymizerTest {
   public void testRareCommandWithGroupByWithCalcite() {
     when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(true);
     assertEquals(
-        "source=table | rare 10 countield='count' showcount=true usenull=true identifier by"
-            + " identifier",
+        "source=table | rare 10 countfield='count' showcount=true percentfield='percent'"
+            + " showperc=false usenull=true identifier by identifier",
         anonymize("source=t | rare a by b"));
+  }
+
+  @Test
+  public void testRareCommandWithShowPercWithCalCite() {
+    when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(true);
+    assertEquals(
+        "source=table | rare 10 countfield='count' showcount=true percentfield='percent'"
+            + " showperc=true usenull=true identifier",
+        anonymize("source=t | rare showperc=true a "));
   }
 
   @Test
   public void testTopCommandWithNAndGroupByWithCalcite() {
     when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(true);
     assertEquals(
-        "source=table | top 1 countield='count' showcount=true usenull=true identifier by"
-            + " identifier",
+        "source=table | top 1 countfield='count' showcount=true percentfield='percent'"
+            + " showperc=false usenull=true identifier by identifier",
         anonymize("source=t | top 1 a by b"));
+  }
+
+  @Test
+  public void testTopCommandWithShowPercWithCalcite() {
+    when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(true);
+    assertEquals(
+        "source=table | top 1 countfield='count' showcount=true percentfield='percent'"
+            + " showperc=true usenull=true identifier by identifier",
+        anonymize("source=t | top 1 showperc=true a by b"));
   }
 
   @Test
@@ -617,6 +686,28 @@ public class PPLQueryDataAnonymizerTest {
         "source=table | join type=left overwrite=*** max=*** identifier,identifier table | fields +"
             + " identifier",
         anonymize("source=t | join type=outer max=2 id1 id2 s | fields id1"));
+  }
+
+  @Test
+  public void testJoinWithImplicitField() {
+    // The AST keeps the bare field, so the anonymized query shows `on identifier`, not a rewrite.
+    assertEquals(
+        "source=table | inner join max=*** on identifier table | fields + identifier",
+        anonymize("source=t | inner join on id s | fields id"));
+    assertEquals(
+        "source=table as identifier | inner join max=*** left = identifier right = identifier on"
+            + " identifier table as identifier | fields + identifier",
+        anonymize("source=t | join left = l right = r on id s | fields id"));
+    assertEquals(
+        "source=table | inner join max=*** on identifier and identifier table | fields +"
+            + " identifier",
+        anonymize("source=t | inner join on id AND uid s | fields id"));
+    assertEquals(
+        "source=table | inner join max=*** on identifier table | fields + identifier",
+        anonymize("source=t | inner join where id s | fields id"));
+    assertEquals(
+        "source=table | inner join max=*** on identifier table | fields + identifier",
+        anonymize("source=t | join on id s | fields id"));
   }
 
   @Test
@@ -1179,6 +1270,32 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=table | mvexpand identifier limit=***",
         anonymize("source=t | mvexpand skills limit=5"));
+  }
+
+  @Test
+  public void testForeachMultifieldCommand() {
+    assertEquals(
+        "source=table | foreach identifier identifier [ eval identifier = *(identifier,***) ]",
+        anonymize("source=t | foreach a b [ eval <<FIELD>>_double = <<FIELD>> * 2 ]"));
+  }
+
+  @Test
+  public void testForeachMultivalueCommandWithOptions() {
+    assertEquals(
+        "source=table | foreach mode=multivalue itemstr=identifier identifier"
+            + " [ eval identifier = +(identifier,identifier) ]",
+        anonymize(
+            "source=t | foreach mode=multivalue itemstr=NUMBER nums"
+                + " [ eval total = total + NUMBER ]"));
+  }
+
+  @Test
+  public void testForeachJsonArrayCommandMasksLiteralTarget() {
+    assertEquals(
+        "source=table | foreach mode=json_array identifier [ eval identifier ="
+            + " +(identifier,identifier) ]",
+        anonymize(
+            "source=t | foreach mode=json_array '[1,2,3]' [ eval total = total + <<ITEM>> ]"));
   }
 
   @Test

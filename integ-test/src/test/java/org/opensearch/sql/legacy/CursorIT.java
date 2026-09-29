@@ -12,6 +12,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_TIME;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
+import static org.opensearch.sql.util.Capability.PAGINATION_CURSOR;
 import static org.opensearch.sql.util.TestUtils.verifyIsV2Cursor;
 
 import java.io.IOException;
@@ -27,7 +28,9 @@ import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.utils.StringUtils;
+import org.opensearch.sql.util.RequiresCapability;
 
+@RequiresCapability(PAGINATION_CURSOR)
 public class CursorIT extends SQLIntegTestCase {
 
   private static final String CURSOR = "cursor";
@@ -496,7 +499,20 @@ public class CursorIT extends SQLIntegTestCase {
   }
 
   public void verifyDataRows(JSONArray dataRowsOne, JSONArray dataRowsTwo) {
-    assertTrue(dataRowsOne.similar(dataRowsTwo));
+    // The paginated and non-paginated APIs must return the same complete set of rows, but none of
+    // these queries impose a total ordering: three have no ORDER BY at all, and the ORDER BY
+    // variants sort on a non-unique column (balance), so the order among equal-key rows is not
+    // contractual. On a multi-shard index the scroll (paginated) and search (non-paginated) paths
+    // materialize the same rows in different orders, so JSONArray.similar()'s positional comparison
+    // fails even though the row sets are equivalent. Compare as multisets to assert complete-row
+    // equivalence (full coverage and totals) without depending on an order that is not contractual.
+    List<String> rowsOne = new ArrayList<>();
+    dataRowsOne.iterator().forEachRemaining(o -> rowsOne.add(o.toString()));
+    List<String> rowsTwo = new ArrayList<>();
+    dataRowsTwo.iterator().forEachRemaining(o -> rowsTwo.add(o.toString()));
+    rowsOne.sort(null);
+    rowsTwo.sort(null);
+    assertEquals(rowsOne, rowsTwo);
   }
 
   public String executeFetchAsStringQuery(String query, String fetchSize, String requestType)

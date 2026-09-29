@@ -11,6 +11,12 @@ import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.DATA_TYPE_NUMERIC
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ALIAS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
+import static org.opensearch.sql.util.Capability.CONSTANT_KEYWORD_TYPE;
+import static org.opensearch.sql.util.Capability.CROSS_INDEX_INCOMPATIBLE_TYPES;
+import static org.opensearch.sql.util.Capability.DOC_MUTATION;
+import static org.opensearch.sql.util.Capability.NESTED_FIELDS;
+import static org.opensearch.sql.util.Capability.SCALED_FLOAT_TYPE;
+import static org.opensearch.sql.util.Capability.STRING_TO_NUMERIC_COERCION;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -23,6 +29,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.legacy.TestUtils;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class DataTypeIT extends PPLIntegTestCase {
 
@@ -35,6 +43,9 @@ public class DataTypeIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = SCALED_FLOAT_TYPE,
+      note = "scaled_float reports bigint (not double) on the AE route.")
   public void test_numeric_data_types() throws IOException {
     JSONObject result = executeQuery(String.format("source=%s", TEST_INDEX_DATATYPE_NUMERIC));
     verifySchema(
@@ -50,6 +61,9 @@ public class DataTypeIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = NESTED_FIELDS,
+      note = "nested_value/object_value/geo_point_value: stripped/unsupported on the AE route.")
   public void test_nonnumeric_data_types() throws IOException {
     JSONObject result = executeQuery(String.format("source=%s", TEST_INDEX_DATATYPE_NONNUMERIC));
     verifySchemaInOrder(
@@ -102,6 +116,9 @@ public class DataTypeIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = NESTED_FIELDS,
+      note = "alias_col is type=alias, stripped from the mapping on the AE route.")
   public void test_alias_data_type() throws IOException {
     JSONObject result =
         executeQuery(
@@ -113,6 +130,9 @@ public class DataTypeIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = STRING_TO_NUMERIC_COERCION,
+      note = "empty-string -> numeric coerces to 0 on v2/Calcite but null on the AE route.")
   public void testNumericFieldFromString() throws Exception {
     final int docId = 2;
     Request insertRequest =
@@ -146,6 +166,9 @@ public class DataTypeIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = CROSS_INDEX_INCOMPATIBLE_TYPES,
+      note = "AE route rejects incompatible cross-index field types instead of coercing.")
   public void testBooleanFieldFromNumberAcrossWildcardIndices() throws Exception {
     // Reproduce issue #5269: querying across indices where same field has conflicting types
     // (boolean vs text) and the text-typed index stores a numeric value like 0.
@@ -168,12 +191,12 @@ public class DataTypeIT extends PPLIntegTestCase {
       client().performRequest(createText);
 
       // Insert boolean value into boolean-typed index
-      Request insertBool = new Request("PUT", "/" + indexBool + "/_doc/1?refresh=true");
+      Request insertBool = TestUtils.seedDocRequest(indexBool, "1");
       insertBool.setJsonEntity("{\"startTime\":\"2026-03-25T20:25:00.000Z\",\"flag\":false}");
       client().performRequest(insertBool);
 
       // Insert numeric value into text-typed index
-      Request insertText = new Request("PUT", "/" + indexText + "/_doc/1?refresh=true");
+      Request insertText = TestUtils.seedDocRequest(indexText, "1");
       insertText.setJsonEntity("{\"startTime\":\"2026-03-24T20:25:00.000Z\",\"flag\":0}");
       client().performRequest(insertText);
 
@@ -187,6 +210,39 @@ public class DataTypeIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(CONSTANT_KEYWORD_TYPE)
+  public void test_constant_keyword_data_type() throws Exception {
+    String index = "test_constant_keyword";
+    try {
+      Request createIndex = new Request("PUT", "/" + index);
+      createIndex.setJsonEntity(
+          "{\"mappings\":{\"properties\":{"
+              + "\"tenant\":{\"type\":\"constant_keyword\",\"value\":\"acme\"},"
+              + "\"message\":{\"type\":\"text\"}}}}");
+      client().performRequest(createIndex);
+
+      Request insertDoc = TestUtils.seedDocRequest(index, "1");
+      insertDoc.setJsonEntity("{\"tenant\":\"acme\",\"message\":\"hello\"}");
+      client().performRequest(insertDoc);
+
+      JSONObject result = executeQuery(String.format("source=%s | fields tenant, message", index));
+      verifySchema(result, schema("tenant", "string"), schema("message", "string"));
+      verifyDataRows(result, rows("acme", "hello"));
+
+      // constant_keyword should filter like a regular string.
+      JSONObject filtered =
+          executeQuery(
+              String.format("source=%s | where tenant='acme' | fields tenant, message", index));
+      verifyDataRows(filtered, rows("acme", "hello"));
+    } finally {
+      client().performRequest(new Request("DELETE", "/" + index));
+    }
+  }
+
+  @Test
+  @RequiresCapability(
+      value = DOC_MUTATION,
+      note = "Seeds + deletes a doc; the AE store doesn't support DELETE.")
   public void testBooleanFieldFromString() throws Exception {
     final int docId = 2;
     Request insertRequest =

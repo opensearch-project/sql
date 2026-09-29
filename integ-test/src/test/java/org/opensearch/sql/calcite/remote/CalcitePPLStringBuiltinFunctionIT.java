@@ -8,6 +8,7 @@ package org.opensearch.sql.calcite.remote;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY_WITH_NULL;
+import static org.opensearch.sql.util.Capability.DOC_MUTATION;
 import static org.opensearch.sql.util.MatcherUtils.*;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 
@@ -17,6 +18,7 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
   @Override
@@ -30,6 +32,9 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = DOC_MUTATION,
+      note = "PUTs a custom _id into a shared fixture; the append-only AE store rejects it.")
   public void testAscii() throws IOException {
     Request request1 =
         new Request("PUT", "/opensearch-sql_test_index_state_country/_doc/10?refresh=true");
@@ -60,6 +65,9 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = DOC_MUTATION,
+      note = "Re-PUTs a shared _id with different data; the append-only AE store can't replace it.")
   public void testConcatWithField() throws IOException {
     Request request1 =
         new Request("PUT", "/opensearch-sql_test_index_state_country/_doc/5?refresh=true");
@@ -78,6 +86,9 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = DOC_MUTATION,
+      note = "Re-PUTs a shared _id with different data; the append-only AE store can't replace it.")
   public void testConcatWs() throws IOException {
     Request request1 =
         new Request("PUT", "/opensearch-sql_test_index_state_country/_doc/5?refresh=true");
@@ -212,6 +223,9 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = DOC_MUTATION,
+      note = "Re-PUTs a shared _id with different data; the append-only AE store can't replace it.")
   public void testTrim() throws IOException {
     prepareTrim();
     JSONObject actual =
@@ -226,6 +240,9 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = DOC_MUTATION,
+      note = "Re-PUTs a shared _id with different data; the append-only AE store can't replace it.")
   public void testRTrim() throws IOException {
     prepareTrim();
     JSONObject actual =
@@ -240,6 +257,9 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = DOC_MUTATION,
+      note = "Re-PUTs a shared _id with different data; the append-only AE store can't replace it.")
   public void testLTrim() throws IOException {
     prepareTrim();
     JSONObject actual =
@@ -254,6 +274,9 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = DOC_MUTATION,
+      note = "Re-PUTs a shared _id with different data; the append-only AE store can't replace it.")
   public void testReverse() throws IOException {
     Request request1 =
         new Request("PUT", "/opensearch-sql_test_index_state_country/_doc/5?refresh=true");
@@ -272,6 +295,9 @@ public class CalcitePPLStringBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = DOC_MUTATION,
+      note = "Re-PUTs a shared _id with different data; the append-only AE store can't replace it.")
   public void testRight() throws IOException {
     Request request1 =
         new Request("PUT", "/opensearch-sql_test_index_state_country/_doc/5?refresh=true");

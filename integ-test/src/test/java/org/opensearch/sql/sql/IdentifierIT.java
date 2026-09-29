@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.sql;
 
+import static org.opensearch.sql.util.Capability.IDENTIFIER_RESOLUTION;
+import static org.opensearch.sql.util.Capability.ID_METADATA;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -13,10 +15,15 @@ import static org.opensearch.sql.util.TestUtils.createHiddenIndexByRestClient;
 import static org.opensearch.sql.util.TestUtils.performRequest;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 /** Integration tests for identifiers including index and field name symbol. */
 public class IdentifierIT extends SQLIntegTestCase {
@@ -56,6 +63,7 @@ public class IdentifierIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(IDENTIFIER_RESOLUTION)
   public void testMultipleQueriesWithSpecialIndexNames() throws IOException {
     createIndexWithOneDoc("test.one", "test.two");
     queryAndAssertTheDoc("SELECT * FROM test.one");
@@ -63,6 +71,7 @@ public class IdentifierIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(IDENTIFIER_RESOLUTION)
   public void testDoubleUnderscoreIdentifierTest() throws IOException {
     new Index("test.twounderscores").addDoc("{\"__age\": 30}");
     final JSONObject result =
@@ -73,6 +82,7 @@ public class IdentifierIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ID_METADATA)
   public void testMetafieldIdentifierTest() throws IOException {
     // create an index, but the contents doesn't matter
     String id = "12345";
@@ -94,6 +104,7 @@ public class IdentifierIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ID_METADATA)
   public void testMetafieldIdentifierRoutingSelectTest() throws IOException {
     // create an index, but the contents doesn't really matter
     String index = "test.routing_select";
@@ -123,15 +134,24 @@ public class IdentifierIT extends SQLIntegTestCase {
     var datarows = result.getJSONArray("datarows");
     assertEquals(6, datarows.length());
 
+    // The returned row order is not stable across a multi-shard index (each doc is routed to a
+    // different shard), so sort rows by their unique _id metadata value before asserting.
+    List<JSONArray> sortedRows = new ArrayList<>();
+    for (int i = 0; i < datarows.length(); i++) {
+      sortedRows.add(datarows.getJSONArray(i));
+    }
+    sortedRows.sort(Comparator.comparing((JSONArray row) -> row.getString(1)));
+
     // note that _routing in the SELECT clause returns the shard
     for (int i = 0; i < 6; i++) {
-      assertEquals("test" + i, datarows.getJSONArray(i).getString(1));
-      assertEquals(index, datarows.getJSONArray(i).getString(2));
-      assertTrue(datarows.getJSONArray(i).getString(3).contains("[" + index + "]"));
+      assertEquals("test" + i, sortedRows.get(i).getString(1));
+      assertEquals(index, sortedRows.get(i).getString(2));
+      assertTrue(sortedRows.get(i).getString(3).contains("[" + index + "]"));
     }
   }
 
   @Test
+  @RequiresCapability(ID_METADATA)
   public void testMetafieldIdentifierRoutingFilterTest() throws IOException {
     // create an index, but the contents doesn't really matter
     String index = "test.routing_filter";
@@ -172,6 +192,7 @@ public class IdentifierIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ID_METADATA)
   public void testMetafieldIdentifierWithAliasTest() throws IOException {
     // create an index, but the contents doesn't matter
     String id = "99999";

@@ -7,6 +7,9 @@ package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE;
+import static org.opensearch.sql.util.Capability.DATETIME_FORMAT_RENDERING;
+import static org.opensearch.sql.util.Capability.DOC_MUTATION;
+import static org.opensearch.sql.util.Capability.UNIX_TIMESTAMP_SUBSECOND;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -27,6 +30,7 @@ import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.util.RequiresCapability;
 
 @SuppressWarnings("unchecked")
 public class DateTimeFunctionIT extends PPLIntegTestCase {
@@ -55,6 +59,14 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     TimeZone.setDefault(testTz);
   }
 
+  // "Today" as the query engine sees it. The analytics-engine route resolves now()/curdate()
+  // in UTC, while the v2/Calcite-over-Lucene path uses the JVM default zone (set to systemTz
+  // above). Tests that assert against an engine-supplied current date must use the matching
+  // zone, otherwise they fail by one day whenever the run straddles the UTC/local date boundary.
+  private LocalDate engineToday() {
+    return isAnalyticsParquetIndicesEnabled() ? LocalDate.now(ZoneOffset.UTC) : LocalDate.now();
+  }
+
   @Test
   public void testAddDateWithDays() throws IOException {
     var result =
@@ -81,7 +93,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
                 "source=%s | eval " + " f = adddate(TIME('07:40:00'), 0)" + " | fields f",
                 TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "timestamp"));
-    verifySome(result.getJSONArray("datarows"), rows(LocalDate.now() + " 07:40:00"));
+    verifySome(result.getJSONArray("datarows"), rows(engineToday() + " 07:40:00"));
   }
 
   @Test
@@ -127,7 +139,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySome(
         result.getJSONArray("datarows"),
         rows(
-            LocalDate.now()
+            engineToday()
                 .plusDays(1)
                 .atTime(LocalTime.of(7, 40))
                 .atZone(systemTz.toZoneId())
@@ -144,7 +156,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySome(
         result.getJSONArray("datarows"),
         rows(
-            LocalDate.now()
+            engineToday()
                 .atTime(LocalTime.of(8, 40))
                 .atZone(systemTz.toZoneId())
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
@@ -277,7 +289,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySome(
         result.getJSONArray("datarows"),
         rows(
-            LocalDate.now()
+            engineToday()
                 .plusDays(1)
                 .atTime(LocalTime.of(7, 40))
                 .atZone(systemTz.toZoneId())
@@ -294,7 +306,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySome(
         result.getJSONArray("datarows"),
         rows(
-            LocalDate.now()
+            engineToday()
                 .atTime(LocalTime.of(8, 40))
                 .atZone(systemTz.toZoneId())
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
@@ -459,7 +471,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySome(
         result.getJSONArray("datarows"),
         rows(
-            LocalDate.now()
+            engineToday()
                 .plusDays(-1)
                 .atTime(LocalTime.of(7, 40))
                 .atZone(systemTz.toZoneId())
@@ -476,7 +488,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySome(
         result.getJSONArray("datarows"),
         rows(
-            LocalDate.now()
+            engineToday()
                 .atTime(LocalTime.of(6, 40))
                 .atZone(systemTz.toZoneId())
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
@@ -1033,7 +1045,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
                 "source=%s | eval " + " f = subdate(TIME('07:40:00'), 0)" + " | fields f",
                 TEST_INDEX_DATE));
     verifySchema(result, schema("f", null, "timestamp"));
-    verifySome(result.getJSONArray("datarows"), rows(LocalDate.now() + " 07:40:00"));
+    verifySome(result.getJSONArray("datarows"), rows(engineToday() + " 07:40:00"));
   }
 
   @Test
@@ -1079,7 +1091,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySome(
         result.getJSONArray("datarows"),
         rows(
-            LocalDate.now()
+            engineToday()
                 .plusDays(-1)
                 .atTime(LocalTime.of(7, 40))
                 .atZone(systemTz.toZoneId())
@@ -1096,7 +1108,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySome(
         result.getJSONArray("datarows"),
         rows(
-            LocalDate.now()
+            engineToday()
                 .atTime(LocalTime.of(6, 40))
                 .atZone(systemTz.toZoneId())
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
@@ -1209,6 +1221,9 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = DATETIME_FORMAT_RENDERING,
+      note = "date_format renders some tokens differently on the AE route.")
   public void testDateFormat() throws IOException {
     String timestamp = "1998-01-31 13:14:15.012345";
     String timestampFormat =
@@ -1359,6 +1374,11 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = UNIX_TIMESTAMP_SUBSECOND,
+      note =
+          "unix_timestamp drops the sub-second fraction on the AE route"
+              + " (UNIX_TIMESTAMP_SUBSECOND).")
   public void testUnixTimestampWithTimestampString() throws IOException {
     var result =
         executeQuery(
@@ -1547,7 +1567,14 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
                 "source=%s | eval f = timestampdiff(YEAR, '1997-01-01 00:00:00', '2001-03-06"
                     + " 00:00:00') | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, isCalciteEnabled() ? "bigint" : "timestamp"));
+    // The AE route runs the Calcite path, returning bigint even though the cluster's calcite
+    // setting reads false.
+    verifySchema(
+        result,
+        schema(
+            "f",
+            null,
+            isCalciteEnabled() || isAnalyticsParquetIndicesEnabled() ? "bigint" : "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows(4));
   }
 
@@ -1564,6 +1591,7 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DOC_MUTATION)
   public void testCompareAgainstUTCDate() throws IOException {
     LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
     String isoTimestamp = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"));

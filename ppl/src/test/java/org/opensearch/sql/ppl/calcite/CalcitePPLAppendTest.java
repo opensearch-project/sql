@@ -211,18 +211,18 @@ public class CalcitePPLAppendTest extends CalcitePPLAbstractTest {
     RelNode root = getRelNode(ppl);
     String expectedLogical =
         "LogicalUnion(all=[true])\n"
-            + "  LogicalProject(DEPTNO=[$7], DEPTNO_PLUS=[null:INTEGER])\n"
+            + "  LogicalProject(DEPTNO=[$7], DEPTNO_PLUS=[null:BIGINT])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n"
-            + "  LogicalProject(DEPTNO=[$7], DEPTNO_PLUS=[+($7, 10)])\n"
+            + "  LogicalProject(DEPTNO=[$7], DEPTNO_PLUS=[+(CAST($7):BIGINT, 10)])\n"
             + "    LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
     verifyResultCount(root, 28);
 
     String expectedSparkSql =
-        "SELECT `DEPTNO`, CAST(NULL AS INTEGER) `DEPTNO_PLUS`\n"
+        "SELECT `DEPTNO`, CAST(NULL AS BIGINT) `DEPTNO_PLUS`\n"
             + "FROM `scott`.`EMP`\n"
             + "UNION ALL\n"
-            + "SELECT `DEPTNO`, `DEPTNO` + 10 `DEPTNO_PLUS`\n"
+            + "SELECT `DEPTNO`, CAST(`DEPTNO` AS BIGINT) + 10 `DEPTNO_PLUS`\n"
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }

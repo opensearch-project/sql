@@ -6,7 +6,10 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DEEP_NESTED;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TELEMETRY;
+import static org.opensearch.sql.util.Capability.MULTI_VALUE_FIELD_LOAD;
+import static org.opensearch.sql.util.Capability.STRUCT_PARENT_FIELD;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -17,7 +20,9 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalciteEvalCommandIT extends PPLIntegTestCase {
 
@@ -28,39 +33,71 @@ public class CalciteEvalCommandIT extends PPLIntegTestCase {
 
     loadIndex(Index.BANK);
     loadIndex(Index.TELEMETRY);
+    // deep_nested has a multi-value array for a scalar-mapped field, which the parquet store
+    // rejects at bulk load (MULTI_VALUE_FIELD_LOAD); skip the load on the AE route so it
+    // doesn't abort init() for the independent tests. The dependent tests are
+    // @RequiresCapability-gated.
+    if (!isAnalyticsParquetIndicesEnabled()) {
+      loadIndex(Index.DEEP_NESTED);
+    }
 
-    // Create test data for string concatenation
-    Request request1 = new Request("PUT", "/test_eval/_doc/1?refresh=true");
-    request1.setJsonEntity("{\"name\": \"Alice\", \"age\": 25, \"title\": \"Engineer\"}");
-    client().performRequest(request1);
+    // Pre-create test_eval through the helper so the analytics-engine compatibility run
+    // (tests.analytics.parquet_indices=true) provisions it as a parquet-backed composite
+    // index. Plain auto-mapping via the doc PUTs would create a Lucene-backed index, which
+    // the analytics-engine planner cannot scan ("No backend can scan all requested fields").
+    // Explicit mapping pins types so both v2 (verifySchema "string"/"bigint") and analytics
+    // paths see the same shape regardless of dynamic-mapping behavior on the parquet engine.
+    // Guarded by isIndexExist for idempotency — init() runs before each @Test method.
+    if (!TestUtils.isIndexExist(client(), "test_eval")) {
+      String testEvalMapping =
+          "{\"mappings\":{\"properties\":{"
+              + "\"name\":{\"type\":\"keyword\"},"
+              + "\"age\":{\"type\":\"long\"},"
+              + "\"title\":{\"type\":\"keyword\"}}}}";
+      TestUtils.createIndexByRestClient(client(), "test_eval", testEvalMapping);
 
-    Request request2 = new Request("PUT", "/test_eval/_doc/2?refresh=true");
-    request2.setJsonEntity("{\"name\": \"Bob\", \"age\": 30, \"title\": \"Manager\"}");
-    client().performRequest(request2);
+      // Create test data for string concatenation
+      Request request1 = TestUtils.seedDocRequest("test_eval", "1");
+      request1.setJsonEntity("{\"name\": \"Alice\", \"age\": 25, \"title\": \"Engineer\"}");
+      client().performRequest(request1);
 
-    Request request3 = new Request("PUT", "/test_eval/_doc/3?refresh=true");
-    request3.setJsonEntity("{\"name\": \"Charlie\", \"age\": null, \"title\": \"Analyst\"}");
-    client().performRequest(request3);
+      Request request2 = TestUtils.seedDocRequest("test_eval", "2");
+      request2.setJsonEntity("{\"name\": \"Bob\", \"age\": 30, \"title\": \"Manager\"}");
+      client().performRequest(request2);
+
+      Request request3 = TestUtils.seedDocRequest("test_eval", "3");
+      request3.setJsonEntity("{\"name\": \"Charlie\", \"age\": null, \"title\": \"Analyst\"}");
+      client().performRequest(request3);
+    }
 
     // Index with a struct field `agent` to reproduce the reviewer's case from PR #5351:
     //   source=<idx with agent struct> | fields agent | eval agent.name = "test"
     // Rely on dynamic mapping — OpenSearch infers `agent` as an object with string children
     // from the document contents. Using dynamic mapping keeps the init idempotent across
     // repeated `@Before` invocations in the preserved cluster.
-    Request agentDoc1 = new Request("PUT", "/test_eval_agent/_doc/1?refresh=true");
-    agentDoc1.setJsonEntity(
-        "{\"agent\": {\"name\": \"winlogbeat\", \"version\": \"7.0\"}, \"message\": \"hello\"}");
-    client().performRequest(agentDoc1);
+    if (!TestUtils.isIndexExist(client(), "test_eval_agent")) {
+      Request agentDoc1 = TestUtils.seedDocRequest("test_eval_agent", "1");
+      agentDoc1.setJsonEntity(
+          "{\"agent\": {\"name\": \"winlogbeat\", \"version\": \"7.0\"}, \"message\": \"hello\"}");
+      client().performRequest(agentDoc1);
 
-    Request agentDoc2 = new Request("PUT", "/test_eval_agent/_doc/2?refresh=true");
-    agentDoc2.setJsonEntity(
-        "{\"agent\": {\"name\": \"filebeat\", \"version\": \"8.1\"}, \"message\": \"world\"}");
-    client().performRequest(agentDoc2);
+      Request agentDoc2 = TestUtils.seedDocRequest("test_eval_agent", "2");
+      agentDoc2.setJsonEntity(
+          "{\"agent\": {\"name\": \"filebeat\", \"version\": \"8.1\"}, \"message\": \"world\"}");
+      client().performRequest(agentDoc2);
+    }
   }
 
   @Test
   public void testEvalStringConcatenation() throws IOException {
-    JSONObject result = executeQuery("source=test_eval | eval greeting = 'Hello ' + name");
+    // Pin the projection so column order is deterministic across execution paths — the
+    // analytics-engine route reads parquet schema in storage order, which can differ from the
+    // v2 / Lucene path's _source-iteration order. Adding an explicit | fields makes the test
+    // a strict assertion on the eval expression rather than a coincidence of projection order.
+    JSONObject result =
+        executeQuery(
+            "source=test_eval | eval greeting = 'Hello ' + name | fields name, title, age,"
+                + " greeting");
     verifySchema(
         result,
         schema("name", "string"),
@@ -90,6 +127,27 @@ public class CalciteEvalCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testEvalUnicodeLiteral() throws IOException {
+    // Non-Latin-1 (CJK/emoji) literals must succeed, not fail with a charset encoding error.
+    JSONObject result =
+        executeQuery(
+            "source=test_eval | where name = 'Alice' | eval label = '你好 🎉' | fields name,"
+                + " label");
+    verifySchema(result, schema("name", "string"), schema("label", "string"));
+    verifyDataRows(result, rows("Alice", "你好 🎉"));
+  }
+
+  @Test
+  public void testEvalUnicodeAndAsciiConcatenation() throws IOException {
+    // Concatenating a non-ascii literal with an ascii column must not raise a mixed-charset error.
+    JSONObject result =
+        executeQuery(
+            "source=test_eval | where name = 'Bob' | eval label = name + '・你好' | fields label");
+    verifySchema(result, schema("label", "string"));
+    verifyDataRows(result, rows("Bob・你好"));
+  }
+
+  @Test
   public void testEvalStringConcatenationWithLiterals() throws IOException {
     JSONObject result =
         executeQuery(
@@ -105,6 +163,7 @@ public class CalciteEvalCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(STRUCT_PARENT_FIELD)
   public void testEvalDottedNameDoesNotDropStructParent() throws IOException {
     // Reviewer's case from PR #5351: assigning a new dotted-path column must not remove the
     // struct-parent column that happens to be a prefix of the eval target.
@@ -126,6 +185,7 @@ public class CalciteEvalCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(STRUCT_PARENT_FIELD)
   public void testEvalDottedNamePreservesStructParent_ImplicitProject() throws IOException {
     // Complementary coverage for the reviewer's case without the explicit trailing projection.
     // With the implicit `fields *` (AllFields) that the PPL parser appends, the downstream
@@ -134,7 +194,7 @@ public class CalciteEvalCommandIT extends PPLIntegTestCase {
     // longer dropped by `shouldOverrideField`'s prefix branch.
     JSONObject result =
         executeQuery("source=test_eval_agent | fields agent | eval `agent.name` = 'test'");
-    verifySchema(result, schema("agent", "struct"));
+    verifySchema(result, schema("agent", "struct"), schema("agent.name", "string"));
   }
 
   @Test
@@ -190,11 +250,14 @@ public class CalciteEvalCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testEvalStringConcatenationWithExistingData() throws IOException {
+    // `head` without a preceding sort selects an undefined set of rows, so the exact values
+    // asserted below only hold by accident of scan order. Sort on a unique key to fix which
+    // rows are selected; the expected values are unchanged.
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | eval full_name = firstname + ' ' + lastname | head 3 | fields"
-                    + " firstname, lastname, full_name",
+                "source=%s | sort account_number | eval full_name = firstname + ' ' + lastname |"
+                    + " head 3 | fields firstname, lastname, full_name",
                 TEST_INDEX_BANK));
     verifySchema(
         result,
@@ -206,5 +269,18 @@ public class CalciteEvalCommandIT extends PPLIntegTestCase {
         rows("Amber JOHnny", "Duke Willmington", "Amber JOHnny Duke Willmington"),
         rows("Hattie", "Bond", "Hattie Bond"),
         rows("Nanette", "Bates", "Nanette Bates"));
+  }
+
+  @Test
+  @RequiresCapability(
+      value = MULTI_VALUE_FIELD_LOAD,
+      note =
+          "reads deep_nested whose multi-value field can't load on the AE store"
+              + " (MULTI_VALUE_FIELD_LOAD).")
+  public void testStruckFieldAndSubFieldWithHead() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | fields city.name, city | head", TEST_INDEX_DEEP_NESTED));
+    verifySchema(result, schema("city.name", "string"), schema("city", "struct"));
   }
 }

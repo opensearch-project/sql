@@ -20,6 +20,8 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.runtime.SqlFunctions;
 import org.apache.calcite.sql.*;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
+import org.apache.calcite.sql.type.SqlTypeUtil;
+import org.opensearch.sql.calcite.utils.MathUtils;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PPLReturnTypes;
 import org.opensearch.sql.expression.function.ImplementorUDF;
@@ -67,6 +69,11 @@ public class ToStringFunction extends ImplementorUDF {
         RexToLixTranslator translator, RexCall call, List<Expression> translatedOperands) {
       Expression fieldValue = translatedOperands.get(0);
       Expression format = translatedOperands.get(1);
+      // Box numeric operands and pass them as Number so method resolution succeeds whether the
+      // upstream expression yields a primitive or a boxed value (e.g. a nullable long/double).
+      if (SqlTypeUtil.isNumeric(call.getOperands().get(0).getType())) {
+        fieldValue = Expressions.convert_(Expressions.box(fieldValue), Number.class);
+      }
       return Expressions.call(ToStringFunction.class, "toString", fieldValue, format);
     }
   }
@@ -97,13 +104,16 @@ public class ToStringFunction extends ImplementorUDF {
   }
 
   @Strict
-  public static String toString(double num, String format) {
-    return toString(BigDecimal.valueOf(num), format);
-  }
-
-  @Strict
-  public static String toString(int num, String format) {
-    return toString(BigDecimal.valueOf(num), format);
+  public static String toString(Number num, String format) {
+    BigDecimal bd;
+    if (num instanceof BigDecimal decimal) {
+      bd = decimal;
+    } else if (MathUtils.isIntegral(num)) {
+      bd = BigDecimal.valueOf(num.longValue());
+    } else {
+      bd = BigDecimal.valueOf(num.doubleValue());
+    }
+    return toString(bd, format);
   }
 
   @Strict

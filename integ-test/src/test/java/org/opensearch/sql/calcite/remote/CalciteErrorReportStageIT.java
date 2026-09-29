@@ -6,13 +6,16 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
+import static org.opensearch.sql.util.Capability.ERROR_REPORT_CONTEXT;
 import static org.opensearch.sql.util.TestUtils.getResponseBody;
 
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.client.Request;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * Integration tests for error report builder with stage tracking. Validates that errors include
@@ -28,6 +31,7 @@ public class CalciteErrorReportStageIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ERROR_REPORT_CONTEXT)
   public void testFieldNotFoundErrorIncludesStage() throws IOException {
     ResponseException exception =
         assertThrows(
@@ -67,6 +71,7 @@ public class CalciteErrorReportStageIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ERROR_REPORT_CONTEXT)
   public void testIndexNotFoundErrorIncludesStage() throws IOException {
     ResponseException exception =
         assertThrows(
@@ -86,6 +91,7 @@ public class CalciteErrorReportStageIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ERROR_REPORT_CONTEXT)
   public void testMultipleFieldErrorsIncludeStage() throws IOException {
     ResponseException exception =
         assertThrows(
@@ -142,6 +148,7 @@ public class CalciteErrorReportStageIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ERROR_REPORT_CONTEXT)
   public void testLocationMessagesAreUserFriendly() throws IOException {
     ResponseException exception =
         assertThrows(
@@ -180,6 +187,7 @@ public class CalciteErrorReportStageIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ERROR_REPORT_CONTEXT)
   public void testStageDescriptionIsUserFriendly() throws IOException {
     ResponseException exception =
         assertThrows(
@@ -213,5 +221,38 @@ public class CalciteErrorReportStageIT extends PPLIntegTestCase {
             || stageDescription.toLowerCase().contains("prepar")
             || stageDescription.toLowerCase().contains("run")
             || stageDescription.toLowerCase().contains("query"));
+  }
+
+  // An alias field whose path targets a text multi-field (e.g. "source.keyword") is not present in
+  // the flattened mapping. It used to surface an opaque NullPointerException; it must now report a
+  // structured FIELD_NOT_FOUND error with a suggestion.
+  @Test
+  @RequiresCapability(ERROR_REPORT_CONTEXT)
+  public void testAliasToUnresolvablePathIncludesStructuredError() throws IOException {
+    String index = "test_alias_unresolved_keyword";
+    Request createIndex = new Request("PUT", "/" + index);
+    createIndex.setJsonEntity(
+        "{ \"mappings\": { \"properties\": {"
+            + "  \"source\": { \"type\": \"text\", \"fields\": { \"keyword\": { \"type\":"
+            + " \"keyword\" } } },"
+            + "  \"source_alias\": { \"type\": \"alias\", \"path\": \"source.keyword\" } } } }");
+    client().performRequest(createIndex);
+
+    ResponseException exception =
+        assertThrows(ResponseException.class, () -> executeQuery("source=" + index));
+
+    JSONObject error =
+        new JSONObject(getResponseBody(exception.getResponse())).getJSONObject("error");
+
+    assertEquals("FIELD_NOT_FOUND", error.getString("code"));
+    assertTrue(
+        "Details should name the alias field and path",
+        error
+            .getString("details")
+            .contains("Alias field [source_alias] refers to unresolved path [source.keyword]"));
+    JSONObject context = error.getJSONObject("context");
+    assertEquals("source_alias", context.getString("alias_field"));
+    assertEquals("source.keyword", context.getString("alias_path"));
+    assertTrue("Should include a suggestion", error.has("suggestion"));
   }
 }

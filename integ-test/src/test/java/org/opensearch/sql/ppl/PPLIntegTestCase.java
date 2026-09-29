@@ -6,6 +6,10 @@
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT_EXTENDED;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_EXTENDED;
 import static org.opensearch.sql.plugin.rest.RestPPLQueryAction.QUERY_API_ENDPOINT;
 
 import com.google.common.io.Resources;
@@ -14,10 +18,13 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Rule;
@@ -30,6 +37,7 @@ import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.util.RetryProcessor;
 
@@ -41,12 +49,27 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   @Rule public final RetryProcessor retryProcessor = new RetryProcessor();
   public static final Integer DEFAULT_SUBSEARCH_MAXOUT = 10000;
   public static final Integer DEFAULT_JOIN_SUBSEARCH_MAXOUT = 50000;
+  private boolean subsearchMaxOutDirty;
+  private boolean joinSubsearchMaxOutDirty;
 
   @Override
   protected void init() throws Exception {
     super.init();
     updatePushdownSettings();
     disableCalcite(); // calcite is enabled by default from 3.3.0
+  }
+
+  /**
+   * Returns {@code true} when the suite was started with {@code
+   * -Dtests.analytics.parquet_indices=true}. Use this to branch test assertions that depend on the
+   * execution backend — when this flag is on, every test-created index is composite/parquet, which
+   * makes {@code RestUnifiedQueryAction.isAnalyticsIndex} (post-#5432) route every query to the
+   * analytics-engine backend (DataFusion) instead of the Calcite enumerable / DSL-pushdown backend.
+   * DataFusion follows different ordering and null-bucket semantics than the legacy V2 and
+   * Calcite-DSL paths.
+   */
+  public static boolean isAnalyticsParquetIndicesEnabled() {
+    return TestUtils.AnalyticsIndexConfig.isEnabled();
   }
 
   protected JSONObject executeQuery(String query) throws IOException {
@@ -88,7 +111,7 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     return explainQuery(query, Format.JSON, mode).replace("\\r\\n", "\\n");
   }
 
-  private String explainQuery(String query, Format format, ExplainMode mode) throws IOException {
+  protected String explainQuery(String query, Format format, ExplainMode mode) throws IOException {
     Response response =
         client()
             .performRequest(buildRequest(query, String.format(EXPLAIN_API_ENDPOINT, format, mode)));
@@ -132,6 +155,35 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
 
   protected static String source(String index, String query) {
     return String.format("source=%s | %s", index, query);
+  }
+
+  // Maps each base index to its extended counterpart with synthetic rows.
+  private static final Map<String, String> INDEX_VIEWS =
+      Map.of(
+          TEST_INDEX_ACCOUNT, TEST_INDEX_ACCOUNT_EXTENDED,
+          TEST_INDEX_BANK, TEST_INDEX_BANK_EXTENDED);
+
+  /**
+   * Returns a WHERE-prefix view source string over an extended index. The extended index is
+   * expected to contain all rows from the base index with {@code "_is_real":true}, plus additional
+   * synthetic rows with {@code "_is_real":false}. Use this as a drop-in replacement for {@code
+   * "source=<index>"} in parameterized tests to verify commands work correctly when preceded by a
+   * {@code where} filter.
+   */
+  protected static String sourceView(String extendedIndex) {
+    return String.format("source=%s | where _is_real | fields - _is_real", extendedIndex);
+  }
+
+  /**
+   * Returns a stream of parameterized source strings for the given base index: a direct source and,
+   * if an extended view is registered in {@link #INDEX_VIEWS}, a WHERE-prefix view over it. New
+   * views can be added by updating {@link #INDEX_VIEWS} without changing individual test files.
+   */
+  protected static Stream<String> sourceViews(String baseIndex) {
+    String extendedIndex = INDEX_VIEWS.get(baseIndex);
+    return extendedIndex != null
+        ? Stream.of(String.format("source=%s", baseIndex), sourceView(extendedIndex))
+        : Stream.of(String.format("source=%s", baseIndex));
   }
 
   protected void timing(MapBuilder<String, Long> builder, String query, String ppl)
@@ -377,6 +429,7 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   }
 
   protected void setSubsearchMaxOut(Integer limit) throws IOException {
+    subsearchMaxOutDirty = true;
     updateClusterSettings(
         new SQLIntegTestCase.ClusterSetting(
             "transient", Key.PPL_SUBSEARCH_MAXOUT.getKeyValue(), limit.toString()));
@@ -388,9 +441,11 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
             "transient",
             Settings.Key.PPL_SUBSEARCH_MAXOUT.getKeyValue(),
             DEFAULT_SUBSEARCH_MAXOUT.toString()));
+    subsearchMaxOutDirty = false;
   }
 
   protected void setJoinSubsearchMaxOut(Integer limit) throws IOException {
+    joinSubsearchMaxOutDirty = true;
     updateClusterSettings(
         new SQLIntegTestCase.ClusterSetting(
             "transient", Key.PPL_JOIN_SUBSEARCH_MAXOUT.getKeyValue(), limit.toString()));
@@ -402,6 +457,35 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
             "transient",
             Settings.Key.PPL_JOIN_SUBSEARCH_MAXOUT.getKeyValue(),
             DEFAULT_JOIN_SUBSEARCH_MAXOUT.toString()));
+    joinSubsearchMaxOutDirty = false;
+  }
+
+  @After
+  public void resetModifiedSubsearchSettings() throws IOException {
+    IOException failure = null;
+    try {
+      if (subsearchMaxOutDirty) {
+        resetSubsearchMaxOut();
+      }
+    } catch (IOException e) {
+      failure = e;
+    }
+
+    try {
+      if (joinSubsearchMaxOutDirty) {
+        resetJoinSubsearchMaxOut();
+      }
+    } catch (IOException e) {
+      if (failure == null) {
+        failure = e;
+      } else {
+        failure.addSuppressed(e);
+      }
+    }
+
+    if (failure != null) {
+      throw failure;
+    }
   }
 
   /**

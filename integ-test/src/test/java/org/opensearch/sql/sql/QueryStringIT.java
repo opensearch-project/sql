@@ -6,11 +6,13 @@
 package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BEER;
+import static org.opensearch.sql.util.Capability.FULLTEXT_RELEVANCE_FUNC;
 
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class QueryStringIT extends SQLIntegTestCase {
   @Override
@@ -70,6 +72,7 @@ public class QueryStringIT extends SQLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FULLTEXT_RELEVANCE_FUNC)
   public void wildcard_test() throws IOException {
     String query1 = "SELECT Id FROM " + TEST_INDEX_BEER + " WHERE query_string(['Tags'], 'taste')";
     JSONObject result1 = executeJdbcRequest(query1);

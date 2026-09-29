@@ -10,19 +10,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.JsonNode;
-import java.io.IOException;
 import org.junit.jupiter.api.Test;
 import org.opensearch.OpenSearchParseException;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.ObjectReadContext;
+import tools.jackson.core.exc.StreamReadException;
+import tools.jackson.databind.JsonNode;
 
 public class OpenSearchJsonContentTest {
   @Test
-  public void testGetValueWithIOException() throws IOException {
+  public void testGetValueWithIOException() {
     JsonNode jsonNode = mock(JsonNode.class);
     JsonParser jsonParser = mock(JsonParser.class);
-    when(jsonNode.traverse()).thenReturn(jsonParser);
-    when(jsonParser.nextToken()).thenThrow(new IOException());
+    when(jsonNode.traverse(ObjectReadContext.empty())).thenReturn(jsonParser);
+    when(jsonParser.nextToken()).thenThrow(new StreamReadException("Simulated"));
     OpenSearchJsonContent content = new OpenSearchJsonContent(jsonNode);
     OpenSearchParseException exception =
         assertThrows(OpenSearchParseException.class, content::geoValue);

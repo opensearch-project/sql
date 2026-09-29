@@ -1,0 +1,16 @@
+{
+  "mappings": {
+    "properties": {
+      "ts": {
+        "type": "date",
+        "format": "yyyy-MM-dd HH:mm:ss"
+      },
+      "category": {
+        "type": "keyword"
+      },
+      "value": {
+        "type": "integer"
+      }
+    }
+  }
+}

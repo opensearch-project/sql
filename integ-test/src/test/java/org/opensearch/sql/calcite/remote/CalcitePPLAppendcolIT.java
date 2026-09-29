@@ -81,4 +81,18 @@ public class CalcitePPLAppendcolIT extends PPLIntegTestCase {
         rows("F", "DE", 101, null),
         rows("F", "FL", 310, null));
   }
+
+  /** Verifies that rex can be used as the first command of an appendcol subsearch. */
+  @Test
+  public void testAppendColWithRexInSubsearch() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | stats count() as cnt by gender"
+                    + " | appendcol [ rex field=email '^(?<user>[^@]+)@.*' | fields user ]"
+                    + " | head 2",
+                TEST_INDEX_ACCOUNT));
+    verifySchema(
+        actual, schema("gender", "string"), schema("cnt", "bigint"), schema("user", "string"));
+  }
 }
