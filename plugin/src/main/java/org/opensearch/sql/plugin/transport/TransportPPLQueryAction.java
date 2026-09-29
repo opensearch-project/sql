@@ -44,6 +44,8 @@ import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
 import org.opensearch.sql.executor.AnalyzeResponse;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.job.OpenSearchQueryJobService;
+import org.opensearch.sql.job.OpenSearchSecurityAdapter;
 import org.opensearch.sql.job.QueryJob;
 import org.opensearch.sql.job.QueryJobService;
 import org.opensearch.sql.job.QueryRunner;
@@ -100,6 +102,8 @@ public class TransportPPLQueryAction
   private final NodeClient clientRef;
   private final ClusterService clusterServiceRef;
   private final org.opensearch.sql.common.setting.Settings pluginSettingsRef;
+  private final QueryJobService queryJobService;
+  private final SecurityAdapter securityAdapter;
 
   @Inject
   public TransportPPLQueryAction(
@@ -110,10 +114,14 @@ public class TransportPPLQueryAction
       DataSourceServiceImpl dataSourceService,
       org.opensearch.common.settings.Settings clusterSettings,
       EngineExtensionsHolder extensionsHolder,
-      Tracer tracer) {
+      Tracer tracer,
+      OpenSearchQueryJobService queryJobService,
+      OpenSearchSecurityAdapter securityAdapter) {
     super(PPLQueryAction.NAME, transportService, actionFilters, TransportPPLQueryRequest::new);
     this.clientRef = client;
     this.clusterServiceRef = clusterService;
+    this.queryJobService = queryJobService;
+    this.securityAdapter = securityAdapter;
 
     ModulesBuilder modules = new ModulesBuilder();
     modules.add(new OpenSearchPluginModule(extensionsHolder.engines(), tracer));
@@ -333,15 +341,8 @@ public class TransportPPLQueryAction
       PPLQueryRequest transformedRequest,
       ActionListener<TransportPPLQueryResponse> listener,
       Consumer<String> anonymizedQuerySink) {
-    QueryJobService jobService;
-    SecurityAdapter security;
-    try {
-      jobService = injector.getInstance(QueryJobService.class);
-      security = injector.getInstance(SecurityAdapter.class);
-    } catch (RuntimeException e) {
-      listener.onFailure(e);
-      return;
-    }
+    QueryJobService jobService = queryJobService;
+    SecurityAdapter security = securityAdapter;
 
     TimeValue wait;
     try {
