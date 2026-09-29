@@ -18,8 +18,11 @@ import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.legacy.metrics.GaugeMetric;
 import org.opensearch.sql.legacy.metrics.Metrics;
+import org.opensearch.sql.job.QueryJobService;
+import org.opensearch.sql.job.SecurityAdapter;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorServiceImpl;
+import org.opensearch.sql.spark.asyncquery.RoutingAsyncQueryExecutorService;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryJobMetadataStorageService;
 import org.opensearch.sql.spark.asyncquery.OpenSearchAsyncQueryJobMetadataStorageService;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
@@ -79,7 +82,7 @@ public class AsyncExecutorServiceModule extends AbstractModule {
   protected void configure() {}
 
   @Provides
-  public AsyncQueryExecutorService asyncQueryExecutorService(
+  public AsyncQueryExecutorServiceImpl sparkBackedAsyncQueryExecutorService(
       AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService,
       SparkQueryDispatcher sparkQueryDispatcher,
       SparkExecutionEngineConfigSupplier sparkExecutionEngineConfigSupplier) {
@@ -87,6 +90,20 @@ public class AsyncExecutorServiceModule extends AbstractModule {
         asyncQueryJobMetadataStorageService,
         sparkQueryDispatcher,
         sparkExecutionEngineConfigSupplier);
+  }
+
+  /**
+   * Binds the {@link AsyncQueryExecutorService} interface to a router that dispatches on the id
+   * shape. In-JVM PPL jobs (whose ids parse as {@code QueryJobId}) go to the neutral {@link
+   * QueryJobService}; Spark job ids continue to the existing implementation. Callers of the
+   * transport actions on {@code /_plugins/_async_query} see one API; the routing is invisible.
+   */
+  @Provides
+  public AsyncQueryExecutorService asyncQueryExecutorService(
+      AsyncQueryExecutorServiceImpl sparkBacked,
+      QueryJobService jobService,
+      SecurityAdapter security) {
+    return new RoutingAsyncQueryExecutorService(sparkBacked, jobService, security);
   }
 
   @Provides

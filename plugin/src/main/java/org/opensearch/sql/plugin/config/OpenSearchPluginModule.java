@@ -5,8 +5,11 @@
 
 package org.opensearch.sql.plugin.config;
 
+import java.time.Clock;
+import java.time.Duration;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.AbstractModule;
 import org.opensearch.common.inject.Provides;
 import org.opensearch.common.inject.Singleton;
@@ -22,6 +25,13 @@ import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.job.InMemoryQueryJobStore;
+import org.opensearch.sql.job.OpenSearchQueryJobService;
+import org.opensearch.sql.job.OpenSearchSecurityAdapter;
+import org.opensearch.sql.job.QueryJobService;
+import org.opensearch.sql.job.QueryJobStore;
+import org.opensearch.sql.job.RetentionPolicy;
+import org.opensearch.sql.job.SecurityAdapter;
 import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
@@ -120,6 +130,34 @@ public class OpenSearchPluginModule extends AbstractModule {
   @Singleton
   public Tracer tracer() {
     return tracer;
+  }
+
+  /** MVP retention window applied to every terminal job. Replace with a cluster setting later. */
+  private static final Duration RETENTION_TTL = Duration.ofMinutes(5);
+
+  @Provides
+  @Singleton
+  public QueryJobStore queryJobStore() {
+    return new InMemoryQueryJobStore();
+  }
+
+  @Provides
+  @Singleton
+  public SecurityAdapter securityAdapter(NodeClient nodeClient) {
+    return new OpenSearchSecurityAdapter(nodeClient.threadPool().getThreadContext());
+  }
+
+  @Provides
+  @Singleton
+  public RetentionPolicy retentionPolicy(QueryJobStore store, NodeClient nodeClient) {
+    return new RetentionPolicy(store, nodeClient.threadPool(), RETENTION_TTL);
+  }
+
+  @Provides
+  @Singleton
+  public QueryJobService queryJobService(
+      QueryJobStore store, ClusterService clusterService, RetentionPolicy retentionPolicy) {
+    return new OpenSearchQueryJobService(store, clusterService, Clock.systemUTC(), retentionPolicy);
   }
 
   /** {@link QueryPlanFactory}. */

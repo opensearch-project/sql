@@ -86,7 +86,7 @@ class OpenSearchQueryJobServiceTest {
     when(localNode.getId()).thenReturn("node-a");
     when(clusterService.localNode()).thenReturn(localNode);
     return new OpenSearchQueryJobService(
-        new InMemoryQueryJobStore(), clusterService, Clock.systemUTC());
+        new InMemoryQueryJobStore(), clusterService, Clock.systemUTC(), null);
   }
 
   private static final class RecordingRunner implements QueryRunner {

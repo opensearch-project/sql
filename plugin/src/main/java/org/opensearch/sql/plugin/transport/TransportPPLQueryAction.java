@@ -10,10 +10,16 @@ import static org.opensearch.sql.executor.ExecutionEngine.ExplainResponse.normal
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
+import java.time.Clock;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.apache.calcite.rel.RelNode;
@@ -28,6 +34,7 @@ import org.opensearch.common.inject.Guice;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.inject.Injector;
 import org.opensearch.common.inject.ModulesBuilder;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
@@ -37,6 +44,10 @@ import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
 import org.opensearch.sql.executor.AnalyzeResponse;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.job.QueryJob;
+import org.opensearch.sql.job.QueryJobService;
+import org.opensearch.sql.job.QueryRunner;
+import org.opensearch.sql.job.SecurityAdapter;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.monitor.profile.ProfileScope;
@@ -49,6 +60,7 @@ import org.opensearch.sql.plugin.config.OpenSearchPluginModule;
 import org.opensearch.sql.plugin.rest.AnalyticsEngineFormatSupport;
 import org.opensearch.sql.plugin.rest.AnalyticsExecutorHolder;
 import org.opensearch.sql.plugin.rest.RestUnifiedQueryAction;
+import org.opensearch.sql.ppl.PPLQueryRunner;
 import org.opensearch.sql.ppl.PPLService;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
@@ -113,6 +125,9 @@ public class TransportPPLQueryAction
           b.bind(NodeClient.class).toInstance(client);
           b.bind(org.opensearch.sql.common.setting.Settings.class).toInstance(pluginSettings);
           b.bind(DataSourceService.class).toInstance(dataSourceService);
+          b.bind(ClusterService.class).toInstance(clusterService);
+          b.bind(org.opensearch.common.util.concurrent.ThreadContext.class)
+              .toInstance(client.threadPool().getThreadContext());
         });
     this.injector = Guice.createInjector(modules);
     this.tracer = tracer;
@@ -270,6 +285,11 @@ public class TransportPPLQueryAction
             transformedRequest,
             createAnalyzeResponseListener(transformedRequest, clearingListener),
             anonymizedQuerySink);
+      } else if (transformedRequest.isAsync() && !isExplainInStatement(transformedRequest)) {
+        // Async submit: race the runner against wait_for_completion_timeout. Explain-in-statement
+        // (query text starts with "explain") falls back to the two-listener PPLService.execute
+        // path below because QueryRunner cannot represent an explain response.
+        submitAsync(pplService, transformedRequest, clearingListener, anonymizedQuerySink);
       } else {
         pplService.execute(
             transformedRequest,
@@ -282,6 +302,111 @@ public class TransportPPLQueryAction
     } finally {
       spanScope.close();
     }
+  }
+
+  /** Default wait_for_completion_timeout when a caller uses only keep_alive to signal async. */
+  private static final TimeValue DEFAULT_WAIT_FOR_COMPLETION = TimeValue.timeValueSeconds(5);
+
+  private static final java.util.regex.Pattern EXPLAIN_STATEMENT =
+      java.util.regex.Pattern.compile("^\\s*explain\\b", java.util.regex.Pattern.CASE_INSENSITIVE);
+
+  /**
+   * Heuristic: PPL statements whose text begins with {@code explain} produce an explain response
+   * regardless of URL, and must stay on the two-listener {@link PPLService#execute} path.
+   */
+  private static boolean isExplainInStatement(PPLQueryRequest request) {
+    String text = request.getRequest();
+    return text != null && EXPLAIN_STATEMENT.matcher(text).find();
+  }
+
+  /**
+   * Executes the async submit path per issue #5765.
+   *
+   * <p>Builds a {@link QueryRunner} over {@link PPLService}, submits it through {@link
+   * QueryJobService}, and races the runner against {@code wait_for_completion_timeout}. On win the
+   * caller receives the sync response shape (no id, no retention). On loss the caller receives
+   * {@code {id, status: RUNNING, empty rows}}; the runner keeps going and the job is retained per
+   * {@link org.opensearch.sql.job.RetentionPolicy}.
+   */
+  private void submitAsync(
+      PPLService pplService,
+      PPLQueryRequest transformedRequest,
+      ActionListener<TransportPPLQueryResponse> listener,
+      Consumer<String> anonymizedQuerySink) {
+    QueryJobService jobService;
+    SecurityAdapter security;
+    try {
+      jobService = injector.getInstance(QueryJobService.class);
+      security = injector.getInstance(SecurityAdapter.class);
+    } catch (RuntimeException e) {
+      listener.onFailure(e);
+      return;
+    }
+
+    TimeValue wait;
+    try {
+      wait = resolveWaitForCompletion(transformedRequest.waitForCompletionTimeout());
+    } catch (IllegalArgumentException e) {
+      listener.onFailure(e);
+      return;
+    }
+
+    QueryRunner runner =
+        new PPLQueryRunner(pplService, transformedRequest, anonymizedQuerySink, Clock.systemUTC());
+    QueryJob job;
+    try {
+      job = jobService.submit(runner, security.current());
+    } catch (RuntimeException e) {
+      listener.onFailure(e);
+      return;
+    }
+
+    ResponseListener<ExecutionEngine.QueryResponse> formattingListener =
+        createListener(transformedRequest, listener);
+    if (wait.millis() <= 0L) {
+      // Pure async: return the id immediately, runner keeps going.
+      listener.onResponse(new TransportPPLQueryResponse(asyncRunningResponse(job)));
+      return;
+    }
+    try {
+      var result = job.completion().toCompletableFuture().get(wait.millis(), TimeUnit.MILLISECONDS);
+      ExecutionEngine.QueryResponse response =
+          new ExecutionEngine.QueryResponse(result.schema(), result.rows(), result.cursor());
+      response.setWarnings(result.warnings());
+      formattingListener.onResponse(response);
+    } catch (TimeoutException e) {
+      // Runner still going after the wait window — return the id so the caller can poll.
+      listener.onResponse(new TransportPPLQueryResponse(asyncRunningResponse(job)));
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      formattingListener.onFailure(e);
+    } catch (CancellationException e) {
+      formattingListener.onFailure(e);
+    } catch (ExecutionException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof CompletionException && cause.getCause() != null) {
+        cause = cause.getCause();
+      }
+      formattingListener.onFailure(
+          cause instanceof Exception ex ? ex : new RuntimeException(cause));
+    }
+  }
+
+  private static TimeValue resolveWaitForCompletion(String raw) {
+    if (raw == null) {
+      return DEFAULT_WAIT_FOR_COMPLETION;
+    }
+    return TimeValue.parseTimeValue(raw, "wait_for_completion_timeout");
+  }
+
+  /**
+   * Formats the "still running" async response body per issue #5765. Fields match the shape the
+   * async-query fetch endpoint returns for a RUNNING job so clients can consume both uniformly.
+   */
+  private static String asyncRunningResponse(QueryJob job) {
+    return "{\"id\":\""
+        + job.id().encode()
+        + "\",\"status\":\"RUNNING\",\"schema\":[],\"datarows\":[],\"total\":0}";
   }
 
   private ResponseListener<AnalyzeResponse> createAnalyzeResponseListener(
