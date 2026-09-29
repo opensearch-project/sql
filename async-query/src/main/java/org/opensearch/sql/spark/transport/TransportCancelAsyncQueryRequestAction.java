@@ -12,7 +12,7 @@ import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
+import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorServiceImpl;
 import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
 import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionRequest;
 import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionResponse;
@@ -23,7 +23,7 @@ public class TransportCancelAsyncQueryRequestAction
     extends HandledTransportAction<CancelAsyncQueryActionRequest, CancelAsyncQueryActionResponse> {
 
   public static final String NAME = "cluster:admin/opensearch/ql/async_query/delete";
-  private final AsyncQueryExecutorService asyncQueryExecutorService;
+  private final AsyncQueryExecutorServiceImpl asyncQueryExecutorService;
   public static final ActionType<CancelAsyncQueryActionResponse> ACTION_TYPE =
       new ActionType<>(NAME, CancelAsyncQueryActionResponse::new);
 
@@ -31,7 +31,7 @@ public class TransportCancelAsyncQueryRequestAction
   public TransportCancelAsyncQueryRequestAction(
       TransportService transportService,
       ActionFilters actionFilters,
-      AsyncQueryExecutorService asyncQueryExecutorService) {
+      AsyncQueryExecutorServiceImpl asyncQueryExecutorService) {
     super(NAME, transportService, actionFilters, CancelAsyncQueryActionRequest::new);
     this.asyncQueryExecutorService = asyncQueryExecutorService;
   }
