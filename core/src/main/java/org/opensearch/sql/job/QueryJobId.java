@@ -12,6 +12,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -58,6 +59,22 @@ public record QueryJobId(String ownerNodeId, String contextId) {
   /** Creates a fresh job ID with a random context. */
   public static QueryJobId create(String ownerNodeId) {
     return new QueryJobId(ownerNodeId, UUID.randomUUID().toString());
+  }
+
+  /**
+   * Attempts to parse an opaque encoded id. Unlike {@link #parse(String)}, returns {@link
+   * Optional#empty()} instead of throwing when the value is not a valid encoded {@code QueryJobId}
+   * — useful for callers that treat non-matching ids as belonging to a different backend.
+   */
+  public static Optional<QueryJobId> tryParse(String encoded) {
+    if (encoded == null || encoded.isBlank()) {
+      return Optional.empty();
+    }
+    try {
+      return Optional.of(parse(encoded));
+    } catch (IllegalArgumentException e) {
+      return Optional.empty();
+    }
   }
 
   /** Returns the versioned URL-safe encoded form used on the wire. */

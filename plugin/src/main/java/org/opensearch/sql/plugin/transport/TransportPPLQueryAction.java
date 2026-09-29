@@ -16,7 +16,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -25,6 +24,8 @@ import java.util.function.Supplier;
 import org.apache.calcite.rel.RelNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
@@ -315,66 +316,81 @@ public class TransportPPLQueryAction
       PPLQueryRequest transformedRequest,
       ActionListener<TransportPPLQueryResponse> listener,
       Consumer<String> anonymizedQuerySink) {
-    QueryJobService jobService = queryJobService;
-    SecurityAdapter security = securityAdapter;
-
-    long waitMillis = transformedRequest.effectiveWaitForCompletion().toMillis();
-
     QueryRunner runner =
         new PPLQueryRunner(pplService, transformedRequest, anonymizedQuerySink, Clock.systemUTC());
     QueryJob job;
     try {
-      job = jobService.submit(runner, security.current());
+      job = queryJobService.submit(runner, securityAdapter.current());
     } catch (RuntimeException e) {
       listener.onFailure(e);
       return;
     }
-
-    ResponseListener<ExecutionEngine.QueryResponse> formattingListener =
-        createListener(transformedRequest, listener);
+    long waitMillis = transformedRequest.effectiveWaitForCompletion().toMillis();
     if (waitMillis <= 0L) {
-      // Pure async: return the id immediately, runner keeps going.
-      listener.onResponse(new TransportPPLQueryResponse(asyncRunningResponse(job)));
+      listener.onResponse(new TransportPPLQueryResponse(runningSnapshot(job)));
       return;
     }
+    awaitOrReturnId(job, transformedRequest, waitMillis, listener);
+  }
+
+  /**
+   * Races the runner against {@code waitMillis}. Formats the terminal result on win; returns the
+   * running snapshot with the queryId on loss so the client can poll via GET.
+   */
+  private void awaitOrReturnId(
+      QueryJob job,
+      PPLQueryRequest transformedRequest,
+      long waitMillis,
+      ActionListener<TransportPPLQueryResponse> listener) {
+    ResponseListener<ExecutionEngine.QueryResponse> queryFormatter =
+        createListener(transformedRequest, listener);
     try {
-      var result = job.completion().toCompletableFuture().get(waitMillis, TimeUnit.MILLISECONDS);
-      if (result instanceof org.opensearch.sql.job.QueryResult.Rows rows) {
-        ExecutionEngine.QueryResponse response =
-            new ExecutionEngine.QueryResponse(rows.schema(), rows.rows(), rows.cursor());
-        response.setWarnings(rows.warnings());
-        formattingListener.onResponse(response);
-      } else if (result instanceof org.opensearch.sql.job.QueryResult.Explain explain) {
-        // Statement-level explain won the race — render via the sync explain formatter so the
-        // response body matches the sync explain shape byte-for-byte.
-        createExplainResponseListener(transformedRequest, listener).onResponse(explain.response());
-      }
+      org.opensearch.sql.job.QueryResult result =
+          job.completion().toCompletableFuture().get(waitMillis, TimeUnit.MILLISECONDS);
+      renderTerminal(result, transformedRequest, listener, queryFormatter);
     } catch (TimeoutException e) {
-      // Runner still going after the wait window — return the id so the caller can poll.
-      listener.onResponse(new TransportPPLQueryResponse(asyncRunningResponse(job)));
+      listener.onResponse(new TransportPPLQueryResponse(runningSnapshot(job)));
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      formattingListener.onFailure(e);
+      queryFormatter.onFailure(e);
     } catch (CancellationException e) {
-      formattingListener.onFailure(e);
+      queryFormatter.onFailure(e);
     } catch (ExecutionException e) {
-      Throwable cause = e.getCause();
-      if (cause instanceof CompletionException && cause.getCause() != null) {
-        cause = cause.getCause();
-      }
-      formattingListener.onFailure(
-          cause instanceof Exception ex ? ex : new RuntimeException(cause));
+      Throwable cause = QueryJob.unwrap(e.getCause());
+      queryFormatter.onFailure(cause instanceof Exception ex ? ex : new RuntimeException(cause));
+    }
+  }
+
+  private void renderTerminal(
+      org.opensearch.sql.job.QueryResult result,
+      PPLQueryRequest transformedRequest,
+      ActionListener<TransportPPLQueryResponse> listener,
+      ResponseListener<ExecutionEngine.QueryResponse> queryFormatter) {
+    if (result instanceof org.opensearch.sql.job.QueryResult.Rows rows) {
+      ExecutionEngine.QueryResponse response =
+          new ExecutionEngine.QueryResponse(rows.schema(), rows.rows(), rows.cursor());
+      response.setWarnings(rows.warnings());
+      queryFormatter.onResponse(response);
+    } else if (result instanceof org.opensearch.sql.job.QueryResult.Explain explain) {
+      // Statement-level explain won the race — render via the sync explain formatter so the
+      // response body matches the sync explain shape byte-for-byte.
+      createExplainResponseListener(transformedRequest, listener).onResponse(explain.response());
     }
   }
 
   /**
-   * Formats the "still running" async response body per issue #5765. Fields match the shape the
-   * async-query fetch endpoint returns for a RUNNING job so clients can consume both uniformly.
+   * Formats the "still running" async response body per issue #5765 using {@link JSONObject} for
+   * safe string escaping. Fields match the shape the async-query fetch endpoint returns for a
+   * RUNNING job so clients can consume both uniformly.
    */
-  private static String asyncRunningResponse(QueryJob job) {
-    return "{\"id\":\""
-        + job.id().encode()
-        + "\",\"status\":\"RUNNING\",\"schema\":[],\"datarows\":[],\"total\":0}";
+  private static String runningSnapshot(QueryJob job) {
+    return new JSONObject()
+        .put("id", job.id().encode())
+        .put("status", "RUNNING")
+        .put("schema", new JSONArray())
+        .put("datarows", new JSONArray())
+        .put("total", 0)
+        .toString();
   }
 
   private ResponseListener<AnalyzeResponse> createAnalyzeResponseListener(

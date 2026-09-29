@@ -77,9 +77,6 @@ public class PPLQueryRequest {
   /** Default {@code wait_for_completion_timeout} applied when the caller omits the field. */
   public static final Duration DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT = Duration.ofSeconds(5);
 
-  /** Default {@code keep_alive} applied when the caller omits the field. */
-  public static final Duration DEFAULT_KEEP_ALIVE = Duration.ofMinutes(5);
-
   /**
    * Caller's {@code wait_for_completion_timeout}, or {@code null} when the field was not present.
    * Presence of this field or {@link #keepAlive} switches the transport action to the async submit
@@ -94,7 +91,7 @@ public class PPLQueryRequest {
   /**
    * Caller's {@code keep_alive}, or {@code null} when the field was not present. Presence of this
    * field or {@link #waitForCompletionTimeout} switches the transport action to the async submit
-   * path. Use {@link #effectiveKeepAlive()} to read the resolved value (default applied).
+   * path. Retention wiring for the per-request value is a follow-up.
    */
   @Setter
   @Getter
@@ -114,14 +111,6 @@ public class PPLQueryRequest {
     return waitForCompletionTimeout != null
         ? waitForCompletionTimeout
         : DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT;
-  }
-
-  /**
-   * Returns the retention lease applied when the async submission is registered — the
-   * caller-supplied {@link #keepAlive} or {@link #DEFAULT_KEEP_ALIVE}. Never null.
-   */
-  public Duration effectiveKeepAlive() {
-    return keepAlive != null ? keepAlive : DEFAULT_KEEP_ALIVE;
   }
 
   public PPLQueryRequest(String pplQuery, JSONObject jsonContent, String path) {

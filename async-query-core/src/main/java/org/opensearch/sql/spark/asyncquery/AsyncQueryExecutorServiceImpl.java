@@ -156,14 +156,16 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
             sparkSqlFunctionResponseHandle.schema(),
             result,
             null,
-            sessionId);
+            sessionId,
+            null);
       } else {
         return new AsyncQueryExecutionResponse(
             jsonObject.optString(STATUS_FIELD, JobRunState.FAILED.toString()),
             null,
             null,
             jsonObject.optString(ERROR_FIELD, ""),
-            sessionId);
+            sessionId,
+            null);
       }
     }
     throw new AsyncQueryNotFoundException(String.format("QueryId: %s not found", queryId));
@@ -219,14 +221,16 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
       QueryResult result = status.result().get();
       if (result instanceof QueryResult.Rows rows) {
         return new AsyncQueryExecutionResponse(
-            status.state().name(), rows.schema(), rows.rows(), null, null);
+            status.state().name(), rows.schema(), rows.rows(), null, null, null);
       }
       if (result instanceof QueryResult.Explain explain) {
-        AsyncQueryExecutionResponse response =
-            new AsyncQueryExecutionResponse(
-                status.state().name(), EMPTY_SCHEMA, List.of(), null, null);
-        response.setExplainJson(ExplainResponseJsonFormatter.format(explain.response()));
-        return response;
+        return new AsyncQueryExecutionResponse(
+            status.state().name(),
+            EMPTY_SCHEMA,
+            List.of(),
+            null,
+            null,
+            ExplainResponseJsonFormatter.format(explain.response()));
       }
     }
     if (status.state() == QueryJobState.FAILED) {
@@ -235,9 +239,10 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
           EMPTY_SCHEMA,
           List.of(),
           status.failure().map(QueryFailure::reason).orElse("query execution failed"),
+          null,
           null);
     }
     return new AsyncQueryExecutionResponse(
-        status.state().name(), EMPTY_SCHEMA, List.of(), null, null);
+        status.state().name(), EMPTY_SCHEMA, List.of(), null, null, null);
   }
 }

@@ -217,7 +217,16 @@ public final class QueryJob {
    * @return the underlying cause when {@code throwable} is a {@link CompletionException} carrying a
    *     non-{@code null} cause; otherwise the original throwable
    */
-  private static Throwable unwrap(Throwable throwable) {
+  /**
+   * Peels a single {@link CompletionException} wrapper so downstream reporting sees the original
+   * runner exception. Non-wrapper throwables and wrappers with no cause pass through unchanged.
+   * Public so consumers of {@link #completion()} share the same unwrap semantics.
+   *
+   * @param throwable throwable observed on the completion stage or through {@code get()}
+   * @return the underlying cause when {@code throwable} is a {@link CompletionException} carrying a
+   *     non-{@code null} cause; otherwise the original throwable
+   */
+  public static Throwable unwrap(Throwable throwable) {
     return throwable instanceof CompletionException && throwable.getCause() != null
         ? throwable.getCause()
         : throwable;

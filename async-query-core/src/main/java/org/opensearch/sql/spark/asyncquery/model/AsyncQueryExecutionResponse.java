@@ -9,7 +9,6 @@ package org.opensearch.sql.spark.asyncquery.model;
 
 import java.util.List;
 import lombok.Data;
-import lombok.Setter;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionEngine;
 
@@ -28,5 +27,5 @@ public class AsyncQueryExecutionResponse {
    * ordinary row-shaped responses. Transport layers that see a non-null value bypass the standard
    * schema-and-datarows renderer and return this string verbatim.
    */
-  @Setter private String explainJson;
+  private final String explainJson;
 }

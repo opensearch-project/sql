@@ -69,7 +69,7 @@ public class TransportGetAsyncQueryResultActionTest {
   public void testDoExecute() {
     GetAsyncQueryResultActionRequest request = new GetAsyncQueryResultActionRequest("jobId");
     AsyncQueryExecutionResponse asyncQueryExecutionResponse =
-        new AsyncQueryExecutionResponse("IN_PROGRESS", null, null, null, null);
+        new AsyncQueryExecutionResponse("IN_PROGRESS", null, null, null, null, null);
     when(jobExecutorService.getAsyncQueryResults(eq("jobId"), any()))
         .thenReturn(asyncQueryExecutionResponse);
 
@@ -98,6 +98,7 @@ public class TransportGetAsyncQueryResultActionTest {
             Arrays.asList(
                 tupleValue(ImmutableMap.of("name", "John", "age", 20)),
                 tupleValue(ImmutableMap.of("name", "Smith", "age", 30))),
+            null,
             null,
             null);
     when(jobExecutorService.getAsyncQueryResults(eq("jobId"), any()))
