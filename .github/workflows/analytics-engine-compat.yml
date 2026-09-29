@@ -14,22 +14,10 @@ on:
   merge_group:
 
 jobs:
-  Get-CI-Image-Tag:
-    uses: opensearch-project/opensearch-build/.github/workflows/get-ci-image-tag.yml@761e093b8c1349cc07f21c1d681d3b30bf9e1999 # main
-    with:
-      product: opensearch
-
   analytics-engine-compat:
-    needs: Get-CI-Image-Tag
     runs-on: ubuntu-latest
-    container:
-      image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
-      options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}
 
     steps:
-      - name: Run start commands
-        run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
-
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Set up JDK 25
@@ -56,14 +44,10 @@ jobs:
             ae-native-dist-${{ runner.os }}-
 
       - name: Run analytics-engine compatibility smoke test
-        run: |
-          chown -R 1000:1000 `pwd`
-          su `id -un 1000` -c "./gradlew :integ-test:analyticsEngineCompatIT"
+        run: ./gradlew :integ-test:analyticsEngineCompatIT
 
       - name: Run analytics-engine security IT
-        run: |
-          su `id -un 1000` -c "./gradlew :integ-test:analyticsEngineSecurityIT"
+        run: ./gradlew :integ-test:analyticsEngineSecurityIT
 
       - name: Run analytics-engine profile IT
-        run: |
-          su `id -un 1000` -c "./gradlew :integ-test:analyticsEngineProfileIT"
+        run: ./gradlew :integ-test:analyticsEngineProfileIT
