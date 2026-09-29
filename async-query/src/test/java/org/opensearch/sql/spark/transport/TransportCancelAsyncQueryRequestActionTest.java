@@ -50,7 +50,10 @@ public class TransportCancelAsyncQueryRequestActionTest {
   public void setUp() {
     action =
         new TransportCancelAsyncQueryRequestAction(
-            transportService, new ActionFilters(new HashSet<>()), asyncQueryExecutorService);
+            transportService,
+            new ActionFilters(new HashSet<>()),
+            org.mockito.Mockito.mock(org.opensearch.cluster.service.ClusterService.class),
+            asyncQueryExecutorService);
   }
 
   @Test

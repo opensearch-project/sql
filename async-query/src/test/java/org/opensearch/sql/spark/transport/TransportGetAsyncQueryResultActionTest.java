@@ -59,7 +59,10 @@ public class TransportGetAsyncQueryResultActionTest {
   public void setUp() {
     action =
         new TransportGetAsyncQueryResultAction(
-            transportService, new ActionFilters(new HashSet<>()), jobExecutorService);
+            transportService,
+            new ActionFilters(new HashSet<>()),
+            org.mockito.Mockito.mock(org.opensearch.cluster.service.ClusterService.class),
+            jobExecutorService);
   }
 
   @Test
