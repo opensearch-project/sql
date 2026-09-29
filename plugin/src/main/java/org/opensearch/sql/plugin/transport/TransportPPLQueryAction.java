@@ -34,7 +34,6 @@ import org.opensearch.common.inject.Guice;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.inject.Injector;
 import org.opensearch.common.inject.ModulesBuilder;
-import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
@@ -286,7 +285,7 @@ public class TransportPPLQueryAction
             transformedRequest,
             createAnalyzeResponseListener(transformedRequest, clearingListener),
             anonymizedQuerySink);
-      } else if (shouldExecuteAsync(transformedRequest)) {
+      } else if (transformedRequest.isAsync()) {
         submitAsync(pplService, transformedRequest, clearingListener, anonymizedQuerySink);
       } else {
         pplService.execute(
@@ -300,17 +299,6 @@ public class TransportPPLQueryAction
     } finally {
       spanScope.close();
     }
-  }
-
-  /** Default wait_for_completion_timeout when a caller uses only keep_alive to signal async. */
-  private static final TimeValue DEFAULT_WAIT_FOR_COMPLETION = TimeValue.timeValueSeconds(5);
-
-  /**
-   * Async gate for the plain query path (explain / analyze endpoints are handled earlier). Grows to
-   * include cluster-setting kills, feature flags, etc. as they are wired.
-   */
-  private static boolean shouldExecuteAsync(PPLQueryRequest request) {
-    return request.isAsync();
   }
 
   /**
@@ -330,13 +318,7 @@ public class TransportPPLQueryAction
     QueryJobService jobService = queryJobService;
     SecurityAdapter security = securityAdapter;
 
-    TimeValue wait;
-    try {
-      wait = resolveWaitForCompletion(transformedRequest.waitForCompletionTimeout());
-    } catch (IllegalArgumentException e) {
-      listener.onFailure(e);
-      return;
-    }
+    long waitMillis = transformedRequest.effectiveWaitForCompletion().toMillis();
 
     QueryRunner runner =
         new PPLQueryRunner(pplService, transformedRequest, anonymizedQuerySink, Clock.systemUTC());
@@ -350,13 +332,13 @@ public class TransportPPLQueryAction
 
     ResponseListener<ExecutionEngine.QueryResponse> formattingListener =
         createListener(transformedRequest, listener);
-    if (wait.millis() <= 0L) {
+    if (waitMillis <= 0L) {
       // Pure async: return the id immediately, runner keeps going.
       listener.onResponse(new TransportPPLQueryResponse(asyncRunningResponse(job)));
       return;
     }
     try {
-      var result = job.completion().toCompletableFuture().get(wait.millis(), TimeUnit.MILLISECONDS);
+      var result = job.completion().toCompletableFuture().get(waitMillis, TimeUnit.MILLISECONDS);
       if (result instanceof org.opensearch.sql.job.QueryResult.Rows rows) {
         ExecutionEngine.QueryResponse response =
             new ExecutionEngine.QueryResponse(rows.schema(), rows.rows(), rows.cursor());
@@ -383,13 +365,6 @@ public class TransportPPLQueryAction
       formattingListener.onFailure(
           cause instanceof Exception ex ? ex : new RuntimeException(cause));
     }
-  }
-
-  private static TimeValue resolveWaitForCompletion(String raw) {
-    if (raw == null) {
-      return DEFAULT_WAIT_FOR_COMPLETION;
-    }
-    return TimeValue.parseTimeValue(raw, "wait_for_completion_timeout");
   }
 
   /**

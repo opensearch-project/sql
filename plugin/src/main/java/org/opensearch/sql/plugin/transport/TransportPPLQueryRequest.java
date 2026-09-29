@@ -8,6 +8,7 @@ package org.opensearch.sql.plugin.transport;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -64,23 +65,24 @@ public class TransportPPLQueryRequest extends ActionRequest {
   private String queryId = null;
 
   /**
-   * Raw {@code wait_for_completion_timeout} body value (e.g. {@code "5s"}). Presence of this field
-   * or {@link #keepAlive} switches the transport action to the asynchronous submit path.
+   * Caller's {@code wait_for_completion_timeout}, {@code null} when the field was not present.
+   * Presence of this field or {@link #keepAlive} switches the transport action to the async submit
+   * path.
    */
   @Setter
   @Getter
   @Accessors(fluent = true)
-  private String waitForCompletionTimeout = null;
+  private Duration waitForCompletionTimeout = null;
 
   /**
-   * Raw {@code keep_alive} body value (e.g. {@code "5m"}). Presence of this field or {@link
-   * #waitForCompletionTimeout} switches the transport action to the asynchronous submit path.
+   * Caller's {@code keep_alive}, {@code null} when the field was not present. Presence of this
+   * field or {@link #waitForCompletionTimeout} switches the transport action to the async submit
+   * path.
    */
   @Setter
   @Getter
   @Accessors(fluent = true)
-  private String keepAlive = null;
-
+  private Duration keepAlive = null;
 
   /** Constructor of TransportPPLQueryRequest from PPLQueryRequest. */
   public TransportPPLQueryRequest(PPLQueryRequest pplQueryRequest) {
@@ -112,8 +114,10 @@ public class TransportPPLQueryRequest extends ActionRequest {
     profile = in.readBoolean();
     analyze = in.readBoolean();
     queryId = in.readOptionalString();
-    waitForCompletionTimeout = in.readOptionalString();
-    keepAlive = in.readOptionalString();
+    Long waitMillis = in.readOptionalLong();
+    waitForCompletionTimeout = waitMillis == null ? null : Duration.ofMillis(waitMillis);
+    Long keepAliveMillis = in.readOptionalLong();
+    keepAlive = keepAliveMillis == null ? null : Duration.ofMillis(keepAliveMillis);
   }
 
   /** Re-create the object from the actionRequest. */
@@ -148,8 +152,9 @@ public class TransportPPLQueryRequest extends ActionRequest {
     out.writeBoolean(profile);
     out.writeBoolean(analyze);
     out.writeOptionalString(queryId);
-    out.writeOptionalString(waitForCompletionTimeout);
-    out.writeOptionalString(keepAlive);
+    out.writeOptionalLong(
+        waitForCompletionTimeout == null ? null : waitForCompletionTimeout.toMillis());
+    out.writeOptionalLong(keepAlive == null ? null : keepAlive.toMillis());
   }
 
   public String getRequest() {

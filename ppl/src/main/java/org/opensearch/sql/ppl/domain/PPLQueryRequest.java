@@ -7,6 +7,7 @@ package org.opensearch.sql.ppl.domain;
 
 import static org.opensearch.sql.calcite.plan.OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -73,30 +74,54 @@ public class PPLQueryRequest {
   @Accessors(fluent = true)
   private String queryId = null;
 
-  /**
-   * Raw {@code wait_for_completion_timeout} body value (e.g. {@code "5s"}, {@code "0"}). Presence
-   * of this field or {@link #keepAlive} switches the transport action to the asynchronous submit
-   * path; absence keeps the current synchronous behavior. Kept as a string so this domain class has
-   * no OpenSearch dependency; the transport layer parses it into a {@code TimeValue}.
-   */
-  @Setter
-  @Getter
-  @Accessors(fluent = true)
-  private String waitForCompletionTimeout = null;
+  /** Default {@code wait_for_completion_timeout} applied when the caller omits the field. */
+  public static final Duration DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT = Duration.ofSeconds(5);
+
+  /** Default {@code keep_alive} applied when the caller omits the field. */
+  public static final Duration DEFAULT_KEEP_ALIVE = Duration.ofMinutes(5);
 
   /**
-   * Raw {@code keep_alive} body value (e.g. {@code "5m"}). Presence of this field or {@link
-   * #waitForCompletionTimeout} switches the transport action to the asynchronous submit path. Kept
-   * as a string; parsed by the transport layer.
+   * Caller's {@code wait_for_completion_timeout}, or {@code null} when the field was not present.
+   * Presence of this field or {@link #keepAlive} switches the transport action to the async submit
+   * path; absence keeps the current synchronous behavior. Use {@link #effectiveWaitForCompletion()}
+   * to read the resolved value (default applied).
    */
   @Setter
   @Getter
   @Accessors(fluent = true)
-  private String keepAlive = null;
+  private Duration waitForCompletionTimeout = null;
+
+  /**
+   * Caller's {@code keep_alive}, or {@code null} when the field was not present. Presence of this
+   * field or {@link #waitForCompletionTimeout} switches the transport action to the async submit
+   * path. Use {@link #effectiveKeepAlive()} to read the resolved value (default applied).
+   */
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
+  private Duration keepAlive = null;
 
   /** Returns {@code true} when either async body field is present on the request. */
   public boolean isAsync() {
     return waitForCompletionTimeout != null || keepAlive != null;
+  }
+
+  /**
+   * Returns the wait applied to the async submit response — the caller-supplied {@link
+   * #waitForCompletionTimeout} or {@link #DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT}. Never null.
+   */
+  public Duration effectiveWaitForCompletion() {
+    return waitForCompletionTimeout != null
+        ? waitForCompletionTimeout
+        : DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT;
+  }
+
+  /**
+   * Returns the retention lease applied when the async submission is registered — the
+   * caller-supplied {@link #keepAlive} or {@link #DEFAULT_KEEP_ALIVE}. Never null.
+   */
+  public Duration effectiveKeepAlive() {
+    return keepAlive != null ? keepAlive : DEFAULT_KEEP_ALIVE;
   }
 
   public PPLQueryRequest(String pplQuery, JSONObject jsonContent, String path) {

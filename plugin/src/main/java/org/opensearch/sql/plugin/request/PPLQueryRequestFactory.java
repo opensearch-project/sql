@@ -5,12 +5,14 @@
 
 package org.opensearch.sql.plugin.request;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.format.Format;
@@ -135,13 +137,17 @@ public class PPLQueryRequestFactory {
         pplRequest.queryId(queryId);
       }
       // Presence of either async body field selects the asynchronous submit path in the transport
-      // action. Absent = existing synchronous behavior.
+      // action. Absent = existing synchronous behavior. Parse on the request path so the domain
+      // object holds the typed Duration; downstream code never re-parses.
       if (jsonContent.has(QUERY_PARAMS_WAIT_FOR_COMPLETION_TIMEOUT)) {
         pplRequest.waitForCompletionTimeout(
-            jsonContent.getString(QUERY_PARAMS_WAIT_FOR_COMPLETION_TIMEOUT));
+            parseDuration(
+                jsonContent.getString(QUERY_PARAMS_WAIT_FOR_COMPLETION_TIMEOUT),
+                QUERY_PARAMS_WAIT_FOR_COMPLETION_TIMEOUT));
       }
       if (jsonContent.has(QUERY_PARAMS_KEEP_ALIVE)) {
-        pplRequest.keepAlive(jsonContent.getString(QUERY_PARAMS_KEEP_ALIVE));
+        pplRequest.keepAlive(
+            parseDuration(jsonContent.getString(QUERY_PARAMS_KEEP_ALIVE), QUERY_PARAMS_KEEP_ALIVE));
       }
       return pplRequest;
     } catch (JSONException e) {
@@ -192,6 +198,15 @@ public class PPLQueryRequestFactory {
     boolean isJdbcFormat =
         format != null && DEFAULT_RESPONSE_FORMAT.equalsIgnoreCase(format.getFormatName());
     return !explainPath && !explainQuery && isJdbcFormat;
+  }
+
+  /**
+   * Parses an OpenSearch-style time value ({@code "5s"}, {@code "0"}, {@code "10m"}) into a {@link
+   * Duration}. Delegates to {@link TimeValue#parseTimeValue} for consistent grammar with other
+   * request-body time fields.
+   */
+  private static Duration parseDuration(String value, String fieldName) {
+    return Duration.ofMillis(TimeValue.parseTimeValue(value, fieldName).millis());
   }
 
   private static String getExplainMode(Map<String, String> requestParams, String path) {
