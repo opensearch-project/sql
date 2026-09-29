@@ -1,0 +1,107 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.job;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+
+import java.time.Clock;
+import java.time.Duration;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import org.junit.jupiter.api.Test;
+import org.opensearch.threadpool.ThreadPool;
+
+class RetentionPolicyTest {
+
+  @Test
+  void arm_schedulesEvictionOnTerminalTransition() {
+    InMemoryQueryJobStore store = new InMemoryQueryJobStore();
+    ThreadPool threadPool = mock(ThreadPool.class);
+    // Fire the scheduled runnable inline so eviction happens synchronously.
+    doAnswer(
+            invocation -> {
+              invocation.<Runnable>getArgument(0).run();
+              return null;
+            })
+        .when(threadPool)
+        .schedule(any(Runnable.class), any(), anyString());
+
+    RetentionPolicy policy = new RetentionPolicy(store, threadPool, Duration.ofMinutes(5));
+    RecordingRunner runner = new RecordingRunner();
+    QueryJob job =
+        new QueryJob(new QueryJobId("node", "ctx"), Principal.UNSECURED, runner, Clock.systemUTC());
+    store.register(job);
+    policy.arm(job);
+    job.startRunner();
+
+    runner.complete();
+    assertEquals(Optional.empty(), store.find(job.id()));
+  }
+
+  @Test
+  void arm_evictsImmediatelyWhenSchedulerRejects() {
+    InMemoryQueryJobStore store = new InMemoryQueryJobStore();
+    ThreadPool threadPool = mock(ThreadPool.class);
+    doThrow(new IllegalStateException("shutdown"))
+        .when(threadPool)
+        .schedule(any(Runnable.class), any(), anyString());
+
+    RetentionPolicy policy = new RetentionPolicy(store, threadPool, Duration.ofMinutes(5));
+    RecordingRunner runner = new RecordingRunner();
+    QueryJob job =
+        new QueryJob(new QueryJobId("node", "ctx"), Principal.UNSECURED, runner, Clock.systemUTC());
+    store.register(job);
+    policy.arm(job);
+    job.startRunner();
+
+    runner.complete();
+    assertFalse(store.find(job.id()).isPresent());
+  }
+
+  @Test
+  void constructor_rejectsNonPositiveTtl() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            new RetentionPolicy(
+                new InMemoryQueryJobStore(), mock(ThreadPool.class), Duration.ZERO));
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            new RetentionPolicy(
+                new InMemoryQueryJobStore(), mock(ThreadPool.class), Duration.ofSeconds(-1)));
+  }
+
+  private static final class RecordingRunner implements QueryRunner {
+    private final CompletableFuture<QueryResult> future = new CompletableFuture<>();
+
+    @Override
+    public CompletionStage<QueryResult> run() {
+      return future;
+    }
+
+    @Override
+    public void cancel() {}
+
+    void complete() {
+      future.complete(
+          new QueryResult(
+              new org.opensearch.sql.executor.ExecutionEngine.Schema(java.util.List.of()),
+              java.util.List.of(),
+              org.opensearch.sql.executor.pagination.Cursor.None,
+              java.util.List.of(),
+              0));
+    }
+  }
+}
