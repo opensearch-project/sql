@@ -28,19 +28,26 @@ public final class OpenSearchQueryJobService implements QueryJobService {
   private final QueryJobStore store;
   private final ClusterService clusterService;
   private final Clock clock;
+  private final RetentionPolicy retentionPolicy;
 
   /**
    * @param store registry that will hold submitted jobs
    * @param clusterService source of the local node id used to mint routable {@link QueryJobId}s;
    *     resolved lazily on every submit so identity changes across restarts are observed
    * @param clock time source for the state machine
-   * @throws NullPointerException if any argument is {@code null}
+   * @param retentionPolicy attaches an eviction timer to every submitted job; may be {@code null}
+   *     to disable retention (test-only)
+   * @throws NullPointerException if any required argument is {@code null}
    */
   public OpenSearchQueryJobService(
-      QueryJobStore store, ClusterService clusterService, Clock clock) {
+      QueryJobStore store,
+      ClusterService clusterService,
+      Clock clock,
+      RetentionPolicy retentionPolicy) {
     this.store = Objects.requireNonNull(store, "store must not be null");
     this.clusterService = Objects.requireNonNull(clusterService, "clusterService must not be null");
     this.clock = Objects.requireNonNull(clock, "clock must not be null");
+    this.retentionPolicy = retentionPolicy;
   }
 
   @Override
@@ -48,6 +55,9 @@ public final class OpenSearchQueryJobService implements QueryJobService {
     Objects.requireNonNull(runner, "runner must not be null");
     Objects.requireNonNull(submitter, "submitter must not be null");
     QueryJob job = publish(runner, submitter);
+    if (retentionPolicy != null) {
+      retentionPolicy.arm(job);
+    }
     job.startRunner();
     return job;
   }

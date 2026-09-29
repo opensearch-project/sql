@@ -16,6 +16,8 @@ import org.opensearch.common.inject.Injector;
 import org.opensearch.common.inject.ModulesBuilder;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.job.QueryJobService;
+import org.opensearch.sql.job.SecurityAdapter;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
 import org.opensearch.transport.client.node.NodeClient;
@@ -31,6 +33,10 @@ public class AsyncExecutorServiceModuleTest {
 
   @Mock private DataSourceService dataSourceService;
 
+  @Mock private QueryJobService queryJobService;
+
+  @Mock private SecurityAdapter securityAdapter;
+
   @Test
   public void testAsyncQueryExecutorService() {
     ModulesBuilder modulesBuilder = new ModulesBuilder();
@@ -41,6 +47,8 @@ public class AsyncExecutorServiceModuleTest {
           b.bind(org.opensearch.sql.common.setting.Settings.class).toInstance(settings);
           b.bind(DataSourceService.class).toInstance(dataSourceService);
           b.bind(ClusterService.class).toInstance(clusterService);
+          b.bind(QueryJobService.class).toInstance(queryJobService);
+          b.bind(SecurityAdapter.class).toInstance(securityAdapter);
         });
     Injector injector = modulesBuilder.createInjector();
     assertNotNull(injector.getInstance(AsyncQueryExecutorService.class));
