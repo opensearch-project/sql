@@ -657,3 +657,67 @@ Expected output (the explicitly selected metadata field is returned even though 
 - Aggregation queries are not affected by this parameter, as they never include metadata fields in their results.
 - The parameter can be specified as a URL parameter (`?include_metadata=true`) or in the request body JSON (`{"include_metadata": true}`).
 - When both URL parameter and request body specify the parameter, the request body takes precedence.
+
+## Async submit — `wait_for_completion_timeout` and `keep_alive`
+
+`POST /_plugins/_ppl` supports both synchronous and asynchronous execution through the same endpoint. Presence of either `wait_for_completion_timeout` or `keep_alive` in the request body switches to the asynchronous submit path per [issue #5765](https://github.com/opensearch-project/sql/issues/5765). Absence of both keeps the existing synchronous behavior — clients that do not send these fields see no change.
+
+Request body fields:
+
+| Field | Type | Default | Limit | Description |
+|---|---|---|---|---|
+| `wait_for_completion_timeout` | time value string (e.g. `"5s"`, `"0"`) | `5s` when either async field is present | `0s` – `60s` | Maximum time the submit response will wait for the runner. |
+| `keep_alive` | time value string (e.g. `"5m"`) | `5m` | > `0`, ≤ `24h` | How long a terminal job is retained after completion (informational for MVP; the current node uses a fixed 5-minute retention regardless of value). |
+
+Behavior:
+
+- If the runner completes within `wait_for_completion_timeout`, the submit returns the terminal response directly (same shape as the synchronous PPL response) without an `id` and does not retain state.
+- If the runner is still running when the timeout expires, the response is:
+  ```json
+  {
+    "id": "<opaque-id>",
+    "status": "RUNNING",
+    "schema": [],
+    "datarows": [],
+    "total": 0
+  }
+  ```
+- `wait_for_completion_timeout=0` returns the async response immediately without waiting.
+
+Async fetch and cancel reuse the existing `/_plugins/_async_query/{id}` endpoints. `GET` returns a terminal snapshot (`SUCCEEDED` / `FAILED`) or a `RUNNING` snapshot with empty results. `DELETE` cancels the job and returns its final status; a subsequent `GET` may return the terminal status until the retention window expires, then `404`.
+
+Example — pure async submit:
+
+```
+POST /_plugins/_ppl
+{
+  "query": "source=accounts | stats count() by age",
+  "wait_for_completion_timeout": "0"
+}
+
+→ 200
+{ "id": "<opaque-id>", "status": "RUNNING", "schema": [], "datarows": [], "total": 0 }
+```
+
+Example — hybrid submit with a five-second wait:
+
+```
+POST /_plugins/_ppl
+{
+  "query": "source=accounts | stats count() by age",
+  "wait_for_completion_timeout": "5s"
+}
+
+→ 200 (runner finished within 5s — sync response)
+{ "schema": [...], "datarows": [...], "total": N, "size": N }
+
+→ 200 (runner still running — async response with id)
+{ "id": "<opaque-id>", "status": "RUNNING", "schema": [], "datarows": [], "total": 0 }
+```
+
+Example — fetch and cancel:
+
+```
+GET    /_plugins/_async_query/<opaque-id>       # snapshot; retry until terminal
+DELETE /_plugins/_async_query/<opaque-id>       # cancel; returns terminal status
+```
