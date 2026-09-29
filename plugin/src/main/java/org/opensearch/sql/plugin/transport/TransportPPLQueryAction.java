@@ -15,10 +15,6 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.apache.calcite.rel.RelNode;
@@ -28,6 +24,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.support.ActionFilters;
+import org.opensearch.action.support.ContextPreservingActionListener;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
 import org.opensearch.cluster.service.ClusterService;
@@ -35,6 +32,7 @@ import org.opensearch.common.inject.Guice;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.inject.Injector;
 import org.opensearch.common.inject.ModulesBuilder;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
@@ -46,6 +44,7 @@ import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.job.OpenSearchQueryJobService;
 import org.opensearch.sql.job.OpenSearchSecurityAdapter;
+import org.opensearch.sql.job.Outcome;
 import org.opensearch.sql.job.QueryJob;
 import org.opensearch.sql.job.QueryJobService;
 import org.opensearch.sql.job.QueryRunner;
@@ -325,40 +324,26 @@ public class TransportPPLQueryAction
       listener.onFailure(e);
       return;
     }
-    long waitMillis = transformedRequest.effectiveWaitForCompletion().toMillis();
-    if (waitMillis <= 0L) {
-      listener.onResponse(new TransportPPLQueryResponse(runningSnapshot(job)));
-      return;
-    }
-    awaitOrReturnId(job, transformedRequest, waitMillis, listener);
-  }
-
-  /**
-   * Races the runner against {@code waitMillis}. Formats the terminal result on win; returns the
-   * running snapshot with the queryId on loss so the client can poll via GET.
-   */
-  private void awaitOrReturnId(
-      QueryJob job,
-      PPLQueryRequest transformedRequest,
-      long waitMillis,
-      ActionListener<TransportPPLQueryResponse> listener) {
+    // ContextPreservingActionListener captures the current ThreadContext (security identity,
+    // trace headers, tenant, …) so the terminal callback, which fires on a JDK Delayer thread or
+    // a runner-completing thread, restores it before touching the security-aware formatter or
+    // sending the response.
+    ThreadContext threadContext = clientRef.threadPool().getThreadContext();
+    ActionListener<TransportPPLQueryResponse> ctxListener =
+        ContextPreservingActionListener.wrapPreservingContext(listener, threadContext);
     ResponseListener<ExecutionEngine.QueryResponse> queryFormatter =
-        createListener(transformedRequest, listener);
-    try {
-      org.opensearch.sql.job.QueryResult result =
-          job.completion().toCompletableFuture().get(waitMillis, TimeUnit.MILLISECONDS);
-      renderTerminal(result, transformedRequest, listener, queryFormatter);
-    } catch (TimeoutException e) {
-      listener.onResponse(new TransportPPLQueryResponse(runningSnapshot(job)));
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      queryFormatter.onFailure(e);
-    } catch (CancellationException e) {
-      queryFormatter.onFailure(e);
-    } catch (ExecutionException e) {
-      Throwable cause = QueryJob.unwrap(e.getCause());
-      queryFormatter.onFailure(cause instanceof Exception ex ? ex : new RuntimeException(cause));
-    }
+        createListener(transformedRequest, ctxListener);
+    job.awaitOutcome(transformedRequest.effectiveWaitForCompletion())
+        .whenComplete(
+            (outcome, ignored) -> {
+              switch (outcome) {
+                case Outcome.Terminal(org.opensearch.sql.job.QueryResult result) ->
+                    renderTerminal(result, transformedRequest, ctxListener, queryFormatter);
+                case Outcome.Pending p ->
+                    ctxListener.onResponse(new TransportPPLQueryResponse(runningSnapshot(job)));
+                case Outcome.Failed(Exception cause) -> queryFormatter.onFailure(cause);
+              }
+            });
   }
 
   private void renderTerminal(

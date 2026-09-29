@@ -58,7 +58,7 @@ public final class RetentionPolicy {
    */
   public void arm(QueryJob job) {
     Objects.requireNonNull(job, "job must not be null");
-    job.completion().whenComplete((r, t) -> scheduleEviction(job));
+    job.onTerminal(() -> scheduleEviction(job));
   }
 
   private void scheduleEviction(QueryJob job) {

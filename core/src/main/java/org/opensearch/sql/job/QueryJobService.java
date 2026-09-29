@@ -21,8 +21,8 @@ public interface QueryJobService {
 
   /**
    * Wraps the given runner in a {@link QueryJob}, publishes the job, starts the runner, and returns
-   * the job. Callers observe progress through {@link QueryJob#completion()} or {@link
-   * QueryJob#status()}.
+   * the job. Callers observe progress through {@link QueryJob#awaitOutcome(java.time.Duration)},
+   * {@link QueryJob#onTerminal(Runnable)}, or {@link QueryJob#status()}.
    */
   QueryJob submit(QueryRunner runner, Principal submitter);
 

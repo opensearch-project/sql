@@ -6,19 +6,25 @@
 package org.opensearch.sql.job;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Active object that carries one query through the lifecycle state machine.
  *
  * <p>Instances are constructed only by {@link QueryJobService} implementations. The public surface
- * is deliberately small — four accessors and one mutator — so that engines cannot observe or drive
- * lifecycle transitions except through the runner they were given.
+ * exposes state readers ({@link #id()}, {@link #owner()}, {@link #status()}), lifecycle waits
+ * ({@link #awaitOutcome(Duration)}, {@link #onTerminal(Runnable)}), and a single mutator ({@link
+ * #cancel()}). Consumers cannot reach the underlying reactive stage — the raw {@code
+ * CompletableFuture} is fully encapsulated so no caller can invent its own blocking or reactive
+ * coupling.
  *
  * <p>State transitions:
  *
@@ -31,10 +37,8 @@ import java.util.concurrent.CompletionStage;
  *
  * <h2>Thread safety</h2>
  *
- * All mutable state is guarded by {@code this}. Side effects that may block or reenter — invoking
+ * All mutable state is guarded by {@code this}. Side effects that may block or re-enter — invoking
  * the runner, cancelling it, completing the future — are performed after the monitor is released.
- * The {@link CompletableFuture} that backs {@link #completion()} is never leaked to callers; only
- * its {@link CompletionStage} view is returned.
  */
 public final class QueryJob {
 
@@ -88,18 +92,74 @@ public final class QueryJob {
   }
 
   /**
-   * Returns a read-only view of the completion future. Completes normally with the {@link
-   * QueryResult} on success, exceptionally with the original runner exception on failure, and
-   * exceptionally with {@link java.util.concurrent.CancellationException} on cancel.
+   * Bounded, non-blocking wait. Returns immediately with a stage that fires exactly once with an
+   * {@link Outcome} — {@link Outcome.Terminal} when the runner succeeds within budget, {@link
+   * Outcome.Failed} on runner failure or cancellation, {@link Outcome.Pending} when the wait budget
+   * expires first.
+   *
+   * <p>The calling thread returns as soon as the callbacks are registered. Whichever event fires
+   * first (runner completion or timeout) wins; the loser's later firing is a no-op.
+   *
+   * <p>The caller's {@code whenComplete} runs on whichever thread completes the outcome:
+   * runner-completing thread on the terminal / failed path, JDK's internal {@code Delayer} daemon
+   * on the pending path. Callers that require a specific pool should use {@code
+   * whenCompleteAsync(cb, executor)} on the returned stage. Callers that need {@code ThreadContext}
+   * preserved (security identity, tracing span) should wrap their listener via {@code
+   * ContextPreservingActionListener.wrapPreservingContext(listener, threadContext)} before
+   * registering the callback.
+   *
+   * <p>Non-{@link Exception} throwables from the runner are re-thrown from the internal handler so
+   * JVM-level errors (e.g. {@link OutOfMemoryError}) are not silently downgraded to an
+   * application-level {@link Outcome.Failed}.
+   *
+   * @param budget maximum time to wait. {@code null}, zero, or negative → {@link Outcome.Pending}
+   *     immediately unless the job is already terminal.
+   * @return stage that completes with exactly one {@link Outcome}
    */
-  public CompletionStage<QueryResult> completion() {
-    return completion.minimalCompletionStage();
+  public CompletionStage<Outcome> awaitOutcome(Duration budget) {
+    CompletableFuture<Outcome> out = new CompletableFuture<>();
+    completion.whenComplete(
+        (value, throwable) -> {
+          if (throwable == null) {
+            out.complete(new Outcome.Terminal(value));
+            return;
+          }
+          Throwable cause = unwrap(throwable);
+          if (cause instanceof Error error) {
+            throw error;
+          }
+          Exception ex =
+              cause instanceof Exception exception ? exception : new RuntimeException(cause);
+          out.complete(new Outcome.Failed(ex));
+        });
+    long millis = budget == null ? 0L : budget.toMillis();
+    if (millis <= 0L) {
+      out.complete(new Outcome.Pending());
+    } else {
+      out.completeOnTimeout(new Outcome.Pending(), millis, TimeUnit.MILLISECONDS);
+    }
+    return out.minimalCompletionStage();
+  }
+
+  /**
+   * Registers a one-shot terminal hook. {@code action} runs exactly once when the job reaches any
+   * terminal state ({@code SUCCEEDED}, {@code FAILED}, or {@code CANCELLED}).
+   *
+   * <p>Narrow API for subscribers (retention, metrics, tracing) that need only "the runner is done"
+   * and do not consume the result. Fires on the thread that completed the runner; wrap behavior in
+   * an executor if a specific pool is required.
+   *
+   * @param action non-null runnable; exceptions escape to the completion thread's default handler
+   */
+  public void onTerminal(Runnable action) {
+    Objects.requireNonNull(action, "action must not be null");
+    completion.whenComplete((result, err) -> action.run());
   }
 
   /**
    * Requests cancellation. Terminal states are unaffected. Cancellation from {@code PENDING} or
    * {@code RUNNING} moves the job to {@code CANCELLED}, cancels the runner (best effort), and
-   * completes {@link #completion()} exceptionally.
+   * completes the internal future exceptionally with {@link CancellationException}.
    */
   public void cancel() {
     boolean shouldCancelRunner;
@@ -160,9 +220,7 @@ public final class QueryJob {
   /**
    * Terminal transition from {@link QueryJobState#RUNNING} to {@link QueryJobState#SUCCEEDED}.
    * Ignored if the job has already left {@code RUNNING} (e.g. a concurrent {@link #cancel()} beat
-   * the runner). Records the result inside the monitor; completes the future outside it.
-   *
-   * @param value final result produced by the runner; never {@code null}
+   * the runner).
    */
   private void onRunnerSuccess(QueryResult value) {
     synchronized (this) {
@@ -177,12 +235,8 @@ public final class QueryJob {
   }
 
   /**
-   * Terminal transition to {@link QueryJobState#FAILED}. Accepts the transition from either {@code
-   * RUNNING} (normal failure path) or {@code PENDING} (synchronous throw from {@link
-   * QueryRunner#run()}). Ignored once the job is already terminal.
-   *
-   * @param throwable exception raised by the runner; may be a raw cause or a {@link
-   *     CompletionException} wrapper (already unwrapped in {@link #startRunner()})
+   * Terminal transition to {@link QueryJobState#FAILED}. Accepts from either {@code RUNNING} or
+   * {@code PENDING} (synchronous throw from {@link QueryRunner#run()}). Ignored once terminal.
    */
   private void onRunnerFailure(Throwable throwable) {
     synchronized (this) {
@@ -196,11 +250,7 @@ public final class QueryJob {
     completion.completeExceptionally(throwable);
   }
 
-  /**
-   * Best-effort cancel of the runner. Swallows {@link RuntimeException} — a misbehaving runner must
-   * not block the state machine, and the job has already been marked {@code CANCELLED} before this
-   * is called.
-   */
+  /** Best-effort cancel of the runner; swallows RuntimeException. */
   private void safeCancelRunner() {
     try {
       runner.cancel();
@@ -212,17 +262,9 @@ public final class QueryJob {
   /**
    * Peels a single {@link CompletionException} wrapper so downstream reporting sees the original
    * runner exception. Non-wrapper throwables and wrappers with no cause pass through unchanged.
+   * Public so future consumers share the same unwrap semantics.
    *
-   * @param throwable throwable observed on the runner's completion stage
-   * @return the underlying cause when {@code throwable} is a {@link CompletionException} carrying a
-   *     non-{@code null} cause; otherwise the original throwable
-   */
-  /**
-   * Peels a single {@link CompletionException} wrapper so downstream reporting sees the original
-   * runner exception. Non-wrapper throwables and wrappers with no cause pass through unchanged.
-   * Public so consumers of {@link #completion()} share the same unwrap semantics.
-   *
-   * @param throwable throwable observed on the completion stage or through {@code get()}
+   * @param throwable throwable observed on the completion stage
    * @return the underlying cause when {@code throwable} is a {@link CompletionException} carrying a
    *     non-{@code null} cause; otherwise the original throwable
    */
