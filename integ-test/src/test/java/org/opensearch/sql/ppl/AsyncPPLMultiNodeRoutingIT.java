@@ -102,6 +102,27 @@ public class AsyncPPLMultiNodeRoutingIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void explain_forwardsFromNonOwnerNodeToOwner() throws Exception {
+    JSONObject body = new JSONObject();
+    body.put("query", "explain source=" + INDEX + " | stats count() as c");
+    body.put("wait_for_completion_timeout", "0");
+
+    String queryId = new JSONObject(post(nodeA, body)).getString("id");
+
+    // Poll GET on node B — must forward to A and eventually return an explain-shaped body.
+    long deadline = System.currentTimeMillis() + 30_000L;
+    String raw = null;
+    while (System.currentTimeMillis() < deadline) {
+      raw = get(nodeB, queryId);
+      if (raw.contains("\"calcite\"") || raw.contains("\"root\"")) {
+        return;
+      }
+      Thread.sleep(200);
+    }
+    Assert.fail("cross-node explain never returned plan tree; last=" + raw);
+  }
+
+  @Test
   public void delete_forwardsFromNonOwnerNodeToOwner() throws Exception {
     JSONObject body = new JSONObject();
     body.put("query", "source=" + INDEX + " | stats count() as c");

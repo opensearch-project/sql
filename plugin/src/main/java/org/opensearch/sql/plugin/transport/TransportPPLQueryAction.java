@@ -286,10 +286,7 @@ public class TransportPPLQueryAction
             transformedRequest,
             createAnalyzeResponseListener(transformedRequest, clearingListener),
             anonymizedQuerySink);
-      } else if (transformedRequest.isAsync() && !isExplainInStatement(transformedRequest)) {
-        // Async submit: race the runner against wait_for_completion_timeout. Explain-in-statement
-        // (query text starts with "explain") falls back to the two-listener PPLService.execute
-        // path below because QueryRunner cannot represent an explain response.
+      } else if (shouldExecuteAsync(transformedRequest)) {
         submitAsync(pplService, transformedRequest, clearingListener, anonymizedQuerySink);
       } else {
         pplService.execute(
@@ -308,16 +305,12 @@ public class TransportPPLQueryAction
   /** Default wait_for_completion_timeout when a caller uses only keep_alive to signal async. */
   private static final TimeValue DEFAULT_WAIT_FOR_COMPLETION = TimeValue.timeValueSeconds(5);
 
-  private static final java.util.regex.Pattern EXPLAIN_STATEMENT =
-      java.util.regex.Pattern.compile("^\\s*explain\\b", java.util.regex.Pattern.CASE_INSENSITIVE);
-
   /**
-   * Heuristic: PPL statements whose text begins with {@code explain} produce an explain response
-   * regardless of URL, and must stay on the two-listener {@link PPLService#execute} path.
+   * Async gate for the plain query path (explain / analyze endpoints are handled earlier). Grows to
+   * include cluster-setting kills, feature flags, etc. as they are wired.
    */
-  private static boolean isExplainInStatement(PPLQueryRequest request) {
-    String text = request.getRequest();
-    return text != null && EXPLAIN_STATEMENT.matcher(text).find();
+  private static boolean shouldExecuteAsync(PPLQueryRequest request) {
+    return request.isAsync();
   }
 
   /**
@@ -364,10 +357,16 @@ public class TransportPPLQueryAction
     }
     try {
       var result = job.completion().toCompletableFuture().get(wait.millis(), TimeUnit.MILLISECONDS);
-      ExecutionEngine.QueryResponse response =
-          new ExecutionEngine.QueryResponse(result.schema(), result.rows(), result.cursor());
-      response.setWarnings(result.warnings());
-      formattingListener.onResponse(response);
+      if (result instanceof org.opensearch.sql.job.QueryResult.Rows rows) {
+        ExecutionEngine.QueryResponse response =
+            new ExecutionEngine.QueryResponse(rows.schema(), rows.rows(), rows.cursor());
+        response.setWarnings(rows.warnings());
+        formattingListener.onResponse(response);
+      } else if (result instanceof org.opensearch.sql.job.QueryResult.Explain explain) {
+        // Statement-level explain won the race — render via the sync explain formatter so the
+        // response body matches the sync explain shape byte-for-byte.
+        createExplainResponseListener(transformedRequest, listener).onResponse(explain.response());
+      }
     } catch (TimeoutException e) {
       // Runner still going after the wait window — return the id so the caller can poll.
       listener.onResponse(new TransportPPLQueryResponse(asyncRunningResponse(job)));

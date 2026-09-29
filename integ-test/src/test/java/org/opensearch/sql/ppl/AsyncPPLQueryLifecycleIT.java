@@ -71,6 +71,26 @@ public class AsyncPPLQueryLifecycleIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void async_explainStatementReturnsExplainBody() throws Exception {
+    JSONObject body = new JSONObject();
+    body.put("query", "explain source=" + TEST_INDEX_ACCOUNT + " | stats count() as c");
+    body.put("wait_for_completion_timeout", "0");
+    String queryId = new JSONObject(post(body)).getString("id");
+
+    // GET returns the explain body verbatim — it has no `status` field, so poll on the raw text.
+    long deadline = System.currentTimeMillis() + 30_000L;
+    String raw = null;
+    while (System.currentTimeMillis() < deadline) {
+      raw = get(queryId);
+      if (raw.contains("\"calcite\"") || raw.contains("\"root\"")) {
+        return;
+      }
+      Thread.sleep(200);
+    }
+    Assert.fail("explain body never appeared; last=" + raw);
+  }
+
+  @Test
   public void async_cancelledJobReportsCancelled() throws Exception {
     JSONObject body = new JSONObject();
     body.put("query", "source=" + TEST_INDEX_ACCOUNT + " | stats count() as c");

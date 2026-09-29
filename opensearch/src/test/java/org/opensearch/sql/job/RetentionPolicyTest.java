@@ -96,7 +96,7 @@ class RetentionPolicyTest {
 
     void complete() {
       future.complete(
-          new QueryResult(
+          new QueryResult.Rows(
               new org.opensearch.sql.executor.ExecutionEngine.Schema(java.util.List.of()),
               java.util.List.of(),
               org.opensearch.sql.executor.pagination.Cursor.None,

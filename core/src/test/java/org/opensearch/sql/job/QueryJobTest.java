@@ -27,7 +27,7 @@ class QueryJobTest {
   private static final Principal OWNER = new Principal("alice", null, List.of());
   private static final Schema SCHEMA = new Schema(List.of());
   private static final QueryResult RESULT =
-      new QueryResult(SCHEMA, List.of(), Cursor.None, List.of(), 0);
+      new QueryResult.Rows(SCHEMA, List.of(), Cursor.None, List.of(), 0);
 
   @Test
   void status_startsInPending() {

@@ -80,8 +80,7 @@ public final class PPLQueryRunner implements QueryRunner {
         new ResponseListener<ExplainResponse>() {
           @Override
           public void onResponse(ExplainResponse response) {
-            future.completeExceptionally(
-                new IllegalStateException("Query runner received an explain response"));
+            future.complete(QueryResult.of(response, clock.millis() - startMillis));
           }
 
           @Override

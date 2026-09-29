@@ -47,6 +47,7 @@ dependencies {
     antlr "org.antlr:antlr4:4.13.2"
 
     implementation project(':core')
+    implementation project(':protocol')
     implementation 'org.json:json:20231013'
     implementation 'com.google.code.gson:gson:2.8.9'
     api group: 'com.amazonaws', name: 'aws-java-sdk-emrserverless', version: "${aws_java_sdk_version}"

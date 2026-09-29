@@ -21,6 +21,7 @@ import org.opensearch.sql.job.QueryJobId;
 import org.opensearch.sql.job.QueryJobService;
 import org.opensearch.sql.job.QueryJobState;
 import org.opensearch.sql.job.QueryJobStatus;
+import org.opensearch.sql.job.QueryResult;
 import org.opensearch.sql.job.SecurityAdapter;
 import org.opensearch.sql.spark.asyncquery.exceptions.AsyncQueryNotFoundException;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
@@ -208,17 +209,25 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
 
   /**
    * Maps a neutral {@link QueryJobStatus} onto the response shape the async-query transport actions
-   * already know how to format. Terminal SUCCEEDED carries schema and rows; FAILED carries a
-   * sanitized error; RUNNING / PENDING / CANCELLED carry no rows.
+   * already know how to format. Terminal SUCCEEDED carries schema and rows for the {@link
+   * QueryResult.Rows} variant, or the pre-formatted explain JSON in {@code explainJson} for the
+   * {@link QueryResult.Explain} variant. FAILED carries a sanitized error; RUNNING / PENDING /
+   * CANCELLED carry no rows.
    */
   private static AsyncQueryExecutionResponse toAsyncResponse(QueryJobStatus status) {
     if (status.state() == QueryJobState.SUCCEEDED && status.result().isPresent()) {
-      return new AsyncQueryExecutionResponse(
-          status.state().name(),
-          status.result().get().schema(),
-          status.result().get().rows(),
-          null,
-          null);
+      QueryResult result = status.result().get();
+      if (result instanceof QueryResult.Rows rows) {
+        return new AsyncQueryExecutionResponse(
+            status.state().name(), rows.schema(), rows.rows(), null, null);
+      }
+      if (result instanceof QueryResult.Explain explain) {
+        AsyncQueryExecutionResponse response =
+            new AsyncQueryExecutionResponse(
+                status.state().name(), EMPTY_SCHEMA, List.of(), null, null);
+        response.setExplainJson(ExplainResponseJsonFormatter.format(explain.response()));
+        return response;
+      }
     }
     if (status.state() == QueryJobState.FAILED) {
       return new AsyncQueryExecutionResponse(

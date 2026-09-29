@@ -71,6 +71,13 @@ public class TransportGetAsyncQueryResultAction
       }
       AsyncQueryExecutionResponse asyncQueryExecutionResponse =
           asyncQueryExecutorService.getAsyncQueryResults(jobId, new NullAsyncQueryRequestContext());
+      // Statement-level explain results carry a pre-formatted JSON body — return verbatim so the
+      // response shape matches the sync explain path byte-for-byte.
+      if (asyncQueryExecutionResponse.getExplainJson() != null) {
+        listener.onResponse(
+            new GetAsyncQueryResultActionResponse(asyncQueryExecutionResponse.getExplainJson()));
+        return;
+      }
       ResponseFormatter<AsyncQueryResult> formatter =
           new AsyncQueryResultResponseFormatter(JsonResponseFormatter.Style.PRETTY);
       String responseContent =

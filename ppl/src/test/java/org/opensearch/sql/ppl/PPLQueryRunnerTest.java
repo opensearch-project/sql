@@ -46,7 +46,8 @@ public class PPLQueryRunnerTest {
             s -> {},
             Clock.systemUTC());
     QueryResult result = runner.run().toCompletableFuture().get();
-    assertEquals(response.getSchema(), result.schema());
+    assertTrue(result instanceof QueryResult.Rows);
+    assertEquals(response.getSchema(), ((QueryResult.Rows) result).schema());
     assertTrue(result.tookMillis() >= 0);
   }
 
