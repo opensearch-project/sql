@@ -161,3 +161,36 @@ teardown:
         body:
           query: 'source=otel | expand attributes.tags | fields service'
   - match: {"$body": "/Cannot\\s+expand\\s+.attributes.tags.*/"}
+
+---
+# A leaf is one keyword term with the path folded in, so an exact-match predicate is answered by the
+# index. Written with no spaces: MatchAssertion compiles these with Pattern.COMMENTS, which discards
+# unescaped whitespace.
+"an exact-match predicate on a leaf reaches the index, not a script":
+  - skip:
+      features: [headers]
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl.explain:
+        body:
+          query: "source=otel | where attributes.duration_ms = '4' | fields service"
+  - match: {"calcite.physical": "/\"term\":\\{\"attributes.duration_ms\"/"}
+  - match: {"calcite.physical": "/^((?!opensearch_compounded_script).)*$/"}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl.explain:
+        body:
+          query: "source=otel | where attributes.duration_ms in ('4','12.5') | fields service"
+  - match: {"calcite.physical": "/\"terms\":\\{\"attributes.duration_ms\"/"}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl.explain:
+        body:
+          query: "source=otel | where isnotnull(attributes.duration_ms) | fields service"
+  - match: {"calcite.physical": "/\"exists\":\\{\"field\":\"attributes.duration_ms\"/"}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl.explain:
+        body:
+          query: "source=otel | where like(attributes.duration_ms, '1%') | fields service"
+  - match: {"calcite.physical": "/\"wildcard\":\\{\"attributes.duration_ms\"/"}
