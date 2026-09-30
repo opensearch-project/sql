@@ -17,7 +17,6 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
-import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorServiceImpl;
 import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
@@ -40,7 +39,7 @@ public class TransportCreateAsyncQueryRequestAction
   public TransportCreateAsyncQueryRequestAction(
       TransportService transportService,
       ActionFilters actionFilters,
-      AsyncQueryExecutorServiceImpl jobManagementService,
+      AsyncQueryExecutorService jobManagementService,
       OpenSearchSettings pluginSettings) {
     super(NAME, transportService, actionFilters, CreateAsyncQueryActionRequest::new);
     this.asyncQueryExecutorService = jobManagementService;

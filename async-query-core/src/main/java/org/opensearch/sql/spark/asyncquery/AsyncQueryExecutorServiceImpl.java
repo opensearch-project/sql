@@ -23,6 +23,8 @@ import org.opensearch.sql.job.QueryJobState;
 import org.opensearch.sql.job.QueryJobStatus;
 import org.opensearch.sql.job.QueryResult;
 import org.opensearch.sql.job.SecurityAdapter;
+import org.opensearch.sql.protocol.response.format.ExplainResponseJsonFormatter;
+import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.spark.asyncquery.exceptions.AsyncQueryNotFoundException;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
@@ -225,7 +227,8 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
             List.of(),
             null,
             null,
-            ExplainResponseJsonFormatter.format(explain.response()));
+            new ExplainResponseJsonFormatter(JsonResponseFormatter.Style.PRETTY)
+                .format(explain.response()));
       }
     }
     if (status.state() == QueryJobState.FAILED) {

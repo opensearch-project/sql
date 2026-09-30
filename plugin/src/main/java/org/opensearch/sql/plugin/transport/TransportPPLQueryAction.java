@@ -11,9 +11,7 @@ import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
 import java.time.Clock;
-import java.util.LinkedHashMap;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -65,6 +63,7 @@ import org.opensearch.sql.ppl.PPLService;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.CsvResponseFormatter;
+import org.opensearch.sql.protocol.response.format.ExplainResponseJsonFormatter;
 import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.RawResponseFormatter;
@@ -430,25 +429,7 @@ public class TransportPPLQueryAction
                 }
               };
         } else {
-          formatter =
-              new JsonResponseFormatter<>(PRETTY) {
-                @Override
-                protected Object buildJsonObject(ExecutionEngine.ExplainResponse response) {
-                  // For json_tree format, use parsed tree objects instead of strings
-                  if (response.getCalcite() != null
-                      && response.getCalcite().getLogicalTree() != null) {
-                    Map<String, Object> result = new LinkedHashMap<>();
-                    Map<String, Object> calcite = new LinkedHashMap<>();
-                    calcite.put("logical", response.getCalcite().getLogicalTree());
-                    if (response.getCalcite().getPhysicalTree() != null) {
-                      calcite.put("physical", response.getCalcite().getPhysicalTree());
-                    }
-                    result.put("calcite", calcite);
-                    return result;
-                  }
-                  return response;
-                }
-              };
+          formatter = new ExplainResponseJsonFormatter(PRETTY);
         }
         listener.onResponse(
             new TransportPPLQueryResponse(formatter.format(response), formatter.contentType()));
