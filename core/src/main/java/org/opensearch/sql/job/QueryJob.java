@@ -18,6 +18,12 @@ import java.util.concurrent.TimeUnit;
 /**
  * Active object that carries one query through the lifecycle state machine.
  *
+ * <p>Instances are constructed only by {@link QueryJobService} implementations. The public surface
+ * is deliberately small — five accessors and one mutator — so that engines cannot observe or drive
+ * lifecycle transitions except through the runner they were given.
+ *
+ * <p>State transitions:
+ *
  * <pre>
  *   PENDING --startRunner()--&gt; RUNNING --runner success--&gt; SUCCEEDED
  *                                     \--runner failure--&gt; FAILED
@@ -25,8 +31,12 @@ import java.util.concurrent.TimeUnit;
  *   PENDING --cancel()------&gt; CANCELLED
  * </pre>
  *
- * <p>All mutable state is guarded by {@code this}. Side effects that may block or re-enter — the
- * runner call, cancel, future completion — happen after the monitor is released.
+ * <h2>Thread safety</h2>
+ *
+ * All mutable state is guarded by {@code this}. Side effects that may block or reenter — invoking
+ * the runner, cancelling it, completing the future — are performed after the monitor is released.
+ * The {@link CompletableFuture} that backs completion is never leaked to callers; observation goes
+ * through {@link #await(Duration)} and {@link #onTerminal(Runnable)}.
  */
 public final class QueryJob {
 
@@ -43,6 +53,18 @@ public final class QueryJob {
   private Optional<QueryFailure> failure = Optional.empty();
   private Optional<QueryResult> result = Optional.empty();
 
+  /**
+   * Creates a job in {@link QueryJobState#PENDING}. Package-private: only {@link QueryJobService}
+   * implementations, which share this package, may construct a job. The submission time is captured
+   * from {@code clock} at construction; the runner is not started here.
+   *
+   * @param id opaque, node-routable identifier for this job
+   * @param owner caller identity retained for later authorization on {@code get} / {@code cancel}
+   * @param runner engine adapter that will produce the result; started later via {@link
+   *     #startRunner()}
+   * @param clock time source used for submission, start, and completion timestamps
+   * @throws NullPointerException if any argument is {@code null}
+   */
   QueryJob(QueryJobId id, Principal owner, QueryRunner runner, Clock clock) {
     this.id = Objects.requireNonNull(id, "id must not be null");
     this.owner = Objects.requireNonNull(owner, "owner must not be null");
@@ -51,14 +73,17 @@ public final class QueryJob {
     this.submittedAtMillis = clock.millis();
   }
 
+  /** Returns the opaque, node-routable job identifier. */
   public QueryJobId id() {
     return id;
   }
 
+  /** Returns the caller identity captured at submission. */
   public Principal owner() {
     return owner;
   }
 
+  /** Returns an immutable snapshot of the job's current state. */
   public synchronized QueryJobStatus status() {
     return new QueryJobStatus(
         id, state, submittedAtMillis, startedAtMillis, completedAtMillis, failure, result);
@@ -105,6 +130,11 @@ public final class QueryJob {
     completion.whenComplete((result, err) -> action.run());
   }
 
+  /**
+   * Requests cancellation. Terminal states are unaffected. Cancellation from {@code PENDING} or
+   * {@code RUNNING} moves the job to {@code CANCELLED}, cancels the runner (best effort), and
+   * completes the internal future exceptionally.
+   */
   public void cancel() {
     boolean shouldCancelRunner;
     synchronized (this) {
@@ -121,6 +151,19 @@ public final class QueryJob {
     completion.cancel(false);
   }
 
+  /**
+   * Transitions the job from {@link QueryJobState#PENDING} to {@link QueryJobState#RUNNING}, calls
+   * {@link QueryRunner#run()}, and wires the returned stage into this job's state machine.
+   *
+   * <p>Package-private. The service invokes this exactly once, immediately after publishing the job
+   * to the {@link QueryJobStore}. Any of the following short-circuit the call:
+   *
+   * <ul>
+   *   <li>the job has already been cancelled while pending — the runner is not started;
+   *   <li>{@code runner.run()} throws — the job moves to {@link QueryJobState#FAILED};
+   *   <li>{@code runner.run()} returns {@code null} — treated as a runner failure.
+   * </ul>
+   */
   void startRunner() {
     synchronized (this) {
       if (state != QueryJobState.PENDING) {
@@ -148,6 +191,13 @@ public final class QueryJob {
         });
   }
 
+  /**
+   * Terminal transition from {@link QueryJobState#RUNNING} to {@link QueryJobState#SUCCEEDED}.
+   * Ignored if the job has already left {@code RUNNING} (e.g. a concurrent {@link #cancel()} beat
+   * the runner). Records the result inside the monitor; completes the future outside it.
+   *
+   * @param value final result produced by the runner; never {@code null}
+   */
   private void onRunnerSuccess(QueryResult value) {
     synchronized (this) {
       if (state != QueryJobState.RUNNING) {
@@ -160,6 +210,14 @@ public final class QueryJob {
     completion.complete(value);
   }
 
+  /**
+   * Terminal transition to {@link QueryJobState#FAILED}. Accepts the transition from either {@code
+   * RUNNING} (normal failure path) or {@code PENDING} (synchronous throw from {@link
+   * QueryRunner#run()}). Ignored once the job is already terminal.
+   *
+   * @param throwable exception raised by the runner; may be a raw cause or a {@link
+   *     CompletionException} wrapper (already unwrapped in {@link #startRunner()})
+   */
   private void onRunnerFailure(Throwable throwable) {
     synchronized (this) {
       if (state != QueryJobState.RUNNING && state != QueryJobState.PENDING) {
@@ -172,15 +230,27 @@ public final class QueryJob {
     completion.completeExceptionally(throwable);
   }
 
+  /**
+   * Best-effort cancel of the runner. Swallows {@link RuntimeException} — a misbehaving runner must
+   * not block the state machine, and the job has already been marked {@code CANCELLED} before this
+   * is called.
+   */
   private void safeCancelRunner() {
     try {
       runner.cancel();
     } catch (RuntimeException ignored) {
-      // Best-effort: a misbehaving runner must not block the state machine.
+      // Cancellation is best-effort; a misbehaving runner must not block the state machine.
     }
   }
 
-  /** Peels a single {@link CompletionException} wrapper; passes other throwables through. */
+  /**
+   * Peels a single {@link CompletionException} wrapper so downstream reporting sees the original
+   * runner exception. Non-wrapper throwables and wrappers with no cause pass through unchanged.
+   *
+   * @param throwable throwable observed on the runner's completion stage
+   * @return the underlying cause when {@code throwable} is a {@link CompletionException} carrying a
+   *     non-{@code null} cause; otherwise the original throwable
+   */
   public static Throwable unwrap(Throwable throwable) {
     return throwable instanceof CompletionException && throwable.getCause() != null
         ? throwable.getCause()
