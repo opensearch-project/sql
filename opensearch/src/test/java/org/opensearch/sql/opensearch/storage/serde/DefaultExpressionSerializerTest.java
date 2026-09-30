@@ -15,6 +15,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.ref;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -28,6 +29,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
+import org.opensearch.sql.expression.conditional.cases.WhenClause;
 import org.opensearch.sql.expression.env.Environment;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -150,11 +152,57 @@ class DefaultExpressionSerializerTest {
   }
 
   @Test
+  public void default_limits_admit_deeply_nested_conditions() {
+    // 20 alternating levels of AND/OR inside a CASE reach serialization depth 72, the deepest
+    // legitimate expression measured; it was rejected by the previous default max_depth of 20.
+    Expression condition = DSL.greater(ref("balance", LONG), literal(0L));
+    for (int i = 20; i >= 1; i--) {
+      condition =
+          i % 2 == 0
+              ? DSL.and(DSL.greater(ref("age", INTEGER), literal(i)), condition)
+              : DSL.or(DSL.equal(ref("male", BOOLEAN), literal(true)), condition);
+    }
+    Expression original = DSL.cases(null, DSL.when(condition, literal(1)));
+    String code = serializer.serialize(original);
+
+    assertEquals(original, serializer.deserialize(code));
+
+    ExpressionSerializer previousDefaults =
+        new DefaultExpressionSerializer(() -> settingsWith(20, 1000, 15000));
+    assertThrows(IllegalStateException.class, () -> previousDefaults.deserialize(code));
+  }
+
+  @Test
+  public void default_limits_admit_case_with_many_when_clauses() {
+    // 25 WHEN clauses with three conditions each need about 2200 references and 18 KB, which the
+    // previous default max_refs of 1000 and max_bytes of 15000 rejected.
+    List<WhenClause> whens = new ArrayList<>();
+    for (int i = 0; i < 25; i++) {
+      whens.add(
+          DSL.when(
+              DSL.and(
+                  DSL.and(
+                      DSL.equal(ref("age", INTEGER), literal(20 + i)),
+                      DSL.equal(ref("male", BOOLEAN), literal(true))),
+                  DSL.greater(ref("balance", LONG), literal(i * 1000L))),
+              literal(i)));
+    }
+    Expression original = DSL.cases(literal(-1), whens.toArray(new WhenClause[0]));
+    String code = serializer.serialize(original);
+
+    assertEquals(original, serializer.deserialize(code));
+
+    ExpressionSerializer previousDefaults =
+        new DefaultExpressionSerializer(() -> settingsWith(20, 1000, 15000));
+    assertThrows(IllegalStateException.class, () -> previousDefaults.deserialize(code));
+  }
+
+  @Test
   public void default_limits_reject_excessive_nesting_before_stack_overflow() {
-    // 150 nested NOTs reach a serialization depth of about 450: over the default max_depth, and
+    // 60 nested NOTs reach a serialization depth of about 185: over the default max_depth, and
     // rejected by the filter with a regular exception rather than exhausting the thread stack.
     Expression nested = ref("abandoned", BOOLEAN);
-    for (int i = 0; i < 150; i++) {
+    for (int i = 0; i < 60; i++) {
       nested = DSL.not(nested);
     }
     String code = serializer.serialize(nested);

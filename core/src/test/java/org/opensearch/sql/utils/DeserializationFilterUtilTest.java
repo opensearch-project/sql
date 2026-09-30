@@ -36,18 +36,18 @@ public class DeserializationFilterUtilTest {
 
   @Test
   void null_settings_fall_back_to_default_limits() {
-    // depth 301 > DEFAULT_MAX_DEPTH (300); refs 10001 > DEFAULT_MAX_REFS (10000);
-    // bytes 100001 > DEFAULT_MAX_BYTES (100000).
+    // depth 151 > DEFAULT_MAX_DEPTH (150); refs 10001 > DEFAULT_MAX_REFS (10000);
+    // bytes 65537 > DEFAULT_MAX_BYTES (65536).
     ObjectInputFilter filter = DeserializationFilterUtil.createFilter("");
     assertEquals(
         ObjectInputFilter.Status.REJECTED,
-        filter.checkInput(info(/*class*/ null, /*depth*/ 301, /*refs*/ 1, /*bytes*/ 100)));
+        filter.checkInput(info(/*class*/ null, /*depth*/ 151, /*refs*/ 1, /*bytes*/ 100)));
     assertEquals(
         ObjectInputFilter.Status.REJECTED,
         filter.checkInput(info(/*class*/ null, /*depth*/ 1, /*refs*/ 10001, /*bytes*/ 100)));
     assertEquals(
         ObjectInputFilter.Status.REJECTED,
-        filter.checkInput(info(/*class*/ null, /*depth*/ 1, /*refs*/ 1, /*bytes*/ 100001)));
+        filter.checkInput(info(/*class*/ null, /*depth*/ 1, /*refs*/ 1, /*bytes*/ 65537)));
   }
 
   @Test
@@ -56,7 +56,7 @@ public class DeserializationFilterUtilTest {
     ObjectInputFilter filter = DeserializationFilterUtil.createFilter("");
     assertEquals(
         ObjectInputFilter.Status.UNDECIDED,
-        filter.checkInput(info(/*class*/ null, /*depth*/ 300, /*refs*/ 10000, /*bytes*/ 100000)));
+        filter.checkInput(info(/*class*/ null, /*depth*/ 150, /*refs*/ 10000, /*bytes*/ 65536)));
   }
 
   @Test
