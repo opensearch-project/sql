@@ -14,6 +14,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
+import org.opensearch.client.ResponseException;
 
 /**
  * End-to-end IT for the async PPL lifecycle (issue #5765). Verifies:
@@ -85,6 +86,30 @@ public class AsyncPPLQueryLifecycleIT extends PPLIntegTestCase {
       Thread.sleep(200);
     }
     Assert.fail("explain body never appeared; last=" + raw);
+  }
+
+  @Test
+  public void async_rejectedForExplainEndpoint() throws Exception {
+    JSONObject body = new JSONObject();
+    body.put("query", "source=" + TEST_INDEX_ACCOUNT + " | stats count() as c");
+    body.put("wait_for_completion_timeout", "0");
+    Request request = new Request("POST", "/_plugins/_ppl/_explain");
+    request.setJsonEntity(body.toString());
+    ResponseException ex =
+        Assert.assertThrows(ResponseException.class, () -> client().performRequest(request));
+    Assert.assertEquals(400, ex.getResponse().getStatusLine().getStatusCode());
+  }
+
+  @Test
+  public void async_rejectedForCsvFormat() throws Exception {
+    JSONObject body = new JSONObject();
+    body.put("query", "source=" + TEST_INDEX_ACCOUNT + " | stats count() as c");
+    body.put("wait_for_completion_timeout", "0");
+    Request request = new Request("POST", "/_plugins/_ppl?format=csv");
+    request.setJsonEntity(body.toString());
+    ResponseException ex =
+        Assert.assertThrows(ResponseException.class, () -> client().performRequest(request));
+    Assert.assertEquals(400, ex.getResponse().getStatusLine().getStatusCode());
   }
 
   private JSONObject pollUntilTerminal(String queryId) throws Exception {

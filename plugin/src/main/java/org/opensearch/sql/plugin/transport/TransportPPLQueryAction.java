@@ -240,6 +240,13 @@ public class TransportPPLQueryAction
         wrapWithProfilingClear(tracedListener);
 
     try {
+      if (transformedRequest.isAsync() && !supportsAsync(transformedRequest)) {
+        clearingListener.onFailure(
+            new IllegalArgumentException(
+                "wait_for_completion_timeout is only supported for standard PPL queries on"
+                    + " Lucene-backed indices with the default (jdbc) response format"));
+        return;
+      }
       // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices.
       if (unifiedQueryHandler != null
           && unifiedQueryHandler.isAnalyticsIndex(transformedRequest.getRequest(), QueryType.PPL)) {
@@ -298,6 +305,25 @@ public class TransportPPLQueryAction
     } finally {
       spanScope.close();
     }
+  }
+
+  /**
+   * Feature gate for the async submit path. Returns {@code false} for request shapes whose
+   * execution pipeline is inherently synchronous (endpoint-level explain / analyze / profile,
+   * analytics-engine indices) or whose response format cannot carry the JSON running-snapshot body.
+   * Statement-level explain (query text starts with {@code explain ...}) is untouched — it flows
+   * through the normal PPL execute path and terminates as a {@link
+   * org.opensearch.sql.job.QueryResult.Explain}.
+   */
+  private boolean supportsAsync(PPLQueryRequest request) {
+    if (request.isExplainRequest() || request.analyze() || request.profile()) {
+      return false;
+    }
+    if (unifiedQueryHandler != null
+        && unifiedQueryHandler.isAnalyticsIndex(request.getRequest(), QueryType.PPL)) {
+      return false;
+    }
+    return format(request) == Format.JDBC;
   }
 
   private void submitAsync(
