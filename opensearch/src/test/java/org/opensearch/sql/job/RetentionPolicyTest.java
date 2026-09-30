@@ -24,6 +24,8 @@ import org.opensearch.threadpool.ThreadPool;
 
 class RetentionPolicyTest {
 
+  private static final Duration TTL = Duration.ofMinutes(5);
+
   @Test
   void arm_schedulesEvictionOnTerminalTransition() {
     InMemoryQueryJobStore store = new InMemoryQueryJobStore();
@@ -37,12 +39,12 @@ class RetentionPolicyTest {
         .when(threadPool)
         .schedule(any(Runnable.class), any(), anyString());
 
-    RetentionPolicy policy = new RetentionPolicy(store, threadPool, Duration.ofMinutes(5));
+    RetentionPolicy policy = new RetentionPolicy(store, threadPool);
     RecordingRunner runner = new RecordingRunner();
     QueryJob job =
         new QueryJob(new QueryJobId("node", "ctx"), Principal.UNSECURED, runner, Clock.systemUTC());
     store.register(job);
-    policy.arm(job);
+    policy.arm(job, TTL);
     job.startRunner();
 
     runner.complete();
@@ -57,12 +59,12 @@ class RetentionPolicyTest {
         .when(threadPool)
         .schedule(any(Runnable.class), any(), anyString());
 
-    RetentionPolicy policy = new RetentionPolicy(store, threadPool, Duration.ofMinutes(5));
+    RetentionPolicy policy = new RetentionPolicy(store, threadPool);
     RecordingRunner runner = new RecordingRunner();
     QueryJob job =
         new QueryJob(new QueryJobId("node", "ctx"), Principal.UNSECURED, runner, Clock.systemUTC());
     store.register(job);
-    policy.arm(job);
+    policy.arm(job, TTL);
     job.startRunner();
 
     runner.complete();
@@ -70,17 +72,17 @@ class RetentionPolicyTest {
   }
 
   @Test
-  void constructor_rejectsNonPositiveTtl() {
-    assertThrows(
-        IllegalArgumentException.class,
-        () ->
-            new RetentionPolicy(
-                new InMemoryQueryJobStore(), mock(ThreadPool.class), Duration.ZERO));
-    assertThrows(
-        IllegalArgumentException.class,
-        () ->
-            new RetentionPolicy(
-                new InMemoryQueryJobStore(), mock(ThreadPool.class), Duration.ofSeconds(-1)));
+  void arm_rejectsNonPositiveTtl() {
+    RetentionPolicy policy =
+        new RetentionPolicy(new InMemoryQueryJobStore(), mock(ThreadPool.class));
+    QueryJob job =
+        new QueryJob(
+            new QueryJobId("node", "ctx"),
+            Principal.UNSECURED,
+            new RecordingRunner(),
+            Clock.systemUTC());
+    assertThrows(IllegalArgumentException.class, () -> policy.arm(job, Duration.ZERO));
+    assertThrows(IllegalArgumentException.class, () -> policy.arm(job, Duration.ofSeconds(-1)));
   }
 
   private static final class RecordingRunner implements QueryRunner {

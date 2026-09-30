@@ -667,7 +667,7 @@ Request body fields:
 | Field | Type | Default | Limit | Description |
 |---|---|---|---|---|
 | `wait_for_completion_timeout` | time value string (e.g. `"5s"`, `"0"`) | `5s` when either async field is present | `0s` – `60s` | Maximum time the submit response will wait for the runner. |
-| `keep_alive` | time value string (e.g. `"5m"`) | `5m` | > `0`, ≤ `24h` | How long a terminal job is retained after completion (informational for MVP; the current node uses a fixed 5-minute retention regardless of value). |
+| `keep_alive` | time value string (e.g. `"5m"`) | `5m` | > `0`, ≤ `24h` | How long a terminal job is retained after completion. A subsequent GET on the queryId succeeds within this window and returns 404 afterwards. |
 
 Behavior:
 

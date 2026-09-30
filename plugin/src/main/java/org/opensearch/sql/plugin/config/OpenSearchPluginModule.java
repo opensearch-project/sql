@@ -6,7 +6,6 @@
 package org.opensearch.sql.plugin.config;
 
 import java.time.Clock;
-import java.time.Duration;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.cluster.service.ClusterService;
@@ -132,9 +131,6 @@ public class OpenSearchPluginModule extends AbstractModule {
     return tracer;
   }
 
-  /** MVP retention window applied to every terminal job. Replace with a cluster setting later. */
-  private static final Duration RETENTION_TTL = Duration.ofMinutes(5);
-
   @Provides
   @Singleton
   public QueryJobStore queryJobStore() {
@@ -150,7 +146,7 @@ public class OpenSearchPluginModule extends AbstractModule {
   @Provides
   @Singleton
   public RetentionPolicy retentionPolicy(QueryJobStore store, NodeClient nodeClient) {
-    return new RetentionPolicy(store, nodeClient.threadPool(), RETENTION_TTL);
+    return new RetentionPolicy(store, nodeClient.threadPool());
   }
 
   @Provides

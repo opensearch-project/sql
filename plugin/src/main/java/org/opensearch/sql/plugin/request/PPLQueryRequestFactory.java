@@ -136,9 +136,6 @@ public class PPLQueryRequestFactory {
       if (queryId != null) {
         pplRequest.queryId(queryId);
       }
-      // Presence of either async body field selects the asynchronous submit path in the transport
-      // action. Absent = existing synchronous behavior. Parse on the request path so the domain
-      // object holds the typed Duration; downstream code never re-parses.
       if (jsonContent.has(QUERY_PARAMS_WAIT_FOR_COMPLETION_TIMEOUT)) {
         pplRequest.waitForCompletionTimeout(
             parseDuration(

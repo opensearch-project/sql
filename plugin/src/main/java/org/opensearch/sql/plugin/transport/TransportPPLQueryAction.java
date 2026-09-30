@@ -340,7 +340,9 @@ public class TransportPPLQueryAction
         createListener(transformedRequest, ctxListener);
     QueryJob job;
     try {
-      job = queryJobService.submit(runner, securityAdapter.current());
+      job =
+          queryJobService.submit(
+              runner, securityAdapter.current(), transformedRequest.effectiveKeepAlive());
     } catch (RuntimeException e) {
       responseListener.onFailure(e);
       return;

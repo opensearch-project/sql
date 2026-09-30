@@ -74,25 +74,14 @@ public class PPLQueryRequest {
   @Accessors(fluent = true)
   private String queryId = null;
 
-  /** Default {@code wait_for_completion_timeout} applied when the caller omits the field. */
   public static final Duration DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT = Duration.ofSeconds(5);
+  public static final Duration DEFAULT_KEEP_ALIVE = Duration.ofMinutes(5);
 
-  /**
-   * Caller's {@code wait_for_completion_timeout}, or {@code null} when the field was not present.
-   * Presence of this field or {@link #keepAlive} switches the transport action to the async submit
-   * path; absence keeps the current synchronous behavior. Use {@link #effectiveWaitForCompletion()}
-   * to read the resolved value (default applied).
-   */
   @Setter
   @Getter
   @Accessors(fluent = true)
   private Duration waitForCompletionTimeout = null;
 
-  /**
-   * Caller's {@code keep_alive}, or {@code null} when the field was not present. Presence of this
-   * field or {@link #waitForCompletionTimeout} switches the transport action to the async submit
-   * path. Retention wiring for the per-request value is a follow-up.
-   */
   @Setter
   @Getter
   @Accessors(fluent = true)
@@ -103,14 +92,16 @@ public class PPLQueryRequest {
     return waitForCompletionTimeout != null || keepAlive != null;
   }
 
-  /**
-   * Returns the wait applied to the async submit response — the caller-supplied {@link
-   * #waitForCompletionTimeout} or {@link #DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT}. Never null.
-   */
+  /** Caller-supplied {@code wait_for_completion_timeout} or the default. Never null. */
   public Duration effectiveWaitForCompletion() {
     return waitForCompletionTimeout != null
         ? waitForCompletionTimeout
         : DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT;
+  }
+
+  /** Caller-supplied {@code keep_alive} or the default. Never null. */
+  public Duration effectiveKeepAlive() {
+    return keepAlive != null ? keepAlive : DEFAULT_KEEP_ALIVE;
   }
 
   public PPLQueryRequest(String pplQuery, JSONObject jsonContent, String path) {

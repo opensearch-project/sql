@@ -6,6 +6,7 @@
 package org.opensearch.sql.job;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.util.Objects;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.sql.job.exceptions.QueryJobForbiddenException;
@@ -51,12 +52,16 @@ public final class OpenSearchQueryJobService implements QueryJobService {
   }
 
   @Override
-  public QueryJob submit(QueryRunner runner, Principal submitter) {
+  public QueryJob submit(QueryRunner runner, Principal submitter, Duration keepAlive) {
     Objects.requireNonNull(runner, "runner must not be null");
     Objects.requireNonNull(submitter, "submitter must not be null");
+    Objects.requireNonNull(keepAlive, "keepAlive must not be null");
+    if (!keepAlive.isPositive()) {
+      throw new IllegalArgumentException("keepAlive must be positive");
+    }
     QueryJob job = publish(runner, submitter);
     if (retentionPolicy != null) {
-      retentionPolicy.arm(job);
+      retentionPolicy.arm(job, keepAlive);
     }
     job.startRunner();
     return job;

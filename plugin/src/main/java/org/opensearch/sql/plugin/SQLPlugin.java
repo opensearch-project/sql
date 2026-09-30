@@ -469,9 +469,6 @@ public class SQLPlugin extends Plugin
     DirectQueryExecutorService directQueryExecutorService =
         injector.getInstance(DirectQueryExecutorService.class);
 
-    // Share the same QueryJobService instance across the plugin so submit (TransportPPLQueryAction)
-    // and observe (TransportGet/Cancel via AsyncQueryExecutorServiceImpl) see the same in-memory
-    // QueryJobStore. Without this both injectors would build their own singletons.
     org.opensearch.sql.job.QueryJobService queryJobService =
         injector.getInstance(org.opensearch.sql.job.QueryJobService.class);
     org.opensearch.sql.job.SecurityAdapter securityAdapter =

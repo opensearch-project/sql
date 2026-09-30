@@ -13,6 +13,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -26,12 +27,13 @@ class OpenSearchQueryJobServiceTest {
 
   private static final Principal ALICE = new Principal("alice", null, List.of());
   private static final Principal BOB = new Principal("bob", null, List.of());
+  private static final Duration KEEP_ALIVE = Duration.ofMinutes(5);
 
   @Test
   void submit_wrapsRunnerAndStartsIt() {
     RecordingRunner runner = new RecordingRunner();
     OpenSearchQueryJobService service = newService();
-    QueryJob job = service.submit(runner, ALICE);
+    QueryJob job = service.submit(runner, ALICE, KEEP_ALIVE);
     assertEquals("node-a", job.id().ownerNodeId());
     assertTrue(runner.wasRun());
   }
@@ -39,21 +41,21 @@ class OpenSearchQueryJobServiceTest {
   @Test
   void get_returnsStatusForOwner() {
     OpenSearchQueryJobService service = newService();
-    QueryJob job = service.submit(new RecordingRunner(), ALICE);
+    QueryJob job = service.submit(new RecordingRunner(), ALICE, KEEP_ALIVE);
     assertEquals(job.id(), service.get(job.id(), ALICE).id());
   }
 
   @Test
   void get_forbidsOtherPrincipal() {
     OpenSearchQueryJobService service = newService();
-    QueryJob job = service.submit(new RecordingRunner(), ALICE);
+    QueryJob job = service.submit(new RecordingRunner(), ALICE, KEEP_ALIVE);
     assertThrows(QueryJobForbiddenException.class, () -> service.get(job.id(), BOB));
   }
 
   @Test
   void cancel_authorizesAndTransitions() {
     OpenSearchQueryJobService service = newService();
-    QueryJob job = service.submit(new RecordingRunner(), ALICE);
+    QueryJob job = service.submit(new RecordingRunner(), ALICE, KEEP_ALIVE);
     QueryJobStatus status = service.cancel(job.id(), ALICE);
     assertEquals(QueryJobState.CANCELLED, status.state());
   }
@@ -69,15 +71,33 @@ class OpenSearchQueryJobServiceTest {
   @Test
   void submit_mintsUniqueIdsPerCall() {
     OpenSearchQueryJobService service = newService();
-    QueryJob a = service.submit(new RecordingRunner(), ALICE);
-    QueryJob b = service.submit(new RecordingRunner(), ALICE);
+    QueryJob a = service.submit(new RecordingRunner(), ALICE, KEEP_ALIVE);
+    QueryJob b = service.submit(new RecordingRunner(), ALICE, KEEP_ALIVE);
     assertNotEquals(a.id(), b.id());
   }
 
   @Test
   void submit_rejectsNullRunner() {
     OpenSearchQueryJobService service = newService();
-    assertThrows(NullPointerException.class, () -> service.submit(null, ALICE));
+    assertThrows(NullPointerException.class, () -> service.submit(null, ALICE, KEEP_ALIVE));
+  }
+
+  @Test
+  void submit_rejectsNullKeepAlive() {
+    OpenSearchQueryJobService service = newService();
+    assertThrows(
+        NullPointerException.class, () -> service.submit(new RecordingRunner(), ALICE, null));
+  }
+
+  @Test
+  void submit_rejectsNonPositiveKeepAlive() {
+    OpenSearchQueryJobService service = newService();
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> service.submit(new RecordingRunner(), ALICE, Duration.ZERO));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> service.submit(new RecordingRunner(), ALICE, Duration.ofSeconds(-1)));
   }
 
   private OpenSearchQueryJobService newService() {
