@@ -243,8 +243,8 @@ public class TransportPPLQueryAction
       if (transformedRequest.isAsync() && !supportsAsync(transformedRequest)) {
         clearingListener.onFailure(
             new IllegalArgumentException(
-                "wait_for_completion_timeout is only supported for standard PPL queries on"
-                    + " Lucene-backed indices with the default (jdbc) response format"));
+                "wait_for_completion_timeout is only supported for standard PPL queries."
+                    + " Please remove wait_for_completion_timeout and retry."));
         return;
       }
       // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices.
@@ -333,23 +333,23 @@ public class TransportPPLQueryAction
       Consumer<String> anonymizedQuerySink) {
     QueryRunner runner =
         new PPLQueryRunner(pplService, transformedRequest, anonymizedQuerySink, Clock.systemUTC());
+    ThreadContext threadContext = clientRef.threadPool().getThreadContext();
+    ActionListener<TransportPPLQueryResponse> ctxListener =
+        ContextPreservingActionListener.wrapPreservingContext(listener, threadContext);
+    ResponseListener<ExecutionEngine.QueryResponse> responseListener =
+        createListener(transformedRequest, ctxListener);
     QueryJob job;
     try {
       job = queryJobService.submit(runner, securityAdapter.current());
     } catch (RuntimeException e) {
-      listener.onFailure(e);
+      responseListener.onFailure(e);
       return;
     }
-    ThreadContext threadContext = clientRef.threadPool().getThreadContext();
-    ActionListener<TransportPPLQueryResponse> ctxListener =
-        ContextPreservingActionListener.wrapPreservingContext(listener, threadContext);
-    ResponseListener<ExecutionEngine.QueryResponse> queryFormatter =
-        createListener(transformedRequest, ctxListener);
     job.await(transformedRequest.effectiveWaitForCompletion())
         .whenComplete(
             (result, error) -> {
               if (error != null) {
-                queryFormatter.onFailure(
+                responseListener.onFailure(
                     error instanceof Exception ex ? ex : new RuntimeException(error));
                 return;
               }
@@ -358,7 +358,7 @@ public class TransportPPLQueryAction
                   ExecutionEngine.QueryResponse response =
                       new ExecutionEngine.QueryResponse(rows.schema(), rows.rows(), rows.cursor());
                   response.setWarnings(rows.warnings());
-                  queryFormatter.onResponse(response);
+                  responseListener.onResponse(response);
                 }
                 case org.opensearch.sql.job.QueryResult.Explain explain ->
                     createExplainResponseListener(transformedRequest, ctxListener)
