@@ -1,0 +1,163 @@
+# Issue: https://github.com/opensearch-project/sql/issues/1604
+#        https://github.com/opensearch-project/sql/issues/3067
+# A flat_object field used to be dropped by OpenSearchDataType.parseMapping ("unknown type, skip
+# it"), so it was absent from the schema and any reference failed as "field not found".
+#
+# The field is now a struct keyed by the dotted path of each leaf. A leaf has no type of its own in
+# the index, so every value reads as text and a path holding several values reads as their JSON --
+# the same rule spath applies to a JSON string.
+setup:
+  - do:
+      indices.create:
+        index: otel
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              service:
+                type: keyword
+              attributes:
+                type: flat_object
+
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "otel", "_id": "1"}}'
+          - '{"service": "checkout", "attributes": {"http.response.status_code": 500, "duration_ms": 12.5, "ok": true}}'
+          - '{"index": {"_index": "otel", "_id": "2"}}'
+          - '{"service": "payments", "attributes": {"http": {"response": {"status_code": 503}}, "duration_ms": "4"}}'
+          - '{"index": {"_index": "otel", "_id": "3"}}'
+          - '{"service": "tags", "attributes": {"tags": ["a", "b"], "mixed": [1, "x"], "nested": [{"k": 1}, {"k": 2}]}}'
+          - '{"index": {"_index": "otel", "_id": "4"}}'
+          - '{"service": "collide", "attributes": {"a": {"b": 1}, "a.b": 2}}'
+
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+            plugins.calcite.fallback.allowed: false
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: otel
+        ignore_unavailable: true
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: null
+            plugins.calcite.fallback.allowed: null
+
+---
+"describe lists the field as flat_object":
+  - skip:
+      features: [headers]
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'describe otel | fields COLUMN_NAME, TYPE_NAME'
+  - match: {"datarows": [["attributes", "flat_object"], ["service", "string"]]}
+
+---
+"the whole field reads as a map of dotted leaf path to text":
+  - skip:
+      features: [headers]
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | where service = ''checkout'' | fields attributes'
+  # every value is text, and the dotted path is the key -- both spellings of a path reach the same one
+  - match: {"datarows": [[{"http.response.status_code": "500", "duration_ms": "12.5", "ok": "true"}]]}
+
+---
+"a leaf reads as text, under either spelling of its path":
+  - skip:
+      features: [headers]
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | fields service, attributes.http.response.status_code, attributes.duration_ms | sort service'
+  - match: {"datarows": [["checkout", "500", "12.5"], ["collide", null, null], ["payments", "503", "4"], ["tags", null, null]]}
+
+---
+"a path holding several values reads as their JSON":
+  - skip:
+      features: [headers]
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | where service = ''tags'' | fields attributes.tags, attributes.mixed, attributes.nested.k'
+  - match: {"datarows": [["[\"a\",\"b\"]", "[\"1\",\"x\"]", "[\"1\",\"2\"]"]]}
+  # both spellings of a path in one document: neither value is dropped
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | where service = ''collide'' | fields attributes.a.b'
+  - match: {"datarows": [["[\"1\",\"2\"]"]]}
+
+---
+"a leaf can be cast, and typeof reports text":
+  - skip:
+      features: [headers]
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | where service = ''payments'' | eval n = cast(attributes.duration_ms as double), t = typeof(attributes.duration_ms) | fields n, t'
+  - match: {"datarows": [[4.0, "STRING"]]}
+
+---
+# A leaf is text, so PPL does with it what it does with any text column -- the same as a field
+# spath extracted from a JSON string.
+"a leaf can be filtered, sorted and aggregated like any text column":
+  - skip:
+      features: [headers]
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | where attributes.duration_ms = ''4'' | fields service'
+  - match: {"datarows": [["payments"]]}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | where attributes.duration_ms > 5 | fields service'
+  - match: {"datarows": [["checkout"]]}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | stats avg(attributes.duration_ms)'
+  - match: {"datarows": [[8.25]]}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | where isnotnull(attributes.duration_ms) | sort attributes.duration_ms | fields attributes.duration_ms'
+  - match: {"datarows": [["12.5"], ["4"]]}
+
+---
+# expand needs a column of the input to correlate the expansion with. A leaf is not one, so it is
+# reported the way the mvexpand check reports it rather than as a ClassCastException.
+"expand does not take a leaf":
+  - skip:
+      features: [headers]
+  - do:
+      catch: bad_request
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | expand attributes.tags | fields service'
+  - match: {"$body": "/Cannot\\s+expand\\s+.attributes.tags.*/"}

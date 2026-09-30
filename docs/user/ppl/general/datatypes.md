@@ -113,6 +113,16 @@ A string is a sequence of characters enclosed in either single or double quotes.
 ## Query Struct Data Types  
 
 In PPL, the Struct Data Types corresponding to the [Object field type in OpenSearch](https://opensearch.org/docs/latest/field-types/supported-field-types/object/). The "." is used as the path selector when access the inner attribute of the struct data.
+
+A [flat_object field](https://docs.opensearch.org/latest/mappings/supported-field-types/flat-object/) is also presented as a struct, keyed by the dotted path of each leaf. A flat_object declares no sub-fields, so a leaf has no type of its own: every value reads as text, and a path holding more than one value reads as their JSON. This is the rule `spath` already applies to a JSON string, and `typeof` on a leaf reports `string`.
+
+Both a nested object and a literal dotted key reach the same leaf: `{"a": {"b": 1}}` and `{"a.b": 1}` each give the entry `a.b` with the value `"1"`. A path receives more than one value when it comes from an array, from several elements of an array of objects, or from both spellings of the same path appearing in one document; it then reads as a JSON array of those texts, in the order the document wrote them.
+
+A leaf is text, so a query does with it what it does with any text column, the same as a field `spath` extracted from a JSON string: read it, cast it (`eval ms = cast(attributes.duration_ms as double)`), filter by it, sort by it, group by it.
+
+A path holding more than one value reads as JSON, so it does not compare equal to any single one of those values. The index still matches each of them, so a filter answers differently depending on whether it reached the index — that applies to any field holding several values, not only to a flat_object leaf.
+
+`expand` takes a column of the index rather than a leaf; expand the field itself, or project the leaf first.
 ### Example: People  
 
 There are three fields in test index `people`: 1) deep nested object field `city`; 2) object field of array value `account`; 3) nested field `projects`
