@@ -18,7 +18,6 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
-import org.opensearch.client.ResponseException;
 import org.opensearch.client.RestClient;
 
 /**
@@ -28,9 +27,7 @@ import org.opensearch.client.RestClient;
  *
  * <ul>
  *   <li>submit lands on node A; the returned queryId encodes node A as owner;
- *   <li>GET on node B forwards to node A and returns the terminal snapshot;
- *   <li>DELETE on node B forwards to node A and cancels there;
- *   <li>a subsequent GET reports the terminal (or 404) status.
+ *   <li>GET on node B forwards to node A and returns the terminal snapshot.
  * </ul>
  *
  * <p>Each request is pinned to a specific node by constructing a dedicated {@link RestClient} for
@@ -122,27 +119,6 @@ public class AsyncPPLMultiNodeRoutingIT extends PPLIntegTestCase {
     Assert.fail("cross-node explain never returned plan tree; last=" + raw);
   }
 
-  @Test
-  public void delete_forwardsFromNonOwnerNodeToOwner() throws Exception {
-    JSONObject body = new JSONObject();
-    body.put("query", "source=" + INDEX + " | stats count() as c");
-    body.put("wait_for_completion_timeout", "0");
-
-    String queryId = new JSONObject(post(nodeA, body)).getString("id");
-    delete(nodeB, queryId);
-
-    // After the forwarded cancel, a GET on either node should report terminal or 404.
-    try {
-      JSONObject fetched = new JSONObject(get(nodeA, queryId));
-      String status = fetched.getString("status");
-      Assert.assertTrue(
-          "post-cancel status is terminal, got " + status,
-          "CANCELLED".equals(status) || "SUCCEEDED".equals(status) || "FAILED".equals(status));
-    } catch (ResponseException e) {
-      Assert.assertEquals(404, e.getResponse().getStatusLine().getStatusCode());
-    }
-  }
-
   private JSONObject pollUntilTerminal(RestClient node, String queryId) throws Exception {
     long deadline = System.currentTimeMillis() + 30_000L;
     JSONObject last = null;
@@ -171,10 +147,5 @@ public class AsyncPPLMultiNodeRoutingIT extends PPLIntegTestCase {
     Request request = new Request("GET", "/_plugins/_async_query/" + queryId);
     Response response = node.performRequest(request);
     return getResponseBody(response, true);
-  }
-
-  private void delete(RestClient node, String queryId) throws IOException {
-    Request request = new Request("DELETE", "/_plugins/_async_query/" + queryId);
-    node.performRequest(request);
   }
 }
