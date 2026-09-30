@@ -44,7 +44,6 @@ import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.job.OpenSearchQueryJobService;
 import org.opensearch.sql.job.OpenSearchSecurityAdapter;
-import org.opensearch.sql.job.Outcome;
 import org.opensearch.sql.job.QueryJob;
 import org.opensearch.sql.job.QueryJobService;
 import org.opensearch.sql.job.QueryRunner;
@@ -301,15 +300,6 @@ public class TransportPPLQueryAction
     }
   }
 
-  /**
-   * Executes the async submit path per issue #5765.
-   *
-   * <p>Builds a {@link QueryRunner} over {@link PPLService}, submits it through {@link
-   * QueryJobService}, and races the runner against {@code wait_for_completion_timeout}. On win the
-   * caller receives the sync response shape (no id, no retention). On loss the caller receives
-   * {@code {id, status: RUNNING, empty rows}}; the runner keeps going and the job is retained per
-   * {@link org.opensearch.sql.job.RetentionPolicy}.
-   */
   private void submitAsync(
       PPLService pplService,
       PPLQueryRequest transformedRequest,
@@ -324,53 +314,42 @@ public class TransportPPLQueryAction
       listener.onFailure(e);
       return;
     }
-    // ContextPreservingActionListener captures the current ThreadContext (security identity,
-    // trace headers, tenant, …) so the terminal callback, which fires on a JDK Delayer thread or
-    // a runner-completing thread, restores it before touching the security-aware formatter or
-    // sending the response.
     ThreadContext threadContext = clientRef.threadPool().getThreadContext();
     ActionListener<TransportPPLQueryResponse> ctxListener =
         ContextPreservingActionListener.wrapPreservingContext(listener, threadContext);
     ResponseListener<ExecutionEngine.QueryResponse> queryFormatter =
         createListener(transformedRequest, ctxListener);
-    job.awaitOutcome(transformedRequest.effectiveWaitForCompletion())
+    job.await(transformedRequest.effectiveWaitForCompletion())
         .whenComplete(
-            (outcome, ignored) -> {
-              switch (outcome) {
-                case Outcome.Terminal(org.opensearch.sql.job.QueryResult result) ->
-                    renderTerminal(result, transformedRequest, ctxListener, queryFormatter);
-                case Outcome.Pending p ->
-                    ctxListener.onResponse(new TransportPPLQueryResponse(runningSnapshot(job)));
-                case Outcome.Failed(Exception cause) -> queryFormatter.onFailure(cause);
+            (result, error) -> {
+              if (error != null) {
+                queryFormatter.onFailure(
+                    error instanceof Exception ex ? ex : new RuntimeException(error));
+                return;
+              }
+              switch (result) {
+                case org.opensearch.sql.job.QueryResult.Rows rows -> {
+                  ExecutionEngine.QueryResponse response =
+                      new ExecutionEngine.QueryResponse(rows.schema(), rows.rows(), rows.cursor());
+                  response.setWarnings(rows.warnings());
+                  queryFormatter.onResponse(response);
+                }
+                case org.opensearch.sql.job.QueryResult.Explain explain ->
+                    createExplainResponseListener(transformedRequest, ctxListener)
+                        .onResponse(explain.response());
+                case org.opensearch.sql.job.QueryResult.Running running ->
+                    ctxListener.onResponse(new TransportPPLQueryResponse(formatRunning(running)));
               }
             });
   }
 
-  private void renderTerminal(
-      org.opensearch.sql.job.QueryResult result,
-      PPLQueryRequest transformedRequest,
-      ActionListener<TransportPPLQueryResponse> listener,
-      ResponseListener<ExecutionEngine.QueryResponse> queryFormatter) {
-    if (result instanceof org.opensearch.sql.job.QueryResult.Rows rows) {
-      ExecutionEngine.QueryResponse response =
-          new ExecutionEngine.QueryResponse(rows.schema(), rows.rows(), rows.cursor());
-      response.setWarnings(rows.warnings());
-      queryFormatter.onResponse(response);
-    } else if (result instanceof org.opensearch.sql.job.QueryResult.Explain explain) {
-      // Statement-level explain won the race — render via the sync explain formatter so the
-      // response body matches the sync explain shape byte-for-byte.
-      createExplainResponseListener(transformedRequest, listener).onResponse(explain.response());
-    }
-  }
-
   /**
-   * Formats the "still running" async response body per issue #5765 using {@link JSONObject} for
-   * safe string escaping. Fields match the shape the async-query fetch endpoint returns for a
-   * RUNNING job so clients can consume both uniformly.
+   * Wire shape of a {@link org.opensearch.sql.job.QueryResult.Running}; must match the async-query
+   * GET RUNNING body.
    */
-  private static String runningSnapshot(QueryJob job) {
+  private static String formatRunning(org.opensearch.sql.job.QueryResult.Running running) {
     return new JSONObject()
-        .put("id", job.id().encode())
+        .put("id", running.id().encode())
         .put("status", "RUNNING")
         .put("schema", new JSONArray())
         .put("datarows", new JSONArray())

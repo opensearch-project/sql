@@ -15,45 +15,23 @@ import org.opensearch.sql.executor.Warning;
 import org.opensearch.sql.executor.pagination.Cursor;
 
 /**
- * Engine-neutral final result of a query.
+ * Wire-protocol response for a query submission.
  *
- * <p>Sealed to two variants:
- *
- * <ul>
- *   <li>{@link Rows} — the ordinary case: schema + rows + cursor + warnings.
- *   <li>{@link Explain} — statement-level {@code explain} output: the {@link ExplainResponse}
- *       produced when the query text itself is an explain command (e.g. {@code explain source=x |
- *       fields y}). Async submit can carry this shape end-to-end.
- * </ul>
- *
- * <p>Both variants share {@link #tookMillis()} so callers that only need timing don't have to
- * switch on the variant.
+ * <p>{@link Rows} and {@link Explain} are engine-produced payloads stored in {@link
+ * QueryJobStatus#result()}. {@link Running} is produced only at the submit-time wait boundary when
+ * the {@code wait_for_completion_timeout} budget expires; it is never persisted on a {@code
+ * QueryJobStatus} and carries just the id the client polls with.
  */
-public sealed interface QueryResult permits QueryResult.Rows, QueryResult.Explain {
+public sealed interface QueryResult
+    permits QueryResult.Rows, QueryResult.Explain, QueryResult.Running {
 
-  /** Elapsed execution time on the owner node. */
+  /** Elapsed execution time on the owner node; {@code 0} for {@link Running}. */
   long tookMillis();
 
-  /**
-   * Row-shaped result — the ordinary query response.
-   *
-   * @param schema column metadata
-   * @param rows result rows in engine order
-   * @param cursor continuation cursor for pageable results
-   * @param warnings non-fatal notices attached to a successful result
-   * @param tookMillis elapsed execution time on the owner node
-   */
   record Rows(
       Schema schema, List<ExprValue> rows, Cursor cursor, List<Warning> warnings, long tookMillis)
       implements QueryResult {
 
-    /**
-     * Validates and normalizes the record's components.
-     *
-     * <p>Callback engines represent "no continuation" as either {@link Cursor#None} or a plain
-     * {@code null} cursor; both are accepted here and stored as {@link Cursor#None}. A {@code null}
-     * {@code warnings} list is normalized to an empty list.
-     */
     public Rows {
       Objects.requireNonNull(schema, "schema must not be null");
       rows = List.copyOf(Objects.requireNonNull(rows, "rows must not be null"));
@@ -65,14 +43,6 @@ public sealed interface QueryResult permits QueryResult.Rows, QueryResult.Explai
     }
   }
 
-  /**
-   * Explain-shaped result — produced when the query text is a statement-level explain (e.g. {@code
-   * explain source=x | fields y}).
-   *
-   * @param response engine-produced explain payload; retains its native structure so downstream
-   *     formatters can render it in the shape the sync path already produces
-   * @param tookMillis elapsed execution time
-   */
   record Explain(ExplainResponse response, long tookMillis) implements QueryResult {
 
     public Explain {
@@ -83,10 +53,19 @@ public sealed interface QueryResult permits QueryResult.Rows, QueryResult.Explai
     }
   }
 
-  /**
-   * Adapts a callback-style {@link QueryResponse} into a {@link Rows} result. Convenience for
-   * engines that already produce {@code QueryResponse} instances.
-   */
+  /** Wait budget expired; the client polls {@link #id()} to observe the terminal outcome. */
+  record Running(QueryJobId id) implements QueryResult {
+
+    public Running {
+      Objects.requireNonNull(id, "id must not be null");
+    }
+
+    @Override
+    public long tookMillis() {
+      return 0L;
+    }
+  }
+
   static Rows of(QueryResponse response, long tookMillis) {
     Objects.requireNonNull(response, "response must not be null");
     return new Rows(
@@ -97,7 +76,6 @@ public sealed interface QueryResult permits QueryResult.Rows, QueryResult.Explai
         tookMillis);
   }
 
-  /** Adapts a callback-style {@link ExplainResponse} into an {@link Explain} result. */
   static Explain of(ExplainResponse response, long tookMillis) {
     return new Explain(response, tookMillis);
   }

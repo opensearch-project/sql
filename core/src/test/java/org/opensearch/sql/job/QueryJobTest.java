@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
@@ -129,89 +130,87 @@ class QueryJobTest {
   }
 
   @Test
-  void awaitOutcome_terminalWhenRunnerCompletesBeforeBudget() throws Exception {
+  void await_returnsRunnerResultWhenCompletesBeforeBudget() throws Exception {
     RecordingRunner runner = new RecordingRunner();
     QueryJob job = newJob(runner, 90L);
     job.startRunner();
-    CompletionStage<Outcome> stage = job.awaitOutcome(Duration.ofSeconds(30));
+    CompletionStage<QueryResult> stage = job.await(Duration.ofSeconds(30));
     runner.complete(RESULT);
-    Outcome outcome = stage.toCompletableFuture().get(1, TimeUnit.SECONDS);
-    Outcome.Terminal terminal = assertInstanceOf(Outcome.Terminal.class, outcome);
-    assertSame(RESULT, terminal.result());
+    assertSame(RESULT, stage.toCompletableFuture().get(1, TimeUnit.SECONDS));
   }
 
   @Test
-  void awaitOutcome_pendingWhenBudgetExpiresFirst() throws Exception {
+  void await_returnsRunningWhenBudgetExpiresFirst() throws Exception {
     RecordingRunner runner = new RecordingRunner();
     QueryJob job = newJob(runner, 100L);
     job.startRunner();
-    Outcome outcome =
-        job.awaitOutcome(Duration.ofMillis(20)).toCompletableFuture().get(1, TimeUnit.SECONDS);
-    assertInstanceOf(Outcome.Pending.class, outcome);
-    // Runner is still live — a subsequent completion advances the job to SUCCEEDED without
-    // affecting the outcome already returned above.
+    QueryResult result =
+        job.await(Duration.ofMillis(20)).toCompletableFuture().get(1, TimeUnit.SECONDS);
+    QueryResult.Running running = assertInstanceOf(QueryResult.Running.class, result);
+    assertEquals(ID, running.id());
     runner.complete(RESULT);
     assertEquals(QueryJobState.SUCCEEDED, job.status().state());
   }
 
   @Test
-  void awaitOutcome_failedCarriesUnwrappedCause() throws Exception {
+  void await_completesExceptionallyWithUnwrappedCause() {
     RecordingRunner runner = new RecordingRunner();
     QueryJob job = newJob(runner, 110L);
     job.startRunner();
-    CompletionStage<Outcome> stage = job.awaitOutcome(Duration.ofSeconds(30));
+    CompletionStage<QueryResult> stage = job.await(Duration.ofSeconds(30));
     IllegalStateException cause = new IllegalStateException("boom");
     runner.fail(cause);
-    Outcome outcome = stage.toCompletableFuture().get(1, TimeUnit.SECONDS);
-    Outcome.Failed failed = assertInstanceOf(Outcome.Failed.class, outcome);
-    assertSame(cause, failed.cause());
+    ExecutionException ex =
+        assertThrows(
+            ExecutionException.class, () -> stage.toCompletableFuture().get(1, TimeUnit.SECONDS));
+    assertSame(cause, ex.getCause());
   }
 
   @Test
-  void awaitOutcome_alreadyTerminal_returnsSynchronously() throws Exception {
+  void await_alreadyTerminal_returnsSynchronously() {
     RecordingRunner runner = new RecordingRunner();
     QueryJob job = newJob(runner, 120L);
     job.startRunner();
     runner.complete(RESULT);
-    Outcome outcome = job.awaitOutcome(Duration.ofSeconds(1)).toCompletableFuture().getNow(null);
-    assertNotNull(outcome, "already-terminal job must complete synchronously");
-    assertInstanceOf(Outcome.Terminal.class, outcome);
+    QueryResult result = job.await(Duration.ofSeconds(1)).toCompletableFuture().getNow(null);
+    assertNotNull(result, "already-terminal job must complete synchronously");
+    assertSame(RESULT, result);
   }
 
   @Test
-  void awaitOutcome_zeroBudget_returnsPendingImmediatelyWhenNotTerminal() {
+  void await_zeroBudget_returnsRunningImmediately() {
     RecordingRunner runner = new RecordingRunner();
     QueryJob job = newJob(runner, 130L);
     job.startRunner();
-    Outcome outcome = job.awaitOutcome(Duration.ZERO).toCompletableFuture().getNow(null);
-    assertNotNull(outcome, "zero budget must not block");
-    assertInstanceOf(Outcome.Pending.class, outcome);
+    QueryResult result = job.await(Duration.ZERO).toCompletableFuture().getNow(null);
+    assertNotNull(result, "zero budget must not block");
+    assertInstanceOf(QueryResult.Running.class, result);
   }
 
   @Test
-  void awaitOutcome_cancellationSurfacesAsFailed() throws Exception {
+  void await_cancellationSurfacesAsExceptionalCompletion() {
     RecordingRunner runner = new RecordingRunner();
     QueryJob job = newJob(runner, 140L);
     job.startRunner();
-    CompletionStage<Outcome> stage = job.awaitOutcome(Duration.ofSeconds(30));
+    CompletionStage<QueryResult> stage = job.await(Duration.ofSeconds(30));
     job.cancel();
-    Outcome outcome = stage.toCompletableFuture().get(1, TimeUnit.SECONDS);
-    Outcome.Failed failed = assertInstanceOf(Outcome.Failed.class, outcome);
-    assertInstanceOf(CancellationException.class, failed.cause());
+    ExecutionException ex =
+        assertThrows(
+            ExecutionException.class, () -> stage.toCompletableFuture().get(1, TimeUnit.SECONDS));
+    assertInstanceOf(CancellationException.class, ex.getCause());
   }
 
   @Test
-  void awaitOutcome_lateTimerAfterEarlyCompletionDoesNotOverride() throws Exception {
+  void await_lateTimerAfterEarlyCompletionDoesNotOverride() throws Exception {
     RecordingRunner runner = new RecordingRunner();
     QueryJob job = newJob(runner, 150L);
     job.startRunner();
-    CompletionStage<Outcome> stage = job.awaitOutcome(Duration.ofMillis(50));
+    CompletionStage<QueryResult> stage = job.await(Duration.ofMillis(50));
     runner.complete(RESULT);
-    Outcome outcome = stage.toCompletableFuture().get(1, TimeUnit.SECONDS);
-    assertInstanceOf(Outcome.Terminal.class, outcome);
-    // Give the timer more than the 50ms budget to prove it does not race in later.
+    QueryResult result = stage.toCompletableFuture().get(1, TimeUnit.SECONDS);
+    assertSame(RESULT, result);
     Thread.sleep(120);
-    assertSame(outcome, stage.toCompletableFuture().getNow(null));
+    assertSame(result, stage.toCompletableFuture().getNow(null));
   }
 
   @Test
@@ -226,7 +225,6 @@ class QueryJobTest {
         ID, OWNER, runner, Clock.fixed(Instant.ofEpochMilli(submittedMillis), ZoneOffset.UTC));
   }
 
-  /** Test double: exposes explicit hooks for the runner's completion future. */
   private static final class RecordingRunner implements QueryRunner {
     private final CompletableFuture<QueryResult> future = new CompletableFuture<>();
     private int runInvocations;
