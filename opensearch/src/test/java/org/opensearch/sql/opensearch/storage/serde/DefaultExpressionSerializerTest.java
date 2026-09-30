@@ -8,12 +8,17 @@ package org.opensearch.sql.opensearch.storage.serde;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.ref;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
@@ -103,6 +108,75 @@ class DefaultExpressionSerializerTest {
     // maxrefs=1 rejects the multi-object graph.
     var exception = assertThrows(IllegalStateException.class, () -> limited.deserialize(code));
     assertTrue(exception.getMessage().contains("Failed to deserialize"));
+  }
+
+  @Test
+  public void default_limits_admit_conditional_count_with_not_in_list() {
+    // CASE WHEN channelNo NOT IN (2,3,4,5,6,8,10,11) AND abandoned = FALSE THEN contactNo END,
+    // the argument of COUNT(DISTINCT ...). Its graph reaches serialization depth 28 and was
+    // rejected by the previous default max_depth of 20.
+    Expression original =
+        DSL.cases(
+            null,
+            DSL.when(
+                DSL.and(
+                    DSL.not(inList(() -> ref("channelNo", INTEGER), 2, 3, 4, 5, 6, 8, 10, 11)),
+                    DSL.equal(ref("abandoned", BOOLEAN), literal(false))),
+                ref("contactNo", LONG)));
+    String code = serializer.serialize(original);
+
+    assertEquals(original, serializer.deserialize(code));
+
+    ExpressionSerializer previousDefaults =
+        new DefaultExpressionSerializer(() -> settingsWith(20, 1000, 15000));
+    assertThrows(IllegalStateException.class, () -> previousDefaults.deserialize(code));
+  }
+
+  @Test
+  public void default_limits_admit_largest_in_list_within_script_size_limit() {
+    // IN-lists grow references and bytes linearly: 250 values need about 7000 references and 46 KB.
+    // That is close to the largest list whose encoded script still fits the default
+    // script.max_size_in_bytes (65535), so the default limits never reject it first.
+    int[] values = IntStream.range(0, 250).toArray();
+    Expression original = inList(() -> ref("channelNo", INTEGER), values);
+    String code = serializer.serialize(original);
+
+    assertTrue(code.length() <= 65535);
+    assertEquals(original, serializer.deserialize(code));
+
+    ExpressionSerializer previousDefaults =
+        new DefaultExpressionSerializer(() -> settingsWith(20, 1000, 15000));
+    assertThrows(IllegalStateException.class, () -> previousDefaults.deserialize(code));
+  }
+
+  @Test
+  public void default_limits_reject_excessive_nesting_before_stack_overflow() {
+    // 150 nested NOTs reach a serialization depth of about 450: over the default max_depth, and
+    // rejected by the filter with a regular exception rather than exhausting the thread stack.
+    Expression nested = ref("abandoned", BOOLEAN);
+    for (int i = 0; i < 150; i++) {
+      nested = DSL.not(nested);
+    }
+    String code = serializer.serialize(nested);
+
+    var exception = assertThrows(IllegalStateException.class, () -> serializer.deserialize(code));
+    assertTrue(exception.getMessage().contains("Failed to deserialize"));
+  }
+
+  /**
+   * Builds {@code field IN (values)} the way the analyzer does: a balanced tree of ORs, with a
+   * fresh field reference in each comparison.
+   */
+  private static Expression inList(Supplier<Expression> field, int... values) {
+    return orTree(field, values, 0, values.length);
+  }
+
+  private static Expression orTree(Supplier<Expression> field, int[] values, int start, int end) {
+    if (end - start == 1) {
+      return DSL.equal(field.get(), literal(values[start]));
+    }
+    int mid = (start + end) / 2;
+    return DSL.or(orTree(field, values, start, mid), orTree(field, values, mid, end));
   }
 
   private static Settings settingsWith(int depth, int refs, int bytes) {

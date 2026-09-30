@@ -50,11 +50,27 @@ public class DeserializationFilterUtil {
   /**
    * Default structural limits on the deserialized object graph, used when a setting is unset or no
    * {@link Settings} is available (serialize-only call sites and tests).
+   *
+   * <p>The class allowlist is the control against gadget chains; these limits only bound resource
+   * use, so they must admit every legitimate expression the planner can push down:
+   *
+   * <ul>
+   *   <li>Each level of expression nesting costs 3 levels of serialization depth ({@code
+   *       FunctionExpression -> Arrays$ArrayList -> Expression[]}), plus about 12 for the enclosing
+   *       CASE/WHEN and lambda wrappers. IN-lists are expanded into a balanced OR tree, so depth
+   *       grows only logarithmically with list size. 300 admits roughly 95 nesting levels while
+   *       staying well below the ~1000 depth at which JDK deserialization overflows a 1 MB thread
+   *       stack.
+   *   <li>Each IN-list value costs about 28 references and 170 bytes. Pushed-down scripts are
+   *       already capped by {@code script.max_size_in_bytes} (65535 by default, about 49 KB
+   *       decoded, or roughly 270 IN-list values and 8000 references), so 10000 references and
+   *       100000 bytes do not bind on that path and only bound the cursor path.
+   * </ul>
    */
-  public static final int DEFAULT_MAX_DEPTH = 20;
+  public static final int DEFAULT_MAX_DEPTH = 300;
 
-  public static final int DEFAULT_MAX_REFS = 1000;
-  public static final int DEFAULT_MAX_BYTES = 15000;
+  public static final int DEFAULT_MAX_REFS = 10000;
+  public static final int DEFAULT_MAX_BYTES = 100000;
 
   /**
    * Creates a logging filter that wraps the provided filter and logs rejected classes.

@@ -358,6 +358,51 @@ Result set::
       }
     }
 
+plugins.query.deserialization.max_depth, max_refs, max_bytes
+============================================================
+
+Version
+-------
+3.9
+
+Description
+-----------
+
+These settings bound the structure of the object graph that the SQL plugin deserializes, for expressions pushed down to data nodes as scripts and for pagination cursors. A payload exceeding any limit fails with ``Failed to deserialize expression code`` (or ``Failed to deserialize object`` for cursors), and the data node logs ``Deserialization filter rejected: depth=.., refs=.., bytes=..``. The class allowlist applied to the same payloads is not configurable.
+
+1. ``plugins.query.deserialization.max_depth``: maximum nesting depth of the object graph. The default value is 300. Each level of expression nesting costs about 3 levels, so the default admits about 95 levels of nesting.
+2. ``plugins.query.deserialization.max_refs``: maximum number of object references. The default value is 10000.
+3. ``plugins.query.deserialization.max_bytes``: maximum size of the serialized payload in bytes. The default value is 100000.
+
+Raise ``max_refs`` and ``max_bytes`` if queries with very large ``IN`` lists or many conditions are rejected. Avoid raising ``max_depth`` far beyond the default: very deep payloads can exhaust the thread stack during deserialization. Here is an example::
+
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	  "transient" : {
+	    "plugins.query.deserialization.max_refs" : 20000
+	  }
+	}'
+
+Result set::
+
+    {
+      "acknowledged" : true,
+      "persistent" : { },
+      "transient" : {
+        "plugins" : {
+          "query" : {
+            "deserialization" : {
+              "max_refs" : "20000"
+            }
+          }
+        }
+      }
+    }
+
+Settings:
+
+1. These settings are node scope.
+2. These settings can be updated dynamically.
+
 plugins.query.buckets
 =====================
 
