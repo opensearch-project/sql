@@ -5,7 +5,9 @@
 
 package org.opensearch.sql.opensearch.request;
 
+import static java.util.Objects.requireNonNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.spy;
@@ -28,9 +30,11 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.runtime.Hook;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.Holder;
+import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.Sarg;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -57,6 +61,7 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchFlatObjectType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.ExpressionNotAnalyzableException;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.QueryExpression;
 
@@ -1692,5 +1697,207 @@ public class PredicateAnalyzerTest {
     // Second must clause should be script query (unpushable LIKE)
     QueryBuilder secondMust = boolQuery.must().get(1);
     assertInstanceOf(ScriptQueryBuilder.class, secondMust);
+  }
+
+  // ---- flat_object leaf predicates
+  // A leaf is ITEM(<flat_object column>, 'key'). It has no mapping of its own, and the index files
+  // it as a keyword term with the path folded in, so the queries below answer the predicate alone.
+
+  private static final String FLAT = "attributes";
+  private static final String SCRIPT = "opensearch_compounded_script";
+
+  /** A flat_object column: text keys to text values, the same shape spath produces. */
+  private RelDataType flatMap() {
+    return typeFactory.createMapType(
+        typeFactory.createSqlType(SqlTypeName.VARCHAR),
+        typeFactory.createTypeWithNullability(
+            typeFactory.createSqlType(SqlTypeName.VARCHAR), true));
+  }
+
+  private RexNode leaf(String key) {
+    return builder.makeCall(
+        SqlStdOperatorTable.ITEM, builder.makeInputRef(flatMap(), 0), builder.makeLiteral(key));
+  }
+
+  private String analyzeFlat(RexNode call) throws ExpressionNotAnalyzableException {
+    Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(0L));
+    RelDataType rowType =
+        typeFactory.builder().kind(StructKind.FULLY_QUALIFIED).add(FLAT, flatMap()).build();
+    return PredicateAnalyzer.analyzeExpression(
+            call, List.of(FLAT), Map.of(FLAT, OpenSearchFlatObjectType.of()), rowType, cluster)
+        .builder()
+        .toString();
+  }
+
+  @Test
+  void flatObjectLeaf_equality_isATermQueryAlone() throws ExpressionNotAnalyzableException {
+    String query =
+        analyzeFlat(
+            builder.makeCall(
+                SqlStdOperatorTable.EQUALS, leaf("duration_ms"), builder.makeLiteral("n/a")));
+    assertTrue(query.contains("\"term\""), query);
+    assertTrue(query.contains("\"attributes.duration_ms\""), query);
+    assertTrue(query.contains("\"value\" : \"n/a\""), query);
+    assertFalse(query.contains(SCRIPT), query);
+  }
+
+  @Test
+  void flatObjectLeaf_equalityWithTheLiteralFirst_isATermQueryAlone()
+      throws ExpressionNotAnalyzableException {
+    String query =
+        analyzeFlat(
+            builder.makeCall(
+                SqlStdOperatorTable.EQUALS, builder.makeLiteral("n/a"), leaf("duration_ms")));
+    assertTrue(query.contains("\"term\""), query);
+    assertFalse(query.contains(SCRIPT), query);
+  }
+
+  /** A cast over the leaf is the value the index holds either way, so it is looked through. */
+  @Test
+  void flatObjectLeaf_underACast_isStillATermQuery() throws ExpressionNotAnalyzableException {
+    RexNode cast =
+        builder.makeCast(typeFactory.createSqlType(SqlTypeName.VARCHAR), leaf("code"), true, false);
+    String query =
+        analyzeFlat(builder.makeCall(SqlStdOperatorTable.EQUALS, cast, builder.makeLiteral("503")));
+    assertTrue(query.contains("\"term\""), query);
+    assertFalse(query.contains(SCRIPT), query);
+  }
+
+  @Test
+  void flatObjectLeaf_isNotNull_isAnExistsQueryAlone() throws ExpressionNotAnalyzableException {
+    String query =
+        analyzeFlat(builder.makeCall(SqlStdOperatorTable.IS_NOT_NULL, leaf("duration_ms")));
+    assertTrue(query.contains("\"exists\""), query);
+    assertTrue(query.contains("\"field\" : \"attributes.duration_ms\""), query);
+    assertFalse(query.contains(SCRIPT), query);
+  }
+
+  @Test
+  void flatObjectLeaf_isNull_isMustNotExistsAlone() throws ExpressionNotAnalyzableException {
+    String query = analyzeFlat(builder.makeCall(SqlStdOperatorTable.IS_NULL, leaf("duration_ms")));
+    assertTrue(query.contains("\"must_not\""), query);
+    assertTrue(query.contains("\"exists\""), query);
+    assertFalse(query.contains(SCRIPT), query);
+  }
+
+  // The index files the number 503 and the text "503" under the same term, so a non-text literal is
+  // still one term to look up.
+  @Test
+  void flatObjectLeaf_aNonTextLiteral_isATermQueryAlone() throws ExpressionNotAnalyzableException {
+    String query =
+        analyzeFlat(
+            builder.makeCall(
+                SqlStdOperatorTable.EQUALS,
+                leaf("code"),
+                builder.makeExactLiteral(new BigDecimal(503))));
+    assertTrue(query.contains("\"term\""), query);
+    assertTrue(query.contains("503"), query);
+    assertFalse(query.contains(SCRIPT), query);
+  }
+
+  // As SimpleQueryExpression.notEquals does: a record that did not write the leaf is not a record
+  // whose leaf differs from the value.
+  @Test
+  void flatObjectLeaf_notEquals_isExistsWithTheTermExcluded()
+      throws ExpressionNotAnalyzableException {
+    String query =
+        analyzeFlat(
+            builder.makeCall(
+                SqlStdOperatorTable.NOT_EQUALS, leaf("duration_ms"), builder.makeLiteral("n/a")));
+    assertTrue(query.contains("\"exists\""), query);
+    assertTrue(query.contains("\"must_not\""), query);
+    assertTrue(query.contains("\"term\""), query);
+    assertFalse(query.contains(SCRIPT), query);
+  }
+
+  @Test
+  void flatObjectLeaf_like_isAWildcardQueryAlone() throws ExpressionNotAnalyzableException {
+    for (String pattern : List.of("n/%", "%/a", "%n%", "n_a")) {
+      String query =
+          analyzeFlat(
+              builder.makeCall(
+                  SqlStdOperatorTable.LIKE, leaf("duration_ms"), builder.makeLiteral(pattern)));
+      assertTrue(query.contains("\"wildcard\""), query);
+      assertTrue(query.contains("\"attributes.duration_ms\""), query);
+      assertFalse(query.contains(SCRIPT), query);
+    }
+  }
+
+  @Test
+  void flatObjectLeaf_caseInsensitiveLike_isACaseInsensitiveWildcardQuery()
+      throws ExpressionNotAnalyzableException {
+    String query =
+        analyzeFlat(
+            builder.makeCall(
+                SqlLibraryOperators.ILIKE, leaf("duration_ms"), builder.makeLiteral("N/%")));
+    assertTrue(query.contains("\"wildcard\""), query);
+    assertTrue(query.contains("\"case_insensitive\" : true"), query);
+    assertFalse(query.contains(SCRIPT), query);
+  }
+
+  @Test
+  void flatObjectLeaf_negated_isMustNotOfTheIndexQuery() throws ExpressionNotAnalyzableException {
+    String query =
+        analyzeFlat(
+            builder.makeCall(
+                SqlStdOperatorTable.NOT,
+                builder.makeCall(
+                    SqlStdOperatorTable.EQUALS, leaf("duration_ms"), builder.makeLiteral("n/a"))));
+    assertTrue(query.contains("\"must_not\""), query);
+    assertTrue(query.contains("\"term\""), query);
+    assertFalse(query.contains(SCRIPT), query);
+  }
+
+  /** A points Sarg over text: the shape `= a or = b` reaches the analyzer as. */
+  private RexNode leafSearch(boolean complemented, String... points) {
+    ImmutableRangeSet.Builder<NlsString> ranges = ImmutableRangeSet.builder();
+    for (String point : points) {
+      RexLiteral literal = (RexLiteral) builder.makeLiteral(point);
+      ranges.add(Range.singleton(requireNonNull(literal.getValueAs(NlsString.class))));
+    }
+    Sarg<NlsString> sarg = Sarg.of(RexUnknownAs.UNKNOWN, ranges.build());
+    return builder.makeCall(
+        SqlStdOperatorTable.SEARCH,
+        leaf("duration_ms"),
+        builder.makeSearchArgumentLiteral(
+            complemented ? sarg.negate() : sarg, typeFactory.createSqlType(SqlTypeName.VARCHAR)));
+  }
+
+  // `!= a and != b` folds into a complemented-points Sarg. The negation has to keep an exists
+  // filter, as binary()'s SEARCH branch does for a mapped field -- without it a record that never
+  // wrote the leaf comes back.
+  @Test
+  void flatObjectLeaf_complementedPoints_keepTheExistsGuard()
+      throws ExpressionNotAnalyzableException {
+    String query = analyzeFlat(leafSearch(true, "n/a", "4"));
+    assertTrue(query.contains("\"exists\""), query);
+    assertTrue(query.contains("\"must_not\""), query);
+    assertTrue(query.contains("\"terms\""), query);
+    assertFalse(query.contains(SCRIPT), query);
+  }
+
+  // `= a or = b` folds into a points Sarg. A positive set excludes records without the leaf on its
+  // own, so it stays one terms query with no exists filter.
+  @Test
+  void flatObjectLeaf_points_areOneTermsQuery() throws ExpressionNotAnalyzableException {
+    String query = analyzeFlat(leafSearch(false, "n/a", "4"));
+    assertTrue(query.contains("\"terms\""), query);
+    assertFalse(query.contains("\"exists\""), query);
+    assertFalse(query.contains(SCRIPT), query);
+  }
+
+  // An ordered comparison is left to the generic path on purpose. A range over these terms would
+  // compare text -- "200" < "90" -- which is not the comparison the query asked for.
+  @Test
+  void flatObjectLeaf_anOrderedComparison_isNotFoldedIntoARange()
+      throws ExpressionNotAnalyzableException {
+    String query =
+        analyzeFlat(
+            builder.makeCall(
+                SqlStdOperatorTable.GREATER_THAN,
+                builder.makeCast(
+                    typeFactory.createSqlType(SqlTypeName.DOUBLE), leaf("duration_ms"), true, true),
+                builder.makeExactLiteral(new BigDecimal(50))));
+    assertFalse(query.contains("\"range\""), query);
   }
 }

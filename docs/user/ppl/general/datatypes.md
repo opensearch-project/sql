@@ -120,7 +120,9 @@ Both a nested object and a literal dotted key reach the same leaf: `{"a": {"b": 
 
 A leaf is text, so a query does with it what it does with any text column, the same as a field `spath` extracted from a JSON string: read it, cast it (`eval ms = cast(attributes.duration_ms as double)`), filter by it, sort by it, group by it.
 
-A path holding more than one value reads as JSON, so it does not compare equal to any single one of those values. The index still matches each of them, so a filter answers differently depending on whether it reached the index — that applies to any field holding several values, not only to a flat_object leaf.
+An exact-match predicate on a leaf -- `=`, `!=`, `in`, `like`, `isnull`, `isnotnull` -- is answered by the index, since each leaf value is one keyword term with the path folded in. An ordered comparison is not: a range over those terms compares text, so it is evaluated after the records are read.
+
+A path holding more than one value reads as JSON, so it does not compare equal to any single one of those values, while the index matches each of them. A filter therefore answers differently depending on whether it reached the index -- which applies to any field holding several values, not only to a flat_object leaf.
 
 `expand` takes a column of the index rather than a leaf; expand the field itself, or project the leaf first.
 ### Example: People  
