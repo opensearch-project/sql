@@ -108,8 +108,7 @@ public class ShardFailureWarningSecurityIT extends SecurityTestBase {
     assertEquals(1, warnings.length());
     JSONObject warning = warnings.getJSONObject(0);
     assertEquals("PARTIAL_RESULT", warning.getString("type"));
-    assertTrue(
-        "warning should say the numbers may be undercounted: " + warning.getString("detail"),
-        warning.getString("detail").contains("may be undercounted"));
+    assertEquals(
+        "Results are partial: 1 of 2 shards did not return data.", warning.getString("message"));
   }
 }

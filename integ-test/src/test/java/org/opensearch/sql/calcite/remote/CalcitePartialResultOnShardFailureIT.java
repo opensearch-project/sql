@@ -95,13 +95,8 @@ public class CalcitePartialResultOnShardFailureIT extends PPLIntegTestCase {
     assertEquals("PARTIAL_RESULT", warning.getString("type"));
     assertEquals(
         "Results are partial: 1 of 2 shards did not return data.", warning.getString("message"));
-    String detail = warning.getString("detail");
-    assertTrue(
-        "detail should say the numbers may be undercounted: " + detail,
-        detail.contains("may be undercounted"));
-    assertTrue(
-        "detail should explain that no shard copy was available: " + detail,
-        detail.contains("No copy of those shards was available"));
+    assertEquals(
+        "_shards: total 2, successful 1, skipped 0, failed 0", warning.getString("detail"));
   }
 
   @Test

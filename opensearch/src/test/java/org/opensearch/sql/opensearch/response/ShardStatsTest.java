@@ -71,14 +71,10 @@ class ShardStatsTest {
     Warning warning = stats.toWarning().orElseThrow();
     assertEquals(Warning.TYPE_PARTIAL_RESULT, warning.getType());
     assertEquals("Results are partial: 1 of 2 shards failed.", warning.getMessage());
-    assertTrue(
-        warning
-            .getDetail()
-            .contains(
-                "Shard failures: [[osdq-badtype][0] IllegalStateException: '100' is not an IP"
-                    + " string literal]."),
+    assertEquals(
+        "_shards: total 2, successful 1, skipped 0, failed 1; failures: [[osdq-badtype][0]"
+            + " IllegalStateException: '100' is not an IP string literal]",
         warning.getDetail());
-    assertTrue(warning.getDetail().contains("may be undercounted"), warning.getDetail());
   }
 
   @Test
@@ -91,7 +87,7 @@ class ShardStatsTest {
     assertEquals(1, stats.missing());
     Warning warning = stats.toWarning().orElseThrow();
     assertEquals("Results are partial: 1 of 4 shards did not return data.", warning.getMessage());
-    assertTrue(warning.getDetail().contains("No copy of those shards was available"));
+    assertEquals("_shards: total 4, successful 3, skipped 0, failed 0", warning.getDetail());
   }
 
   /**
@@ -129,6 +125,9 @@ class ShardStatsTest {
     assertEquals(
         "Results are partial: the search timed out before all shards responded.",
         warning.getMessage());
+    assertEquals(
+        "_shards: total 4, successful 4, skipped 0, failed 0; timed_out: true",
+        warning.getDetail());
   }
 
   @Test

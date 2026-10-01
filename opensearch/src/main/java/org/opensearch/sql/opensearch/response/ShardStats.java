@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.response;
 
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -75,32 +76,36 @@ public record ShardStats(
 
   private String buildMessage() {
     if (failed > 0) {
-      return String.format("Results are partial: %d of %d shards failed.", failed, total);
+      return String.format(
+          Locale.ROOT, "Results are partial: %d of %d shards failed.", failed, total);
     }
     if (missing() > 0) {
       return String.format(
-          "Results are partial: %d of %d shards did not return data.", missing(), total);
+          Locale.ROOT,
+          "Results are partial: %d of %d shards did not return data.",
+          missing(),
+          total);
     }
     return "Results are partial: the search timed out before all shards responded.";
   }
 
+  /** The shard counts as OpenSearch reported them, plus the failure reasons, if any. */
   private String buildDetail() {
     StringBuilder detail =
         new StringBuilder(
-            "Rows and aggregate values from the shards that did not respond are missing, so counts"
-                + " may be undercounted.");
-    if (failed > 0 && !failures.isEmpty()) {
-      detail.append(" Shard failures: ").append(formatReasons()).append('.');
-    } else if (missing() > 0) {
-      detail.append(
-          " No copy of those shards was available -- a node may be down or a shard unassigned.");
+            String.format(
+                Locale.ROOT,
+                "_shards: total %d, successful %d, skipped %d, failed %d",
+                total,
+                successful,
+                skipped,
+                failed));
+    if (timedOut) {
+      detail.append("; timed_out: true");
     }
-    if (timedOut && (failed > 0 || missing() > 0)) {
-      detail.append(" The search also timed out before every shard replied.");
+    if (!failures.isEmpty()) {
+      detail.append("; failures: ").append(formatReasons());
     }
-    detail.append(
-        " Retry the query, or set search.default_allow_partial_results to false so such searches"
-            + " fail instead of returning a subset.");
     return detail.toString();
   }
 
@@ -140,6 +145,6 @@ public record ShardStats(
   private static String location(ShardSearchFailure failure) {
     return failure.index() == null
         ? "unknown shard"
-        : String.format("[%s][%d]", failure.index(), failure.shardId());
+        : String.format(Locale.ROOT, "[%s][%d]", failure.index(), failure.shardId());
   }
 }
