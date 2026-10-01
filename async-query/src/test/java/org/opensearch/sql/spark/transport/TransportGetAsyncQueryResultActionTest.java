@@ -8,8 +8,10 @@ package org.opensearch.sql.spark.transport;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -28,8 +30,13 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.action.support.ActionFilters;
+import org.opensearch.cluster.ClusterState;
+import org.opensearch.cluster.node.DiscoveryNode;
+import org.opensearch.cluster.node.DiscoveryNodes;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.executor.ExecutionEngine;
+import org.opensearch.sql.job.QueryJobId;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorServiceImpl;
 import org.opensearch.sql.spark.asyncquery.exceptions.AsyncQueryNotFoundException;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
@@ -37,12 +44,15 @@ import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
 import org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionRequest;
 import org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionResponse;
 import org.opensearch.tasks.Task;
+import org.opensearch.transport.TransportRequestOptions;
+import org.opensearch.transport.TransportResponseHandler;
 import org.opensearch.transport.TransportService;
 
 @ExtendWith(MockitoExtension.class)
 public class TransportGetAsyncQueryResultActionTest {
 
   @Mock private TransportService transportService;
+  @Mock private ClusterService clusterService;
   @Mock private TransportGetAsyncQueryResultAction action;
   @Mock private Task task;
   @Mock private ActionListener<GetAsyncQueryResultActionResponse> actionListener;
@@ -59,7 +69,7 @@ public class TransportGetAsyncQueryResultActionTest {
         new TransportGetAsyncQueryResultAction(
             transportService,
             new ActionFilters(new HashSet<>()),
-            org.mockito.Mockito.mock(org.opensearch.cluster.service.ClusterService.class),
+            clusterService,
             jobExecutorService);
   }
 
@@ -193,5 +203,79 @@ public class TransportGetAsyncQueryResultActionTest {
     Assertions.assertEquals(
         org.opensearch.core.rest.RestStatus.FORBIDDEN,
         ((org.opensearch.OpenSearchStatusException) captured).status());
+  }
+
+  @Test
+  public void localPplJobUsesLocalExecutorAndRendersSucceededRows() {
+    QueryJobId id = new QueryJobId("local-node", "query-context");
+    DiscoveryNode local = mock(DiscoveryNode.class);
+    when(clusterService.localNode()).thenReturn(local);
+    when(local.getId()).thenReturn(id.ownerNodeId());
+    ExecutionEngine.Schema schema =
+        new ExecutionEngine.Schema(
+            ImmutableList.of(new ExecutionEngine.Schema.Column("count", null, INTEGER)));
+    when(jobExecutorService.getAsyncQueryResults(eq(id.encode()), any()))
+        .thenReturn(
+            new AsyncQueryExecutionResponse(
+                "SUCCEEDED",
+                schema,
+                ImmutableList.of(tupleValue(ImmutableMap.of("count", 3))),
+                null,
+                null,
+                null));
+
+    action.doExecute(task, new GetAsyncQueryResultActionRequest(id.encode()), actionListener);
+
+    verify(jobExecutorService).getAsyncQueryResults(eq(id.encode()), any());
+    verify(actionListener).onResponse(createJobActionResponseArgumentCaptor.capture());
+    org.json.JSONObject response =
+        new org.json.JSONObject(createJobActionResponseArgumentCaptor.getValue().getResult());
+    Assertions.assertEquals("SUCCEEDED", response.getString("status"));
+    Assertions.assertEquals(3, response.getJSONArray("datarows").getJSONArray(0).getInt(0));
+    Assertions.assertEquals(1, response.getInt("total"));
+  }
+
+  @Test
+  public void explainResponseIsReturnedVerbatim() {
+    String explain = "{\"calcite\":{\"logical\":{\"operator\":\"LogicalProject\"}}}";
+    when(jobExecutorService.getAsyncQueryResults(eq("jobId"), any()))
+        .thenReturn(new AsyncQueryExecutionResponse("SUCCEEDED", null, null, null, null, explain));
+
+    action.doExecute(task, new GetAsyncQueryResultActionRequest("jobId"), actionListener);
+
+    verify(actionListener).onResponse(createJobActionResponseArgumentCaptor.capture());
+    Assertions.assertEquals(explain, createJobActionResponseArgumentCaptor.getValue().getResult());
+  }
+
+  @Test
+  public void nonOwnerForwardsRequestAndRelaysResponseWithoutLocalExecution() {
+    QueryJobId id = new QueryJobId("owner-node", "query-context");
+    DiscoveryNode local = mock(DiscoveryNode.class);
+    DiscoveryNode owner = mock(DiscoveryNode.class);
+    ClusterState state = mock(ClusterState.class);
+    DiscoveryNodes nodes = mock(DiscoveryNodes.class);
+    when(clusterService.localNode()).thenReturn(local);
+    when(local.getId()).thenReturn("entry-node");
+    when(clusterService.state()).thenReturn(state);
+    when(state.nodes()).thenReturn(nodes);
+    when(nodes.get(id.ownerNodeId())).thenReturn(owner);
+    GetAsyncQueryResultActionRequest request = new GetAsyncQueryResultActionRequest(id.encode());
+
+    action.doExecute(task, request, actionListener);
+
+    ArgumentCaptor<TransportResponseHandler<GetAsyncQueryResultActionResponse>> handlerCaptor =
+        ArgumentCaptor.forClass(TransportResponseHandler.class);
+    verify(transportService)
+        .sendRequest(
+            eq(owner),
+            eq(TransportGetAsyncQueryResultAction.NAME),
+            eq(request),
+            eq(TransportRequestOptions.EMPTY),
+            handlerCaptor.capture());
+    GetAsyncQueryResultActionResponse response =
+        new GetAsyncQueryResultActionResponse("{\"status\":\"RUNNING\"}");
+    handlerCaptor.getValue().handleResponse(response);
+    verify(actionListener).onResponse(response);
+    verifyNoInteractions(jobExecutorService);
   }
 }
