@@ -111,8 +111,9 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
     String docFieldName =
         exprType == ExprCoreType.STRUCT
                 || exprType == ExprCoreType.ARRAY
-                // A binary field has no doc values, so it has to be read from _source too, and
-                // neither does a flat_object: each leaf is one folded path=value term.
+                // Neither a binary field nor a flat_object has doc values a script could read --
+                // a flat_object files each leaf as one folded path=value term -- so both are read
+                // from _source.
                 || exprType instanceof OpenSearchBinaryType
                 || exprType instanceof OpenSearchFlatObjectType
             ? null

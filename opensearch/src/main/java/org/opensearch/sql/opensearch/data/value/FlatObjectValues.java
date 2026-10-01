@@ -6,12 +6,12 @@
 package org.opensearch.sql.opensearch.data.value;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import lombok.experimental.UtilityClass;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
@@ -33,8 +33,8 @@ public class FlatObjectValues {
 
   /**
    * Depth guard. A flat_object exists so that documents can escape the mapping depth limit, so
-   * nothing upstream bounds this recursion. Levels beyond the cap are kept as one leaf rather than
-   * dropped.
+   * nothing upstream bounds this recursion. Nothing is dropped at the cap: the object that would
+   * have been descended into is kept as one leaf, holding its own JSON as the value.
    */
   static final int MAX_DEPTH = 20;
 
@@ -52,7 +52,7 @@ public class FlatObjectValues {
     if (content == null || content.isNull()) {
       return ExprNullValue.of();
     }
-    LinkedHashMap<String, ExprValue> leaves = new LinkedHashMap<>();
+    LinkedHashMap<String, List<String>> leaves = new LinkedHashMap<>();
     if (content.isObject()) {
       flattenInto(content, "", leaves, 0);
     } else if (content.isArray()) {
@@ -69,11 +69,11 @@ public class FlatObjectValues {
     } else {
       return ExprNullValue.of();
     }
-    return ExprTupleValue.fromExprValueMap(leaves);
+    return ExprTupleValue.fromExprValueMap(render(leaves));
   }
 
   private static void flattenInto(
-      Content content, String prefix, LinkedHashMap<String, ExprValue> out, int depth) {
+      Content content, String prefix, LinkedHashMap<String, List<String>> out, int depth) {
     content
         .map()
         .forEachRemaining(
@@ -90,7 +90,7 @@ public class FlatObjectValues {
    * and {@code {"a": {"b": 1}, "a.b": 2}} all reach the same shape the index holds.
    */
   private static void fold(
-      Content value, String key, LinkedHashMap<String, ExprValue> out, int depth) {
+      Content value, String key, LinkedHashMap<String, List<String>> out, int depth) {
     if (value.isObject() && depth < MAX_DEPTH) {
       flattenInto(value, key, out, depth + 1);
       return;
@@ -99,50 +99,48 @@ public class FlatObjectValues {
       value.array().forEachRemaining(element -> fold(element, key, out, depth));
       return;
     }
-    put(out, key, text(value));
+    add(out, key, text(value));
   }
 
   /**
-   * A leaf as the text the index holds for it. The index has no type for a leaf -- every value is a
-   * keyword term -- so the engine presents the same text, and a query reads and compares exactly
-   * what a lookup on the field would match.
+   * A leaf as the text the index holds for it, or null when nothing was written. The index has no
+   * type for a leaf -- every value is a keyword term -- so the engine presents the same text, and a
+   * query reads and compares exactly what a lookup on the field would match.
    */
-  private static ExprValue text(Content value) {
+  private static @Nullable String text(Content value) {
     ExprValue parsed = OpenSearchExprValueFactory.parseContent(value);
-    return parsed.isNull()
-        ? ExprNullValue.of()
-        : new ExprStringValue(String.valueOf(parsed.value()));
+    return parsed.isNull() ? null : String.valueOf(parsed.value());
+  }
+
+  /** Notes one more value for a path. A path can be written more than once; each value is kept. */
+  private static void add(
+      LinkedHashMap<String, List<String>> out, String key, @Nullable String value) {
+    List<String> values = out.computeIfAbsent(key, ignored -> new ArrayList<>());
+    if (value != null) {
+      values.add(value);
+    }
   }
 
   /**
-   * A path written once holds its value. A path written more than once -- both spellings of a
-   * dotted path in one document, or one path across the elements of an array -- holds all of them,
-   * since the index files a term for each and answers a lookup for any of them, and they read as
-   * their JSON, the way {@code spath} reads an array out of a JSON string.
+   * A path written once reads as its value. A path written more than once -- both spellings of a
+   * dotted path in one document, or one path across the elements of an array -- reads as the JSON
+   * of all of them, the way {@code spath} reads an array out of a JSON string; the index files a
+   * term for each and answers a lookup for any of them. A path whose only value was null reads as
+   * null.
    */
-  private static void put(LinkedHashMap<String, ExprValue> out, String key, ExprValue value) {
-    ExprValue existing = out.get(key);
-    if (existing == null) {
-      out.put(key, value);
-      return;
-    }
-    List<String> values = new ArrayList<>();
-    collect(existing, values);
-    collect(value, values);
-    out.put(key, new ExprStringValue(asJsonArray(values)));
-  }
-
-  /** The values a key already holds, unwrapped from the JSON an earlier merge wrote. */
-  private static void collect(ExprValue value, List<String> into) {
-    if (value.isNull()) {
-      return;
-    }
-    String text = value.stringValue();
-    if (text.startsWith("[") && text.endsWith("]")) {
-      into.addAll(fromJsonArray(text));
-    } else {
-      into.add(text);
-    }
+  private static LinkedHashMap<String, ExprValue> render(
+      LinkedHashMap<String, List<String>> leaves) {
+    LinkedHashMap<String, ExprValue> out = new LinkedHashMap<>();
+    leaves.forEach(
+        (key, values) ->
+            out.put(
+                key,
+                switch (values.size()) {
+                  case 0 -> ExprNullValue.of();
+                  case 1 -> new ExprStringValue(values.get(0));
+                  default -> new ExprStringValue(asJsonArray(values));
+                }));
+    return out;
   }
 
   private static String asJsonArray(List<String> values) {
@@ -150,15 +148,6 @@ public class FlatObjectValues {
       return OBJECT_MAPPER.writeValueAsString(values);
     } catch (JsonProcessingException e) {
       throw new IllegalStateException("Cannot render a flat_object leaf as JSON", e);
-    }
-  }
-
-  private static List<String> fromJsonArray(String json) {
-    try {
-      return OBJECT_MAPPER.readValue(json, new TypeReference<List<String>>() {});
-    } catch (JsonProcessingException e) {
-      // not JSON this class wrote: a single value that happens to look like an array
-      return List.of(json);
     }
   }
 }
