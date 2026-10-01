@@ -28,7 +28,7 @@ public final class QueryInsightsReporter {
   public static final String ACTION_NAME =
       "cluster:admin/opensearch/query_insights/report_query_bytes";
 
-  public static final int FORMAT_VERSION = 2;
+  public static final int FORMAT_VERSION = 1;
 
   private QueryInsightsReporter() {}
 
@@ -39,6 +39,7 @@ public final class QueryInsightsReporter {
    * @param parentMarker {@code <source>:<nodeId>:<taskId>}; child DSL records reference it via
    *     {@code DERIVED_FROM} so their cpu/memory roll up into this record
    * @param userInfo security {@code _opendistro_security_user_info} string; empty when unsecured
+   * @param failed whether the query failed, so Query Insights can flag it in Top N
    */
   public static void report(
       TransportService transportService,
@@ -52,7 +53,8 @@ public final class QueryInsightsReporter {
       long cpuNanos,
       long memoryBytes,
       List<String> indices,
-      String userInfo) {
+      String userInfo,
+      boolean failed) {
     try {
       final BytesStreamOutput out = new BytesStreamOutput();
       out.writeVInt(FORMAT_VERSION);
@@ -71,7 +73,8 @@ public final class QueryInsightsReporter {
         out.writeString(index == null ? "" : index);
       }
 
-      out.writeString(userInfo == null ? "" : userInfo); // v2
+      out.writeString(userInfo == null ? "" : userInfo);
+      out.writeBoolean(failed);
 
       final BytesTransportRequest request = new BytesTransportRequest(out.bytes(), Version.CURRENT);
       // Stash the context so this internal cluster:admin send runs user-less (security's

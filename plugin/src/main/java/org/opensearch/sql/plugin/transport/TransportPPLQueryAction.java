@@ -270,6 +270,7 @@ public class TransportPPLQueryAction
 
       List<String> indices = pplQueryTask.getQueryInsightsIndices();
       String userInfo = pplQueryTask.getQueryInsightsUserInfo();
+      boolean failed = pplQueryTask.isQueryInsightsFailed();
 
       QueryInsightsReporter.report(
           transportServiceRef,
@@ -283,7 +284,8 @@ public class TransportPPLQueryAction
           cpuNanos,
           memoryBytes,
           indices,
-          userInfo);
+          userInfo,
+          failed);
     } catch (Exception e) {
       LOG.debug("Failed to write PPL query to Query Insights", e);
     }
@@ -355,6 +357,8 @@ public class TransportPPLQueryAction
         TraceableActionListener.create(listener, rootSpan, tracer);
     ActionListener<TransportPPLQueryResponse> clearingListener =
         wrapWithProfilingClear(tracedListener);
+    // Read back later by writeQueryInsightsRecord, which runs after this listener completes.
+    clearingListener = markFailedOnFailure(clearingListener, pplQueryTask);
 
     try {
       // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices.
@@ -544,6 +548,26 @@ public class TransportPPLQueryAction
       throw new IllegalArgumentException(
           String.format(Locale.ROOT, "response in %s format is not supported.", format));
     }
+  }
+
+  /** Returns {@code delegate} unchanged when there is no PPL task to mark. */
+  private ActionListener<TransportPPLQueryResponse> markFailedOnFailure(
+      ActionListener<TransportPPLQueryResponse> delegate, PPLQueryTask pplQueryTask) {
+    if (pplQueryTask == null) {
+      return delegate;
+    }
+    return new ActionListener<>() {
+      @Override
+      public void onResponse(TransportPPLQueryResponse response) {
+        delegate.onResponse(response);
+      }
+
+      @Override
+      public void onFailure(Exception e) {
+        pplQueryTask.setQueryInsightsFailed(true);
+        delegate.onFailure(e);
+      }
+    };
   }
 
   private ActionListener<TransportPPLQueryResponse> wrapWithProfilingClear(

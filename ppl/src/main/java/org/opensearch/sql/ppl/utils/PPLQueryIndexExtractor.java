@@ -37,6 +37,9 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
  * {@code from} table, and subquery relations embedded in {@link Filter}/{@link Eval} condition
  * expressions. Returns distinct names in encounter order. This is best-effort metadata; a source it
  * cannot resolve is simply omitted.
+ *
+ * <p>A subquery in a {@link Join}'s ON condition is not walked (only left/right branches are),
+ * unlike {@link Filter}/{@link Eval}; such a source is dropped from this best-effort list.
  */
 public final class PPLQueryIndexExtractor {
 

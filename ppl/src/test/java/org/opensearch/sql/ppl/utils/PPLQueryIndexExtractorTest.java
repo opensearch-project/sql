@@ -10,6 +10,13 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 import org.junit.Test;
+import org.opensearch.sql.ast.expression.DataType;
+import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.tree.AppendCol;
+import org.opensearch.sql.ast.tree.AppendPipe;
+import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ppl.AstPlanningTestBase;
 
@@ -78,6 +85,52 @@ public class PPLQueryIndexExtractorTest extends AstPlanningTestBase {
     List<String> result = indices("source=outer | where a in [ source=inner | fields b ]");
     assertTrue(result.contains("outer"));
     assertTrue(result.contains("inner"));
+  }
+
+  @Test
+  public void evalScalarSubqueryCapturesInnerSource() {
+    List<String> result = indices("source=outer | eval m = [ source=inner | stats max(b) ]");
+    assertTrue(result.contains("outer"));
+    assertTrue(result.contains("inner"));
+  }
+
+  @Test
+  public void graphLookupCapturesFromTable() {
+    List<String> result =
+        indices(
+            "source=t | graphLookup employees start=reportsTo edge=manager-->name"
+                + " as reportingHierarchy");
+    assertTrue(result.contains("t"));
+    assertTrue(result.contains("employees"));
+  }
+
+  @Test
+  public void appendColCapturesSubSearchSource() {
+    // Built directly, not parsed: the grammar runs appendcol's sub-search over the piped input, so
+    // a nested source= can't be expressed in text.
+    UnresolvedPlan plan = new AppendCol(false, subPipelineOver("appended")).attach(baseRelation());
+    List<String> result = PPLQueryIndexExtractor.extractIndexNames(plan);
+    assertTrue(result.contains("base"));
+    assertTrue(result.contains("appended"));
+  }
+
+  @Test
+  public void appendPipeCapturesSubQuerySource() {
+    // Built directly for the same reason as appendcol above.
+    UnresolvedPlan plan = new AppendPipe(subPipelineOver("appended")).attach(baseRelation());
+    List<String> result = PPLQueryIndexExtractor.extractIndexNames(plan);
+    assertTrue(result.contains("base"));
+    assertTrue(result.contains("appended"));
+  }
+
+  private UnresolvedPlan baseRelation() {
+    return new Relation(new QualifiedName("base"));
+  }
+
+  /** A {@link Relation} nested under a piped command, like real parser output (not a bare root). */
+  private UnresolvedPlan subPipelineOver(String index) {
+    return new Filter(new Literal(true, DataType.BOOLEAN))
+        .attach(new Relation(new QualifiedName(index)));
   }
 
   @Test
