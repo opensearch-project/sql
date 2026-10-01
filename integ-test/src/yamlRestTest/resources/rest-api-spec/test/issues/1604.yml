@@ -180,3 +180,61 @@ teardown:
         body:
           query: "source=otel | where like(attributes.duration_ms, '1%') | fields service"
   - match: {"calcite.physical": "/\"wildcard\":\\{\"attributes.duration_ms\"/"}
+
+---
+# A flat_object can be a sub-field of an ordinary object, which the field type's documentation shows
+# as its second example. The leaf is then named by the whole path, and the index term carries all of
+# it, so the lookup is the same one.
+"a flat_object can be a sub-field of an object":
+  - skip:
+      features: [headers]
+  - do:
+      indices.create:
+        index: sub
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              issue:
+                properties:
+                  number:
+                    type: double
+                  labels:
+                    type: flat_object
+  - do:
+      index:
+        index: sub
+        id: 1
+        refresh: true
+        body: {"issue": {"number": 123456, "labels": {"version": "2.1", "backport": ["2.0", "1.3"], "category": {"type": "API", "level": "enhancement"}}}}
+  # the sibling keeps its own mapping; only labels is flat
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'describe sub | fields COLUMN_NAME, TYPE_NAME'
+  - match: {"datarows": [["issue", "struct"], ["issue.labels", "flat_object"], ["issue.number", "double"]]}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=sub | fields issue.labels.category.level, issue.labels.backport, issue.number'
+  - match: {"datarows": [["enhancement", "[\"2.0\",\"1.3\"]", 123456.0]]}
+  # the term the index holds carries the whole path, so the lookup is a term like any other
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=sub | where issue.labels.category.level = ''enhancement'' | fields issue.number'
+  - match: {"datarows": [[123456.0]]}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl.explain:
+        body:
+          query: "source=sub | where issue.labels.category.level = 'enhancement' | fields issue.number"
+  - match: {"calcite.physical": "/\"term\":\\{\"issue.labels.category.level\"/"}
+  - do:
+      indices.delete:
+        index: sub
