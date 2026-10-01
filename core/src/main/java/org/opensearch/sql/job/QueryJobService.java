@@ -6,38 +6,35 @@
 package org.opensearch.sql.job;
 
 import java.time.Duration;
+import java.util.concurrent.CompletionStage;
 import org.opensearch.sql.job.exceptions.QueryJobForbiddenException;
 import org.opensearch.sql.job.exceptions.QueryJobNotFoundException;
 
 /**
  * Query job lifecycle service.
  *
- * <p>The service does not compile queries, execute them, or store results. It wraps a caller-built
- * {@link QueryRunner} in a {@link QueryJob}, publishes the job to a {@link QueryJobStore}, and
- * authorizes later observers against the job owner. Each engine (PPL, SQL, analytics-engine)
- * constructs the runner it needs directly and hands it to {@link #submit(QueryRunner, Principal,
- * Duration)}; no language dispatch happens inside the service.
+ * <p>Each engine (PPL, SQL, analytics-engine) supplies its own {@link QueryRunner}. The service
+ * publishes a {@link QueryJob}, owns the submission wait and retention decision, and authorizes
+ * later observers against the job owner. No language dispatch happens inside the service.
  */
 public interface QueryJobService {
 
   /**
-   * Wraps the given runner in a {@link QueryJob}, publishes the job, starts the runner, arms
-   * retention for {@code keepAlive}, and returns the job. Callers observe progress through {@link
-   * QueryJob#await(Duration)}, {@link QueryJob#onTerminal(Runnable)}, or {@link QueryJob#status()}.
+   * Starts the runner and races its completion against {@code waitForCompletion}. Returns the
+   * terminal result inline when the runner wins, or {@link QueryResult.Running} when the wait
+   * expires. Inline success and failure remove the job before the returned stage completes.
+   * Retention is attached only when a {@code Running} result exposes an id for polling.
    *
+   * @param runner engine adapter that will produce the result
+   * @param submitter caller identity retained for authorization
+   * @param waitForCompletion submission wait; must be non-null and non-negative
    * @param keepAlive retention TTL applied after the job reaches a terminal state; must be non-null
    *     and positive
+   * @return the submission outcome, exceptionally completed with the runner's cause on inline
+   *     failure or cancellation
    */
-  QueryJob submit(QueryRunner runner, Principal submitter, Duration keepAlive);
-
-  /**
-   * Removes {@code job} from the store if it is still registered. Idempotent and safe to invoke
-   * when the retention timer has already evicted it (or when no retention was ever armed). Used by
-   * callers that render the terminal response inline and therefore know no polling GET will ever
-   * reach for the job — pinning it in the store for the full {@code keep_alive} would otherwise
-   * leak the result rows on the heap.
-   */
-  void discard(QueryJob job);
+  CompletionStage<QueryResult> submit(
+      QueryRunner runner, Principal submitter, Duration waitForCompletion, Duration keepAlive);
 
   /**
    * Returns a snapshot for the given job.

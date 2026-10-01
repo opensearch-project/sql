@@ -95,6 +95,27 @@ public class AsyncPPLQueryLifecycleIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void async_explainWithLongWaitReturnsInlineBody() throws IOException {
+    JSONObject body = new JSONObject();
+    body.put("query", "explain source=" + TEST_INDEX_ACCOUNT + " | stats count() as c");
+    body.put("wait_for_completion_timeout", "30s");
+
+    JSONObject response = new JSONObject(postPpl(client(), body));
+
+    Assert.assertFalse("inline explain must not carry a polling id", response.has("id"));
+    Assert.assertTrue(
+        "inline explain must carry a plan tree", response.has("calcite") || response.has("root"));
+  }
+
+  @Test
+  public void async_inlineFailurePreservesClientErrorStatus() {
+    JSONObject body = new JSONObject();
+    body.put("query", "source=");
+    body.put("wait_for_completion_timeout", "30s");
+    assertRejectedWith400(PPL_ENDPOINT, body);
+  }
+
+  @Test
   public void async_fetchTerminalReturnsResultWithSchemaAndRows() throws Exception {
     JSONObject body = new JSONObject();
     body.put("query", "source=" + TEST_INDEX_ACCOUNT + " | stats count() as c");

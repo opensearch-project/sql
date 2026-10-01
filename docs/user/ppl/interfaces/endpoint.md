@@ -664,6 +664,8 @@ Expected output (the explicitly selected metadata field is returned even though 
 
 `POST /_plugins/_ppl` accepts two optional body fields that let a client submit a long-running query and return before it finishes. If the query completes inside the configured wait, the response is identical to a synchronous PPL response. If the wait expires first, the response carries an opaque `id` and the client fetches the final result later via `GET /_plugins/_async_query/{id}`.
 
+Results returned inline, including explain output and errors, are not retained. Retention applies only when the submit response returns an `id` for polling.
+
 Parameters:
 
 | Field | Type | Default | Limit | Description |
@@ -675,7 +677,8 @@ Parameters:
 
 - Async submit is only available for standard PPL queries. The following request shapes always run synchronously and ignore `wait_for_completion_timeout` / `keep_alive`: the `/_plugins/_ppl/_explain` endpoint, requests with `"profile": true`, and non-JSON response formats (`format=csv`, `format=raw`, `format=viz`).
 - Results are retained in memory on the owner node for the duration of `keep_alive`. Set it as low as practical for your polling cadence; the default is `5m`.
-- Submitting an async query requires `cluster:admin/opensearch/ppl`; fetching or cancelling requires `cluster:admin/opensearch/ql/async_query/result` and `cluster:admin/opensearch/ql/async_query/delete`. Users on custom roles must be granted all three — a submit without the fetch grant produces an id that returns `403` on GET.
+- Submitting an async query requires `cluster:admin/opensearch/ppl`; fetching requires `cluster:admin/opensearch/ql/async_query/result`. Users on custom roles must be granted both — a submit without the fetch grant produces an id that returns `403` on GET.
+- Cancellation through `DELETE /_plugins/_async_query/{id}` is not yet supported for PPL jobs.
 
 ### Example
 
@@ -719,9 +722,8 @@ If the query is still running when the wait expires, the response is:
 }
 ```
 
-The client then polls `GET /_plugins/_async_query/{id}` until it returns a terminal status (`SUCCEEDED` or `FAILED`), or calls `DELETE /_plugins/_async_query/{id}` to cancel:
+The client then polls `GET /_plugins/_async_query/{id}` until it returns a terminal status (`SUCCEEDED` or `FAILED`):
 
 ```
 GET    /_plugins/_async_query/<id>
-DELETE /_plugins/_async_query/<id>
 ```

@@ -13,6 +13,7 @@ import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.
 import java.time.Clock;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.apache.calcite.rel.RelNode;
@@ -311,46 +312,44 @@ public class TransportPPLQueryAction
         ContextPreservingActionListener.wrapPreservingContext(listener, threadContext);
     ResponseListener<ExecutionEngine.QueryResponse> responseListener =
         createListener(transformedRequest, ctxListener);
-    QueryJob job;
+    CompletionStage<org.opensearch.sql.job.QueryResult> submission;
     try {
-      job =
+      submission =
           queryJobService.submit(
-              runner, securityAdapter.current(), transformedRequest.effectiveKeepAlive());
+              runner,
+              securityAdapter.current(),
+              transformedRequest.effectiveWaitForCompletion(),
+              transformedRequest.effectiveKeepAlive());
     } catch (RuntimeException e) {
       responseListener.onFailure(e);
       return;
     }
-    job.await(transformedRequest.effectiveWaitForCompletion())
-        .whenComplete(
-            (result, error) -> {
-              if (error != null) {
-                // whenComplete on a dependent CompletionStage wraps the exception in
-                // CompletionException. Unwrap so OpenSearch's status mapper sees the engine's
-                // original exception type (preserves 4xx classification and PPL error context).
-                Throwable cause = QueryJob.unwrap(error);
-                responseListener.onFailure(
-                    cause instanceof Exception ex ? ex : new RuntimeException(cause));
-                return;
-              }
-              switch (result) {
-                case org.opensearch.sql.job.QueryResult.Rows rows -> {
-                  ExecutionEngine.QueryResponse response =
-                      new ExecutionEngine.QueryResponse(rows.schema(), rows.rows(), rows.cursor());
-                  response.setWarnings(rows.warnings());
-                  responseListener.onResponse(response);
-                  // Runner won the race — no id was returned to the client, so pinning the job
-                  // (and its result rows) in the store for keep_alive serves nobody. Drop it.
-                  queryJobService.discard(job);
-                }
-                case org.opensearch.sql.job.QueryResult.Explain explain -> {
-                  createExplainResponseListener(transformedRequest, ctxListener)
-                      .onResponse(explain.response());
-                  queryJobService.discard(job);
-                }
-                case org.opensearch.sql.job.QueryResult.Running running ->
-                    ctxListener.onResponse(new TransportPPLQueryResponse(formatRunning(running)));
-              }
-            });
+    submission.whenComplete(
+        (result, error) -> {
+          if (error != null) {
+            // whenComplete on a dependent CompletionStage wraps the exception in
+            // CompletionException. Unwrap so OpenSearch's status mapper sees the engine's
+            // original exception type (preserves 4xx classification and PPL error context).
+            Throwable cause = QueryJob.unwrap(error);
+            responseListener.onFailure(
+                cause instanceof Exception ex ? ex : new RuntimeException(cause));
+            return;
+          }
+          switch (result) {
+            case org.opensearch.sql.job.QueryResult.Rows rows -> {
+              ExecutionEngine.QueryResponse response =
+                  new ExecutionEngine.QueryResponse(rows.schema(), rows.rows(), rows.cursor());
+              response.setWarnings(rows.warnings());
+              responseListener.onResponse(response);
+            }
+            case org.opensearch.sql.job.QueryResult.Explain explain -> {
+              createExplainResponseListener(transformedRequest, ctxListener)
+                  .onResponse(explain.response());
+            }
+            case org.opensearch.sql.job.QueryResult.Running running ->
+                ctxListener.onResponse(new TransportPPLQueryResponse(formatRunning(running)));
+          }
+        });
   }
 
   /**
