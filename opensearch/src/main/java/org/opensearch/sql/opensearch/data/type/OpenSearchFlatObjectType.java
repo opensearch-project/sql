@@ -18,9 +18,12 @@ import lombok.EqualsAndHashCode;
  * therefore reads its values from {@code _source} and presents the field as a map keyed by the
  * dotted leaf path, so that a nested object and a literal dotted key resolve to the same entry.
  *
- * <p>Like the other mapping types with no direct core-type counterpart (text, geo_point, binary),
- * it carries {@code UNKNOWN} as its core type so that {@link #getExprType()} returns this instance
- * and the Calcite type factory can map it by name.
+ * <p>The core type below is the type of the field, which is that map -- not the type of a leaf,
+ * which is text. Like the other mapping types with no core type that says so (text, geo_point,
+ * binary), it is {@code UNKNOWN}, which is what makes {@link #getExprType()} return this instance
+ * instead of a core type, so the Calcite type factory maps the field by name. Naming a core type
+ * here would make the whole field that type: {@code STRING} would turn it into one string, with no
+ * map to resolve a dotted path against.
  */
 @EqualsAndHashCode(callSuper = false)
 public class OpenSearchFlatObjectType extends OpenSearchDataType {
