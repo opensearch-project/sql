@@ -31,6 +31,15 @@ public interface QueryJobService {
   QueryJob submit(QueryRunner runner, Principal submitter, Duration keepAlive);
 
   /**
+   * Removes {@code job} from the store if it is still registered. Idempotent and safe to invoke
+   * when the retention timer has already evicted it (or when no retention was ever armed). Used by
+   * callers that render the terminal response inline and therefore know no polling GET will ever
+   * reach for the job — pinning it in the store for the full {@code keep_alive} would otherwise
+   * leak the result rows on the heap.
+   */
+  void discard(QueryJob job);
+
+  /**
    * Returns a snapshot for the given job.
    *
    * @throws QueryJobNotFoundException when the ID does not resolve on this node

@@ -338,10 +338,15 @@ public class TransportPPLQueryAction
                       new ExecutionEngine.QueryResponse(rows.schema(), rows.rows(), rows.cursor());
                   response.setWarnings(rows.warnings());
                   responseListener.onResponse(response);
+                  // Runner won the race — no id was returned to the client, so pinning the job
+                  // (and its result rows) in the store for keep_alive serves nobody. Drop it.
+                  queryJobService.discard(job);
                 }
-                case org.opensearch.sql.job.QueryResult.Explain explain ->
-                    createExplainResponseListener(transformedRequest, ctxListener)
-                        .onResponse(explain.response());
+                case org.opensearch.sql.job.QueryResult.Explain explain -> {
+                  createExplainResponseListener(transformedRequest, ctxListener)
+                      .onResponse(explain.response());
+                  queryJobService.discard(job);
+                }
                 case org.opensearch.sql.job.QueryResult.Running running ->
                     ctxListener.onResponse(new TransportPPLQueryResponse(formatRunning(running)));
               }

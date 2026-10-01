@@ -75,6 +75,15 @@ public final class OpenSearchQueryJobService implements QueryJobService {
   }
 
   @Override
+  public void discard(QueryJob job) {
+    Objects.requireNonNull(job, "job must not be null");
+    // Conditional remove: a concurrent retention eviction may have already dropped the mapping;
+    // or the id may have been re-registered to a different job (not possible with UUID ids but
+    // encoded as a safety condition in the store API).
+    store.remove(job.id(), job);
+  }
+
+  @Override
   public QueryJobStatus cancel(QueryJobId id, Principal caller) {
     QueryJob job = requireJob(id);
     authorize(job, caller);

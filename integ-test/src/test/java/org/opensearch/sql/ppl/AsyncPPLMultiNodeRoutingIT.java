@@ -86,6 +86,30 @@ public class AsyncPPLMultiNodeRoutingIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void getUnknownPplIdFromNonOwner_returns404() throws Exception {
+    // A QueryJobId whose node id matches nodeA (owner-encoded) but the context id doesn't exist.
+    String fakeId = org.opensearch.sql.job.QueryJobId.create(nodeIdOf(nodeA)).encode();
+    org.opensearch.client.Request request =
+        new org.opensearch.client.Request("GET", AsyncPPLTestHelpers.ASYNC_QUERY_ENDPOINT + fakeId);
+    org.opensearch.client.ResponseException ex =
+        Assert.assertThrows(
+            org.opensearch.client.ResponseException.class, () -> nodeB.performRequest(request));
+    int code = ex.getResponse().getStatusLine().getStatusCode();
+    // Owner's QueryJobNotFoundException must translate to a transport-serializable 404 so
+    // forwarding doesn't drop it to 500.
+    Assert.assertEquals("expected 404 across owner-node forwarding, got " + code, 404, code);
+  }
+
+  private static String nodeIdOf(org.opensearch.client.RestClient client) throws IOException {
+    org.opensearch.client.Response response =
+        client.performRequest(new org.opensearch.client.Request("GET", "/_nodes/_local"));
+    JSONObject body =
+        new JSONObject(org.opensearch.sql.legacy.TestUtils.getResponseBody(response, true));
+    JSONObject nodes = body.getJSONObject("nodes");
+    return nodes.keys().next();
+  }
+
+  @Test
   public void explain_forwardsFromNonOwnerNodeToOwner() throws Exception {
     JSONObject body = new JSONObject();
     body.put("query", "explain source=" + TEST_INDEX_ACCOUNT + " | stats count() as c");

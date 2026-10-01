@@ -91,6 +91,15 @@ public class TransportGetAsyncQueryResultAction
                   Cursor.None,
                   asyncQueryExecutionResponse.getError()));
       listener.onResponse(new GetAsyncQueryResultActionResponse(responseContent));
+    } catch (org.opensearch.sql.job.exceptions.QueryJobNotFoundException e) {
+      // Translate to a transport-serializable OpenSearchException so cross-node forwarding
+      // preserves the 404 status (otherwise the forwarded exception arrives on the entry node
+      // as NotSerializableExceptionWrapper mapped to 500).
+      listener.onFailure(new org.opensearch.ResourceNotFoundException(e.getMessage()));
+    } catch (org.opensearch.sql.job.exceptions.QueryJobForbiddenException e) {
+      listener.onFailure(
+          new org.opensearch.OpenSearchStatusException(
+              e.getMessage(), org.opensearch.core.rest.RestStatus.FORBIDDEN));
     } catch (Exception e) {
       listener.onFailure(e);
     }

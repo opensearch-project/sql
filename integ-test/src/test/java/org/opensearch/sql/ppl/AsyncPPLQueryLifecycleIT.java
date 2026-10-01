@@ -217,10 +217,44 @@ public class AsyncPPLQueryLifecycleIT extends PPLIntegTestCase {
     Assert.fail("job [" + queryId + "] was not evicted within 3s after keep_alive=1s");
   }
 
+  @Test
+  public void async_rejectsWaitForCompletionTimeoutExceedingMax() {
+    JSONObject body = new JSONObject();
+    body.put("query", "source=" + TEST_INDEX_ACCOUNT + " | stats count() as c");
+    body.put("wait_for_completion_timeout", "120s"); // > 60s cap
+    assertRejectedWith400(PPL_ENDPOINT, body);
+  }
+
+  @Test
+  public void async_rejectsKeepAliveExceedingMax() {
+    JSONObject body = new JSONObject();
+    body.put("query", "source=" + TEST_INDEX_ACCOUNT + " | stats count() as c");
+    body.put("wait_for_completion_timeout", "0");
+    body.put("keep_alive", "365d"); // > 24h cap
+    assertRejectedWith400(PPL_ENDPOINT, body);
+  }
+
+  @Test
+  public void async_rejectsZeroKeepAlive() {
+    JSONObject body = new JSONObject();
+    body.put("query", "source=" + TEST_INDEX_ACCOUNT + " | stats count() as c");
+    body.put("wait_for_completion_timeout", "0");
+    body.put("keep_alive", "0"); // not strictly positive
+    assertRejectedWith400(PPL_ENDPOINT, body);
+  }
+
   private static JSONObject withAsyncWait(String query) {
     JSONObject body = new JSONObject();
     body.put("query", query);
     body.put("wait_for_completion_timeout", "0");
     return body;
+  }
+
+  private void assertRejectedWith400(String endpoint, JSONObject body) {
+    Request request = new Request("POST", endpoint);
+    request.setJsonEntity(body.toString());
+    ResponseException ex =
+        Assert.assertThrows(ResponseException.class, () -> client().performRequest(request));
+    Assert.assertEquals(400, ex.getResponse().getStatusLine().getStatusCode());
   }
 }

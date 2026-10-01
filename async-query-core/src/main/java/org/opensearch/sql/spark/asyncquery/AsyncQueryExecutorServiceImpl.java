@@ -138,13 +138,10 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
       String queryId, AsyncQueryRequestContext asyncQueryRequestContext) {
     Optional<QueryJobId> jobId = asJobId(queryId);
     if (jobId.isPresent() && queryJobService != null) {
-      try {
-        return toAsyncResponse(queryJobService.get(jobId.get(), currentPrincipal()));
-      } catch (org.opensearch.sql.job.exceptions.QueryJobNotFoundException e) {
-        // Surface as the shared async-query not-found so REST maps it to 4xx (client error) via
-        // RestAsyncQueryManagementAction.isClientError instead of defaulting to 5xx.
-        throw new AsyncQueryNotFoundException(e.getMessage());
-      }
+      // Neutral exceptions (QueryJobNotFoundException / QueryJobForbiddenException) propagate to
+      // TransportGetAsyncQueryResultAction, which translates them to transport-serializable
+      // OpenSearchException subclasses so cross-node forwarding preserves the 404/403 status.
+      return toAsyncResponse(queryJobService.get(jobId.get(), currentPrincipal()));
     }
     Optional<AsyncQueryJobMetadata> jobMetadata =
         asyncQueryJobMetadataStorageService.getJobMetadata(queryId);

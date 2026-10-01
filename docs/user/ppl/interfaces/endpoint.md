@@ -666,8 +666,8 @@ Request body fields:
 
 | Field | Type | Default | Limit | Description |
 |---|---|---|---|---|
-| `wait_for_completion_timeout` | time value string (e.g. `"5s"`, `"0"`) | `5s` when either async field is present | `0s` – `60s` | Maximum time the submit response will wait for the runner. |
-| `keep_alive` | time value string (e.g. `"5m"`) | `5m` | > `0`, ≤ `24h` | How long a terminal job is retained after completion. A subsequent GET on the queryId succeeds within this window and returns 404 afterwards. |
+| `wait_for_completion_timeout` | time value string (e.g. `"5s"`, `"0"`) | `5s` when either async field is present | `0s` – `60s` (inclusive); values outside the range are rejected with `400`. | Maximum time the submit response will wait for the runner. |
+| `keep_alive` | time value string (e.g. `"5m"`) | `5m` | `> 0`, `≤ 24h`; values outside the range are rejected with `400`. | How long a terminal job is retained after completion. A subsequent GET on the queryId succeeds within this window and returns 404 afterwards. |
 
 Behavior:
 
@@ -685,6 +685,14 @@ Behavior:
 - `wait_for_completion_timeout=0` returns the async response immediately without waiting.
 
 Async fetch and cancel reuse the existing `/_plugins/_async_query/{id}` endpoints. `GET` returns a terminal snapshot (`SUCCEEDED` / `FAILED`) or a `RUNNING` snapshot with empty results. `DELETE` cancels the job and returns its final status; a subsequent `GET` may return the terminal status until the retention window expires, then `404`.
+
+Request shapes that cannot be rendered as the async running snapshot (`_plugins/_ppl/_explain`, `profile=true`, non-JDBC response formats such as `csv` / `raw` / `viz`) silently ignore `wait_for_completion_timeout` / `keep_alive` and return the synchronous response.
+
+The `plugins.query.datasources.enabled` cluster setting governs the Spark datasource-backed async-query stack. When it is `false`, Spark POST / GET / DELETE on `/_plugins/_async_query` are rejected with `400`; GET / DELETE on queryIds minted by PPL async submission continue to work because they do not touch Spark.
+
+### Required permissions
+
+Submitting an async PPL query requires `cluster:admin/opensearch/ppl` (included in the default `ppl_full_access` role). Fetching or cancelling the resulting job requires `cluster:admin/opensearch/ql/async_query/result` and `cluster:admin/opensearch/ql/async_query/delete` respectively. Users with custom roles must be granted these in addition to the PPL submit permission; otherwise a successful submit returns a queryId that fails to fetch with `403`.
 
 Example — pure async submit:
 

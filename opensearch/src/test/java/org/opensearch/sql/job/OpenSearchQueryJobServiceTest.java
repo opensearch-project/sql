@@ -6,6 +6,7 @@
 package org.opensearch.sql.job;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -90,6 +91,21 @@ class OpenSearchQueryJobServiceTest {
   }
 
   @Test
+  void discard_removesJobFromStore() {
+    InMemoryQueryJobStore store = new InMemoryQueryJobStore();
+    OpenSearchQueryJobService service = newService(store);
+    QueryJob job = service.submit(new RecordingRunner(), ALICE, KEEP_ALIVE);
+    assertTrue(store.find(job.id()).isPresent());
+
+    service.discard(job);
+
+    assertFalse(store.find(job.id()).isPresent());
+    // Idempotent — a later retention eviction (conditional remove) is a no-op.
+    service.discard(job);
+    assertFalse(store.find(job.id()).isPresent());
+  }
+
+  @Test
   void submit_rejectsNonPositiveKeepAlive() {
     OpenSearchQueryJobService service = newService();
     assertThrows(
@@ -101,12 +117,15 @@ class OpenSearchQueryJobServiceTest {
   }
 
   private OpenSearchQueryJobService newService() {
+    return newService(new InMemoryQueryJobStore());
+  }
+
+  private OpenSearchQueryJobService newService(InMemoryQueryJobStore store) {
     ClusterService clusterService = mock(ClusterService.class);
     DiscoveryNode localNode = mock(DiscoveryNode.class);
     when(localNode.getId()).thenReturn("node-a");
     when(clusterService.localNode()).thenReturn(localNode);
-    return new OpenSearchQueryJobService(
-        new InMemoryQueryJobStore(), clusterService, Clock.systemUTC(), null);
+    return new OpenSearchQueryJobService(store, clusterService, Clock.systemUTC(), null);
   }
 
   private static final class RecordingRunner implements QueryRunner {

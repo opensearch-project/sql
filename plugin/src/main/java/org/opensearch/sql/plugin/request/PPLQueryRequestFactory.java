@@ -6,6 +6,7 @@
 package org.opensearch.sql.plugin.request;
 
 import java.time.Duration;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
@@ -140,11 +141,17 @@ public class PPLQueryRequestFactory {
         pplRequest.waitForCompletionTimeout(
             parseDuration(
                 jsonContent.getString(QUERY_PARAMS_WAIT_FOR_COMPLETION_TIMEOUT),
-                QUERY_PARAMS_WAIT_FOR_COMPLETION_TIMEOUT));
+                QUERY_PARAMS_WAIT_FOR_COMPLETION_TIMEOUT,
+                Duration.ZERO,
+                Duration.ofSeconds(60)));
       }
       if (jsonContent.has(QUERY_PARAMS_KEEP_ALIVE)) {
         pplRequest.keepAlive(
-            parseDuration(jsonContent.getString(QUERY_PARAMS_KEEP_ALIVE), QUERY_PARAMS_KEEP_ALIVE));
+            parseDuration(
+                jsonContent.getString(QUERY_PARAMS_KEEP_ALIVE),
+                QUERY_PARAMS_KEEP_ALIVE,
+                Duration.ofMillis(1),
+                Duration.ofHours(24)));
       }
       return pplRequest;
     } catch (JSONException e) {
@@ -202,8 +209,14 @@ public class PPLQueryRequestFactory {
    * Duration}. Delegates to {@link TimeValue#parseTimeValue} for consistent grammar with other
    * request-body time fields.
    */
-  private static Duration parseDuration(String value, String fieldName) {
-    return Duration.ofMillis(TimeValue.parseTimeValue(value, fieldName).millis());
+  private static Duration parseDuration(
+      String value, String fieldName, Duration min, Duration max) {
+    Duration parsed = Duration.ofMillis(TimeValue.parseTimeValue(value, fieldName).millis());
+    if (parsed.compareTo(min) < 0 || parsed.compareTo(max) > 0) {
+      throw new IllegalArgumentException(
+          String.format(Locale.ROOT, "%s=%s is out of range [%s, %s]", fieldName, value, min, max));
+    }
+    return parsed;
   }
 
   private static String getExplainMode(Map<String, String> requestParams, String path) {
