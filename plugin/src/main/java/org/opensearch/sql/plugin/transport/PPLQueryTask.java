@@ -24,6 +24,9 @@ public class PPLQueryTask extends CancellableTask {
   /** Anonymized query text ({@code PPLQueryDataAnonymizer}); null when anonymization didn't run. */
   private volatile String queryInsightsAnonymizedQuery;
 
+  /** Whether the query failed; recorded so a failed PPL query is flagged in Top N. */
+  private volatile boolean queryInsightsFailed = false;
+
   /**
    * Whether per-thread CPU/memory accounting is enabled for this task. Off by default so a normal
    * PPL query behaves like any {@link CancellableTask}; turned on only when Query Insights
@@ -63,6 +66,14 @@ public class PPLQueryTask extends CancellableTask {
 
   public String getQueryInsightsAnonymizedQuery() {
     return queryInsightsAnonymizedQuery;
+  }
+
+  public void setQueryInsightsFailed(boolean failed) {
+    this.queryInsightsFailed = failed;
+  }
+
+  public boolean isQueryInsightsFailed() {
+    return queryInsightsFailed;
   }
 
   public void setResourceTrackingEnabled(boolean enabled) {

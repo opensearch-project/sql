@@ -88,6 +88,18 @@ public class PPLQueryTaskTest {
   }
 
   @Test
+  public void testQueryInsightsFailedOffByDefault() {
+    assertFalse(newTask().isQueryInsightsFailed());
+  }
+
+  @Test
+  public void testQueryInsightsFailedFlagIsSettable() {
+    PPLQueryTask task = newTask();
+    task.setQueryInsightsFailed(true);
+    assertTrue(task.isQueryInsightsFailed());
+  }
+
+  @Test
   public void testQueryInsightsParentHeaderName() {
     assertEquals("X-Query-Insights-Parent", QueryInsightsMarker.PARENT_HEADER);
   }
