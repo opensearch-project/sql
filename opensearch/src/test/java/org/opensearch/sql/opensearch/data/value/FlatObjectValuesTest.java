@@ -94,6 +94,21 @@ class FlatObjectValuesTest {
                 stringValue("[\"2\",\"1\"]"), flatten(collideOtherOrder).tupleValue().get("a.b")));
   }
 
+  /**
+   * A leaf whose own value looks like a JSON array is still one value. The merge used to recover
+   * the values a path already held by re-reading the JSON it had written, which could not tell its
+   * own output from a value the record wrote, and took such a value apart.
+   */
+  @Test
+  void aValueThatLooksLikeJsonIsNotTakenApart() {
+    LinkedHashMap<String, Object> collide = new LinkedHashMap<>();
+    collide.put("x", Map.of("y", "[1,2]"));
+    collide.put("x.y", "plain");
+    assertEquals(stringValue("[\"[1,2]\",\"plain\"]"), flatten(collide).tupleValue().get("x.y"));
+    // and on its own it is the value as written
+    assertEquals(stringValue("[1,2]"), flatten(Map.of("x", "[1,2]")).tupleValue().get("x"));
+  }
+
   @Test
   void aScalarWhereAnObjectWasPromisedIsNull() {
     assertEquals(nullValue(), flatten(5));
