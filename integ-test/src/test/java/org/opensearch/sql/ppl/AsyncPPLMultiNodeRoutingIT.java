@@ -49,12 +49,28 @@ public class AsyncPPLMultiNodeRoutingIT extends PPLIntegTestCase {
     super.init();
     loadIndex(Index.ACCOUNT);
 
-    HttpHost[] hosts = getClusterHosts().toArray(new HttpHost[0]);
-    if (hosts.length < 2) {
-      Assert.fail("AsyncPPLMultiNodeRoutingIT requires a two-node cluster; got " + hosts.length);
+    // getClusterHosts() returns one HttpHost per bound address — in test clusters each node binds
+    // both [::1] AND 127.0.0.1, so a two-node cluster yields four hosts of which hosts[0] and
+    // hosts[1] are typically the *same* node. Resolve node ids per host and pick two with distinct
+    // ids, otherwise owner-node forwarding never triggers and the test gives a false pass.
+    java.util.List<org.apache.hc.core5.http.HttpHost> hosts = getClusterHosts();
+    HttpHost first = hosts.get(0);
+    String firstNodeId = probeNodeId(first);
+    HttpHost second = null;
+    for (int i = 1; i < hosts.size(); i++) {
+      HttpHost candidate = hosts.get(i);
+      if (!probeNodeId(candidate).equals(firstNodeId)) {
+        second = candidate;
+        break;
+      }
     }
-    nodeA = RestClient.builder(hosts[0]).build();
-    nodeB = RestClient.builder(hosts[1]).build();
+    if (second == null) {
+      Assert.fail(
+          "AsyncPPLMultiNodeRoutingIT needs two distinct nodes; all cluster hosts resolve to "
+              + firstNodeId);
+    }
+    nodeA = RestClient.builder(first).build();
+    nodeB = RestClient.builder(second).build();
   }
 
   @After
@@ -107,6 +123,12 @@ public class AsyncPPLMultiNodeRoutingIT extends PPLIntegTestCase {
         new JSONObject(org.opensearch.sql.legacy.TestUtils.getResponseBody(response, true));
     JSONObject nodes = body.getJSONObject("nodes");
     return nodes.keys().next();
+  }
+
+  private static String probeNodeId(HttpHost host) throws IOException {
+    try (RestClient client = RestClient.builder(host).build()) {
+      return nodeIdOf(client);
+    }
   }
 
   @Test

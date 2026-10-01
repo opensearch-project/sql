@@ -77,6 +77,11 @@ public final class OpenSearchQueryJobService implements QueryJobService {
   @Override
   public void discard(QueryJob job) {
     Objects.requireNonNull(job, "job must not be null");
+    // Cancel the pending retention timer first; otherwise the scheduler's queue retains the
+    // captured QueryJob for the full keep_alive even after the store entry is removed.
+    if (retentionPolicy != null) {
+      retentionPolicy.disarm(job.id());
+    }
     // Conditional remove: a concurrent retention eviction may have already dropped the mapping;
     // or the id may have been re-registered to a different job (not possible with UUID ids but
     // encoded as a safety condition in the store API).

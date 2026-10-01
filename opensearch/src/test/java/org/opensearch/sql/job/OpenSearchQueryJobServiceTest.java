@@ -10,7 +10,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
@@ -106,6 +109,37 @@ class OpenSearchQueryJobServiceTest {
   }
 
   @Test
+  void discard_cancelsRetentionTimerSoSchedulerDoesNotRetainJob() {
+    InMemoryQueryJobStore store = new InMemoryQueryJobStore();
+    org.opensearch.threadpool.ThreadPool threadPool =
+        mock(org.opensearch.threadpool.ThreadPool.class);
+    org.opensearch.threadpool.Scheduler.ScheduledCancellable cancellable =
+        mock(org.opensearch.threadpool.Scheduler.ScheduledCancellable.class);
+    // Pretend the scheduler queued the task (and would hold the job for the full keep_alive).
+    // Capture the Runnable argument but do not execute it — simulate real deferred eviction.
+    when(threadPool.schedule(any(Runnable.class), any(), anyString())).thenReturn(cancellable);
+    RetentionPolicy retention = new RetentionPolicy(store, threadPool);
+
+    ClusterService clusterService = mock(ClusterService.class);
+    DiscoveryNode localNode = mock(DiscoveryNode.class);
+    when(localNode.getId()).thenReturn("node-a");
+    when(clusterService.localNode()).thenReturn(localNode);
+    OpenSearchQueryJobService service =
+        new OpenSearchQueryJobService(store, clusterService, Clock.systemUTC(), retention);
+
+    RecordingRunner runner = new RecordingRunner();
+    QueryJob job = service.submit(runner, ALICE, KEEP_ALIVE);
+    // Drive to terminal so retention schedules the eviction task.
+    runner.complete();
+
+    service.discard(job);
+
+    // disarm must have cancelled the scheduler's queued task so the captured job is reclaimable.
+    verify(cancellable).cancel();
+    assertFalse(store.find(job.id()).isPresent());
+  }
+
+  @Test
   void submit_rejectsNonPositiveKeepAlive() {
     OpenSearchQueryJobService service = newService();
     assertThrows(
@@ -143,6 +177,16 @@ class OpenSearchQueryJobServiceTest {
 
     boolean wasRun() {
       return ran;
+    }
+
+    void complete() {
+      future.complete(
+          new QueryResult.Rows(
+              new org.opensearch.sql.executor.ExecutionEngine.Schema(java.util.List.of()),
+              java.util.List.of(),
+              org.opensearch.sql.executor.pagination.Cursor.None,
+              java.util.List.of(),
+              0));
     }
   }
 }

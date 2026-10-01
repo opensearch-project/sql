@@ -7,9 +7,12 @@ package org.opensearch.sql.job;
 
 import java.time.Duration;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.threadpool.Scheduler;
 import org.opensearch.threadpool.ThreadPool;
 
 /**
@@ -26,6 +29,11 @@ public final class RetentionPolicy {
 
   private final QueryJobStore store;
   private final ThreadPool threadPool;
+  // Tracks the pending eviction task per job so callers can cancel it when they discard the
+  // result inline. Without this, the scheduler's queue retains a strong reference to the job
+  // for the full keep_alive — the store entry is gone but the heap retention lives on.
+  private final ConcurrentMap<QueryJobId, Scheduler.ScheduledCancellable> pending =
+      new ConcurrentHashMap<>();
 
   public RetentionPolicy(QueryJobStore store, ThreadPool threadPool) {
     this.store = Objects.requireNonNull(store, "store must not be null");
@@ -49,17 +57,36 @@ public final class RetentionPolicy {
     job.onTerminal(() -> scheduleEviction(job, ttl));
   }
 
+  /**
+   * Cancels any pending eviction task for {@code jobId}. Idempotent — safe to call when no task is
+   * armed, when the task has already fired, or when the same id is disarmed twice. The dropped
+   * reference lets the scheduler reclaim the captured {@link QueryJob} immediately rather than
+   * holding it until the TTL elapses.
+   */
+  public void disarm(QueryJobId jobId) {
+    Objects.requireNonNull(jobId, "jobId must not be null");
+    Scheduler.ScheduledCancellable cancellable = pending.remove(jobId);
+    if (cancellable != null) {
+      cancellable.cancel();
+    }
+  }
+
   private void scheduleEviction(QueryJob job, Duration ttl) {
     try {
-      threadPool.schedule(
-          () -> {
-            boolean removed = store.remove(job.id(), job);
-            if (removed) {
-              LOG.debug("Evicted terminal query job [{}] after TTL", job.id().encode());
-            }
-          },
-          TimeValue.timeValueMillis(ttl.toMillis()),
-          GENERIC_POOL);
+      Scheduler.ScheduledCancellable cancellable =
+          threadPool.schedule(
+              () -> {
+                // Drop the tracking entry first so the task cannot keep itself alive via the
+                // ConcurrentMap after it fires.
+                pending.remove(job.id());
+                boolean removed = store.remove(job.id(), job);
+                if (removed) {
+                  LOG.debug("Evicted terminal query job [{}] after TTL", job.id().encode());
+                }
+              },
+              TimeValue.timeValueMillis(ttl.toMillis()),
+              GENERIC_POOL);
+      pending.put(job.id(), cancellable);
     } catch (RuntimeException e) {
       // Thread pool refused (shutdown, saturation, ...) — remove immediately so the store does
       // not leak. A misbehaving scheduler must not block the state machine.

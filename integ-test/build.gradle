@@ -790,6 +790,11 @@ task asyncMultiNodeIT(type: RestIntegTestTask) {
     }
 }
 
+// Wire the two-node routing IT into the default verification path so CI runs it alongside the
+// single-node integTest. Without this, AsyncPPLMultiNodeRoutingIT is excluded from `integTest`
+// (needs a 2-node cluster) and would never actually run.
+check.dependsOn asyncMultiNodeIT
+
 task integTestWithSecurity(type: RestIntegTestTask) {
     useCluster testClusters.integTestWithSecurity
     useCluster testClusters.remoteIntegTestWithSecurity
