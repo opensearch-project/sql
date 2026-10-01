@@ -775,6 +775,12 @@ task asyncMultiNodeIT(type: RestIntegTestTask) {
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
 
     systemProperty 'tests.security.manager', 'false'
+    // Resolve dataset files (accounts.json, bank.json, ...) relative to the project.
+    systemProperty 'project.root', project.projectDir.absolutePath
+    // Match the defaults the standard integTest task sets so re-runs produce identical plans.
+    systemProperty 'defaultQuerySizeLimit', '10000'
+    systemProperty 'defaultQueryBucketSize', '1000'
+    systemProperty 'defaultMaxResultWindow', '10000'
     doFirst {
         systemProperty 'cluster.debug', getDebug()
     }

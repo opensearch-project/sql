@@ -5,25 +5,42 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.ASYNC_QUERY_ENDPOINT;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.PPL_ENDPOINT;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.getAsyncQuery;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.pollUntilTerminal;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.postPpl;
+import static org.opensearch.sql.util.MatcherUtils.rows;
+import static org.opensearch.sql.util.MatcherUtils.schema;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
+import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Test;
 import org.opensearch.client.Request;
-import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 
 /**
  * End-to-end IT for the async PPL lifecycle (issue #5765). Verifies:
  *
  * <ul>
- *   <li>sync submit without async body fields keeps the current behavior (no id, no status);
- *   <li>submit with {@code wait_for_completion_timeout=0} returns {@code {id, status: RUNNING,
- *       ...}} without blocking on the runner;
- *   <li>fetch on {@code GET /_plugins/_async_query/{id}} eventually returns the terminal result.
+ *   <li>sync submit without async body fields returns the sync-shape response (schema + rows, no
+ *       id, no status);
+ *   <li>submit with {@code wait_for_completion_timeout=0} returns the running snapshot {@code {id,
+ *       status: RUNNING, schema=[], datarows=[], total=0}} without blocking on the runner;
+ *   <li>submit with a wait budget longer than runner duration returns the sync-shape terminal
+ *       response inline (runner-wins-race);
+ *   <li>fetch on {@code GET /_plugins/_async_query/{id}} eventually returns the terminal result
+ *       with schema and rows;
+ *   <li>statement-level explain (query text starts with {@code explain ...}) is supported in async
+ *       and returns the explain body on GET;
+ *   <li>sync-only request shapes (explain endpoint, analyze endpoint, profile flag, csv format) are
+ *       rejected with 400 when they carry {@code wait_for_completion_timeout};
+ *   <li>{@code keep_alive} drives retention — a job is evicted after its TTL elapses.
  * </ul>
  */
 public class AsyncPPLQueryLifecycleIT extends PPLIntegTestCase {
@@ -35,108 +52,168 @@ public class AsyncPPLQueryLifecycleIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void sync_submitReturnsSyncResponse() throws IOException {
+  public void sync_submitReturnsSyncShapeWithFullResult() throws IOException {
     JSONObject body = new JSONObject();
     body.put("query", "source=" + TEST_INDEX_ACCOUNT + " | stats count() as c");
-    JSONObject response = new JSONObject(post(body));
-    // Sync response shape: schema + datarows, no id, no status.
-    Assert.assertTrue("sync response must expose schema", response.has("schema"));
+
+    JSONObject response = new JSONObject(postPpl(client(), body));
+
     Assert.assertFalse("sync response must not carry queryId", response.has("id"));
+    verifySchema(response, schema("c", "bigint"));
+    verifyDataRows(response, rows(1000));
+    verifyNumOfRows(response, 1);
   }
 
   @Test
-  public void async_submitReturnsRunningWithQueryId() throws IOException {
+  public void async_submitWithZeroWaitReturnsRunningSnapshot() throws IOException {
     JSONObject body = new JSONObject();
     body.put("query", "source=" + TEST_INDEX_ACCOUNT + " | stats count() as c");
     body.put("wait_for_completion_timeout", "0");
-    JSONObject response = new JSONObject(post(body));
+
+    JSONObject response = new JSONObject(postPpl(client(), body));
+
     Assert.assertTrue("async response must carry queryId", response.has("id"));
     Assert.assertEquals("RUNNING", response.getString("status"));
+    Assert.assertEquals(0, response.getJSONArray("schema").length());
+    Assert.assertEquals(0, response.getJSONArray("datarows").length());
+    Assert.assertEquals(0, response.getInt("total"));
   }
 
   @Test
-  public void async_fetchEventuallyReturnsTerminal() throws Exception {
+  public void async_submitWithLongWaitReturnsSyncShape() throws IOException {
+    JSONObject body = new JSONObject();
+    body.put("query", "source=" + TEST_INDEX_ACCOUNT + " | stats count() as c");
+    // Big budget — the stats runner finishes well before 30s, so the submit response is the
+    // sync-shape terminal body (no id).
+    body.put("wait_for_completion_timeout", "30s");
+
+    JSONObject response = new JSONObject(postPpl(client(), body));
+
+    Assert.assertFalse("runner-wins response must not carry queryId", response.has("id"));
+    verifySchema(response, schema("c", "bigint"));
+    verifyDataRows(response, rows(1000));
+  }
+
+  @Test
+  public void async_fetchTerminalReturnsResultWithSchemaAndRows() throws Exception {
     JSONObject body = new JSONObject();
     body.put("query", "source=" + TEST_INDEX_ACCOUNT + " | stats count() as c");
     body.put("wait_for_completion_timeout", "0");
-    String queryId = new JSONObject(post(body)).getString("id");
 
-    JSONObject fetched = pollUntilTerminal(queryId);
-    Assert.assertTrue(
-        "fetch response must be terminal",
-        "SUCCEEDED".equals(fetched.getString("status"))
-            || "FAILED".equals(fetched.getString("status")));
+    String queryId = new JSONObject(postPpl(client(), body)).getString("id");
+    JSONObject fetched = pollUntilTerminal(client(), queryId, 30_000);
+
+    Assert.assertEquals("SUCCEEDED", fetched.getString("status"));
+    // Async GET formatter emits raw engine type ("long"), not the JDBC family ("bigint") emitted
+    // by the sync formatter above.
+    verifySchema(fetched, schema("c", "long"));
+    verifyDataRows(fetched, rows(1000));
+    verifyNumOfRows(fetched, 1);
   }
 
   @Test
-  public void async_explainStatementReturnsExplainBody() throws Exception {
+  public void async_explainStatementReturnsExplainBodyOnGet() throws Exception {
     JSONObject body = new JSONObject();
     body.put("query", "explain source=" + TEST_INDEX_ACCOUNT + " | stats count() as c");
     body.put("wait_for_completion_timeout", "0");
-    String queryId = new JSONObject(post(body)).getString("id");
 
-    // GET returns the explain body verbatim — it has no `status` field, so poll on the raw text.
+    String queryId = new JSONObject(postPpl(client(), body)).getString("id");
+
+    // Explain terminal response has no `status` field. Poll until the body is JSON-parseable with
+    // the calcite/root plan-tree marker.
     long deadline = System.currentTimeMillis() + 30_000L;
-    String raw = null;
+    JSONObject explain = null;
     while (System.currentTimeMillis() < deadline) {
-      raw = get(queryId);
-      if (raw.contains("\"calcite\"") || raw.contains("\"root\"")) {
+      String raw = getAsyncQuery(client(), queryId);
+      try {
+        JSONObject parsed = new JSONObject(raw);
+        if (parsed.has("calcite") || parsed.has("root")) {
+          explain = parsed;
+          break;
+        }
+      } catch (RuntimeException ignored) {
+        // not valid JSON yet; keep polling
+      }
+      Thread.sleep(200);
+    }
+    Assert.assertNotNull("cross-poll explain body never arrived", explain);
+    Assert.assertTrue(
+        "explain body must carry a plan tree", explain.has("calcite") || explain.has("root"));
+  }
+
+  @Test
+  public void async_rejectedForExplainEndpoint() {
+    assertRejectedWith400(
+        PPL_ENDPOINT + "/_explain", withAsyncWait("source=" + TEST_INDEX_ACCOUNT));
+  }
+
+  @Test
+  public void async_rejectedForAnalyzeEndpoint() {
+    assertRejectedWith400(
+        PPL_ENDPOINT + "/_analyze", withAsyncWait("source=" + TEST_INDEX_ACCOUNT));
+  }
+
+  @Test
+  public void async_rejectedForProfileFlag() {
+    JSONObject body = withAsyncWait("source=" + TEST_INDEX_ACCOUNT);
+    body.put("profile", true);
+    assertRejectedWith400(PPL_ENDPOINT, body);
+  }
+
+  @Test
+  public void async_rejectedForCsvFormat() {
+    assertRejectedWith400(
+        PPL_ENDPOINT + "?format=csv", withAsyncWait("source=" + TEST_INDEX_ACCOUNT));
+  }
+
+  @Test
+  public void async_fetchUnknownQueryIdReturns4xx() {
+    Request request = new Request("GET", ASYNC_QUERY_ENDPOINT + "nodeX%3Adoes-not-exist");
+    ResponseException ex =
+        Assert.assertThrows(ResponseException.class, () -> client().performRequest(request));
+    int code = ex.getResponse().getStatusLine().getStatusCode();
+    Assert.assertTrue("expected 4xx for unknown queryId, got " + code, code >= 400 && code < 500);
+  }
+
+  @Test
+  public void async_keepAliveEvictsAfterTtl() throws Exception {
+    JSONObject body = new JSONObject();
+    body.put("query", "source=" + TEST_INDEX_ACCOUNT + " | stats count() as c");
+    body.put("wait_for_completion_timeout", "0");
+    body.put("keep_alive", "3s");
+
+    String queryId = new JSONObject(postPpl(client(), body)).getString("id");
+    JSONObject terminal = pollUntilTerminal(client(), queryId, 15_000);
+    Assert.assertEquals("SUCCEEDED", terminal.getString("status"));
+
+    // Eviction fires 3s after the terminal transition. Give it a comfortable margin.
+    long deadline = System.currentTimeMillis() + 15_000L;
+    while (System.currentTimeMillis() < deadline) {
+      try {
+        getAsyncQuery(client(), queryId);
+      } catch (ResponseException ex) {
+        int code = ex.getResponse().getStatusLine().getStatusCode();
+        Assert.assertTrue(
+            "expected 4xx after keep_alive expiry, got " + code, code >= 400 && code < 500);
         return;
       }
-      Thread.sleep(200);
+      Thread.sleep(500);
     }
-    Assert.fail("explain body never appeared; last=" + raw);
+    Assert.fail("job [" + queryId + "] was not evicted within 15s after keep_alive=3s");
   }
 
-  @Test
-  public void async_rejectedForExplainEndpoint() throws Exception {
+  private static JSONObject withAsyncWait(String query) {
     JSONObject body = new JSONObject();
-    body.put("query", "source=" + TEST_INDEX_ACCOUNT + " | stats count() as c");
+    body.put("query", query);
     body.put("wait_for_completion_timeout", "0");
-    Request request = new Request("POST", "/_plugins/_ppl/_explain");
+    return body;
+  }
+
+  private void assertRejectedWith400(String endpoint, JSONObject body) {
+    Request request = new Request("POST", endpoint);
     request.setJsonEntity(body.toString());
     ResponseException ex =
         Assert.assertThrows(ResponseException.class, () -> client().performRequest(request));
     Assert.assertEquals(400, ex.getResponse().getStatusLine().getStatusCode());
-  }
-
-  @Test
-  public void async_rejectedForCsvFormat() throws Exception {
-    JSONObject body = new JSONObject();
-    body.put("query", "source=" + TEST_INDEX_ACCOUNT + " | stats count() as c");
-    body.put("wait_for_completion_timeout", "0");
-    Request request = new Request("POST", "/_plugins/_ppl?format=csv");
-    request.setJsonEntity(body.toString());
-    ResponseException ex =
-        Assert.assertThrows(ResponseException.class, () -> client().performRequest(request));
-    Assert.assertEquals(400, ex.getResponse().getStatusLine().getStatusCode());
-  }
-
-  private JSONObject pollUntilTerminal(String queryId) throws Exception {
-    long deadline = System.currentTimeMillis() + 30_000L;
-    JSONObject last = null;
-    while (System.currentTimeMillis() < deadline) {
-      last = new JSONObject(get(queryId));
-      String status = last.getString("status");
-      if (!"RUNNING".equals(status) && !"PENDING".equals(status)) {
-        return last;
-      }
-      Thread.sleep(200);
-    }
-    Assert.fail("async job did not reach terminal status within 30s. last=" + last);
-    return last; // unreachable
-  }
-
-  private String post(JSONObject body) throws IOException {
-    Request request = new Request("POST", "/_plugins/_ppl");
-    request.setJsonEntity(body.toString());
-    Response response = client().performRequest(request);
-    return getResponseBody(response, true);
-  }
-
-  private String get(String queryId) throws IOException {
-    Request request = new Request("GET", "/_plugins/_async_query/" + queryId);
-    Response response = client().performRequest(request);
-    return getResponseBody(response, true);
   }
 }

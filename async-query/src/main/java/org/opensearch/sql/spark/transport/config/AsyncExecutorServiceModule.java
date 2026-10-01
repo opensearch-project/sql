@@ -78,11 +78,17 @@ import org.opensearch.transport.client.node.NodeClient;
 public class AsyncExecutorServiceModule extends AbstractModule {
 
   @Override
-  protected void configure() {}
+  protected void configure() {
+    // Callers that reference the interface (e.g. the scheduled job runner) resolve to the same
+    // impl instance that transport actions inject directly. Transport actions must inject the
+    // concrete impl class because OpenSearch's plugin framework binds createComponents()
+    // return values by runtime getClass().
+    bind(AsyncQueryExecutorService.class).to(AsyncQueryExecutorServiceImpl.class);
+  }
 
   @Provides
   @Singleton
-  public AsyncQueryExecutorService asyncQueryExecutorService(
+  public AsyncQueryExecutorServiceImpl asyncQueryExecutorServiceImpl(
       AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService,
       SparkQueryDispatcher sparkQueryDispatcher,
       SparkExecutionEngineConfigSupplier sparkExecutionEngineConfigSupplier,

@@ -17,6 +17,7 @@ import org.opensearch.sql.job.QueryJobId;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
+import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorServiceImpl;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
 import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
 import org.opensearch.sql.spark.transport.format.AsyncQueryResultResponseFormatter;
@@ -43,7 +44,7 @@ public class TransportGetAsyncQueryResultAction
       TransportService transportService,
       ActionFilters actionFilters,
       ClusterService clusterService,
-      AsyncQueryExecutorService jobManagementService) {
+      AsyncQueryExecutorServiceImpl jobManagementService) {
     super(NAME, transportService, actionFilters, GetAsyncQueryResultActionRequest::new);
     this.asyncQueryExecutorService = jobManagementService;
     this.clusterService = clusterService;

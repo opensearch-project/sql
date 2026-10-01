@@ -205,12 +205,38 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
 
   protected Request buildRequest(String query, String endpoint) {
     Request request = new Request("POST", endpoint);
-    request.setJsonEntity(String.format(Locale.ROOT, "{\n" + "  \"query\": \"%s\"\n" + "}", query));
+    request.setJsonEntity(buildJsonBody(query, endpoint));
 
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");
     request.setOptions(restOptionsBuilder);
     return request;
+  }
+
+  /**
+   * Builds the JSON body for {@code POST /_plugins/_ppl}. When the system property {@code
+   * test.ppl.wait_for_completion_timeout} is set (e.g. {@code "60s"}), injects {@code
+   * wait_for_completion_timeout} into the body so every existing PPL IT exercises the async submit
+   * path. The injection is skipped for {@code /_explain} and {@code /_analyze} endpoints (they hit
+   * the sync-only gate and would fail with 400).
+   *
+   * <p>Formatting matches the original raw-{@code String.format} path exactly — tests pass query
+   * strings whose embedded quotes are Java-escaped to be inserted verbatim into the JSON stream
+   * (i.e. pre-formatted as JSON content). {@link org.json.JSONObject#put} would double-escape and
+   * break those queries.
+   */
+  private static String buildJsonBody(String query, String endpoint) {
+    String asyncWait = System.getProperty("test.ppl.wait_for_completion_timeout", "");
+    boolean asyncEligible =
+        !asyncWait.isEmpty() && !endpoint.contains("/_explain") && !endpoint.contains("/_analyze");
+    if (asyncEligible) {
+      return String.format(
+          Locale.ROOT,
+          "{\n  \"query\": \"%s\",\n  \"wait_for_completion_timeout\": \"%s\"\n}",
+          query,
+          asyncWait);
+    }
+    return String.format(Locale.ROOT, "{\n" + "  \"query\": \"%s\"\n" + "}", query);
   }
 
   protected Request buildRequestWithHighlight(String query, String endpoint, String highlightJson) {

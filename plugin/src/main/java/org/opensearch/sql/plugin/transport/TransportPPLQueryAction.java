@@ -350,8 +350,12 @@ public class TransportPPLQueryAction
         .whenComplete(
             (result, error) -> {
               if (error != null) {
+                // whenComplete on a dependent CompletionStage wraps the exception in
+                // CompletionException. Unwrap so OpenSearch's status mapper sees the engine's
+                // original exception type (preserves 4xx classification and PPL error context).
+                Throwable cause = QueryJob.unwrap(error);
                 responseListener.onFailure(
-                    error instanceof Exception ex ? ex : new RuntimeException(error));
+                    cause instanceof Exception ex ? ex : new RuntimeException(cause));
                 return;
               }
               switch (result) {

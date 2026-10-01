@@ -5,19 +5,22 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.getAsyncQuery;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.pollUntilTerminal;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.postPpl;
+import static org.opensearch.sql.util.MatcherUtils.rows;
+import static org.opensearch.sql.util.MatcherUtils.schema;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
+import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.hc.core5.http.HttpHost;
-import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
-import org.opensearch.client.Request;
-import org.opensearch.client.Response;
 import org.opensearch.client.RestClient;
 
 /**
@@ -27,7 +30,9 @@ import org.opensearch.client.RestClient;
  *
  * <ul>
  *   <li>submit lands on node A; the returned queryId encodes node A as owner;
- *   <li>GET on node B forwards to node A and returns the terminal snapshot.
+ *   <li>GET on node B forwards to node A and returns the terminal snapshot with full schema + rows;
+ *   <li>statement-level explain submitted on node A and fetched on node B returns the explain body
+ *       produced by the owner's sync explain path.
  * </ul>
  *
  * <p>Each request is pinned to a specific node by constructing a dedicated {@link RestClient} for
@@ -36,14 +41,13 @@ import org.opensearch.client.RestClient;
  */
 public class AsyncPPLMultiNodeRoutingIT extends PPLIntegTestCase {
 
-  private static final String INDEX = "routing_it_accounts";
-
   private RestClient nodeA;
   private RestClient nodeB;
 
   @Override
   protected void init() throws Exception {
     super.init();
+    loadIndex(Index.ACCOUNT);
 
     HttpHost[] hosts = getClusterHosts().toArray(new HttpHost[0]);
     if (hosts.length < 2) {
@@ -51,21 +55,6 @@ public class AsyncPPLMultiNodeRoutingIT extends PPLIntegTestCase {
     }
     nodeA = RestClient.builder(hosts[0]).build();
     nodeB = RestClient.builder(hosts[1]).build();
-
-    // Small inline dataset so the query has something to run against without a resource file.
-    Request bulk = new Request("POST", "/_bulk");
-    String body =
-        "{\"index\":{\"_index\":\""
-            + INDEX
-            + "\",\"_id\":\"1\"}}\n"
-            + "{\"age\":20,\"balance\":100}\n"
-            + "{\"index\":{\"_index\":\""
-            + INDEX
-            + "\",\"_id\":\"2\"}}\n"
-            + "{\"age\":30,\"balance\":200}\n";
-    bulk.setEntity(new StringEntity(body, org.apache.hc.core5.http.ContentType.APPLICATION_JSON));
-    bulk.addParameter("refresh", "true");
-    nodeA.performRequest(bulk);
   }
 
   @After
@@ -81,71 +70,46 @@ public class AsyncPPLMultiNodeRoutingIT extends PPLIntegTestCase {
   @Test
   public void get_forwardsFromNonOwnerNodeToOwner() throws Exception {
     JSONObject body = new JSONObject();
-    body.put("query", "source=" + INDEX + " | stats count() as c");
+    body.put("query", "source=" + TEST_INDEX_ACCOUNT + " | stats count() as c");
     body.put("wait_for_completion_timeout", "0");
 
-    // Submit on node A — owner id encodes node A.
-    String submitJson = post(nodeA, body);
-    JSONObject submitResponse = new JSONObject(submitJson);
+    JSONObject submitResponse = new JSONObject(postPpl(nodeA, body));
     Assert.assertTrue("submit response must carry queryId", submitResponse.has("id"));
     String queryId = submitResponse.getString("id");
 
-    // Fetch on node B — must forward to node A and return terminal state.
-    JSONObject fetched = pollUntilTerminal(nodeB, queryId);
-    String status = fetched.getString("status");
-    Assert.assertTrue(
-        "post-forward status is terminal, got " + status,
-        "SUCCEEDED".equals(status) || "FAILED".equals(status));
+    JSONObject fetched = pollUntilTerminal(nodeB, queryId, 30_000);
+    Assert.assertEquals("SUCCEEDED", fetched.getString("status"));
+    // Async GET formatter emits raw engine type ("long"), not the JDBC family ("bigint").
+    verifySchema(fetched, schema("c", "long"));
+    verifyDataRows(fetched, rows(1000));
+    verifyNumOfRows(fetched, 1);
   }
 
   @Test
   public void explain_forwardsFromNonOwnerNodeToOwner() throws Exception {
     JSONObject body = new JSONObject();
-    body.put("query", "explain source=" + INDEX + " | stats count() as c");
+    body.put("query", "explain source=" + TEST_INDEX_ACCOUNT + " | stats count() as c");
     body.put("wait_for_completion_timeout", "0");
 
-    String queryId = new JSONObject(post(nodeA, body)).getString("id");
+    String queryId = new JSONObject(postPpl(nodeA, body)).getString("id");
 
-    // Poll GET on node B — must forward to A and eventually return an explain-shaped body.
     long deadline = System.currentTimeMillis() + 30_000L;
-    String raw = null;
+    JSONObject explain = null;
     while (System.currentTimeMillis() < deadline) {
-      raw = get(nodeB, queryId);
-      if (raw.contains("\"calcite\"") || raw.contains("\"root\"")) {
-        return;
+      String raw = getAsyncQuery(nodeB, queryId);
+      try {
+        JSONObject parsed = new JSONObject(raw);
+        if (parsed.has("calcite") || parsed.has("root")) {
+          explain = parsed;
+          break;
+        }
+      } catch (RuntimeException ignored) {
+        // not valid JSON yet; keep polling
       }
       Thread.sleep(200);
     }
-    Assert.fail("cross-node explain never returned plan tree; last=" + raw);
-  }
-
-  private JSONObject pollUntilTerminal(RestClient node, String queryId) throws Exception {
-    long deadline = System.currentTimeMillis() + 30_000L;
-    JSONObject last = null;
-    List<String> transitions = new ArrayList<>();
-    while (System.currentTimeMillis() < deadline) {
-      last = new JSONObject(get(node, queryId));
-      String status = last.getString("status");
-      transitions.add(status);
-      if (!"RUNNING".equals(status) && !"PENDING".equals(status)) {
-        return last;
-      }
-      Thread.sleep(200);
-    }
-    Assert.fail("queryId " + queryId + " did not reach terminal state; transitions=" + transitions);
-    return last; // unreachable
-  }
-
-  private String post(RestClient node, JSONObject body) throws IOException {
-    Request request = new Request("POST", "/_plugins/_ppl");
-    request.setJsonEntity(body.toString());
-    Response response = node.performRequest(request);
-    return getResponseBody(response, true);
-  }
-
-  private String get(RestClient node, String queryId) throws IOException {
-    Request request = new Request("GET", "/_plugins/_async_query/" + queryId);
-    Response response = node.performRequest(request);
-    return getResponseBody(response, true);
+    Assert.assertNotNull("cross-node explain body never arrived", explain);
+    Assert.assertTrue(
+        "explain body must carry a plan tree", explain.has("calcite") || explain.has("root"));
   }
 }
