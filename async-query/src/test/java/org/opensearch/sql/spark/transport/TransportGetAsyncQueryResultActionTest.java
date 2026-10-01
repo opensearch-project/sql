@@ -1,8 +1,6 @@
 /*
- *
- *  * Copyright OpenSearch Contributors
- *  * SPDX-License-Identifier: Apache-2.0
- *
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 package org.opensearch.sql.spark.transport;
@@ -158,8 +156,9 @@ public class TransportGetAsyncQueryResultActionTest {
   @Test
   public void queryJobNotFound_translatesToResourceNotFoundException() {
     GetAsyncQueryResultActionRequest request = new GetAsyncQueryResultActionRequest("missing");
-    doThrow(new org.opensearch.sql.job.exceptions.QueryJobNotFoundException(
-            new org.opensearch.sql.job.QueryJobId("node-a", "ctx-x")))
+    doThrow(
+            new org.opensearch.sql.job.exceptions.QueryJobNotFoundException(
+                new org.opensearch.sql.job.QueryJobId("node-a", "ctx-x")))
         .when(jobExecutorService)
         .getAsyncQueryResults(eq("missing"), any());
 

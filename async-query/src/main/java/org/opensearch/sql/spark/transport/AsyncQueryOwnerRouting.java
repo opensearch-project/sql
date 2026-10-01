@@ -21,11 +21,11 @@ import org.opensearch.transport.TransportService;
 /**
  * Owner-node forwarding for async-query transport actions.
  *
- * <p>Both {@link TransportGetAsyncQueryResultAction} and
- * {@link TransportCancelAsyncQueryRequestAction} share the same forwarding contract: parse the
- * incoming queryId as {@link QueryJobId}, look up the owner {@link DiscoveryNode} in the current
- * cluster state, and forward the request to the owner via the same transport action name. The
- * owner node's handler then resolves the id in its local {@code QueryJobStore}.
+ * <p>Both {@link TransportGetAsyncQueryResultAction} and {@link
+ * TransportCancelAsyncQueryRequestAction} share the same forwarding contract: parse the incoming
+ * queryId as {@link QueryJobId}, look up the owner {@link DiscoveryNode} in the current cluster
+ * state, and forward the request to the owner via the same transport action name. The owner node's
+ * handler then resolves the id in its local {@code QueryJobStore}.
  *
  * <p>Extracted here so the two transport actions do not each carry an identical copy.
  */

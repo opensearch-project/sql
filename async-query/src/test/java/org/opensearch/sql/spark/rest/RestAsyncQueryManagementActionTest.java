@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package org.opensearch.sql.spark.rest;
 
 import com.google.gson.Gson;
@@ -79,8 +84,7 @@ public class RestAsyncQueryManagementActionTest {
 
   @Test
   public void isPplRequest_trueForGetWithQueryJobId() {
-    String pplId =
-        org.opensearch.sql.job.QueryJobId.create("node-a").encode();
+    String pplId = org.opensearch.sql.job.QueryJobId.create("node-a").encode();
     RestRequest req = Mockito.mock(RestRequest.class);
     Mockito.when(req.method()).thenReturn(RestRequest.Method.GET);
     Mockito.when(req.param("queryId")).thenReturn(pplId);
@@ -89,8 +93,7 @@ public class RestAsyncQueryManagementActionTest {
 
   @Test
   public void isPplRequest_trueForDeleteWithQueryJobId() {
-    String pplId =
-        org.opensearch.sql.job.QueryJobId.create("node-a").encode();
+    String pplId = org.opensearch.sql.job.QueryJobId.create("node-a").encode();
     RestRequest req = Mockito.mock(RestRequest.class);
     Mockito.when(req.method()).thenReturn(RestRequest.Method.DELETE);
     Mockito.when(req.param("queryId")).thenReturn(pplId);

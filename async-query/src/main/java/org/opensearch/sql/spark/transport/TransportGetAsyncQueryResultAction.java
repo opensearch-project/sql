@@ -104,5 +104,4 @@ public class TransportGetAsyncQueryResultAction
       listener.onFailure(e);
     }
   }
-
 }

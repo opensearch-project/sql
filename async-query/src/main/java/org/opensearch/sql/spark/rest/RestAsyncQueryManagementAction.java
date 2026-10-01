@@ -290,8 +290,8 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
   /**
    * A GET or DELETE whose {@code queryId} parses as a neutral {@link
    * org.opensearch.sql.job.QueryJobId} is a PPL async submission ({@code POST /_plugins/_ppl} with
-   * {@code wait_for_completion_timeout}), not a Spark datasource request. The
-   * {@link Settings.Key#DATASOURCES_ENABLED} gate only governs Spark access and must not block
+   * {@code wait_for_completion_timeout}), not a Spark datasource request. The {@link
+   * Settings.Key#DATASOURCES_ENABLED} gate only governs Spark access and must not block
    * fetch/cancel of PPL jobs.
    */
   static boolean isPplRequest(RestRequest req) {
