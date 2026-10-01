@@ -16,6 +16,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.opensearch.action.search.CreatePitResponse;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.ShardSearchFailure;
 import org.opensearch.sql.executor.Warning;
@@ -178,6 +179,20 @@ class ShardStatsTest {
     ShardStats stats = ShardStats.from(searchResponse(2, 1, 0, 1, false, bare));
 
     assertEquals(List.of("[logs][2] shard not available"), stats.failures());
+  }
+
+  @Test
+  void a_pit_created_over_some_of_its_shards_reports_the_missing_shard() {
+    CreatePitResponse pit = mock(CreatePitResponse.class);
+    when(pit.getTotalShards()).thenReturn(2);
+    when(pit.getSuccessfulShards()).thenReturn(1);
+
+    ShardStats stats = ShardStats.from(pit);
+
+    assertEquals(1, stats.missing());
+    assertEquals(
+        "Results are partial: 1 of 2 shards did not return data.",
+        stats.toWarning().orElseThrow().getMessage());
   }
 
   private static ShardSearchFailure failure(String index, int shard, String message) {
