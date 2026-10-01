@@ -74,7 +74,7 @@ public class PPLQueryRequest {
   @Accessors(fluent = true)
   private String queryId = null;
 
-  public static final Duration DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT = Duration.ofSeconds(5);
+  public static final Duration DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT = Duration.ofSeconds(30);
   public static final Duration DEFAULT_KEEP_ALIVE = Duration.ofMinutes(5);
 
   @Setter
