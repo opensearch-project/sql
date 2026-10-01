@@ -240,11 +240,11 @@ public class TransportPPLQueryAction
 
     try {
       if (transformedRequest.isAsync() && !supportsAsync(transformedRequest)) {
-        clearingListener.onFailure(
-            new IllegalArgumentException(
-                "wait_for_completion_timeout is only supported for standard PPL queries."
-                    + " Please remove wait_for_completion_timeout and retry."));
-        return;
+        // Silently fall through to the sync pipeline for request shapes whose execution is
+        // inherently synchronous (endpoint-level explain / analyze / profile, analytics-engine
+        // indices, non-JDBC formats). Clearing the async fields makes isAsync() return false so
+        // the dispatch below takes the sync branch.
+        transformedRequest.waitForCompletionTimeout(null).keepAlive(null);
       }
       // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices.
       if (unifiedQueryHandler != null

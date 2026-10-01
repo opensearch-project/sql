@@ -142,28 +142,43 @@ public class AsyncPPLQueryLifecycleIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void async_rejectedForExplainEndpoint() {
-    assertRejectedWith400(
-        PPL_ENDPOINT + "/_explain", withAsyncWait("source=" + TEST_INDEX_ACCOUNT));
+  public void async_fallsThroughToSyncForExplainEndpoint() throws IOException {
+    // Explain endpoint ignores wait_for_completion_timeout and returns the sync explain body.
+    JSONObject response =
+        new JSONObject(
+            postPpl(
+                client(),
+                PPL_ENDPOINT + "/_explain",
+                withAsyncWait("source=" + TEST_INDEX_ACCOUNT + " | stats count() as c")));
+    Assert.assertFalse("sync-explain response must not carry queryId", response.has("id"));
+    Assert.assertTrue(
+        "sync-explain response must carry a plan tree",
+        response.has("calcite") || response.has("root"));
   }
 
   @Test
-  public void async_rejectedForAnalyzeEndpoint() {
-    assertRejectedWith400(
-        PPL_ENDPOINT + "/_analyze", withAsyncWait("source=" + TEST_INDEX_ACCOUNT));
-  }
-
-  @Test
-  public void async_rejectedForProfileFlag() {
-    JSONObject body = withAsyncWait("source=" + TEST_INDEX_ACCOUNT);
+  public void async_fallsThroughToSyncForProfileFlag() throws IOException {
+    JSONObject body = withAsyncWait("source=" + TEST_INDEX_ACCOUNT + " | stats count() as c");
     body.put("profile", true);
-    assertRejectedWith400(PPL_ENDPOINT, body);
+    JSONObject response = new JSONObject(postPpl(client(), PPL_ENDPOINT, body));
+    Assert.assertFalse("sync-profile response must not carry queryId", response.has("id"));
+    // Profile output carries the normal sync result; schema + rows are present.
+    Assert.assertTrue("sync-profile response must carry schema", response.has("schema"));
+    Assert.assertTrue("sync-profile response must carry datarows", response.has("datarows"));
   }
 
   @Test
-  public void async_rejectedForCsvFormat() {
-    assertRejectedWith400(
-        PPL_ENDPOINT + "?format=csv", withAsyncWait("source=" + TEST_INDEX_ACCOUNT));
+  public void async_fallsThroughToSyncForCsvFormat() throws IOException {
+    // CSV format: the response body is text/csv, not JSON. Just assert it isn't a JSON async
+    // snapshot and that the row count matches sync behavior.
+    Request request = new Request("POST", PPL_ENDPOINT + "?format=csv");
+    request.setJsonEntity(
+        withAsyncWait("source=" + TEST_INDEX_ACCOUNT + " | stats count() as c").toString());
+    String body =
+        org.opensearch.sql.legacy.TestUtils.getResponseBody(client().performRequest(request), true);
+    Assert.assertFalse("csv response must not be a JSON async snapshot", body.contains("\"id\""));
+    Assert.assertTrue(
+        "csv response must carry the count=1000 row, got: " + body, body.contains("1000"));
   }
 
   @Test
@@ -207,13 +222,5 @@ public class AsyncPPLQueryLifecycleIT extends PPLIntegTestCase {
     body.put("query", query);
     body.put("wait_for_completion_timeout", "0");
     return body;
-  }
-
-  private void assertRejectedWith400(String endpoint, JSONObject body) {
-    Request request = new Request("POST", endpoint);
-    request.setJsonEntity(body.toString());
-    ResponseException ex =
-        Assert.assertThrows(ResponseException.class, () -> client().performRequest(request));
-    Assert.assertEquals(400, ex.getResponse().getStatusLine().getStatusCode());
   }
 }
