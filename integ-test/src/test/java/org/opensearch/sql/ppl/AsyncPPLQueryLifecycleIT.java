@@ -195,14 +195,14 @@ public class AsyncPPLQueryLifecycleIT extends PPLIntegTestCase {
     JSONObject body = new JSONObject();
     body.put("query", "source=" + TEST_INDEX_ACCOUNT + " | stats count() as c");
     body.put("wait_for_completion_timeout", "0");
-    body.put("keep_alive", "3s");
+    body.put("keep_alive", "1s");
 
     String queryId = new JSONObject(postPpl(client(), body)).getString("id");
-    JSONObject terminal = pollUntilTerminal(client(), queryId, 15_000);
+    JSONObject terminal = pollUntilTerminal(client(), queryId, 5_000);
     Assert.assertEquals("SUCCEEDED", terminal.getString("status"));
 
-    // Eviction fires 3s after the terminal transition. Give it a comfortable margin.
-    long deadline = System.currentTimeMillis() + 15_000L;
+    // Eviction fires 1s after the terminal transition.
+    long deadline = System.currentTimeMillis() + 3_000L;
     while (System.currentTimeMillis() < deadline) {
       try {
         getAsyncQuery(client(), queryId);
@@ -212,9 +212,9 @@ public class AsyncPPLQueryLifecycleIT extends PPLIntegTestCase {
             "expected 4xx after keep_alive expiry, got " + code, code >= 400 && code < 500);
         return;
       }
-      Thread.sleep(500);
+      Thread.sleep(200);
     }
-    Assert.fail("job [" + queryId + "] was not evicted within 15s after keep_alive=3s");
+    Assert.fail("job [" + queryId + "] was not evicted within 3s after keep_alive=1s");
   }
 
   private static JSONObject withAsyncWait(String query) {

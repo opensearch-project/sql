@@ -87,9 +87,21 @@ public class PPLQueryRequest {
   @Accessors(fluent = true)
   private Duration keepAlive = null;
 
-  /** Returns {@code true} when either async body field is present on the request. */
-  public boolean isAsync() {
-    return waitForCompletionTimeout != null || keepAlive != null;
+  /**
+   * Returns {@code true} iff this request should take the async submit pipeline — the caller
+   * declared async intent via {@code wait_for_completion_timeout} / {@code keep_alive} AND the
+   * request shape supports it. Sync-only shapes (endpoint-level explain / analyze, profile flag,
+   * non-JDBC response formats) return {@code false} even when the async body fields are present;
+   * the dispatch then falls through to the synchronous pipeline and the async fields are ignored.
+   */
+  public boolean shouldRunAsync() {
+    if (waitForCompletionTimeout == null && keepAlive == null) {
+      return false;
+    }
+    if (isExplainRequest() || analyze || profile) {
+      return false;
+    }
+    return Format.of(format).orElse(null) == Format.JDBC;
   }
 
   /** Caller-supplied {@code wait_for_completion_timeout} or the default. Never null. */

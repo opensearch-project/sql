@@ -239,13 +239,6 @@ public class TransportPPLQueryAction
         wrapWithProfilingClear(tracedListener);
 
     try {
-      if (transformedRequest.isAsync() && !supportsAsync(transformedRequest)) {
-        // Silently fall through to the sync pipeline for request shapes whose execution is
-        // inherently synchronous (endpoint-level explain / analyze / profile, analytics-engine
-        // indices, non-JDBC formats). Clearing the async fields makes isAsync() return false so
-        // the dispatch below takes the sync branch.
-        transformedRequest.waitForCompletionTimeout(null).keepAlive(null);
-      }
       // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices.
       if (unifiedQueryHandler != null
           && unifiedQueryHandler.isAnalyticsIndex(transformedRequest.getRequest(), QueryType.PPL)) {
@@ -290,7 +283,7 @@ public class TransportPPLQueryAction
             transformedRequest,
             createAnalyzeResponseListener(transformedRequest, clearingListener),
             anonymizedQuerySink);
-      } else if (transformedRequest.isAsync()) {
+      } else if (transformedRequest.shouldRunAsync()) {
         submitAsync(pplService, transformedRequest, clearingListener, anonymizedQuerySink);
       } else {
         pplService.execute(
@@ -304,25 +297,6 @@ public class TransportPPLQueryAction
     } finally {
       spanScope.close();
     }
-  }
-
-  /**
-   * Feature gate for the async submit path. Returns {@code false} for request shapes whose
-   * execution pipeline is inherently synchronous (endpoint-level explain / analyze / profile,
-   * analytics-engine indices) or whose response format cannot carry the JSON running-snapshot body.
-   * Statement-level explain (query text starts with {@code explain ...}) is untouched — it flows
-   * through the normal PPL execute path and terminates as a {@link
-   * org.opensearch.sql.job.QueryResult.Explain}.
-   */
-  private boolean supportsAsync(PPLQueryRequest request) {
-    if (request.isExplainRequest() || request.analyze() || request.profile()) {
-      return false;
-    }
-    if (unifiedQueryHandler != null
-        && unifiedQueryHandler.isAnalyticsIndex(request.getRequest(), QueryType.PPL)) {
-      return false;
-    }
-    return format(request) == Format.JDBC;
   }
 
   private void submitAsync(
