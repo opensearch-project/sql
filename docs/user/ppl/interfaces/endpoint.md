@@ -660,72 +660,68 @@ Expected output (the explicitly selected metadata field is returned even though 
 
 ## Async submit — `wait_for_completion_timeout` and `keep_alive`
 
-`POST /_plugins/_ppl` supports both synchronous and asynchronous execution through the same endpoint. Presence of either `wait_for_completion_timeout` or `keep_alive` in the request body switches to the asynchronous submit path per [issue #5765](https://github.com/opensearch-project/sql/issues/5765). Absence of both keeps the existing synchronous behavior — clients that do not send these fields see no change.
+### Description
 
-Request body fields:
+`POST /_plugins/_ppl` accepts two optional body fields that let a client submit a long-running query and return before it finishes. If the query completes inside the configured wait, the response is identical to a synchronous PPL response. If the wait expires first, the response carries an opaque `id` and the client fetches the final result later via `GET /_plugins/_async_query/{id}`.
+
+Parameters:
 
 | Field | Type | Default | Limit | Description |
 |---|---|---|---|---|
-| `wait_for_completion_timeout` | time value string (e.g. `"5s"`, `"0"`) | `5s` when either async field is present | `0s` – `60s` (inclusive); values outside the range are rejected with `400`. | Maximum time the submit response will wait for the runner. |
-| `keep_alive` | time value string (e.g. `"5m"`) | `5m` | `> 0`, `≤ 24h`; values outside the range are rejected with `400`. | How long a terminal job is retained after completion. A subsequent GET on the queryId succeeds within this window and returns 404 afterwards. |
+| `wait_for_completion_timeout` | time value string (e.g. `"5s"`, `"0"`) | `5s` when either async field is present | `0s` – `60s` (inclusive); values outside the range are rejected with `400`. | Maximum time the submit response will wait for the query to finish. For complex queries, the submit response may take slightly longer than this value. |
+| `keep_alive` | time value string (e.g. `"5m"`) | `5m` | `> 0`, `≤ 24h`; values outside the range are rejected with `400`. | How long a terminal result is retained after completion. A subsequent GET on the id succeeds within this window and returns `404` afterwards. |
 
-Behavior:
+### Limitations
 
-- If the runner completes within `wait_for_completion_timeout`, the submit returns the terminal response directly (same shape as the synchronous PPL response) without an `id` and does not retain state.
-- If the runner is still running when the timeout expires, the response is:
-  ```json
-  {
-    "id": "<opaque-id>",
-    "status": "RUNNING",
-    "schema": [],
-    "datarows": [],
-    "total": 0
-  }
-  ```
-- `wait_for_completion_timeout=0` returns the async response immediately without waiting.
+- Async submit is only available for standard PPL queries. The following request shapes always run synchronously and ignore `wait_for_completion_timeout` / `keep_alive`: the `/_plugins/_ppl/_explain` endpoint, requests with `"profile": true`, and non-JSON response formats (`format=csv`, `format=raw`, `format=viz`).
+- Results are retained in memory on the owner node for the duration of `keep_alive`. Set it as low as practical for your polling cadence; the default is `5m`.
+- Submitting an async query requires `cluster:admin/opensearch/ppl`; fetching or cancelling requires `cluster:admin/opensearch/ql/async_query/result` and `cluster:admin/opensearch/ql/async_query/delete`. Users on custom roles must be granted all three — a submit without the fetch grant produces an id that returns `403` on GET.
 
-Async fetch and cancel reuse the existing `/_plugins/_async_query/{id}` endpoints. `GET` returns a terminal snapshot (`SUCCEEDED` / `FAILED`) or a `RUNNING` snapshot with empty results. `DELETE` cancels the job and returns its final status; a subsequent `GET` may return the terminal status until the retention window expires, then `404`.
+### Example
 
-Request shapes that cannot be rendered as the async running snapshot (`_plugins/_ppl/_explain`, `profile=true`, non-JDBC response formats such as `csv` / `raw` / `viz`) silently ignore `wait_for_completion_timeout` / `keep_alive` and return the synchronous response.
+Submit a query with a wait budget large enough for completion. The response is the same shape as a synchronous PPL response — no `id`, no polling needed:
 
-The `plugins.query.datasources.enabled` cluster setting governs the Spark datasource-backed async-query stack. When it is `false`, Spark POST / GET / DELETE on `/_plugins/_async_query` are rejected with `400`; GET / DELETE on queryIds minted by PPL async submission continue to work because they do not touch Spark.
-
-### Required permissions
-
-Submitting an async PPL query requires `cluster:admin/opensearch/ppl` (included in the default `ppl_full_access` role). Fetching or cancelling the resulting job requires `cluster:admin/opensearch/ql/async_query/result` and `cluster:admin/opensearch/ql/async_query/delete` respectively. Users with custom roles must be granted these in addition to the PPL submit permission; otherwise a successful submit returns a queryId that fails to fetch with `403`.
-
-Example — pure async submit:
-
+```bash ppl
+curl -sS -H 'Content-Type: application/json' \
+-X POST localhost:9200/_plugins/_ppl \
+-d '{"query" : "source=accounts | stats count() as c", "wait_for_completion_timeout": "30s"}'
 ```
-POST /_plugins/_ppl
+
+Expected output:
+
+```json
 {
-  "query": "source=accounts | stats count() by age",
-  "wait_for_completion_timeout": "0"
+  "schema": [
+    {
+      "name": "c",
+      "type": "bigint"
+    }
+  ],
+  "datarows": [
+    [
+      4
+    ]
+  ],
+  "total": 1,
+  "size": 1
 }
-
-→ 200
-{ "id": "<opaque-id>", "status": "RUNNING", "schema": [], "datarows": [], "total": 0 }
 ```
 
-Example — hybrid submit with a five-second wait:
+If the query is still running when the wait expires, the response is:
 
-```
-POST /_plugins/_ppl
+```json
 {
-  "query": "source=accounts | stats count() by age",
-  "wait_for_completion_timeout": "5s"
+  "id": "<opaque-id>",
+  "status": "RUNNING",
+  "schema": [],
+  "datarows": [],
+  "total": 0
 }
-
-→ 200 (runner finished within 5s — sync response)
-{ "schema": [...], "datarows": [...], "total": N, "size": N }
-
-→ 200 (runner still running — async response with id)
-{ "id": "<opaque-id>", "status": "RUNNING", "schema": [], "datarows": [], "total": 0 }
 ```
 
-Example — fetch and cancel:
+The client then polls `GET /_plugins/_async_query/{id}` until it returns a terminal status (`SUCCEEDED` or `FAILED`), or calls `DELETE /_plugins/_async_query/{id}` to cancel:
 
 ```
-GET    /_plugins/_async_query/<opaque-id>       # snapshot; retry until terminal
-DELETE /_plugins/_async_query/<opaque-id>       # cancel; returns terminal status
+GET    /_plugins/_async_query/<id>
+DELETE /_plugins/_async_query/<id>
 ```
