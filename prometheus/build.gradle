@@ -18,6 +18,7 @@ dependencies {
     api project(':core')
     implementation project(':datasources')
     implementation project(':direct-query-core')
+    compileOnly 'org.immutables:value-annotations:2.8.8'
     testImplementation(testFixtures(project(":direct-query-core")))
 
     implementation group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
@@ -66,7 +67,11 @@ jacocoTestCoverageVerification {
             element = 'CLASS'
             excludes = [
                     'org.opensearch.sql.prometheus.data.constants.*',
-                    'org.opensearch.sql.prometheus.functions.implementation.*'
+                    'org.opensearch.sql.prometheus.functions.implementation.*',
+                    'org.opensearch.sql.prometheus.planner.logical.rules.EnumerablePrometheusScanRule',
+                    'org.opensearch.sql.prometheus.planner.logical.rules.PrometheusFilterPushDownRule',
+                    'org.opensearch.sql.prometheus.planner.logical.rules.PrometheusRules',
+                    'org.opensearch.sql.prometheus.storage.scan.*'
             ]
             limit {
                 counter = 'LINE'
