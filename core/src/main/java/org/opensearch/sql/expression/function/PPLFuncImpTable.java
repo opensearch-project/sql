@@ -1650,6 +1650,31 @@ public class PPLFuncImpTable {
       register(functionName, handler, typeChecker);
     }
 
+    /**
+     * Registers MIN/MAX. Over a multi_value (ARRAY) field the aggregate runs over every element:
+     * the argument is reduced per row with {@code ARRAY_MIN}/{@code ARRAY_MAX}, so {@code
+     * max(codes)} becomes {@code MAX(ARRAY_MAX(codes))} and is typed as the element, not the array.
+     * Empty and null arrays reduce to null and are ignored.
+     */
+    void registerMinMaxOperator(
+        BuiltinFunctionName functionName, SqlAggFunction aggFunction, SqlOperator listReduction) {
+      SqlOperandTypeChecker innerTypeChecker = extractTypeCheckerFromUDF(aggFunction);
+      PPLTypeChecker typeChecker =
+          wrapSqlOperandTypeChecker(innerTypeChecker, functionName.name(), true);
+      AggHandler handler =
+          (distinct, field, argList, ctx) -> {
+            RexNode arg =
+                field.getType().getSqlTypeName() == SqlTypeName.ARRAY
+                    ? ctx.relBuilder.call(listReduction, field)
+                    : field;
+            List<RexNode> newArgList =
+                argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
+            return UserDefinedFunctionUtils.makeAggregateCall(
+                aggFunction, List.of(arg), newArgList, ctx.relBuilder);
+          };
+      register(functionName, handler, typeChecker);
+    }
+
     /** Registers checked integral sums while retaining standard SUM behavior for other types. */
     void registerSumOperator() {
       registerOperator(
@@ -1666,8 +1691,8 @@ public class PPLFuncImpTable {
     }
 
     void populate() {
-      registerOperator(MAX, SqlStdOperatorTable.MAX);
-      registerOperator(MIN, SqlStdOperatorTable.MIN);
+      registerMinMaxOperator(MAX, SqlStdOperatorTable.MAX, SqlLibraryOperators.ARRAY_MAX);
+      registerMinMaxOperator(MIN, SqlStdOperatorTable.MIN, SqlLibraryOperators.ARRAY_MIN);
       registerSumOperator();
       registerOperator(VARSAMP, PPLBuiltinOperators.VAR_SAMP_NULLABLE);
       registerOperator(VARPOP, PPLBuiltinOperators.VAR_POP_NULLABLE);
