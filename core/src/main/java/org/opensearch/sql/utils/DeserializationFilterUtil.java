@@ -50,11 +50,29 @@ public class DeserializationFilterUtil {
   /**
    * Default structural limits on the deserialized object graph, used when a setting is unset or no
    * {@link Settings} is available (serialize-only call sites and tests).
+   *
+   * <p>Together with the class allowlist, these limits bound the resources a single payload can
+   * consume. They are sized to admit legitimate pushed-down expressions with headroom, and no
+   * looser than limits OpenSearch already enforces:
+   *
+   * <ul>
+   *   <li>Depth: each level of expression nesting costs 3 to 4 levels of serialization depth on top
+   *       of about 13 for the enclosing CASE/WHEN and lambda wrappers; IN-lists become a balanced
+   *       OR tree, so they add depth only logarithmically. The deepest legitimate expression
+   *       measured (20 nested AND/OR levels) reaches 72. 150 leaves 2x headroom over that and stays
+   *       far below the depth of about 1200 at which cold deserialization overflows a 1 MB thread
+   *       stack.
+   *   <li>References and bytes: pushed-down scripts are capped by {@code script.max_size_in_bytes}
+   *       (65535 by default) before they are deserialized, so a script decodes to at most about 49
+   *       KB and, for legitimate expressions, about 7200 references. 10000 references and 65536
+   *       bytes therefore never reject a script that OpenSearch accepted, while still bounding the
+   *       cursor path, which that setting does not cover.
+   * </ul>
    */
-  public static final int DEFAULT_MAX_DEPTH = 20;
+  public static final int DEFAULT_MAX_DEPTH = 150;
 
-  public static final int DEFAULT_MAX_REFS = 1000;
-  public static final int DEFAULT_MAX_BYTES = 15000;
+  public static final int DEFAULT_MAX_REFS = 10000;
+  public static final int DEFAULT_MAX_BYTES = 65536;
 
   /**
    * Creates a logging filter that wraps the provided filter and logs rejected classes.
