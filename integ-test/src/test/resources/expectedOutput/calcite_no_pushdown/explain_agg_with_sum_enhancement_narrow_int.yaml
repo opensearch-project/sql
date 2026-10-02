@@ -1,0 +1,12 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(sum(age)=[$1], sum(age + 100)=[$2], sum(age - 100)=[$3], sum(age * 100)=[$4], gender=[$0])
+        LogicalAggregate(group=[{0}], sum(age)=[CHECKED_LONG_SUM($1)], sum(age + 100)=[CHECKED_LONG_SUM($2)], sum(age - 100)=[CHECKED_LONG_SUM($3)], sum(age * 100)=[CHECKED_LONG_SUM($4)])
+          LogicalProject(gender=[$4], age=[$10], $f5=[+(CAST($10):BIGINT, 100)], $f6=[-(CAST($10):BIGINT, 100)], $f7=[*(CAST($10):BIGINT, 100)])
+            CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])
+  physical: |
+    EnumerableLimit(fetch=[10000])
+      EnumerableCalc(expr#0..2=[{inputs}], expr#3=[100:BIGINT], expr#4=[*($t2, $t3)], expr#5=[+($t1, $t4)], expr#6=[-($t1, $t4)], expr#7=[*($t1, $t3)], sum(age)=[$t1], sum(age + 100)=[$t5], sum(age - 100)=[$t6], sum(age * 100)=[$t7], gender=[$t0])
+        EnumerableAggregate(group=[{4}], sum(age)=[CHECKED_LONG_SUM($10)], sum(age + 100)_COUNT=[COUNT($10)])
+          CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_bank]])

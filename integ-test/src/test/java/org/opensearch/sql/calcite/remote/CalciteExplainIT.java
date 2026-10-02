@@ -859,6 +859,19 @@ public class CalciteExplainIT extends ExplainIT {
                 TEST_INDEX_BANK)));
   }
 
+  // Narrow-int operands are widened by a CAST, which must not block the SUM rewrite (#5823)
+  @Test
+  public void testExplainOnAggregationWithSumEnhancementOnNarrowInt() throws IOException {
+    String expected = loadExpectedPlan("explain_agg_with_sum_enhancement_narrow_int.yaml");
+    assertYamlEqualsIgnoreId(
+        expected,
+        explainQueryYaml(
+            String.format(
+                "source=%s | stats sum(age), sum(age + 100), sum(age - 100), sum(age * 100) by"
+                    + " gender",
+                TEST_INDEX_BANK)));
+  }
+
   @Test
   public void testStatsDistinctCountApproxFunctionExplainWithPushDown() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
