@@ -5,15 +5,14 @@
 
 package org.opensearch.sql.legacy.executor;
 
+import static org.opensearch.sql.legacy.executor.ErrorClassifier.isClientError;
 import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_WORKER_THREAD_POOL_NAME;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.function.Predicate;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.OpenSearchException;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BytesRestResponse;
@@ -21,7 +20,6 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
-import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.query.QueryAction;
@@ -106,15 +104,8 @@ public class AsyncRestExecutor implements RestExecutor {
         () -> {
           try {
             doExecuteWithTimeMeasured(client, params, queryAction, channel);
-          } catch (IOException | SqlParseException | OpenSearchException e) {
-            Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-            LOG.warn(
-                "[{}] [MCB] async task got an IO/SQL exception: {}",
-                QueryContext.getRequestId(),
-                e.getMessage());
-            channel.sendResponse(
-                new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
           } catch (IllegalStateException e) {
+            // Circuit breaker specific handling
             Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
             LOG.warn(
                 "[{}] [MCB] async task got a runtime exception: {}",
@@ -123,7 +114,27 @@ public class AsyncRestExecutor implements RestExecutor {
             channel.sendResponse(
                 new BytesRestResponse(
                     RestStatus.INSUFFICIENT_STORAGE, "Memory circuit is broken."));
+          } catch (Exception e) {
+            if (isClientError(e)) {
+              // Client errors: bad query, unsupported features, etc. -> 4xx
+              Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_CUS).increment();
+              LOG.warn(
+                  "[{}] [MCB] async task got a client error: {}",
+                  QueryContext.getRequestId(),
+                  e.getMessage());
+              channel.sendResponse(new BytesRestResponse(RestStatus.BAD_REQUEST, e.getMessage()));
+            } else {
+              // Server errors: IO failures, OpenSearch exceptions, etc. -> 5xx
+              Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
+              LOG.warn(
+                  "[{}] [MCB] async task got a server error: {}",
+                  QueryContext.getRequestId(),
+                  e.getMessage());
+              channel.sendResponse(
+                  new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+            }
           } catch (Throwable t) {
+            // Catch-all for non-Exception throwables
             Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
             LOG.warn(
                 "[{}] [MCB] async task got an unknown throwable: {}",

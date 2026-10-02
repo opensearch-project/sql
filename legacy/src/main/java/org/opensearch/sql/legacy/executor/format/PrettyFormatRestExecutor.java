@@ -20,6 +20,7 @@ import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.sql.legacy.cursor.Cursor;
 import org.opensearch.sql.legacy.cursor.DefaultCursor;
 import org.opensearch.sql.legacy.exception.SqlParseException;
+import org.opensearch.sql.legacy.executor.ErrorClassifier;
 import org.opensearch.sql.legacy.executor.QueryActionElasticExecutor;
 import org.opensearch.sql.legacy.executor.RestExecutor;
 import org.opensearch.sql.legacy.metrics.MetricName;
@@ -44,7 +45,8 @@ public class PrettyFormatRestExecutor implements RestExecutor {
   /** Execute the QueryAction and return the REST response using the channel. */
   @Override
   public void execute(
-      Client client, Map<String, String> params, QueryAction queryAction, RestChannel channel) {
+      Client client, Map<String, String> params, QueryAction queryAction, RestChannel channel)
+      throws Exception {
     String formattedResponse = execute(client, params, queryAction);
     BytesRestResponse bytesRestResponse;
     if (format.equals("jdbc")) {
@@ -64,7 +66,8 @@ public class PrettyFormatRestExecutor implements RestExecutor {
   }
 
   @Override
-  public String execute(Client client, Map<String, String> params, QueryAction queryAction) {
+  public String execute(Client client, Map<String, String> params, QueryAction queryAction)
+      throws Exception {
     Protocol protocol;
 
     try {
@@ -74,14 +77,21 @@ public class PrettyFormatRestExecutor implements RestExecutor {
         Object queryResult = QueryActionElasticExecutor.executeAnyAction(client, queryAction);
         protocol = new Protocol(client, queryAction, queryResult, format, Cursor.NULL_CURSOR);
       }
-    } catch (SqlParseException e) {
-      LOG.warn("SQL parsing error: {}", e.getMessage(), e);
-      protocol = new Protocol(e);
-    } catch (OpenSearchException e) {
-      LOG.warn("An error occurred in OpenSearch engine: {}", e.getDetailedMessage(), e);
-      protocol = new Protocol(e);
     } catch (Exception e) {
-      LOG.warn("Error happened in pretty formatter", e);
+      // Rethrow client errors (bad query, unsupported features) so they get proper 4xx status,
+      // not wrapped in HTTP 200 with error in body
+      if (ErrorClassifier.isClientError(e)) {
+        throw e;
+      }
+      // Log and wrap server errors for graceful degradation
+      if (e instanceof OpenSearchException) {
+        LOG.warn(
+            "An error occurred in OpenSearch engine: "
+                + ((OpenSearchException) e).getDetailedMessage(),
+            e);
+      } else {
+        LOG.warn("Error happened in pretty formatter", e);
+      }
       protocol = new Protocol(e);
     }
 

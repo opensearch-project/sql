@@ -7,7 +7,6 @@ package org.opensearch.sql.legacy.plugin;
 
 import static org.opensearch.core.rest.RestStatus.OK;
 
-import com.alibaba.druid.sql.parser.ParserException;
 import com.google.common.collect.ImmutableList;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.Arrays;
@@ -26,19 +25,14 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.common.inject.Injector;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.common.utils.QueryContext;
-import org.opensearch.sql.exception.ExpressionEvaluationException;
-import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.legacy.antlr.OpenSearchLegacySqlAnalyzer;
 import org.opensearch.sql.legacy.antlr.SqlAnalysisConfig;
-import org.opensearch.sql.legacy.antlr.SqlAnalysisException;
 import org.opensearch.sql.legacy.antlr.semantic.types.Type;
 import org.opensearch.sql.legacy.cursor.CursorType;
 import org.opensearch.sql.legacy.domain.ColumnTypeProvider;
@@ -47,6 +41,7 @@ import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SQLFeatureDisabledException;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.ActionRequestRestExecutorFactory;
+import org.opensearch.sql.legacy.executor.ErrorClassifier;
 import org.opensearch.sql.legacy.executor.Format;
 import org.opensearch.sql.legacy.executor.RestExecutor;
 import org.opensearch.sql.legacy.executor.cursor.CursorActionRequestRestExecutorFactory;
@@ -58,7 +53,6 @@ import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.request.SqlRequest;
 import org.opensearch.sql.legacy.request.SqlRequestFactory;
 import org.opensearch.sql.legacy.request.SqlRequestParam;
-import org.opensearch.sql.legacy.rewriter.matchtoterm.VerificationException;
 import org.opensearch.sql.legacy.utils.JsonPrettyFormatter;
 import org.opensearch.sql.legacy.utils.QueryDataAnonymizer;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
@@ -321,20 +315,11 @@ public class RestSqlAction extends BaseRestHandler {
   }
 
   private static boolean isClientError(Exception e) {
-    return e
-            instanceof
-            NullPointerException // NPE is hard to differentiate but more likely caused by bad query
-        || e instanceof SqlParseException
-        || e instanceof ParserException
-        || e instanceof SQLFeatureNotSupportedException
-        || e instanceof SQLFeatureDisabledException
-        || e instanceof IllegalArgumentException
-        || e instanceof IndexNotFoundException
-        || e instanceof VerificationException
-        || e instanceof SqlAnalysisException
-        || e instanceof SyntaxCheckException
-        || e instanceof SemanticCheckException
-        || e instanceof ExpressionEvaluationException;
+    return ErrorClassifier.isClientError(e);
+  }
+
+  private static boolean isClientErrorType(Throwable t) {
+    return ErrorClassifier.isClientErrorType(t);
   }
 
   private static void sendResponse(
