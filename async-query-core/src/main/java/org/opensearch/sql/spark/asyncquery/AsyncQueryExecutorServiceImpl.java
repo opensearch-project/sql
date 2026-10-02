@@ -23,8 +23,6 @@ import org.opensearch.sql.job.QueryJobState;
 import org.opensearch.sql.job.QueryJobStatus;
 import org.opensearch.sql.job.QueryResult;
 import org.opensearch.sql.job.SecurityAdapter;
-import org.opensearch.sql.protocol.response.format.ExplainResponseJsonFormatter;
-import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.spark.asyncquery.exceptions.AsyncQueryNotFoundException;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
@@ -212,9 +210,9 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
   /**
    * Maps a neutral {@link QueryJobStatus} onto the response shape the async-query transport actions
    * already know how to format. Terminal SUCCEEDED carries schema and rows for the {@link
-   * QueryResult.Rows} variant, or the pre-formatted explain JSON in {@code explainJson} for the
-   * {@link QueryResult.Explain} variant. FAILED carries a sanitized error; RUNNING / PENDING /
-   * CANCELLED carry no rows.
+   * QueryResult.Rows} variant, or the explain response in {@code explain} for the {@link
+   * QueryResult.Explain} variant. FAILED carries a sanitized error; RUNNING / PENDING / CANCELLED
+   * carry no rows.
    */
   private static AsyncQueryExecutionResponse toAsyncResponse(QueryJobStatus status) {
     if (status.state() == QueryJobState.SUCCEEDED && status.result().isPresent()) {
@@ -225,13 +223,7 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
       }
       if (result instanceof QueryResult.Explain explain) {
         return new AsyncQueryExecutionResponse(
-            status.state().name(),
-            EMPTY_SCHEMA,
-            List.of(),
-            null,
-            null,
-            new ExplainResponseJsonFormatter(JsonResponseFormatter.Style.PRETTY)
-                .format(explain.response()));
+            status.state().name(), EMPTY_SCHEMA, List.of(), null, null, explain.response());
       }
     }
     if (status.state() == QueryJobState.FAILED) {

@@ -236,15 +236,26 @@ public class TransportGetAsyncQueryResultActionTest {
   }
 
   @Test
-  public void explainResponseIsReturnedVerbatim() {
-    String explain = "{\"calcite\":{\"logical\":{\"operator\":\"LogicalProject\"}}}";
+  public void explainResponseIsRenderedWithExplainFormatter() {
+    ExecutionEngine.ExplainResponseNodeV2 plan =
+        new ExecutionEngine.ExplainResponseNodeV2("logical", "physical", null);
+    plan.setLogicalTree(ImmutableMap.of("operator", "LogicalProject"));
+    plan.setPhysicalTree(ImmutableMap.of("operator", "EnumerableCalc"));
     when(jobExecutorService.getAsyncQueryResults(eq("jobId"), any()))
-        .thenReturn(new AsyncQueryExecutionResponse("SUCCEEDED", null, null, null, null, explain));
+        .thenReturn(
+            new AsyncQueryExecutionResponse(
+                "SUCCEEDED", null, null, null, null, new ExecutionEngine.ExplainResponse(plan)));
 
     action.doExecute(task, new GetAsyncQueryResultActionRequest("jobId"), actionListener);
 
     verify(actionListener).onResponse(createJobActionResponseArgumentCaptor.capture());
-    Assertions.assertEquals(explain, createJobActionResponseArgumentCaptor.getValue().getResult());
+    org.json.JSONObject calcite =
+        new org.json.JSONObject(createJobActionResponseArgumentCaptor.getValue().getResult())
+            .getJSONObject("calcite");
+    Assertions.assertEquals(
+        "LogicalProject", calcite.getJSONObject("logical").getString("operator"));
+    Assertions.assertEquals(
+        "EnumerableCalc", calcite.getJSONObject("physical").getString("operator"));
   }
 
   @Test

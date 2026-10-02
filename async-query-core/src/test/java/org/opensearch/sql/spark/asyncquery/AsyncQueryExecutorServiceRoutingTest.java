@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
-import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -79,28 +78,26 @@ class AsyncQueryExecutorServiceRoutingTest {
     assertSame(schema, response.getSchema());
     assertEquals(rows.rows(), response.getResults());
     assertNull(response.getError());
-    assertNull(response.getExplainJson());
+    assertNull(response.getExplain());
     verify(jobService).get(JOB_ID, ALICE);
     verifyNoSparkCalls();
   }
 
   @Test
-  void routesExplainWithCompletePlanJson() {
-    ExplainResponseNodeV2 plan = new ExplainResponseNodeV2("logical", "physical", null);
-    plan.setLogicalTree(Map.of("operator", "LogicalProject"));
-    plan.setPhysicalTree(Map.of("operator", "EnumerableCalc"));
+  void routesExplainResponseUnformatted() {
+    ExplainResponse explain =
+        new ExplainResponse(new ExplainResponseNodeV2("logical", "physical", null));
     stubSnapshot(
         QueryJobState.SUCCEEDED,
-        Optional.of(new QueryResult.Explain(new ExplainResponse(plan), 10)),
+        Optional.of(new QueryResult.Explain(explain, 10)),
         Optional.empty());
 
     AsyncQueryExecutionResponse response = fetch();
 
     assertEquals("SUCCEEDED", response.getStatus());
     assertEmptyResults(response);
-    JSONObject calcite = new JSONObject(response.getExplainJson()).getJSONObject("calcite");
-    assertEquals("LogicalProject", calcite.getJSONObject("logical").getString("operator"));
-    assertEquals("EnumerableCalc", calcite.getJSONObject("physical").getString("operator"));
+    assertNull(response.getError());
+    assertSame(explain, response.getExplain());
     verifyNoSparkCalls();
   }
 
@@ -159,7 +156,7 @@ class AsyncQueryExecutorServiceRoutingTest {
     assertEquals(state.name(), response.getStatus());
     assertEmptyResults(response);
     assertNull(response.getError());
-    assertNull(response.getExplainJson());
+    assertNull(response.getExplain());
     verifyNoSparkCalls();
   }
 
@@ -171,7 +168,7 @@ class AsyncQueryExecutorServiceRoutingTest {
     AsyncQueryExecutionResponse response = fetch();
 
     assertEmptyResults(response);
-    assertNull(response.getExplainJson());
+    assertNull(response.getExplain());
     verifyNoSparkCalls();
   }
 

@@ -14,6 +14,7 @@ import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.job.QueryJobId;
+import org.opensearch.sql.protocol.response.format.ExplainResponseJsonFormatter;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
@@ -73,11 +74,13 @@ public class TransportGetAsyncQueryResultAction
       }
       AsyncQueryExecutionResponse asyncQueryExecutionResponse =
           asyncQueryExecutorService.getAsyncQueryResults(jobId, new NullAsyncQueryRequestContext());
-      // Statement-level explain results carry a pre-formatted JSON body — return verbatim so the
-      // response shape matches the sync explain path byte-for-byte.
-      if (asyncQueryExecutionResponse.getExplainJson() != null) {
+      // Statement-level explain results use the sync explain formatter so the response shape
+      // matches the sync explain path byte-for-byte.
+      if (asyncQueryExecutionResponse.getExplain() != null) {
         listener.onResponse(
-            new GetAsyncQueryResultActionResponse(asyncQueryExecutionResponse.getExplainJson()));
+            new GetAsyncQueryResultActionResponse(
+                new ExplainResponseJsonFormatter(JsonResponseFormatter.Style.PRETTY)
+                    .format(asyncQueryExecutionResponse.getExplain())));
         return;
       }
       ResponseFormatter<AsyncQueryResult> formatter =

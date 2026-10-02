@@ -20,10 +20,10 @@ public class AsyncQueryExecutionResponse {
   private final String sessionId;
 
   /**
-   * Pre-formatted JSON body for a statement-level {@code explain} result. Populated only when the
-   * underlying job produced a {@link org.opensearch.sql.job.QueryResult.Explain}; {@code null} for
-   * ordinary row-shaped responses. Transport layers that see a non-null value bypass the standard
-   * schema-and-datarows renderer and return this string verbatim.
+   * Statement-level {@code explain} result. Populated only when the underlying job produced a
+   * {@link org.opensearch.sql.job.QueryResult.Explain}; {@code null} for ordinary row-shaped
+   * responses. Transport layers that see a non-null value bypass the standard schema-and-datarows
+   * renderer and format this with the sync explain formatter.
    */
-  private final String explainJson;
+  private final ExecutionEngine.ExplainResponse explain;
 }
