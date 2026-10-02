@@ -57,11 +57,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -425,7 +427,9 @@ public class PredicateAnalyzer {
         case EQUALS, NOT_EQUALS -> {
           for (int i = 0; i < 2; i++) {
             String path = flatObjectLeafPath(operands.get(i));
-            if (path != null && leafLiteral(operands.get(1 - i)) instanceof RexLiteral literal) {
+            if (path != null
+                && leafLiteral(operands.get(1 - i)) instanceof RexLiteral literal
+                && !mayDescribeANumber(literal)) {
               LiteralExpression value = new LiteralExpression(literal);
               return analyzed(
                   call.getKind() == SqlKind.EQUALS
@@ -449,7 +453,9 @@ public class PredicateAnalyzer {
         }
         case SEARCH -> {
           String path = flatObjectLeafPath(operands.get(0));
-          if (path != null && operands.get(1) instanceof RexLiteral literal) {
+          if (path != null
+              && operands.get(1) instanceof RexLiteral literal
+              && sargPointsAreAllText(literal)) {
             boolean points = isSearchWithPoints(call);
             boolean complemented = isSearchWithComplementedPoints(call);
             if (points || complemented) {
@@ -476,6 +482,7 @@ public class PredicateAnalyzer {
           if (path != null
               && operands.get(1) instanceof RexLiteral pattern
               && isTextLiteral(pattern)
+              && !mayDescribeANumber(pattern)
               && call.getOperator() instanceof SqlLikeOperator like) {
             return analyzed(
                 leaf(path).like(new LiteralExpression(pattern), like.isCaseSensitive()), call);
@@ -505,6 +512,49 @@ public class PredicateAnalyzer {
 
     private static boolean isTextLiteral(RexLiteral literal) {
       return SqlTypeUtil.isCharacter(literal.getType());
+    }
+
+    /**
+     * Whether a literal could stand for a number, which is where the index and the engine disagree
+     * about a leaf. The index holds the token the record wrote; the engine reads a number in its
+     * canonical form, and the two differ -- {@code 1e3} is indexed as "1e3" and read as "1000.0",
+     * {@code 2.10} as "2.10" and "2.1". A term would then answer a predicate the evaluated path
+     * answers differently, so such a predicate is left to that path, which is the one that compares
+     * what the query was shown. Text that no number could produce is unaffected, which is what a
+     * flat_object leaf usually holds.
+     */
+    private static boolean mayDescribeANumber(RexLiteral literal) {
+      // a numeric literal has no text to compare with a term at all
+      return !isTextLiteral(literal) || mayDescribeANumber(RexLiteral.stringValue(literal));
+    }
+
+    private static boolean mayDescribeANumber(String text) {
+      if (text == null || text.chars().noneMatch(Character::isDigit)) {
+        return false;
+      }
+      // the characters a number token is written with, plus the wildcards a pattern may add
+      return text.chars().allMatch(c -> "0123456789.+-eE%_".indexOf(c) >= 0);
+    }
+
+    /**
+     * Whether every point of a {@code SEARCH} Sarg is text that no number could produce. Every
+     * point appears as a bound of some range, whether the Sarg lists the points ({@code = a or =
+     * b}) or their complement ({@code != a and != b}), so the bounds are what is checked.
+     */
+    private static boolean sargPointsAreAllText(RexLiteral sargLiteral) {
+      Sarg<?> sarg = sargLiteral.getValueAs(Sarg.class);
+      if (sarg == null) {
+        return false;
+      }
+      return sarg.rangeSet.asRanges().stream()
+          .flatMap(
+              range ->
+                  Stream.of(
+                      range.hasLowerBound() ? range.lowerEndpoint() : null,
+                      range.hasUpperBound() ? range.upperEndpoint() : null))
+          .filter(Objects::nonNull)
+          .allMatch(
+              point -> point instanceof NlsString text && !mayDescribeANumber(text.getValue()));
     }
 
     /** The literal a comparison holds, with any cast around it removed; null if it is not one. */

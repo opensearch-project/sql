@@ -26,11 +26,11 @@ setup:
         refresh: true
         body:
           - '{"index": {"_index": "otel", "_id": "1"}}'
-          - '{"service": "checkout", "attributes": {"http.response.status_code": 500, "duration_ms": 12.5, "ok": true}}'
+          - '{"service": "checkout", "attributes": {"http.response.status_code": 500, "duration_ms": 12.5, "ok": true, "env": "prod"}}'
           - '{"index": {"_index": "otel", "_id": "2"}}'
-          - '{"service": "payments", "attributes": {"http": {"response": {"status_code": 503}}, "duration_ms": "4"}}'
+          - '{"service": "payments", "attributes": {"http": {"response": {"status_code": 503}}, "duration_ms": "4", "env": "prod"}}'
           - '{"index": {"_index": "otel", "_id": "3"}}'
-          - '{"service": "tags", "attributes": {"tags": ["a", "b"], "mixed": [1, "x"], "nested": [{"k": 1}, {"k": 2}]}}'
+          - '{"service": "tags", "attributes": {"tags": ["a", "b"], "mixed": [1, "x"], "nested": [{"k": 1}, {"k": 2}], "env": "staging"}}'
           - '{"index": {"_index": "otel", "_id": "4"}}'
           - '{"service": "collide", "attributes": {"a": {"b": 1}, "a.b": 2}}'
 
@@ -75,7 +75,7 @@ teardown:
         body:
           query: 'source=otel | where service = ''checkout'' | fields attributes'
   # every value is text, and the dotted path is the key -- both spellings of a path reach the same one
-  - match: {"datarows": [[{"http.response.status_code": "500", "duration_ms": "12.5", "ok": "true"}]]}
+  - match: {"datarows": [[{"http.response.status_code": "500", "duration_ms": "12.5", "ok": "true", "env": "prod"}]]}
 
 ---
 "a leaf reads as text, under either spelling of its path":
@@ -166,22 +166,24 @@ teardown:
 # A leaf is one keyword term with the path folded in, so an exact-match predicate is answered by the
 # index. Written with no spaces: MatchAssertion compiles these with Pattern.COMMENTS, which discards
 # unescaped whitespace.
-"an exact-match predicate on a leaf reaches the index, not a script":
+# A literal that could stand for a number is not folded -- see the case below -- so these use text
+# no number could produce.
+"an exact-match predicate over text reaches the index, not a script":
   - skip:
       features: [headers]
   - do:
       headers: {Content-Type: 'application/json'}
       ppl.explain:
         body:
-          query: "source=otel | where attributes.duration_ms = '4' | fields service"
-  - match: {"calcite.physical": "/\"term\":\\{\"attributes.duration_ms\"/"}
+          query: "source=otel | where attributes.env = 'prod' | fields service"
+  - match: {"calcite.physical": "/\"term\":\\{\"attributes.env\"/"}
   - match: {"calcite.physical": "/^((?!opensearch_compounded_script).)*$/"}
   - do:
       headers: {Content-Type: 'application/json'}
       ppl.explain:
         body:
-          query: "source=otel | where attributes.duration_ms in ('4','12.5') | fields service"
-  - match: {"calcite.physical": "/\"terms\":\\{\"attributes.duration_ms\"/"}
+          query: "source=otel | where attributes.env in ('prod','staging') | fields service"
+  - match: {"calcite.physical": "/\"terms\":\\{\"attributes.env\"/"}
   - do:
       headers: {Content-Type: 'application/json'}
       ppl.explain:
@@ -192,8 +194,8 @@ teardown:
       headers: {Content-Type: 'application/json'}
       ppl.explain:
         body:
-          query: "source=otel | where like(attributes.duration_ms, '1%') | fields service"
-  - match: {"calcite.physical": "/\"wildcard\":\\{\"attributes.duration_ms\"/"}
+          query: "source=otel | where like(attributes.env, 'pro%') | fields service"
+  - match: {"calcite.physical": "/\"wildcard\":\\{\"attributes.env\"/"}
 
 ---
 # A flat_object can be a sub-field of an ordinary object, which the field type's documentation shows
@@ -282,25 +284,25 @@ teardown:
         index: aliased
         id: 1
         refresh: true
-        body: {"service": "payments", "attributes": {"duration_ms": "4"}}
+        body: {"service": "payments", "attributes": {"env": "prod"}}
   - do:
       headers: {Content-Type: 'application/json'}
       ppl:
         body:
-          query: 'source=aliased | fields attrs.duration_ms'
-  - match: {"datarows": [["4"]]}
+          query: 'source=aliased | fields attrs.env'
+  - match: {"datarows": [["prod"]]}
   - do:
       headers: {Content-Type: 'application/json'}
       ppl:
         body:
-          query: 'source=aliased | where attrs.duration_ms = ''4'' | fields service'
+          query: 'source=aliased | where attrs.env = ''prod'' | fields service'
   - match: {"datarows": [["payments"]]}
   - do:
       headers: {Content-Type: 'application/json'}
       ppl.explain:
         body:
-          query: "source=aliased | where attrs.duration_ms = '4' | fields service"
-  - match: {"calcite.physical": "/\"term\":\\{\"attributes.duration_ms\"/"}
+          query: "source=aliased | where attrs.env = 'prod' | fields service"
+  - match: {"calcite.physical": "/\"term\":\\{\"attributes.env\"/"}
   - do:
       indices.delete:
         index: aliased
@@ -400,3 +402,47 @@ teardown:
   - do:
       indices.delete:
         index: numeric
+
+---
+# The index holds the token a record wrote, while the engine reads a number in its canonical form:
+# 1e3 is indexed as "1e3" and read as "1000.0", 2.10 as "2.10" and "2.1". A term would then answer a
+# text equality differently from the evaluated path. So a literal that could stand for a number is
+# not folded, and the answer does not depend on whether pushdown was available.
+"text equality does not change with pushdown":
+  - skip:
+      features: [headers]
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl.explain:
+        body:
+          query: "source=otel | where attributes.duration_ms = '4' | fields service"
+  - match: {"calcite.physical": "/^((?!\"term\":\\{\"attributes.duration_ms\").)*$/"}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | where attributes.duration_ms = ''4'' | fields service'
+  - match: {"datarows": [["payments"]]}
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.pushdown.enabled: false
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | where attributes.duration_ms = ''4'' | fields service'
+  - match: {"datarows": [["payments"]]}
+  # text no number could produce is answered by the index, and by the same rows either way
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | where attributes.env = ''prod'' | sort service | fields service'
+  - match: {"datarows": [["checkout"], ["payments"]]}
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.pushdown.enabled: null

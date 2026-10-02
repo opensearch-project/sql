@@ -130,6 +130,8 @@ A leaf is text, so a query does with it what it does with any text column, the s
 | `like` | `wildcard` |
 | `isnull`, `isnotnull` | `exists` |
 
+A term matches the token the record wrote, and a number is read in its canonical form, which is not always that token: `1e3` is indexed as `1e3` and reads as `1000.0`, `2.10` as `2.10` and `1.5`. So a value that could stand for a number is compared where the engine can see what it read, not in the index -- `where attributes.env = 'prod'` is a term lookup, `where attributes.duration_ms = '4'` is not. Either way the answer is the same one, whether or not the predicate could have been pushed down. To match a number however it was written, cast it: `where cast(attributes.duration_ms as double) = 4` finds `4`, `04` and `4.0`.
+
 Reading a leaf, or the whole field, costs no more than reading a keyword field, and `cast` is applied to the values already read: `eval ms = cast(attributes.duration_ms as double)`.
 
 **Everything else opens every record it is asked about, and is correspondingly slower.** A flat_object gives its leaves no doc values -- the term holds the path and the value folded together -- so nothing but a term lookup can be answered from the index. These operations are planned as a script that reads the leaf out of `_source` for each candidate record, which means the work grows with the number of records scanned rather than with the number returned:
@@ -141,8 +143,6 @@ Reading a leaf, or the whole field, costs no more than reading a keyword field, 
 - any value computed from a leaf, such as a function or an arithmetic expression.
 
 This is the cost the field type exists to avoid, and it is the same cost the same operation carries on a `spath` field. On a large index, put a supported filter before one of these so the script runs over a narrow set rather than the whole scan; `explain` shows which of the two a query got -- a `term`, `terms`, `wildcard` or `exists` clause, or a `script` clause.
-
-Text equality is a lookup of the term the record wrote, so it matches that token. A number is shown in its canonical form, which is not always the token: `1e3` is indexed as `1e3` and reads as `1000.0`, and `1.50` reads as `1.5`. To match a number however it was written, cast it -- `where cast(attributes.n as double) = 1000` finds both `1e3` and `1000` -- at the cost of the evaluated path above.
 
 A path holding more than one value reads as JSON, so it does not compare equal to any single one of those values, while the index matches each of them. A filter therefore answers differently depending on whether it reached the index -- which applies to any field holding several values, not only to a flat_object leaf.
 

@@ -1756,9 +1756,10 @@ public class PredicateAnalyzerTest {
   @Test
   void flatObjectLeaf_underACast_isStillATermQuery() throws ExpressionNotAnalyzableException {
     RexNode cast =
-        builder.makeCast(typeFactory.createSqlType(SqlTypeName.VARCHAR), leaf("code"), true, false);
+        builder.makeCast(typeFactory.createSqlType(SqlTypeName.VARCHAR), leaf("env"), true, false);
     String query =
-        analyzeFlat(builder.makeCall(SqlStdOperatorTable.EQUALS, cast, builder.makeLiteral("503")));
+        analyzeFlat(
+            builder.makeCall(SqlStdOperatorTable.EQUALS, cast, builder.makeLiteral("prod")));
     assertTrue(query.contains("\"term\""), query);
     assertFalse(query.contains(SCRIPT), query);
   }
@@ -1798,19 +1799,31 @@ public class PredicateAnalyzerTest {
     assertFalse(query.contains(SCRIPT), query);
   }
 
-  // The index files the number 503 and the text "503" under the same term, so a non-text literal is
-  // still one term to look up.
+  /**
+   * A literal that could stand for a number is not folded. The index holds the token the record
+   * wrote and the engine reads a number in canonical form -- 1e3 is indexed as "1e3" and read as
+   * "1000.0" -- so a term would answer differently from the evaluated path, which compares what the
+   * query was shown.
+   */
   @Test
-  void flatObjectLeaf_aNonTextLiteral_isATermQueryAlone() throws ExpressionNotAnalyzableException {
-    String query =
+  void flatObjectLeaf_aLiteralThatCouldBeANumber_isNotFolded()
+      throws ExpressionNotAnalyzableException {
+    for (RexNode literal :
+        List.of(
+            builder.makeExactLiteral(new BigDecimal(503)),
+            builder.makeLiteral("503"),
+            builder.makeLiteral("1e3"),
+            builder.makeLiteral("2.1"))) {
+      String query =
+          analyzeFlat(builder.makeCall(SqlStdOperatorTable.EQUALS, leaf("code"), literal));
+      assertFalse(query.contains("\"term\""), query);
+    }
+    // text no number could produce is unaffected
+    String text =
         analyzeFlat(
             builder.makeCall(
-                SqlStdOperatorTable.EQUALS,
-                leaf("code"),
-                builder.makeExactLiteral(new BigDecimal(503))));
-    assertTrue(query.contains("\"term\""), query);
-    assertTrue(query.contains("503"), query);
-    assertFalse(query.contains(SCRIPT), query);
+                SqlStdOperatorTable.EQUALS, leaf("env"), builder.makeLiteral("ns-07")));
+    assertTrue(text.contains("\"term\""), text);
   }
 
   // As SimpleQueryExpression.notEquals does: a record that did not write the leaf is not a record
@@ -1887,7 +1900,7 @@ public class PredicateAnalyzerTest {
   @Test
   void flatObjectLeaf_complementedPoints_keepTheExistsGuard()
       throws ExpressionNotAnalyzableException {
-    String query = analyzeFlat(leafSearch(true, "n/a", "4"));
+    String query = analyzeFlat(leafSearch(true, "n/a", "prod"));
     assertTrue(query.contains("\"exists\""), query);
     assertTrue(query.contains("\"must_not\""), query);
     assertTrue(query.contains("\"terms\""), query);
@@ -1898,7 +1911,7 @@ public class PredicateAnalyzerTest {
   // own, so it stays one terms query with no exists filter.
   @Test
   void flatObjectLeaf_points_areOneTermsQuery() throws ExpressionNotAnalyzableException {
-    String query = analyzeFlat(leafSearch(false, "n/a", "4"));
+    String query = analyzeFlat(leafSearch(false, "n/a", "prod"));
     assertTrue(query.contains("\"terms\""), query);
     assertFalse(query.contains("\"exists\""), query);
     assertFalse(query.contains(SCRIPT), query);
