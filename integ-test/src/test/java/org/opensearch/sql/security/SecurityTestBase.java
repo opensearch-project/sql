@@ -383,4 +383,27 @@ public abstract class SecurityTestBase extends PPLIntegTestCase {
       return documents;
     }
   }
+
+  /** Like {@link #executeQueryAsUser}, but also sends the per-request time bounds. */
+  protected JSONObject executeQueryAsUserWithBounds(
+      String query, String username, String timeField, String start, String end)
+      throws IOException {
+    Request request = new Request("POST", "/_plugins/_ppl");
+    request.setJsonEntity(
+        String.format(
+            Locale.ROOT,
+            "{ \"query\": \"%s\", \"time_field\": \"%s\", \"start_time\": \"%s\","
+                + " \"end_time\": \"%s\" }",
+            query,
+            timeField,
+            start,
+            end));
+    RequestOptions.Builder options = RequestOptions.DEFAULT.toBuilder();
+    options.addHeader("Content-Type", "application/json");
+    options.addHeader("Authorization", createBasicAuthHeader(username, STRONG_PASSWORD));
+    request.setOptions(options);
+    Response response = client().performRequest(request);
+    assertEquals(200, response.getStatusLine().getStatusCode());
+    return new JSONObject(org.opensearch.sql.legacy.TestUtils.getResponseBody(response, true));
+  }
 }

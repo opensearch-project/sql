@@ -9,8 +9,12 @@ import static org.opensearch.action.search.SearchRequest.DEFAULT_INDICES_OPTIONS
 import static org.opensearch.sql.calcite.plan.OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP;
 
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.opensearch.action.admin.indices.resolve.ResolveIndexAction;
@@ -67,9 +71,21 @@ public class IndexPruner {
         return indexName;
       }
 
-      String[] candidates = indexExpr.probeMatching(filter, timeField).getIndices();
+      String[] candidates = indexExpr.probe(filter, timeField).getIndices();
       if (0 < candidates.length && indexExpr.isPrunedBy(candidates.length)) {
-        return new IndexName(String.join(",", candidates));
+        // Only once indices would be dropped: an unreachable index is absent from the probe for
+        // the same reason an empty one is, so keep it and let the search report the missing shard.
+        Set<String> unsearchable = indexExpr.indicesNotProvenEmpty(timeField);
+        if (unsearchable.isEmpty()) {
+          return new IndexName(String.join(",", candidates));
+        }
+        Set<String> keep = new LinkedHashSet<>(Arrays.asList(candidates));
+        keep.addAll(unsearchable);
+        log.info("Index pruning kept unsearchable indices {}", unsearchable);
+        if (indexExpr.isPrunedBy(keep.size())) {
+          return new IndexName(String.join(",", keep));
+        }
+        return indexName;
       }
       log.info(
           "Index pruning declined: {} of {} indices matched",
@@ -133,14 +149,35 @@ public class IndexPruner {
       return candidateCount < resolved().getIndices().size();
     }
 
-    FieldCapabilitiesResponse probeMatching(QueryBuilder filter, String timeField) {
+    /**
+     * Resolved indices the filtered probe cannot have ruled out: those an unfiltered probe cannot
+     * read either. A readable index answers an unfiltered probe whatever the time range, so absence
+     * there means unreadable rather than empty -- and unlike the routing table, that holds while a
+     * stopped node's shards are still marked assigned. Probe-based rather than a cluster state read
+     * because the latter needs a privilege index-scoped roles lack (see
+     * ShardFailureWarningSecurityIT).
+     */
+    Set<String> indicesNotProvenEmpty(String timeField) {
+      Set<String> readable = new HashSet<>(Arrays.asList(probe(null, timeField).getIndices()));
+      Set<String> missing = new LinkedHashSet<>();
+      for (ResolveIndexAction.ResolvedIndex index : resolved().getIndices()) {
+        if (!readable.contains(index.getName())) {
+          missing.add(index.getName());
+        }
+      }
+      return missing;
+    }
+
+    FieldCapabilitiesResponse probe(@Nullable QueryBuilder filter, String timeField) {
       FieldCapabilitiesRequest request =
           new FieldCapabilitiesRequest()
               .indices(indexName.getIndexNames())
               .fields(timeField)
-              .indexFilter(filter)
               // Must expand as the search will, or candidates describe a different index set.
               .indicesOptions(DEFAULT_INDICES_OPTIONS);
+      if (filter != null) {
+        request.indexFilter(filter);
+      }
       return node.fieldCaps(request).actionGet(PROBE_TIMEOUT);
     }
 
