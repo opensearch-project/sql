@@ -16,6 +16,8 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 public class OpenSearchGeoPointType extends OpenSearchDataType {
 
+  private static final long serialVersionUID = 1L;
+
   private static final OpenSearchGeoPointType instance = new OpenSearchGeoPointType();
 
   private OpenSearchGeoPointType() {

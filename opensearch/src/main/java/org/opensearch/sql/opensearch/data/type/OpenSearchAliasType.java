@@ -17,6 +17,8 @@ import org.opensearch.sql.data.type.ExprType;
  */
 public class OpenSearchAliasType extends OpenSearchDataType {
 
+  private static final long serialVersionUID = 1L;
+
   public static final String typeName = "alias";
   public static final String pathPropertyName = "path";
   public static final Set<MappingType> objectFieldTypes =
