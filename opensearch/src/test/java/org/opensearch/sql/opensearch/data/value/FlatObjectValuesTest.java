@@ -109,6 +109,19 @@ class FlatObjectValuesTest {
     assertEquals(stringValue("[1,2]"), flatten(Map.of("x", "[1,2]")).tupleValue().get("x"));
   }
 
+  /**
+   * An element of the array at the root may itself be an array, which the index flattens just the
+   * same -- it files a term for every value it reaches, however deeply the arrays nest.
+   */
+  @Test
+  void anArrayInsideTheRootArrayIsFlattenedToo() {
+    assertEquals(
+        stringValue("[\"1\",\"2\"]"),
+        flatten(List.of(List.of(Map.of("a", 1)), Map.of("a", 2))).tupleValue().get("a"));
+    assertEquals(
+        stringValue("1"), flatten(List.of(List.of(List.of(Map.of("a", 1))))).tupleValue().get("a"));
+  }
+
   @Test
   void aScalarWhereAnObjectWasPromisedIsNull() {
     assertEquals(nullValue(), flatten(5));

@@ -111,9 +111,8 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
     String docFieldName =
         exprType == ExprCoreType.STRUCT
                 || exprType == ExprCoreType.ARRAY
-                // Neither a binary field nor a flat_object has doc values a script could read --
-                // a flat_object files each leaf as one folded path=value term -- so both are read
-                // from _source.
+                // A binary field has no doc values, so it has to be read from _source too, and
+                // neither does a flat_object: each leaf is one folded path=value term.
                 || exprType instanceof OpenSearchBinaryType
                 || exprType instanceof OpenSearchFlatObjectType
             ? null
@@ -124,7 +123,12 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
       helper.sources.add(Source.DOC_VALUE.getValue());
     } else {
       helper.digests.add(field.getName());
-      helper.sources.add(Source.SOURCE.getValue());
+      // A flat_object has no doc values -- each leaf is one folded path=value term -- so it is read
+      // from _source, and has to be flattened on the way in, as the engine's own read does.
+      helper.sources.add(
+          exprType instanceof OpenSearchFlatObjectType
+              ? Source.FLAT_OBJECT_SOURCE.getValue()
+              : Source.SOURCE.getValue());
     }
     return new RexDynamicParam(widenType(field.getType(), helper.stack.peek()), newIndex);
   }

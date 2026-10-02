@@ -1763,6 +1763,24 @@ public class PredicateAnalyzerTest {
     assertFalse(query.contains(SCRIPT), query);
   }
 
+  /**
+   * A cast to anything but a character type decides the comparison rather than restating it, so it
+   * stays on the evaluated path. One term cannot express it: {@code cast(leaf as double) = 4} is
+   * true of "4", "04" and "4.0".
+   */
+  @Test
+  void flatObjectLeaf_underANumericCast_isNotFoldedIntoATerm()
+      throws ExpressionNotAnalyzableException {
+    RexNode asDouble =
+        builder.makeCast(
+            typeFactory.createSqlType(SqlTypeName.DOUBLE), leaf("duration_ms"), true, true);
+    String query =
+        analyzeFlat(
+            builder.makeCall(
+                SqlStdOperatorTable.EQUALS, asDouble, builder.makeExactLiteral(new BigDecimal(4))));
+    assertFalse(query.contains("\"term\""), query);
+  }
+
   @Test
   void flatObjectLeaf_isNotNull_isAnExistsQueryAlone() throws ExpressionNotAnalyzableException {
     String query =
