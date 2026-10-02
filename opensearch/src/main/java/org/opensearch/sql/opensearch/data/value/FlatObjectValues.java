@@ -33,8 +33,10 @@ public class FlatObjectValues {
 
   /**
    * Depth guard. A flat_object exists so that documents can escape the mapping depth limit, so
-   * nothing upstream bounds this recursion. Nothing is dropped at the cap: the object that would
-   * have been descended into is kept as one leaf, holding its own JSON as the value.
+   * nothing upstream bounds this recursion -- the depth comes from the document, not the mapping.
+   * The cap is the default of {@code index.mapping.depth.limit}, which is the depth a mapped object
+   * is allowed, so a flat_object is read as deeply as one. Nothing is dropped at the cap: the object
+   * that would have been descended into is kept as one leaf, holding its own JSON as the value.
    */
   static final int MAX_DEPTH = 20;
 

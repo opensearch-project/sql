@@ -252,3 +252,55 @@ teardown:
   - do:
       indices.delete:
         index: sub
+
+---
+# An alias to a flat_object resolves to the target before the predicate is folded, so the leaf is
+# looked up under the target's path. Reading the type map alone suggests an alias slips past the
+# flat_object check -- the map holds OpenSearchAliasType under the alias key -- but it does not,
+# because the name is already the target's by then. Same as the binary case in issues/5757.
+"an alias to a flat_object is looked up under the target":
+  - skip:
+      features: [headers]
+  - do:
+      indices.create:
+        index: aliased
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              service:
+                type: keyword
+              attributes:
+                type: flat_object
+              attrs:
+                type: alias
+                path: attributes
+  - do:
+      index:
+        index: aliased
+        id: 1
+        refresh: true
+        body: {"service": "payments", "attributes": {"duration_ms": "4"}}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=aliased | fields attrs.duration_ms'
+  - match: {"datarows": [["4"]]}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=aliased | where attrs.duration_ms = ''4'' | fields service'
+  - match: {"datarows": [["payments"]]}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl.explain:
+        body:
+          query: "source=aliased | where attrs.duration_ms = '4' | fields service"
+  - match: {"calcite.physical": "/\"term\":\\{\"attributes.duration_ms\"/"}
+  - do:
+      indices.delete:
+        index: aliased
