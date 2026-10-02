@@ -27,10 +27,19 @@ public class AsyncQueryResultResponseFormatterTest {
               new ExecutionEngine.Schema.Column("age", null, INTEGER)));
 
   @Test
-  void formatAsyncQueryResponse() {
+  void formatSparkQueryResponse() {
+    assertSuccessfulResponse("success");
+  }
+
+  @Test
+  void formatPplQueryResponse() {
+    assertSuccessfulResponse("SUCCEEDED");
+  }
+
+  private void assertSuccessfulResponse(String status) {
     AsyncQueryResult response =
         new AsyncQueryResult(
-            "success",
+            status,
             schema,
             Arrays.asList(
                 tupleValue(ImmutableMap.of("firstname", "John", "age", 20)),
@@ -38,7 +47,9 @@ public class AsyncQueryResultResponseFormatterTest {
             null);
     AsyncQueryResultResponseFormatter formatter = new AsyncQueryResultResponseFormatter(COMPACT);
     assertEquals(
-        "{\"status\":\"success\",\"schema\":[{\"name\":\"firstname\",\"type\":\"string\"},"
+        "{\"status\":\""
+            + status
+            + "\",\"schema\":[{\"name\":\"firstname\",\"type\":\"string\"},"
             + "{\"name\":\"age\",\"type\":\"integer\"}],\"datarows\":"
             + "[[\"John\",20],[\"Smith\",30]],\"total\":2,\"size\":2}",
         formatter.format(response));

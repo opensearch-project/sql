@@ -45,7 +45,10 @@ public class AsyncQueryResultResponseFormatter extends JsonResponseFormatter<Asy
   @Override
   public Object buildJsonObject(AsyncQueryResult response) {
     JsonResponse.JsonResponseBuilder json = JsonResponse.builder();
-    if (response.getStatus().equalsIgnoreCase("success")) {
+    String status = response.getStatus();
+    // "SUCCESS" is the legacy Spark job-run state; "SUCCEEDED" is the neutral QueryJobState name
+    // emitted by the id-shape routing path (issue #5765).
+    if ("success".equalsIgnoreCase(status) || "succeeded".equalsIgnoreCase(status)) {
       json.total(response.size()).size(response.size());
       json.schema(
           response.columnNameTypes().entrySet().stream()

@@ -469,6 +469,11 @@ public class SQLPlugin extends Plugin
     DirectQueryExecutorService directQueryExecutorService =
         injector.getInstance(DirectQueryExecutorService.class);
 
+    org.opensearch.sql.job.QueryJobService queryJobService =
+        injector.getInstance(org.opensearch.sql.job.QueryJobService.class);
+    org.opensearch.sql.job.SecurityAdapter securityAdapter =
+        injector.getInstance(org.opensearch.sql.job.SecurityAdapter.class);
+
     ScheduledAsyncQueryJobRunner.getJobRunnerInstance()
         .loadJobResource(client, clusterService, threadPool, asyncQueryExecutorService);
 
@@ -480,7 +485,9 @@ public class SQLPlugin extends Plugin
         clusterManagerEventListener,
         pluginSettings,
         directQueryExecutorService,
-        extensionsHolder);
+        extensionsHolder,
+        queryJobService,
+        securityAdapter);
   }
 
   @Override

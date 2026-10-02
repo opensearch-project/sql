@@ -657,3 +657,73 @@ Expected output (the explicitly selected metadata field is returned even though 
 - Aggregation queries are not affected by this parameter, as they never include metadata fields in their results.
 - The parameter can be specified as a URL parameter (`?include_metadata=true`) or in the request body JSON (`{"include_metadata": true}`).
 - When both URL parameter and request body specify the parameter, the request body takes precedence.
+
+## Async submit — `wait_for_completion_timeout` and `keep_alive`
+
+### Description
+
+`POST /_plugins/_ppl` accepts two optional body fields that let a client submit a long-running query and return before it finishes. If the query completes inside the configured wait, the response is identical to a synchronous PPL response. If the wait expires first, the response carries an opaque `id` and the client fetches the final result later via `GET /_plugins/_async_query/{id}`.
+
+Results returned inline, including explain output and errors, are not retained. Retention applies only when the submit response returns an `id` for polling.
+
+Parameters:
+
+| Field | Type | Default | Limit | Description |
+|---|---|---|---|---|
+| `wait_for_completion_timeout` | time value string (e.g. `"5s"`, `"0"`) | `30s` when either async field is present | `0s` – `60s` (inclusive); values outside the range are rejected with `400`. | Maximum time the submit response will wait for the query to finish. For complex queries, the submit response may take slightly longer than this value. |
+| `keep_alive` | time value string (e.g. `"5m"`) | `5m` | `> 0`, `≤ 24h`; values outside the range are rejected with `400`. | How long a terminal result is retained after completion. A subsequent GET on the id succeeds within this window and returns `404` afterwards. |
+
+### Limitations
+
+- Async submit is only available for standard PPL queries. The following request shapes always run synchronously and ignore `wait_for_completion_timeout` / `keep_alive`: the `/_plugins/_ppl/_explain` endpoint, requests with `"profile": true`, and non-JSON response formats (`format=csv`, `format=raw`, `format=viz`).
+- Results are retained in memory on the owner node for the duration of `keep_alive`. Set it as low as practical for your polling cadence; the default is `5m`.
+- Submitting an async query requires `cluster:admin/opensearch/ppl`; fetching requires `cluster:admin/opensearch/ql/async_query/result`. Users on custom roles must be granted both — a submit without the fetch grant produces an id that returns `403` on GET.
+- Cancellation through `DELETE /_plugins/_async_query/{id}` is not yet supported for PPL jobs.
+
+### Example
+
+Submit a query with a wait budget large enough for completion. The response is the same shape as a synchronous PPL response — no `id`, no polling needed:
+
+```bash ppl
+curl -sS -H 'Content-Type: application/json' \
+-X POST localhost:9200/_plugins/_ppl \
+-d '{"query" : "source=accounts | stats count() as c", "wait_for_completion_timeout": "30s"}'
+```
+
+Expected output:
+
+```json
+{
+  "schema": [
+    {
+      "name": "c",
+      "type": "bigint"
+    }
+  ],
+  "datarows": [
+    [
+      4
+    ]
+  ],
+  "total": 1,
+  "size": 1
+}
+```
+
+If the query is still running when the wait expires, the response is:
+
+```json
+{
+  "id": "<opaque-id>",
+  "status": "RUNNING",
+  "schema": [],
+  "datarows": [],
+  "total": 0
+}
+```
+
+The client then polls `GET /_plugins/_async_query/{id}` until it returns a terminal status (`SUCCEEDED` or `FAILED`):
+
+```
+GET    /_plugins/_async_query/<id>
+```

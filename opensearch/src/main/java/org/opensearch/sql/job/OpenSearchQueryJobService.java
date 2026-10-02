@@ -6,7 +6,9 @@
 package org.opensearch.sql.job;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.util.Objects;
+import java.util.concurrent.CompletionStage;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.sql.job.exceptions.QueryJobForbiddenException;
 import org.opensearch.sql.job.exceptions.QueryJobNotFoundException;
@@ -28,28 +30,54 @@ public final class OpenSearchQueryJobService implements QueryJobService {
   private final QueryJobStore store;
   private final ClusterService clusterService;
   private final Clock clock;
+  private final RetentionPolicy retentionPolicy;
 
   /**
    * @param store registry that will hold submitted jobs
    * @param clusterService source of the local node id used to mint routable {@link QueryJobId}s;
    *     resolved lazily on every submit so identity changes across restarts are observed
    * @param clock time source for the state machine
-   * @throws NullPointerException if any argument is {@code null}
+   * @param retentionPolicy attaches eviction only to jobs exposed for polling; may be {@code null}
+   *     to disable retention (test-only)
+   * @throws NullPointerException if any required argument is {@code null}
    */
   public OpenSearchQueryJobService(
-      QueryJobStore store, ClusterService clusterService, Clock clock) {
+      QueryJobStore store,
+      ClusterService clusterService,
+      Clock clock,
+      RetentionPolicy retentionPolicy) {
     this.store = Objects.requireNonNull(store, "store must not be null");
     this.clusterService = Objects.requireNonNull(clusterService, "clusterService must not be null");
     this.clock = Objects.requireNonNull(clock, "clock must not be null");
+    this.retentionPolicy = retentionPolicy;
   }
 
   @Override
-  public QueryJob submit(QueryRunner runner, Principal submitter) {
+  public CompletionStage<QueryResult> submit(
+      QueryRunner runner, Principal submitter, Duration waitForCompletion, Duration keepAlive) {
     Objects.requireNonNull(runner, "runner must not be null");
     Objects.requireNonNull(submitter, "submitter must not be null");
+    Objects.requireNonNull(waitForCompletion, "waitForCompletion must not be null");
+    Objects.requireNonNull(keepAlive, "keepAlive must not be null");
+    if (waitForCompletion.isNegative()) {
+      throw new IllegalArgumentException("waitForCompletion must not be negative");
+    }
+    if (!keepAlive.isPositive()) {
+      throw new IllegalArgumentException("keepAlive must be positive");
+    }
     QueryJob job = publish(runner, submitter);
     job.startRunner();
-    return job;
+    return job.await(waitForCompletion)
+        .whenComplete(
+            (result, error) -> {
+              if (error == null && result instanceof QueryResult.Running) {
+                if (retentionPolicy != null) {
+                  retentionPolicy.arm(job, keepAlive);
+                }
+              } else {
+                store.remove(job.id(), job);
+              }
+            });
   }
 
   @Override
