@@ -534,10 +534,19 @@ public class PredicateAnalyzer {
       return column + "." + RexLiteral.stringValue(key);
     }
 
+    /**
+     * Looks through a cast that cannot change which records match: one character type to another,
+     * which is what comparing a leaf with text inserts. A cast to any other type is left in place
+     * -- it decides the comparison rather than restating it. {@code cast(leaf as double) = 4}
+     * matches "4", "04" and "4.0", which one term cannot express, and {@code isnull(cast(leaf as
+     * double))} is true of "n/a", which an exists query would not find.
+     */
     private static RexNode stripCast(RexNode node) {
       RexNode inner = node;
       while (inner instanceof RexCall cast
-          && (cast.getKind() == SqlKind.CAST || cast.getKind() == SqlKind.SAFE_CAST)) {
+          && (cast.getKind() == SqlKind.CAST || cast.getKind() == SqlKind.SAFE_CAST)
+          && SqlTypeUtil.isCharacter(cast.getType())
+          && SqlTypeUtil.isCharacter(cast.getOperands().get(0).getType())) {
         inner = cast.getOperands().get(0);
       }
       return inner;

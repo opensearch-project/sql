@@ -142,6 +142,8 @@ Reading a leaf, or the whole field, costs no more than reading a keyword field, 
 
 This is the cost the field type exists to avoid, and it is the same cost the same operation carries on a `spath` field. On a large index, put a supported filter before one of these so the script runs over a narrow set rather than the whole scan; `explain` shows which of the two a query got -- a `term`, `terms`, `wildcard` or `exists` clause, or a `script` clause.
 
+Text equality is a lookup of the term the record wrote, so it matches that token. A number is shown in its canonical form, which is not always the token: `1e3` is indexed as `1e3` and reads as `1000.0`, and `1.50` reads as `1.5`. To match a number however it was written, cast it -- `where cast(attributes.n as double) = 1000` finds both `1e3` and `1000` -- at the cost of the evaluated path above.
+
 A path holding more than one value reads as JSON, so it does not compare equal to any single one of those values, while the index matches each of them. A filter therefore answers differently depending on whether it reached the index -- which applies to any field holding several values, not only to a flat_object leaf.
 
 `expand` is not supported on a leaf: it takes a column of the index to correlate the expansion with. Expand the field itself, or project the leaf first.

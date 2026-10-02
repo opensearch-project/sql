@@ -304,3 +304,99 @@ teardown:
   - do:
       indices.delete:
         index: aliased
+
+---
+# A predicate the index cannot answer is evaluated after the records are read, by a script that
+# reads the field out of _source. _source holds the document as written, so the script is given the
+# same flattened map the engine presents -- without it a leaf is not found under its dotted path,
+# and an array at the root is not a map at all.
+"a script over a leaf is given the flattened field":
+  - skip:
+      features: [headers]
+  - do:
+      indices.create:
+        index: scripted
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              service:
+                type: keyword
+              attributes:
+                type: flat_object
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "scripted", "_id": "1"}}'
+          - '{"service": "nested", "attributes": {"http": {"response": {"status_code": 503}}}}'
+          - '{"index": {"_index": "scripted", "_id": "2"}}'
+          - '{"service": "low", "attributes": {"http.response.status_code": 200}}'
+          - '{"index": {"_index": "scripted", "_id": "3"}}'
+          - '{"service": "rooted", "attributes": [{"a": 1}, {"a": 2}]}'
+  # a leaf reached through a nested object, compared by value rather than by term
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=scripted | where attributes.http.response.status_code > 500 | fields service'
+  - match: {"datarows": [["nested"]]}
+  # the record with an array at the root is in the same index, and the script runs over it without
+  # failing -- it is a map by the time the script sees it. Its own leaf holds both values, so it is
+  # not a number any more
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=scripted | where service = ''rooted'' | fields attributes.a'
+  - match: {"datarows": [["[\"1\",\"2\"]"]]}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=scripted | where cast(attributes.http.response.status_code as double) >= 200 | sort service | fields service'
+  - match: {"datarows": [["low"], ["nested"]]}
+  - do:
+      indices.delete:
+        index: scripted
+
+---
+# A number is matched by value through a cast, whatever form the record wrote it in. The other half
+# of this -- that text equality matches the token as written, so `= '1e3'` finds a record that wrote
+# 1e3 while the leaf reads as "1000.0" -- cannot be covered here: this client normalises a numeric
+# token before indexing, so the index never holds the exponent form. It is in the documentation.
+"a number is matched by value through a cast":
+  - skip:
+      features: [headers]
+  - do:
+      indices.create:
+        index: numeric
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              service:
+                type: keyword
+              attributes:
+                type: flat_object
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "numeric", "_id": "1"}}'
+          - '{"service": "whole", "attributes": {"n": 1000}}'
+          - '{"index": {"_index": "numeric", "_id": "2"}}'
+          - '{"service": "text", "attributes": {"n": "1000"}}'
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=numeric | where cast(attributes.n as double) = 1000 | sort service | fields service'
+  - match: {"datarows": [["text"], ["whole"]]}
+  - do:
+      indices.delete:
+        index: numeric
