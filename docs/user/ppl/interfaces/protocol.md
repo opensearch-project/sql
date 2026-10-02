@@ -52,7 +52,50 @@ Expected output:
   "size": 4
 }
 ```
-  
+
+## Warnings
+
+### Description
+
+A successful response carries a `warnings` array when the result is correct but incomplete, so a
+consumer can tell an undercounted answer from a whole one. The field is absent when there is nothing
+to report, and only the JSON format carries it -- CSV, raw and visualization responses have no
+warning channel. Each entry has a machine-readable `type`, a one-line `message`, and a `detail`
+with the shard counts OpenSearch reported, plus any shard failure reasons:
+
+| `type` | Meaning |
+|---|---|
+| `PARTIAL_RESULT` | The search covered only the shards that responded: a shard failed, a shard had no available copy, or the search timed out. OpenSearch returns such a search with HTTP 200 because `search.default_allow_partial_results` defaults to `true`; set that to `false` to have these searches fail instead. |
+
+### Example
+
+A count whose search reached only three of its four shards:
+
+```json
+{
+  "schema": [
+    {
+      "name": "n",
+      "type": "bigint"
+    }
+  ],
+  "datarows": [
+    [
+      750
+    ]
+  ],
+  "total": 1,
+  "size": 1,
+  "warnings": [
+    {
+      "type": "PARTIAL_RESULT",
+      "message": "Results are partial: 1 of 4 shards did not return data.",
+      "detail": "_shards: total 4, successful 3, skipped 0, failed 0"
+    }
+  ]
+}
+```
+
 ## JDBC Format  
 
 ### Description  

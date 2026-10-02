@@ -66,10 +66,12 @@ import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.executor.Warning;
 import org.opensearch.sql.opensearch.data.type.OpenSearchAliasType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
@@ -456,6 +458,27 @@ class OpenSearchNodeClientTest {
 
     verify(nodeClient).execute(CreatePitAction.INSTANCE, createPitRequest);
     verify(actionFuture).get();
+  }
+
+  @Test
+  @SneakyThrows
+  void create_pit_over_some_shards_records_a_warning() {
+    ActionFuture<CreatePitResponse> actionFuture = mock(ActionFuture.class);
+    CreatePitResponse createPitResponse = mock(CreatePitResponse.class);
+    when(createPitResponse.getTotalShards()).thenReturn(2);
+    when(createPitResponse.getSuccessfulShards()).thenReturn(1);
+    when(actionFuture.get()).thenReturn(createPitResponse);
+    when(nodeClient.execute(eq(CreatePitAction.INSTANCE), any(CreatePitRequest.class)))
+        .thenReturn(actionFuture);
+
+    CalcitePlanContext.drainWarnings();
+    client.createPit(
+        new CreatePitRequest(TimeValue.timeValueMinutes(5), true, Strings.EMPTY_ARRAY));
+
+    List<Warning> warnings = CalcitePlanContext.drainWarnings();
+    assertEquals(1, warnings.size());
+    assertEquals(
+        "Results are partial: 1 of 2 shards did not return data.", warnings.get(0).getMessage());
   }
 
   @Test
