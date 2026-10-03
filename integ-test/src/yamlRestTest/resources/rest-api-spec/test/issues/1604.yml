@@ -1,0 +1,512 @@
+# Issue: https://github.com/opensearch-project/sql/issues/1604
+#        https://github.com/opensearch-project/sql/issues/3067
+# A flat_object field used to be dropped by OpenSearchDataType.parseMapping ("unknown type, skip
+# it"), so it was absent from the schema and any reference failed as "field not found".
+#
+# The field is now a struct keyed by the dotted path of each leaf. A leaf has no type of its own in
+# the index, so every value reads as text and a path holding several values reads as their JSON --
+# the same rule spath applies to a JSON string.
+setup:
+  - do:
+      indices.create:
+        index: otel
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              service:
+                type: keyword
+              attributes:
+                type: flat_object
+
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "otel", "_id": "1"}}'
+          - '{"service": "checkout", "attributes": {"http.response.status_code": 500, "duration_ms": 12.5, "ok": true, "env": "prod"}}'
+          - '{"index": {"_index": "otel", "_id": "2"}}'
+          - '{"service": "payments", "attributes": {"http": {"response": {"status_code": 503}}, "duration_ms": "4", "env": "prod"}}'
+          - '{"index": {"_index": "otel", "_id": "3"}}'
+          - '{"service": "tags", "attributes": {"tags": ["a", "b"], "mixed": [1, "x"], "nested": [{"k": 1}, {"k": 2}], "env": "staging"}}'
+          - '{"index": {"_index": "otel", "_id": "4"}}'
+          - '{"service": "collide", "attributes": {"a": {"b": 1}, "a.b": 2}}'
+
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+            plugins.calcite.fallback.allowed: false
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: otel
+        ignore_unavailable: true
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: null
+            plugins.calcite.fallback.allowed: null
+
+---
+"describe lists the field as flat_object":
+  - skip:
+      features: [headers]
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'describe otel | fields COLUMN_NAME, TYPE_NAME'
+  - match: {"datarows": [["attributes", "flat_object"], ["service", "string"]]}
+
+---
+"the whole field reads as a map of dotted leaf path to text":
+  - skip:
+      features: [headers]
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | where service = ''checkout'' | fields attributes'
+  # every value is text, and the dotted path is the key -- both spellings of a path reach the same one
+  - match: {"datarows": [[{"http.response.status_code": "500", "duration_ms": "12.5", "ok": "true", "env": "prod"}]]}
+
+---
+"a leaf reads as text, under either spelling of its path":
+  - skip:
+      features: [headers]
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | fields service, attributes.http.response.status_code, attributes.duration_ms | sort service'
+  - match: {"datarows": [["checkout", "500", "12.5"], ["collide", null, null], ["payments", "503", "4"], ["tags", null, null]]}
+
+---
+"a path holding several values reads as their JSON":
+  - skip:
+      features: [headers]
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | where service = ''tags'' | fields attributes.tags, attributes.mixed, attributes.nested.k'
+  - match: {"datarows": [["[\"a\",\"b\"]", "[\"1\",\"x\"]", "[\"1\",\"2\"]"]]}
+  # both spellings of a path in one document: neither value is dropped
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | where service = ''collide'' | fields attributes.a.b'
+  - match: {"datarows": [["[\"1\",\"2\"]"]]}
+
+---
+"a leaf can be cast, and typeof reports text":
+  - skip:
+      features: [headers]
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | where service = ''payments'' | eval n = cast(attributes.duration_ms as double), t = typeof(attributes.duration_ms) | fields n, t'
+  - match: {"datarows": [[4.0, "STRING"]]}
+
+---
+# A leaf is text, so PPL does with it what it does with any text column -- the same as a field
+# spath extracted from a JSON string.
+"a leaf can be filtered, sorted and aggregated like any text column":
+  - skip:
+      features: [headers]
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | where attributes.duration_ms = ''4'' | fields service'
+  - match: {"datarows": [["payments"]]}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | where attributes.duration_ms > 5 | fields service'
+  - match: {"datarows": [["checkout"]]}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | stats avg(attributes.duration_ms)'
+  - match: {"datarows": [[8.25]]}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | where isnotnull(attributes.duration_ms) | sort attributes.duration_ms | fields attributes.duration_ms'
+  - match: {"datarows": [["12.5"], ["4"]]}
+
+---
+# expand needs a column of the input to correlate the expansion with. A leaf is not one, so it is
+# reported the way the mvexpand check reports it rather than as a ClassCastException.
+"expand does not take a leaf":
+  - skip:
+      features: [headers]
+  - do:
+      catch: bad_request
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | expand attributes.tags | fields service'
+  - match: {"$body": "/Cannot\\s+expand\\s+.attributes.tags.*/"}
+
+---
+# A leaf is one keyword term with the path folded in, so an exact-match predicate is answered by the
+# index. Written with no spaces: MatchAssertion compiles these with Pattern.COMMENTS, which discards
+# unescaped whitespace.
+# A literal that could stand for a number is not folded -- see the case below -- so these use text
+# no number could produce.
+"an exact-match predicate over text reaches the index, not a script":
+  - skip:
+      features: [headers]
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl.explain:
+        body:
+          query: "source=otel | where attributes.env = 'prod' | fields service"
+  - match: {"calcite.physical": "/\"term\":\\{\"attributes.env\"/"}
+  - match: {"calcite.physical": "/^((?!opensearch_compounded_script).)*$/"}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl.explain:
+        body:
+          query: "source=otel | where attributes.env in ('prod','staging') | fields service"
+  - match: {"calcite.physical": "/\"terms\":\\{\"attributes.env\"/"}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl.explain:
+        body:
+          query: "source=otel | where isnotnull(attributes.duration_ms) | fields service"
+  - match: {"calcite.physical": "/\"exists\":\\{\"field\":\"attributes.duration_ms\"/"}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl.explain:
+        body:
+          query: "source=otel | where like(attributes.env, 'pro%') | fields service"
+  - match: {"calcite.physical": "/\"wildcard\":\\{\"attributes.env\"/"}
+
+---
+# A flat_object can be a sub-field of an ordinary object, which the field type's documentation shows
+# as its second example. The leaf is then named by the whole path, and the index term carries all of
+# it, so the lookup is the same one.
+"a flat_object can be a sub-field of an object":
+  - skip:
+      features: [headers]
+  - do:
+      indices.create:
+        index: sub
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              issue:
+                properties:
+                  number:
+                    type: double
+                  labels:
+                    type: flat_object
+  - do:
+      index:
+        index: sub
+        id: 1
+        refresh: true
+        body: {"issue": {"number": 123456, "labels": {"version": "2.1", "backport": ["2.0", "1.3"], "category": {"type": "API", "level": "enhancement"}}}}
+  # the sibling keeps its own mapping; only labels is flat
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'describe sub | fields COLUMN_NAME, TYPE_NAME'
+  - match: {"datarows": [["issue", "struct"], ["issue.labels", "flat_object"], ["issue.number", "double"]]}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=sub | fields issue.labels.category.level, issue.labels.backport, issue.number'
+  - match: {"datarows": [["enhancement", "[\"2.0\",\"1.3\"]", 123456.0]]}
+  # the term the index holds carries the whole path, so the lookup is a term like any other
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=sub | where issue.labels.category.level = ''enhancement'' | fields issue.number'
+  - match: {"datarows": [[123456.0]]}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl.explain:
+        body:
+          query: "source=sub | where issue.labels.category.level = 'enhancement' | fields issue.number"
+  - match: {"calcite.physical": "/\"term\":\\{\"issue.labels.category.level\"/"}
+  - do:
+      indices.delete:
+        index: sub
+
+---
+# An alias to a flat_object resolves to the target before the predicate is folded, so the leaf is
+# looked up under the target's path. Reading the type map alone suggests an alias slips past the
+# flat_object check -- the map holds OpenSearchAliasType under the alias key -- but it does not,
+# because the name is already the target's by then. Same as the binary case in issues/5757.
+"an alias to a flat_object is looked up under the target":
+  - skip:
+      features: [headers]
+  - do:
+      indices.create:
+        index: aliased
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              service:
+                type: keyword
+              attributes:
+                type: flat_object
+              attrs:
+                type: alias
+                path: attributes
+  - do:
+      index:
+        index: aliased
+        id: 1
+        refresh: true
+        body: {"service": "payments", "attributes": {"env": "prod"}}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=aliased | fields attrs.env'
+  - match: {"datarows": [["prod"]]}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=aliased | where attrs.env = ''prod'' | fields service'
+  - match: {"datarows": [["payments"]]}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl.explain:
+        body:
+          query: "source=aliased | where attrs.env = 'prod' | fields service"
+  - match: {"calcite.physical": "/\"term\":\\{\"attributes.env\"/"}
+  - do:
+      indices.delete:
+        index: aliased
+
+---
+# A predicate the index cannot answer is evaluated after the records are read, by a script that
+# reads the field out of _source. _source holds the document as written, so the script is given the
+# same flattened map the engine presents -- without it a leaf is not found under its dotted path,
+# and an array at the root is not a map at all.
+"a script over a leaf is given the flattened field":
+  - skip:
+      features: [headers]
+  - do:
+      indices.create:
+        index: scripted
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              service:
+                type: keyword
+              attributes:
+                type: flat_object
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "scripted", "_id": "1"}}'
+          - '{"service": "nested", "attributes": {"http": {"response": {"status_code": 503}}}}'
+          - '{"index": {"_index": "scripted", "_id": "2"}}'
+          - '{"service": "low", "attributes": {"http.response.status_code": 200}}'
+          - '{"index": {"_index": "scripted", "_id": "3"}}'
+          - '{"service": "rooted", "attributes": [{"a": 1}, {"a": 2}]}'
+  # a leaf reached through a nested object, compared by value rather than by term
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=scripted | where attributes.http.response.status_code > 500 | fields service'
+  - match: {"datarows": [["nested"]]}
+  # the record with an array at the root is in the same index, and the script runs over it without
+  # failing -- it is a map by the time the script sees it. Its own leaf holds both values, so it is
+  # not a number any more
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=scripted | where service = ''rooted'' | fields attributes.a'
+  - match: {"datarows": [["[\"1\",\"2\"]"]]}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=scripted | where cast(attributes.http.response.status_code as double) >= 200 | sort service | fields service'
+  - match: {"datarows": [["low"], ["nested"]]}
+  - do:
+      indices.delete:
+        index: scripted
+
+---
+# A number is matched by value through a cast, whatever form the record wrote it in. The other half
+# of this -- that text equality matches the token as written, so `= '1e3'` finds a record that wrote
+# 1e3 while the leaf reads as "1000.0" -- cannot be covered here: this client normalises a numeric
+# token before indexing, so the index never holds the exponent form. It is in the documentation.
+"a number is matched by value through a cast":
+  - skip:
+      features: [headers]
+  - do:
+      indices.create:
+        index: numeric
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              service:
+                type: keyword
+              attributes:
+                type: flat_object
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "numeric", "_id": "1"}}'
+          - '{"service": "whole", "attributes": {"n": 1000}}'
+          - '{"index": {"_index": "numeric", "_id": "2"}}'
+          - '{"service": "text", "attributes": {"n": "1000"}}'
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=numeric | where cast(attributes.n as double) = 1000 | sort service | fields service'
+  - match: {"datarows": [["text"], ["whole"]]}
+  - do:
+      indices.delete:
+        index: numeric
+
+---
+# The index holds the token a record wrote, while the engine reads a number in its canonical form:
+# 1e3 is indexed as "1e3" and read as "1000.0", 2.10 as "2.10" and "2.1". A term would then answer a
+# text equality differently from the evaluated path. So a literal that could stand for a number is
+# not folded, and the answer does not depend on whether pushdown was available.
+"text equality does not change with pushdown":
+  - skip:
+      features: [headers]
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl.explain:
+        body:
+          query: "source=otel | where attributes.duration_ms = '4' | fields service"
+  - match: {"calcite.physical": "/^((?!\"term\":\\{\"attributes.duration_ms\").)*$/"}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | where attributes.duration_ms = ''4'' | fields service'
+  - match: {"datarows": [["payments"]]}
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.pushdown.enabled: false
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | where attributes.duration_ms = ''4'' | fields service'
+  - match: {"datarows": [["payments"]]}
+  # text no number could produce is answered by the index, and by the same rows either way
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | where attributes.env = ''prod'' | sort service | fields service'
+  - match: {"datarows": [["checkout"], ["payments"]]}
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.pushdown.enabled: null
+
+---
+# A LIKE pattern stands for digits without spelling them, so the same reasoning applies to it as to
+# an equality: '%e%' matches the token a record wrote for 1e3 while '______' matches the "1000.0"
+# the engine reads, each missing what the other finds. A pattern no number token can match keeps its
+# lookup.
+"a wildcard pattern, and a number too large for a double, do not change with pushdown":
+  - skip:
+      features: [headers]
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl.explain:
+        body:
+          query: "source=otel | where like(attributes.duration_ms, '%e%') | fields service"
+  - match: {"calcite.physical": "/^((?!\"wildcard\").)*$/"}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl.explain:
+        body:
+          query: "source=otel | where like(attributes.duration_ms, '____') | fields service"
+  - match: {"calcite.physical": "/^((?!\"wildcard\").)*$/"}
+  # a number too large for a double reads as "Infinity", which is written with no digits at all
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl.explain:
+        body:
+          query: "source=otel | where attributes.duration_ms = 'Infinity' | fields service"
+  - match: {"calcite.physical": "/^((?!\"term\":\\{\"attributes.duration_ms\").)*$/"}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl.explain:
+        body:
+          query: "source=otel | where like(attributes.duration_ms, '%fin%') | fields service"
+  - match: {"calcite.physical": "/^((?!\"wildcard\").)*$/"}
+  # a pattern a number token cannot match is still answered by the index
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl.explain:
+        body:
+          query: "source=otel | where like(attributes.env, 'pro%') | fields service"
+  - match: {"calcite.physical": "/\"wildcard\":\\{\"attributes.env\"/"}
+  # and the rows do not depend on the setting
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | where like(attributes.duration_ms, ''%4%'') | fields service'
+  - match: {"datarows": [["payments"]]}
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.pushdown.enabled: false
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | where like(attributes.duration_ms, ''%4%'') | fields service'
+  - match: {"datarows": [["payments"]]}
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.pushdown.enabled: null

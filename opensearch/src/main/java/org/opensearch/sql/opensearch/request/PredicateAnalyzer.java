@@ -57,11 +57,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -82,6 +85,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.ArraySqlType;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.NlsString;
 import org.apache.calcite.util.RangeSets;
 import org.apache.calcite.util.Sarg;
@@ -107,6 +111,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchAliasType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchFlatObjectType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.UnsupportedScriptException;
 import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.ScriptEngineType;
@@ -372,6 +377,11 @@ public class PredicateAnalyzer {
         throw new PredicateAnalyzerException(message);
       }
 
+      QueryExpression leafPredicate = flatObjectLeafPredicate(call);
+      if (leafPredicate != null) {
+        return leafPredicate;
+      }
+
       switch (syntax) {
         case BINARY, INTERNAL:
           return binary(call);
@@ -403,6 +413,250 @@ public class PredicateAnalyzer {
               format(Locale.ROOT, "Unsupported syntax [%s] for call: [%s]", syntax, call);
           throw new PredicateAnalyzerException(message);
       }
+    }
+
+    /**
+     * The index query for a predicate on a {@code flat_object} leaf, or null when the call is not
+     * one. Each leaf is indexed as a keyword term with the path folded in ({@code
+     * attributes.duration_ms=n/a}), so an exact-match predicate is answered by the index alone and
+     * no record is opened. Ordered comparisons are left out on purpose: a range over those terms
+     * compares text, which is not the comparison the query asked for.
+     */
+    private @Nullable QueryExpression flatObjectLeafPredicate(RexCall call) {
+      List<RexNode> operands = call.getOperands();
+      switch (call.getKind()) {
+        case EQUALS, NOT_EQUALS -> {
+          for (int i = 0; i < 2; i++) {
+            String path = flatObjectLeafPath(operands.get(i));
+            if (path != null
+                && leafLiteral(operands.get(1 - i)) instanceof RexLiteral literal
+                && isTextLiteral(literal)
+                && isFoldableLeafText(RexLiteral.stringValue(literal))) {
+              LiteralExpression value = new LiteralExpression(literal);
+              return analyzed(
+                  call.getKind() == SqlKind.EQUALS
+                      ? leaf(path).equals(value)
+                      : leaf(path).notEquals(value),
+                  call);
+            }
+          }
+        }
+        case IS_NOT_NULL -> {
+          String path = flatObjectLeafPath(operands.get(0));
+          if (path != null) {
+            return analyzed(leaf(path).exists(), call);
+          }
+        }
+        case IS_NULL -> {
+          String path = flatObjectLeafPath(operands.get(0));
+          if (path != null) {
+            return analyzed(leaf(path).notExists(), call);
+          }
+        }
+        case SEARCH -> {
+          String path = flatObjectLeafPath(operands.get(0));
+          if (path != null
+              && operands.get(1) instanceof RexLiteral literal
+              && sargPointsAreAllText(literal)) {
+            boolean points = isSearchWithPoints(call);
+            boolean complemented = isSearchWithComplementedPoints(call);
+            if (points || complemented) {
+              LiteralExpression value = new LiteralExpression(literal);
+              QueryExpression matched = points ? leaf(path).in(value) : leaf(path).notIn(value);
+              return analyzed(
+                  switch (getNullAsForSearch(call)) {
+                    case FALSE ->
+                        points
+                            ? matched
+                            : CompoundQueryExpression.and(false, matched, leaf(path).exists());
+                    case TRUE -> CompoundQueryExpression.or(matched, leaf(path).notExists());
+                    case UNKNOWN ->
+                        complemented
+                            ? CompoundQueryExpression.and(false, matched, leaf(path).exists())
+                            : matched;
+                  },
+                  call);
+            }
+          }
+        }
+        case LIKE -> {
+          String path = flatObjectLeafPath(operands.get(0));
+          if (path != null
+              && operands.get(1) instanceof RexLiteral pattern
+              && isTextLiteral(pattern)
+              && !mayDescribeANumber(RexLiteral.stringValue(pattern), true)
+              && call.getOperator() instanceof SqlLikeOperator like) {
+            return analyzed(
+                leaf(path).like(new LiteralExpression(pattern), like.isCaseSensitive()), call);
+          }
+        }
+        default -> {}
+      }
+      return null;
+    }
+
+    /**
+     * A leaf as a field the rest of this class can push down: named by its dotted path, with no
+     * type, because the leaf has no mapping of its own. A null type makes every type test in {@link
+     * NamedFieldExpression} false and both of its references the path itself, which is how a
+     * keyword field behaves -- and a keyword term per leaf is what the index holds. So the queries
+     * come from {@link SimpleQueryExpression}, the same ones a mapped field gets.
+     */
+    private static SimpleQueryExpression leaf(String path) {
+      return (SimpleQueryExpression)
+          QueryExpression.create(new NamedFieldExpression(path, null, null));
+    }
+
+    private static QueryExpression analyzed(QueryExpression expression, RexCall call) {
+      expression.updateAnalyzedNodes(call);
+      return expression;
+    }
+
+    private static boolean isTextLiteral(RexLiteral literal) {
+      return SqlTypeUtil.isCharacter(literal.getType());
+    }
+
+    /** The characters a number token can be written with. */
+    private static final String NUMBER_CHARACTERS = "0123456789.+-eE";
+
+    /** Those, plus the wildcards a LIKE pattern may stand for any of them with. */
+    private static final String PATTERN_CHARACTERS = NUMBER_CHARACTERS + "%_";
+
+    /** What a number too large for a double reads as, which is not written with those at all. */
+    private static final Set<String> OVERFLOW_READINGS = Set.of("Infinity", "-Infinity");
+
+    /**
+     * Whether leaf text is text a term answers the same way the evaluated path does. A leaf is read
+     * in two ways that are not the token the index holds -- a number in its canonical form, and a
+     * leaf written more than once as the JSON of its values -- and text that could be either is
+     * left to the path that produces it.
+     */
+    private static boolean isFoldableLeafText(String text) {
+      return !mayDescribeANumber(text, false) && !mayDescribeSeveralValues(text);
+    }
+
+    /**
+     * Whether text could be how a leaf that holds several values reads. The index files a term per
+     * value; the engine reads them as the JSON of all of them, which is no one value and so no
+     * term. Bracketed text is therefore left to the evaluated path -- and a leaf whose single value
+     * really is that text reads as the same text, so that path answers it the same way.
+     *
+     * <p>Only exact matches are decided here. A LIKE pattern over those values is the index's own
+     * answer either way, which is what every multi-valued field does.
+     */
+    private static boolean mayDescribeSeveralValues(String text) {
+      return text != null && text.startsWith("[") && text.endsWith("]");
+    }
+
+    /**
+     * Whether text could stand for a number, which is where the index and the engine disagree about
+     * a leaf. The index holds the token the record wrote; the engine reads a number in its
+     * canonical form, and the two differ -- {@code 1e3} is indexed as "1e3" and read as "1000.0",
+     * {@code 2.10} as "2.10" and "2.1". A term would then answer a predicate the evaluated path
+     * answers differently, so such a predicate is left to that path.
+     *
+     * <p>What rules a literal out is a character no number token contains: {@code 'prod'} and
+     * {@code 'ns-07'} are safe for that reason. Spelling a digit is not what makes one unsafe -- a
+     * LIKE pattern stands for digits without spelling them, and {@code '%e%'} matches the token
+     * "1e3" while {@code '______'} matches the reading "1000.0", each missing what the other finds.
+     */
+    private static boolean mayDescribeANumber(String text, boolean isPattern) {
+      if (text == null) {
+        return true;
+      }
+      String allowed = isPattern ? PATTERN_CHARACTERS : NUMBER_CHARACTERS;
+      if (text.chars().allMatch(c -> allowed.indexOf(c) >= 0)) {
+        return true;
+      }
+      // a number too large for a double does not read as digits at all
+      return isPattern
+          ? OVERFLOW_READINGS.stream().anyMatch(reading -> likeMatches(text, reading))
+          : OVERFLOW_READINGS.contains(text);
+    }
+
+    /** Whether a LIKE pattern matches a string, by the pattern's own rules. */
+    private static boolean likeMatches(String pattern, String value) {
+      StringBuilder regex = new StringBuilder();
+      for (int i = 0; i < pattern.length(); i++) {
+        char c = pattern.charAt(i);
+        switch (c) {
+          case '%' -> regex.append(".*");
+          case '_' -> regex.append('.');
+          case '\\' -> {
+            if (i + 1 < pattern.length()) {
+              regex.append(Pattern.quote(String.valueOf(pattern.charAt(++i))));
+            }
+          }
+          default -> regex.append(Pattern.quote(String.valueOf(c)));
+        }
+      }
+      return Pattern.compile(regex.toString(), Pattern.CASE_INSENSITIVE).matcher(value).matches();
+    }
+
+    /**
+     * Whether every point of a {@code SEARCH} Sarg is text that no number could produce. Every
+     * point appears as a bound of some range, whether the Sarg lists the points ({@code = a or =
+     * b}) or their complement ({@code != a and != b}), so the bounds are what is checked.
+     */
+    private static boolean sargPointsAreAllText(RexLiteral sargLiteral) {
+      Sarg<?> sarg = sargLiteral.getValueAs(Sarg.class);
+      if (sarg == null) {
+        return false;
+      }
+      return sarg.rangeSet.asRanges().stream()
+          .flatMap(
+              range ->
+                  Stream.of(
+                      range.hasLowerBound() ? range.lowerEndpoint() : null,
+                      range.hasUpperBound() ? range.upperEndpoint() : null))
+          .filter(Objects::nonNull)
+          .allMatch(
+              point -> point instanceof NlsString text && isFoldableLeafText(text.getValue()));
+    }
+
+    /** The literal a comparison holds, with any cast around it removed; null if it is not one. */
+    private static @Nullable RexNode leafLiteral(RexNode node) {
+      RexNode literal = stripCast(node);
+      return literal instanceof RexLiteral ? literal : null;
+    }
+
+    /**
+     * The DSL path of a leaf reference -- {@code ITEM(<flat_object column>, '<key>')}, possibly
+     * cast -- as {@code column.key}; null for anything else.
+     */
+    private @Nullable String flatObjectLeafPath(RexNode node) {
+      node = stripCast(node);
+      if (!(node instanceof RexCall item) || item.getKind() != SqlKind.ITEM) {
+        return null;
+      }
+      if (!(item.getOperands().get(0) instanceof RexInputRef ref)
+          || !(item.getOperands().get(1) instanceof RexLiteral key)
+          || !isTextLiteral(key)) {
+        return null;
+      }
+      String column = ref.getIndex() < schema.size() ? schema.get(ref.getIndex()) : null;
+      if (column == null || !(fieldTypes.get(column) instanceof OpenSearchFlatObjectType)) {
+        return null;
+      }
+      return column + "." + RexLiteral.stringValue(key);
+    }
+
+    /**
+     * Looks through a cast that cannot change which records match: one character type to another,
+     * which is what comparing a leaf with text inserts. A cast to any other type is left in place
+     * -- it decides the comparison rather than restating it. {@code cast(leaf as double) = 4}
+     * matches "4", "04" and "4.0", which one term cannot express, and {@code isnull(cast(leaf as
+     * double))} is true of "n/a", which an exists query would not find.
+     */
+    private static RexNode stripCast(RexNode node) {
+      RexNode inner = node;
+      while (inner instanceof RexCall cast
+          && (cast.getKind() == SqlKind.CAST || cast.getKind() == SqlKind.SAFE_CAST)
+          && SqlTypeUtil.isCharacter(cast.getType())
+          && SqlTypeUtil.isCharacter(cast.getOperands().get(0).getType())) {
+        inner = cast.getOperands().get(0);
+      }
+      return inner;
     }
 
     private QueryExpression visitRelevanceFunc(RexCall call) {
