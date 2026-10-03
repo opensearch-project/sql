@@ -1843,7 +1843,8 @@ public class PredicateAnalyzerTest {
 
   @Test
   void flatObjectLeaf_like_isAWildcardQueryAlone() throws ExpressionNotAnalyzableException {
-    for (String pattern : List.of("n/%", "%/a", "%n%", "n_a")) {
+    // none of these can match a number's reading, "Infinity" included -- "%n%" would
+    for (String pattern : List.of("n/%", "%/a", "%/%", "n_/")) {
       String query =
           analyzeFlat(
               builder.makeCall(
@@ -1851,6 +1852,51 @@ public class PredicateAnalyzerTest {
       assertTrue(query.contains("\"wildcard\""), query);
       assertTrue(query.contains("\"attributes.duration_ms\""), query);
       assertFalse(query.contains(SCRIPT), query);
+    }
+  }
+
+  /**
+   * A pattern stands for digits without spelling them, so a digit is not what makes one unsafe:
+   * '%e%' matches the token "1e3" while '______' matches the reading "1000.0", each missing what
+   * the other finds. What rules a pattern out is a character no number token contains.
+   */
+  /**
+   * A number too large for a double does not read as digits at all: 1e309 is indexed as "1e309" and
+   * reads as "Infinity". Neither that literal nor a pattern that matches it is folded.
+   */
+  @Test
+  void flatObjectLeaf_anOverflowedNumber_isNotFolded() throws ExpressionNotAnalyzableException {
+    for (String literal : List.of("Infinity", "-Infinity")) {
+      String query =
+          analyzeFlat(
+              builder.makeCall(
+                  SqlStdOperatorTable.EQUALS, leaf("n"), builder.makeLiteral(literal)));
+      assertFalse(query.contains("\"term\""), literal + " -> " + query);
+    }
+    for (String pattern : List.of("%fin%", "Inf%", "%Infinity", "-Inf_nity")) {
+      String query =
+          analyzeFlat(
+              builder.makeCall(SqlStdOperatorTable.LIKE, leaf("n"), builder.makeLiteral(pattern)));
+      assertFalse(query.contains("\"wildcard\""), pattern + " -> " + query);
+    }
+  }
+
+  @Test
+  void flatObjectLeaf_aPatternThatCouldMatchANumber_isNotFolded()
+      throws ExpressionNotAnalyzableException {
+    for (String pattern : List.of("%e%", "%E%", "_e_", "______", "1000%", "%", "_")) {
+      String query =
+          analyzeFlat(
+              builder.makeCall(SqlStdOperatorTable.LIKE, leaf("n"), builder.makeLiteral(pattern)));
+      assertFalse(query.contains("\"wildcard\""), pattern + " -> " + query);
+    }
+    // a pattern no number token can match keeps its lookup
+    for (String pattern : List.of("pro%", "%prod%", "ns-%", "_rod")) {
+      String query =
+          analyzeFlat(
+              builder.makeCall(
+                  SqlStdOperatorTable.LIKE, leaf("env"), builder.makeLiteral(pattern)));
+      assertTrue(query.contains("\"wildcard\""), pattern + " -> " + query);
     }
   }
 

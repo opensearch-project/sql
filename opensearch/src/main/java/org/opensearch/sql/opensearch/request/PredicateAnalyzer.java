@@ -62,6 +62,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
@@ -482,7 +483,7 @@ public class PredicateAnalyzer {
           if (path != null
               && operands.get(1) instanceof RexLiteral pattern
               && isTextLiteral(pattern)
-              && !mayDescribeANumber(pattern)
+              && !mayDescribeANumber(RexLiteral.stringValue(pattern), true)
               && call.getOperator() instanceof SqlLikeOperator like) {
             return analyzed(
                 leaf(path).like(new LiteralExpression(pattern), like.isCaseSensitive()), call);
@@ -514,26 +515,63 @@ public class PredicateAnalyzer {
       return SqlTypeUtil.isCharacter(literal.getType());
     }
 
+    /** The characters a number token can be written with. */
+    private static final String NUMBER_CHARACTERS = "0123456789.+-eE";
+
+    /** Those, plus the wildcards a LIKE pattern may stand for any of them with. */
+    private static final String PATTERN_CHARACTERS = NUMBER_CHARACTERS + "%_";
+
+    /** What a number too large for a double reads as, which is not written with those at all. */
+    private static final Set<String> OVERFLOW_READINGS = Set.of("Infinity", "-Infinity");
+
     /**
      * Whether a literal could stand for a number, which is where the index and the engine disagree
      * about a leaf. The index holds the token the record wrote; the engine reads a number in its
      * canonical form, and the two differ -- {@code 1e3} is indexed as "1e3" and read as "1000.0",
      * {@code 2.10} as "2.10" and "2.1". A term would then answer a predicate the evaluated path
-     * answers differently, so such a predicate is left to that path, which is the one that compares
-     * what the query was shown. Text that no number could produce is unaffected, which is what a
-     * flat_object leaf usually holds.
+     * answers differently, so such a predicate is left to that path.
+     *
+     * <p>What rules a literal out is a character no number token contains: {@code 'prod'} and
+     * {@code 'ns-07'} are safe for that reason. Spelling a digit is not what makes one unsafe -- a
+     * LIKE pattern stands for digits without spelling them, and {@code '%e%'} matches the token
+     * "1e3" while {@code '______'} matches the reading "1000.0", each missing what the other finds.
      */
     private static boolean mayDescribeANumber(RexLiteral literal) {
       // a numeric literal has no text to compare with a term at all
-      return !isTextLiteral(literal) || mayDescribeANumber(RexLiteral.stringValue(literal));
+      return !isTextLiteral(literal) || mayDescribeANumber(RexLiteral.stringValue(literal), false);
     }
 
-    private static boolean mayDescribeANumber(String text) {
-      if (text == null || text.chars().noneMatch(Character::isDigit)) {
-        return false;
+    private static boolean mayDescribeANumber(String text, boolean isPattern) {
+      if (text == null) {
+        return true;
       }
-      // the characters a number token is written with, plus the wildcards a pattern may add
-      return text.chars().allMatch(c -> "0123456789.+-eE%_".indexOf(c) >= 0);
+      String allowed = isPattern ? PATTERN_CHARACTERS : NUMBER_CHARACTERS;
+      if (text.chars().allMatch(c -> allowed.indexOf(c) >= 0)) {
+        return true;
+      }
+      // a number too large for a double does not read as digits at all
+      return isPattern
+          ? OVERFLOW_READINGS.stream().anyMatch(reading -> likeMatches(text, reading))
+          : OVERFLOW_READINGS.contains(text);
+    }
+
+    /** Whether a LIKE pattern matches a string, by the pattern's own rules. */
+    private static boolean likeMatches(String pattern, String value) {
+      StringBuilder regex = new StringBuilder();
+      for (int i = 0; i < pattern.length(); i++) {
+        char c = pattern.charAt(i);
+        switch (c) {
+          case '%' -> regex.append(".*");
+          case '_' -> regex.append('.');
+          case '\\' -> {
+            if (i + 1 < pattern.length()) {
+              regex.append(Pattern.quote(String.valueOf(pattern.charAt(++i))));
+            }
+          }
+          default -> regex.append(Pattern.quote(String.valueOf(c)));
+        }
+      }
+      return Pattern.compile(regex.toString(), Pattern.CASE_INSENSITIVE).matcher(value).matches();
     }
 
     /**
@@ -554,7 +592,8 @@ public class PredicateAnalyzer {
                       range.hasUpperBound() ? range.upperEndpoint() : null))
           .filter(Objects::nonNull)
           .allMatch(
-              point -> point instanceof NlsString text && !mayDescribeANumber(text.getValue()));
+              point ->
+                  point instanceof NlsString text && !mayDescribeANumber(text.getValue(), false));
     }
 
     /** The literal a comparison holds, with any cast around it removed; null if it is not one. */

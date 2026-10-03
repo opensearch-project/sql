@@ -446,3 +446,67 @@ teardown:
         body:
           transient:
             plugins.calcite.pushdown.enabled: null
+
+---
+# A LIKE pattern stands for digits without spelling them, so the same reasoning applies to it as to
+# an equality: '%e%' matches the token a record wrote for 1e3 while '______' matches the "1000.0"
+# the engine reads, each missing what the other finds. A pattern no number token can match keeps its
+# lookup.
+"a wildcard pattern, and a number too large for a double, do not change with pushdown":
+  - skip:
+      features: [headers]
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl.explain:
+        body:
+          query: "source=otel | where like(attributes.duration_ms, '%e%') | fields service"
+  - match: {"calcite.physical": "/^((?!\"wildcard\").)*$/"}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl.explain:
+        body:
+          query: "source=otel | where like(attributes.duration_ms, '____') | fields service"
+  - match: {"calcite.physical": "/^((?!\"wildcard\").)*$/"}
+  # a number too large for a double reads as "Infinity", which is written with no digits at all
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl.explain:
+        body:
+          query: "source=otel | where attributes.duration_ms = 'Infinity' | fields service"
+  - match: {"calcite.physical": "/^((?!\"term\":\\{\"attributes.duration_ms\").)*$/"}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl.explain:
+        body:
+          query: "source=otel | where like(attributes.duration_ms, '%fin%') | fields service"
+  - match: {"calcite.physical": "/^((?!\"wildcard\").)*$/"}
+  # a pattern a number token cannot match is still answered by the index
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl.explain:
+        body:
+          query: "source=otel | where like(attributes.env, 'pro%') | fields service"
+  - match: {"calcite.physical": "/\"wildcard\":\\{\"attributes.env\"/"}
+  # and the rows do not depend on the setting
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | where like(attributes.duration_ms, ''%4%'') | fields service'
+  - match: {"datarows": [["payments"]]}
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.pushdown.enabled: false
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | where like(attributes.duration_ms, ''%4%'') | fields service'
+  - match: {"datarows": [["payments"]]}
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.pushdown.enabled: null
