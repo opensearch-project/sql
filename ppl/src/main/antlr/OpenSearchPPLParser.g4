@@ -102,6 +102,7 @@ commands
    | graphLookupCommand
    | xyseriesCommand
    | unionCommand
+   | outputlookupCommand
    | timewrapCommand
    ;
 
@@ -348,6 +349,17 @@ sortCommand
 
 reverseCommand
    : REVERSE
+   ;
+
+outputlookupCommand
+   : OUTPUTLOOKUP outputlookupOption* tableSourceClause
+   ;
+
+outputlookupOption
+   : APPEND EQUAL append = booleanLiteral
+   | OVERRIDE_IF_EMPTY EQUAL overrideIfEmpty = booleanLiteral
+   | KEY_FIELD EQUAL keyFields += qualifiedName (COMMA keyFields += qualifiedName)*
+   | MAX EQUAL max = integerLiteral
    ;
 
 chartCommand
@@ -1754,6 +1766,9 @@ searchableKeyWord
    | EXISTS
    | SOURCE
    | INDEX
+   | OUTPUTLOOKUP
+   | OVERRIDE_IF_EMPTY
+   | KEY_FIELD
    | A
    | ASC
    | DESC
