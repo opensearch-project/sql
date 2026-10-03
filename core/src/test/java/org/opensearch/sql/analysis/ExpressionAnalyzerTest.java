@@ -43,6 +43,8 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -165,11 +167,11 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
             AstDSL.when(AstDSL.intLiteral(30), AstDSL.stringLiteral("Thirty")),
             AstDSL.when(AstDSL.intLiteral(50), AstDSL.stringLiteral("Fifty")));
 
-    SemanticCheckException exception =
-        assertThrows(SemanticCheckException.class, () -> analyze(caseWhen));
+    ErrorReport exception = assertThrows(ErrorReport.class, () -> analyze(caseWhen));
     assertEquals(
         "All result types of CASE clause must be the same, but found [STRING, STRING, INTEGER]",
         exception.getMessage());
+    assertEquals(ErrorCode.TYPE_ERROR, exception.getCode());
   }
 
   @Test

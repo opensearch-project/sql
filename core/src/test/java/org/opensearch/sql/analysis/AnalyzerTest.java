@@ -92,6 +92,8 @@ import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -158,9 +160,9 @@ class AnalyzerTest extends AnalyzerTestBase {
             AstDSL.relation("schema"),
             AstDSL.equalTo(AstDSL.qualifiedName("_test"), AstDSL.intLiteral(1)));
 
-    ExpressionEvaluationException exception =
-        assertThrows(ExpressionEvaluationException.class, () -> analyze(typeMismatchPlan));
+    ErrorReport exception = assertThrows(ErrorReport.class, () -> analyze(typeMismatchPlan));
     assertEquals(getIncompatibleTypeErrMsg(STRING, INTEGER), exception.getMessage());
+    assertEquals(ErrorCode.TYPE_ERROR, exception.getCode());
   }
 
   @Test
@@ -368,9 +370,9 @@ class AnalyzerTest extends AnalyzerTestBase {
                     AstDSL.unresolvedArg("query", stringLiteral("search query")),
                     AstDSL.unresolvedArg("boost", stringLiteral("3"))),
                 AstDSL.stringLiteral("3.0")));
-    SemanticCheckException exception =
-        assertThrows(SemanticCheckException.class, () -> analyze(unresolvedPlan));
+    ErrorReport exception = assertThrows(ErrorReport.class, () -> analyze(unresolvedPlan));
     assertEquals("Expected boost type 'DOUBLE' but got 'STRING'", exception.getMessage());
+    assertEquals(ErrorCode.TYPE_ERROR, exception.getCode());
   }
 
   @Test
