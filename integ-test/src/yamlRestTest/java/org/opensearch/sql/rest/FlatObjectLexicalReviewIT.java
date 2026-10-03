@@ -48,13 +48,6 @@ public class FlatObjectLexicalReviewIT extends OpenSearchRestTestCase {
           "/_cluster/settings",
           "{\"transient\":{\"plugins.calcite.pushdown.enabled\":false}}");
       Object withoutPushdown = request("POST", "/_plugins/_ppl", query).get("datarows");
-      System.out.println(
-          "B3 overflow read="
-              + read
-              + " pushdown=true "
-              + withPushdown
-              + " pushdown=false "
-              + withoutPushdown);
       assertEquals(List.of(List.of("Infinity")), read);
       assertEquals(read, withoutPushdown);
       assertEquals(
@@ -107,8 +100,6 @@ public class FlatObjectLexicalReviewIT extends OpenSearchRestTestCase {
                 + "') | fields attributes.n\"}";
         withoutPushdown.put(pattern, request("POST", "/_plugins/_ppl", query).get("datarows"));
       }
-      System.out.println("B3 LIKE pushdown=true " + withPushdown);
-      System.out.println("B3 LIKE pushdown=false " + withoutPushdown);
       assertEquals(List.of(List.of("1000.0")), withoutPushdown.get("______"));
       assertEquals(List.of(List.of("1000.0")), withPushdown.get("1000%"));
       assertEquals(
@@ -153,14 +144,6 @@ public class FlatObjectLexicalReviewIT extends OpenSearchRestTestCase {
           request("POST", "/_plugins/_ppl", canonicalQuery).get("datarows");
       Object tokenWithPushdown = request("POST", "/_plugins/_ppl", tokenQuery).get("datarows");
       Object numericWithPushdown = request("POST", "/_plugins/_ppl", numericQuery).get("datarows");
-      System.out.println(
-          "B3 pushdown=true canonical="
-              + canonicalWithPushdown
-              + " token="
-              + tokenWithPushdown
-              + " numericCast="
-              + numericWithPushdown);
-
       request(
           "PUT",
           "/_cluster/settings",
@@ -170,14 +153,6 @@ public class FlatObjectLexicalReviewIT extends OpenSearchRestTestCase {
       Object tokenWithoutPushdown = request("POST", "/_plugins/_ppl", tokenQuery).get("datarows");
       Object numericWithoutPushdown =
           request("POST", "/_plugins/_ppl", numericQuery).get("datarows");
-      System.out.println(
-          "B3 pushdown=false canonical="
-              + canonicalWithoutPushdown
-              + " token="
-              + tokenWithoutPushdown
-              + " numericCast="
-              + numericWithoutPushdown);
-
       assertEquals(List.of(List.of("1000.0")), canonicalWithoutPushdown);
       assertEquals(List.of(List.of("1000.0")), numericWithPushdown);
       assertEquals(numericWithoutPushdown, numericWithPushdown);

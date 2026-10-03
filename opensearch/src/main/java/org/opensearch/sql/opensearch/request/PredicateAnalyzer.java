@@ -430,7 +430,8 @@ public class PredicateAnalyzer {
             String path = flatObjectLeafPath(operands.get(i));
             if (path != null
                 && leafLiteral(operands.get(1 - i)) instanceof RexLiteral literal
-                && !mayDescribeANumber(literal)) {
+                && isTextLiteral(literal)
+                && isFoldableLeafText(RexLiteral.stringValue(literal))) {
               LiteralExpression value = new LiteralExpression(literal);
               return analyzed(
                   call.getKind() == SqlKind.EQUALS
@@ -525,8 +526,31 @@ public class PredicateAnalyzer {
     private static final Set<String> OVERFLOW_READINGS = Set.of("Infinity", "-Infinity");
 
     /**
-     * Whether a literal could stand for a number, which is where the index and the engine disagree
-     * about a leaf. The index holds the token the record wrote; the engine reads a number in its
+     * Whether leaf text is text a term answers the same way the evaluated path does. A leaf is read
+     * in two ways that are not the token the index holds -- a number in its canonical form, and a
+     * leaf written more than once as the JSON of its values -- and text that could be either is
+     * left to the path that produces it.
+     */
+    private static boolean isFoldableLeafText(String text) {
+      return !mayDescribeANumber(text, false) && !mayDescribeSeveralValues(text);
+    }
+
+    /**
+     * Whether text could be how a leaf that holds several values reads. The index files a term per
+     * value; the engine reads them as the JSON of all of them, which is no one value and so no
+     * term. Bracketed text is therefore left to the evaluated path -- and a leaf whose single value
+     * really is that text reads as the same text, so that path answers it the same way.
+     *
+     * <p>Only exact matches are decided here. A LIKE pattern over those values is the index's own
+     * answer either way, which is what every multi-valued field does.
+     */
+    private static boolean mayDescribeSeveralValues(String text) {
+      return text != null && text.startsWith("[") && text.endsWith("]");
+    }
+
+    /**
+     * Whether text could stand for a number, which is where the index and the engine disagree about
+     * a leaf. The index holds the token the record wrote; the engine reads a number in its
      * canonical form, and the two differ -- {@code 1e3} is indexed as "1e3" and read as "1000.0",
      * {@code 2.10} as "2.10" and "2.1". A term would then answer a predicate the evaluated path
      * answers differently, so such a predicate is left to that path.
@@ -536,11 +560,6 @@ public class PredicateAnalyzer {
      * LIKE pattern stands for digits without spelling them, and {@code '%e%'} matches the token
      * "1e3" while {@code '______'} matches the reading "1000.0", each missing what the other finds.
      */
-    private static boolean mayDescribeANumber(RexLiteral literal) {
-      // a numeric literal has no text to compare with a term at all
-      return !isTextLiteral(literal) || mayDescribeANumber(RexLiteral.stringValue(literal), false);
-    }
-
     private static boolean mayDescribeANumber(String text, boolean isPattern) {
       if (text == null) {
         return true;
@@ -592,8 +611,7 @@ public class PredicateAnalyzer {
                       range.hasUpperBound() ? range.upperEndpoint() : null))
           .filter(Objects::nonNull)
           .allMatch(
-              point ->
-                  point instanceof NlsString text && !mayDescribeANumber(text.getValue(), false));
+              point -> point instanceof NlsString text && isFoldableLeafText(text.getValue()));
     }
 
     /** The literal a comparison holds, with any cast around it removed; null if it is not one. */
