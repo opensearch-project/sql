@@ -193,6 +193,7 @@ public class TransportPPLQueryAction
 
     // in order to use PPL service, we need to convert TransportPPLQueryRequest to PPLQueryRequest
     PPLQueryRequest transformedRequest = transportRequest.toPPLQueryRequest();
+
     QueryContext.setProfile(transformedRequest.profile());
 
     // Start root span with OTel DB semantic convention attributes

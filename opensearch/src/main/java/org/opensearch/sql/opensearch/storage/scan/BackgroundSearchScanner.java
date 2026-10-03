@@ -21,8 +21,10 @@ import org.opensearch.sql.exception.NonFallbackCalciteException;
 import org.opensearch.sql.monitor.profile.ProfileContext;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
+import org.opensearch.tasks.CancellableTask;
 
 /**
  * Utility class for asynchronously scanning an index. This lets us send background requests to the
@@ -106,10 +108,37 @@ public class BackgroundSearchScanner {
   public void startScanning(OpenSearchRequest request) {
     if (isAsync()) {
       ProfileContext ctx = QueryProfiling.current();
+      // Capture the coordinator task on the calling thread so the background search thread can
+      // re-establish it. Without this, applyParentTask() in OpenSearchNodeClient sees a null task
+      // on the background pool and the prefetched DSL search task loses its parent (SQL/PPL) link.
+      CancellableTask task = OpenSearchQueryManager.getCancellableTask();
       nextBatchFuture =
           CompletableFuture.supplyAsync(
-              () -> QueryProfiling.withCurrentContext(ctx, () -> client.search(request)),
+              () -> QueryProfiling.withCurrentContext(ctx, () -> searchWithTask(request, task)),
               backgroundExecutor);
+    }
+  }
+
+  /**
+   * Runs {@code client.search} with the given coordinator task bound to this (pooled) thread's
+   * ThreadLocal, so parent-task linkage is applied to the outgoing DSL search request. Restores the
+   * thread's previous task afterward to keep the shared background pool clean.
+   */
+  private OpenSearchResponse searchWithTask(
+      OpenSearchRequest request, @Nullable CancellableTask task) {
+    if (task == null) {
+      return client.search(request);
+    }
+    CancellableTask previous = OpenSearchQueryManager.getCancellableTask();
+    OpenSearchQueryManager.setCancellableTask(task);
+    try {
+      return client.search(request);
+    } finally {
+      if (previous != null) {
+        OpenSearchQueryManager.setCancellableTask(previous);
+      } else {
+        OpenSearchQueryManager.clearCancellableTask();
+      }
     }
   }
 
@@ -176,8 +205,9 @@ public class BackgroundSearchScanner {
 
       // Pre-fetch next batch if needed
       if (!stopIteration && isAsync()) {
+        CancellableTask task = OpenSearchQueryManager.getCancellableTask();
         nextBatchFuture =
-            CompletableFuture.supplyAsync(() -> client.search(request), backgroundExecutor);
+            CompletableFuture.supplyAsync(() -> searchWithTask(request, task), backgroundExecutor);
       }
     } else {
       iterator = Collections.emptyIterator();
