@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NULL_MISSING;
+import static org.opensearch.sql.util.Capability.EVAL_MAX_MIN_ANY_TYPE;
 import static org.opensearch.sql.util.Capability.EVAL_MAX_MIN_INT_WIDENING;
 import static org.opensearch.sql.util.Capability.EVAL_MAX_MIN_MIXED_TYPES;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -59,6 +60,9 @@ public class CalcitePPLEvalMaxMinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = EVAL_MAX_MIN_ANY_TYPE,
+      note = "AE multi-shard: 'Unable to convert the type ANY' (HTTP 500) at the exchange.")
   public void testEvalMaxString() throws Exception {
     JSONObject result =
         executeQuery(
@@ -114,6 +118,9 @@ public class CalcitePPLEvalMaxMinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = EVAL_MAX_MIN_ANY_TYPE,
+      note = "AE multi-shard: 'Unable to convert the type ANY' (HTTP 500) at the exchange.")
   public void testEvalMinString() throws Exception {
     JSONObject result =
         executeQuery(
@@ -143,6 +150,9 @@ public class CalcitePPLEvalMaxMinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = EVAL_MAX_MIN_ANY_TYPE,
+      note = "AE multi-shard: 'Unable to convert the type ANY' (HTTP 500) at the exchange.")
   public void testEvalMaxIgnoresNulls() throws Exception {
     JSONObject result =
         executeQuery(
@@ -164,6 +174,9 @@ public class CalcitePPLEvalMaxMinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = EVAL_MAX_MIN_ANY_TYPE,
+      note = "AE multi-shard: 'Unable to convert the type ANY' (HTTP 500) at the exchange.")
   public void testEvalMinIgnoresNulls() throws Exception {
     JSONObject result =
         executeQuery(

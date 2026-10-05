@@ -19,27 +19,14 @@ on:
   merge_group:
 
 jobs:
-  Get-CI-Image-Tag:
-    uses: opensearch-project/opensearch-build/.github/workflows/get-ci-image-tag.yml@761e093b8c1349cc07f21c1d681d3b30bf9e1999 # main
-    with:
-      product: opensearch
-
-  build-linux:
-    needs: Get-CI-Image-Tag
+  compile-linux:
     strategy:
       fail-fast: false
       matrix:
         java: [21, 25]
-        test-type: ['unit', 'integration', 'doc']
     runs-on: ubuntu-latest
-    container:
-      image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
-      options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}
 
     steps:
-      - name: Run start commands
-        run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
-
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Set up JDK ${{ matrix.java }}
@@ -47,16 +34,83 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.java }}
+          cache: 'gradle'
+
+      - name: Compile
+        run: |
+          ./gradlew assemble compileTestJava dependencies --no-daemon
+
+  compile-windows-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        entry:
+          - { os: windows-latest, java: 21, os_build_args: -PbuildPlatform=windows }
+          - { os: windows-latest, java: 25, os_build_args: -PbuildPlatform=windows }
+          - { os: macos-latest, java: 21, os_build_args: '' }
+          - { os: macos-latest, java: 25, os_build_args: '' }
+    runs-on: ${{ matrix.entry.os }}
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up JDK ${{ matrix.entry.java }}
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.entry.java }}
+          cache: 'gradle'
+
+      - name: Compile
+        run: ./gradlew assemble compileTestJava dependencies --no-daemon ${{ matrix.entry.os_build_args }}
+        shell: bash
+
+  spotless:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+      with:
+        distribution: 'temurin'
+        java-version: 21
+        cache: 'gradle'
+
+    - name: Spotless Check
+      run: |
+        # include dependencies since this will probably be the first gradle-cached action to finis
+        # others also use it in case this one is slow
+        ./gradlew spotlessCheck dependencies --no-daemon
+
+  build-linux:
+    needs: [compile-linux]
+    strategy:
+      fail-fast: false
+      matrix:
+        java: [21, 25]
+        test-type: ['unit', 'integration', 'doc']
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up JDK ${{ matrix.java }}
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.java }}
+          cache: 'gradle'
 
       - name: Build and Test
         run: |
-          chown -R 1000:1000 `pwd`
           if [ "${{ matrix.test-type }}" = "unit" ]; then
-            su `id -un 1000` -c "./gradlew --continue build -x integTest -x tracingIntegTest -x yamlRestTest -x doctest"
+            ./gradlew --continue build -x spotlessCheck -x integTest -x tracingIntegTest -x yamlRestTest -x doctest
           elif [ "${{ matrix.test-type }}" = "integration" ]; then
-            su `id -un 1000` -c "./gradlew --continue integTest tracingIntegTest yamlRestTest"
+            ./gradlew --continue integTest tracingIntegTest yamlRestTest
           else
-            su `id -un 1000` -c "./gradlew --continue doctest"
+            ./gradlew --continue doctest
           fi
 
       - name: Create Artifact Path
@@ -126,14 +180,15 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
 
   build-windows-macos:
+    needs: compile-windows-macos
     strategy:
       fail-fast: false
       matrix:
         entry:
           - { os: windows-latest, java: 21, os_build_args: -PbuildPlatform=windows }
           - { os: windows-latest, java: 25, os_build_args: -PbuildPlatform=windows }
-          - { os: macos-14, java: 21, os_build_args: '' }
-          - { os: macos-14, java: 25, os_build_args: '' }
+          - { os: macos-latest, java: 21, os_build_args: '' }
+          - { os: macos-latest, java: 25, os_build_args: '' }
         test-type: ['unit', 'integration', 'doc']
         exclude:
           # Exclude doctest for Windows
@@ -151,11 +206,12 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.entry.java }}
+          cache: 'gradle'
 
       - name: Build and Test
         run: |
           if [ "${{ matrix.test-type }}" = "unit" ]; then
-            ./gradlew --continue build -x integTest -x tracingIntegTest -x yamlRestTest -x doctest ${{ matrix.entry.os_build_args }}
+            ./gradlew --continue build -x spotlessCheck -x integTest -x tracingIntegTest -x yamlRestTest -x doctest ${{ matrix.entry.os_build_args }}
           elif [ "${{ matrix.test-type }}" = "integration" ]; then
             ./gradlew --continue integTest tracingIntegTest yamlRestTest ${{ matrix.entry.os_build_args }}
           else
@@ -197,18 +253,13 @@ jobs:
             integ-test/build/testclusters/*/logs/*
 
   bwc-tests-rolling-upgrade:
-    needs: Get-CI-Image-Tag
+    needs: [compile-linux]
     runs-on: ubuntu-latest
     strategy:
       matrix:
         java: [21, 25]
-    container:
-      image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
-      options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}
 
     steps:
-      - name: Run start commands
-        run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
 
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
@@ -217,11 +268,11 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.java }}
+          cache: 'gradle'
 
       - name: Run backward compatibility tests in rolling upgrade
         run: |
-          chown -R 1000:1000 `pwd`
-          su `id -un 1000` -c "./scripts/bwctest-rolling-upgrade.sh"
+          ./scripts/bwctest-rolling-upgrade.sh
 
       - name: Upload test reports
         if: ${{ always() }}
@@ -243,19 +294,13 @@ jobs:
             integ-test/build/testclusters/*/logs/*
 
   bwc-tests-full-restart:
-    needs: Get-CI-Image-Tag
+    needs: [compile-linux]
     runs-on: ubuntu-latest
     strategy:
       matrix:
         java: [21, 25]
-    container:
-      image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
-      options: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-options }}
 
     steps:
-      - name: Run start commands
-        run: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-start-command }}
-
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Set up JDK ${{ matrix.java }}
@@ -263,18 +308,18 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.java }}
+          cache: 'gradle'
 
       - name: Run backward compatibility tests in full restart
         run: |
-          chown -R 1000:1000 `pwd`
-          su `id -un 1000` -c "./scripts/bwctest-full-restart.sh"
+          ./scripts/bwctest-full-restart.sh
 
       - name: Upload test reports
         if: ${{ always() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         continue-on-error: true
         with:
-          name: test-reports-ubuntu-latest-${{ matrix.java }}-bwc
+          name: test-reports-ubuntu-latest-${{ matrix.java }}-bwc-full-restart
           path: |
             sql/build/reports/**
             ppl/build/reports/**
@@ -287,3 +332,69 @@ jobs:
             plugin/build/reports/**
             doctest/build/testclusters/docTestCluster-0/logs/*
             integ-test/build/testclusters/*/logs/*
+
+  security-it-linux:
+    needs: [compile-linux]
+    strategy:
+      fail-fast: false
+      matrix:
+        java: [21, 25]
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+    - name: Set up JDK ${{ matrix.java }}
+      uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+      with:
+        distribution: 'temurin'
+        java-version: ${{ matrix.java }}
+        cache: 'gradle'
+
+    - name: Run security integration tests
+      run: |
+        ./gradlew integTestWithSecurity
+
+    - name: Upload test reports
+      if: ${{ always() }}
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      continue-on-error: true
+      with:
+        name: test-reports-ubuntu-latest-${{ matrix.java }}-security-it
+        path: |
+          integ-test/build/reports/**
+          integ-test/build/testclusters/*/logs/*
+          integ-test/build/testclusters/*/config/*
+
+  security-it-windows-macos:
+    needs: compile-windows-macos
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ windows-latest, macos-latest ]
+        java: [21, 25]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+    - name: Set up JDK ${{ matrix.java }}
+      uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+      with:
+        distribution: 'temurin'
+        java-version: ${{ matrix.java }}
+        cache: 'gradle'
+
+    - name: Run security integration tests
+      run: ./gradlew integTestWithSecurity
+
+    - name: Upload test reports
+      if: ${{ always() }}
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      continue-on-error: true
+      with:
+        name: test-reports-${{ matrix.os }}-${{ matrix.java }}-security-it
+        path: |
+          integ-test/build/reports/**
+          integ-test/build/testclusters/*/logs/*
+          integ-test/build/testclusters/*/config/*

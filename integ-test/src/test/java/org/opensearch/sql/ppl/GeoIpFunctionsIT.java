@@ -7,6 +7,7 @@ package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_GEOIP;
+import static org.opensearch.sql.util.Capability.ANALYTICS_GEOIP_DATASOURCE;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
@@ -30,8 +31,10 @@ import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.sql.util.ClusterPlugins;
+import org.opensearch.sql.util.RequiresCapability;
 
 /** IP enrichment PPL request with OpenSearch Geo-sptial plugin */
+@RequiresCapability(ANALYTICS_GEOIP_DATASOURCE)
 public class GeoIpFunctionsIT extends PPLIntegTestCase {
 
   private static boolean initialized = false;

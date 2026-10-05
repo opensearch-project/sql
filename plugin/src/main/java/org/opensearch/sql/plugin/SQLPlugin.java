@@ -13,6 +13,7 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_REQUE
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.nio.charset.Charset;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -158,6 +159,38 @@ public class SQLPlugin extends Plugin
         ExtensiblePlugin {
 
   private static final Logger LOGGER = LogManager.getLogger(SQLPlugin.class);
+
+  private static final String DEFAULT_CALCITE_CHARSET = "UTF-16LE";
+
+  static {
+    // Default Calcite's charset to Unicode (UTF-16LE) so non-Latin-1 string literals (CJK/emoji)
+    // encode uniformly with string columns instead of failing with an ISO-8859-1 encoding error.
+    // Set at plugin load, before any Calcite class reads these once-cached properties.
+    setDefaultIfAbsent("calcite.default.charset", DEFAULT_CALCITE_CHARSET);
+    setDefaultIfAbsent("calcite.default.nationalcharset", DEFAULT_CALCITE_CHARSET);
+    setDefaultIfAbsent("calcite.default.collation.name", DEFAULT_CALCITE_CHARSET + "$en_US");
+
+    // Calcite reads the charset system properties only once and caches the result forever. The
+    // block above runs at plugin load, before anything touches Calcite, so the cached value is
+    // ours. Force-resolve the effective charset now and warn if it isn't what we set: if a future
+    // change ever references a Calcite class before this plugin loads, Calcite will have already
+    // cached the ISO-8859-1 default and Unicode literals will fail in production -- this log line
+    // points back here so the cause is traceable instead of silent.
+    Charset effective = org.apache.calcite.util.Util.getDefaultCharset();
+    if (!DEFAULT_CALCITE_CHARSET.equalsIgnoreCase(effective.name())) {
+      LOGGER.warn(
+          "Calcite default charset is [{}] but expected [{}]. A Calcite class was likely loaded"
+              + " before SQLPlugin; non-Latin-1 string literals may fail with encoding errors.",
+          effective.name(),
+          DEFAULT_CALCITE_CHARSET);
+    }
+  }
+
+  private static void setDefaultIfAbsent(String key, String value) {
+    if (System.getProperty(key) == null) {
+      System.setProperty(key, value);
+    }
+  }
 
   private List<ExecutionEngine> executionEngineExtensions = List.of();
   private List<RestEndpointProvider> restEndpointProviders = List.of();

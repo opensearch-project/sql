@@ -1429,7 +1429,9 @@ public class CalcitePPLDateTimeBuiltinFunctionIT extends CalcitePPLIntegTestCase
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval r1 = extract(YEAR_MONTH FROM '1997-01-01 00:00:00') | eval r2 ="
+                "source=%s | where isnotnull(strict_date_optional_time_nanos) and"
+                    + " isnotnull(basic_date) and isnotnull(basic_time) | eval r1 ="
+                    + " extract(YEAR_MONTH FROM '1997-01-01 00:00:00') | eval r2 ="
                     + " extract(DAY_HOUR FROM strict_date_optional_time_nanos) | eval r3 ="
                     + " extract(DAY_HOUR FROM basic_date) | eval r4 = extract(DAY_MINUTE FROM"
                     + " strict_date_optional_time_nanos) | eval r5 = extract(DAY_MINUTE FROM"

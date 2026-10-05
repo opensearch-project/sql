@@ -196,6 +196,44 @@ public enum Capability {
           + " path reports int."),
 
   /**
+   * Now-like functions that are constant within one query are evaluated with a separate clock per
+   * shard on the analytics-engine route. A multi-shard result can therefore contain different
+   * values for the same function within one statement; the single-shard route is unaffected.
+   */
+  CONSISTENT_QUERY_CLOCK_ACROSS_SHARDS(
+      "Now-like functions use separate per-shard clocks on the analytics-engine route, so a"
+          + " multi-shard statement cannot guarantee one constant query-start value."),
+
+  /**
+   * eval {@code max(...)} / {@code min(...)} has no plan-time return type (Calcite {@code ANY}; the
+   * v2/Calcite path takes the reported type from the first result row). A multi-shard query on the
+   * analytics-engine route must materialize a concrete Arrow schema at the exchange between the
+   * per-shard and reduce stages, and the backend cannot convert {@code ANY} ({@code
+   * UnsupportedOperationException: Unable to convert the type ANY}, surfaced as HTTP 500 {@code
+   * Internal error [task_id=N]}). A single-shard analytics-engine query has no exchange and passes.
+   */
+  EVAL_MAX_MIN_ANY_TYPE(
+      "eval max()/min() has no plan-time return type (ANY); the analytics-engine multi-shard"
+          + " exchange cannot materialize an Arrow schema for it (Unable to convert the type ANY,"
+          + " surfaced as HTTP 500). Single-shard queries pass."),
+
+  /**
+   * The analytics-engine reduce/exchange sink rejects a column whose Substrait (plan) type differs
+   * from the physical type of the per-shard batches: {@code unix_timestamp()} is declared {@code
+   * double} (Float64) but the backend produces Int64 for it, and an empty {@code array()} literal
+   * is declared List(Utf8) but produced as List(Null). The backend fails with {@code Failed to
+   * create exchange sink for stageId=N: Substrait error: Field '...' in Substrait schema has a
+   * different type (...) than the corresponding field in the table schema (...)}, surfaced as HTTP
+   * 500 {@code Internal error [task_id=N]}. A single-shard analytics-engine query has no exchange
+   * and passes.
+   */
+  MULTISHARD_EXCHANGE_TYPE_MISMATCH(
+      "The analytics-engine multi-shard reduce/exchange sink rejects a column whose Substrait plan"
+          + " type differs from the per-shard physical type (e.g. unix_timestamp() Float64 vs"
+          + " Int64, empty array() List(Utf8) vs List(Null)): Failed to create exchange sink,"
+          + " surfaced as HTTP 500. Single-shard queries pass."),
+
+  /**
    * Lucene full-text relevance functions ({@code match}, {@code multi_match}, {@code query_string},
    * {@code simple_query_string}, …) are unsupported on the analytics-engine route — DataFusion has
    * no relevance scorer, so a query that filters on one returns no rows.
@@ -825,6 +863,11 @@ public enum Capability {
   TIME_BOUNDS_PRUNING(
       "Request-level time-bounds index pruning before schema resolution is applied on the"
           + " OpenSearch route only; the analytics-engine route resolves the unpruned pattern."),
+
+  /** GeoIP enrichment is not supported on the analytics-engine (Mustang) route. */
+  ANALYTICS_GEOIP_DATASOURCE(
+      "GeoIP enrichment is unavailable on the analytics-engine (Mustang) route because that"
+          + " runtime does not support the geospatial/ip2geo datasource."),
 
   /** Combining the result rows of two or more queries with a SQL set operator. */
   SET_OPERATION("SQL set operations are unsupported.");

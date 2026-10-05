@@ -358,25 +358,27 @@ Result set::
       }
     }
 
-plugins.query.partial_result.on_mapping_conflict.enabled [Experimental]
-=======================================================================
+plugins.query.deserialization.max_depth, max_refs, max_bytes
+============================================================
 
 Version
 -------
-Since 3.9
+3.9
 
 Description
 -----------
 
-This setting is experimental; its name, values, and default may change in a future release. Controls how an aggregation behaves when its group-by field is mapped inconsistently across the queried indices -- for example ``keyword`` in some indices of a wildcard pattern and ``text`` (without a ``.keyword`` sub-field) in others. Such a field collapses to ``text``-without-``.keyword`` across the pattern, which has no doc values, so the aggregation cannot be pushed down natively and instead runs as a per-document script over ``_source`` -- correct, but a full scan of every document.
+These settings bound the structure of the object graph that the SQL plugin deserializes, for expressions pushed down to data nodes as scripts and for pagination cursors. A payload exceeding any limit fails with ``Failed to deserialize expression code`` (or ``Failed to deserialize object`` for cursors), and the data node logs ``Deserialization filter rejected: depth=.., refs=.., bytes=..``. The class allowlist applied to the same payloads is not configurable.
 
-When this setting is ``false`` (the default), that complete-but-slow result is returned. When set to ``true``, the aggregation is pushed down over only the subset of indices where the field is aggregatable, and the response carries a ``PARTIAL_RESULT`` warning naming the excluded indices and the remedy (map the field as ``keyword`` everywhere). The result is therefore **partial** -- documents in the excluded indices are not counted -- so the setting is off by default and only takes effect for response formats that can surface the warning (the JSON format; CSV/raw/visualization responses fall through to the complete result rather than silently dropping data).
+1. ``plugins.query.deserialization.max_depth``: maximum nesting depth of the object graph. The default value is 150. Each level of expression nesting costs 3 to 4 levels, so the default admits about 45 levels of nesting.
+2. ``plugins.query.deserialization.max_refs``: maximum number of object references. The default value is 10000.
+3. ``plugins.query.deserialization.max_bytes``: maximum size of the serialized payload in bytes. The default value is 65536.
 
-The behavior can also be overridden per request with the ``partial_result`` boolean field in the query body, which takes precedence over this cluster setting. Here is an example enabling it at the cluster level::
+Raise ``max_refs`` and ``max_bytes`` if queries with very large ``IN`` lists or many conditions are rejected. Avoid raising ``max_depth`` far beyond the default: very deep payloads can exhaust the thread stack during deserialization. Here is an example::
 
 	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
 	  "transient" : {
-	    "plugins.query.partial_result.on_mapping_conflict.enabled" : true
+	    "plugins.query.deserialization.max_refs" : 20000
 	  }
 	}'
 
@@ -388,22 +390,18 @@ Result set::
       "transient" : {
         "plugins" : {
           "query" : {
-            "partial_result" : {
-              "on_mapping_conflict" : {
-                "enabled" : "true"
-              }
+            "deserialization" : {
+              "max_refs" : "20000"
             }
           }
         }
       }
     }
 
-Per-request override example, opting a single query into a partial result regardless of the cluster setting::
+Settings:
 
-	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_ppl -d '{
-	  "query" : "source=logs-* | stats count() by service",
-	  "partial_result" : true
-	}'
+1. These settings are node scope.
+2. These settings can be updated dynamically.
 
 plugins.query.buckets
 =====================

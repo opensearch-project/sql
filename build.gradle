@@ -6,7 +6,7 @@
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.9.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.10.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
         version_tokens = opensearch_version.tokenize('-')
@@ -136,6 +136,12 @@ allprojects {
         java {
             sourceCompatibility = JavaVersion.VERSION_21
             targetCompatibility = JavaVersion.VERSION_21
+        }
+
+        // Pin source-file encoding so multi-byte characters (e.g. CJK/emoji in tests) are decoded
+        // deterministically regardless of the build host's default charset.
+        tasks.withType(JavaCompile).configureEach {
+            options.encoding = 'UTF-8'
         }
     }
 

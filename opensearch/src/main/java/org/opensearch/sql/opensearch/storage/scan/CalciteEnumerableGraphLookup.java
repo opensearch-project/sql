@@ -257,7 +257,12 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
           Map<String, ExprType> fieldTypes = this.lookupScan.getOsIndex().getAllFieldTypes();
           try {
             QueryBuilder filterQuery =
-                PredicateAnalyzer.analyze(graphLookup.filter, schema, fieldTypes);
+                PredicateAnalyzer.analyze(
+                    graphLookup.filter,
+                    schema,
+                    fieldTypes,
+                    graphLookup.getLookup().getRowType(),
+                    graphLookup.getCluster());
             this.lookupScan.pushDownContext.add(
                 PushDownType.FILTER,
                 null,

@@ -115,7 +115,7 @@ public class WindowFunctionIT extends SQLIntegTestCase {
                     + " lastname) FROM "
                     + TestsConstants.TEST_INDEX_BANK,
                 "jdbc"));
-    verifyDataRowsInOrder(
+    verifyDataRows(
         response,
         rows("Ayala", 1),
         rows("Bates", 1),

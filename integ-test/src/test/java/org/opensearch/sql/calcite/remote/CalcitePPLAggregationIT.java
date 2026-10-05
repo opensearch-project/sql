@@ -13,6 +13,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TELEMETRY;
 import static org.opensearch.sql.util.Capability.CHECKED_ARITHMETIC_OVERFLOW;
+import static org.opensearch.sql.util.Capability.MULTISHARD_EXCHANGE_TYPE_MISMATCH;
 import static org.opensearch.sql.util.Capability.PERCENTILE_APPROXIMATE;
 import static org.opensearch.sql.util.Capability.STRICT_QUERY_REJECTION;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
@@ -1728,6 +1729,11 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = MULTISHARD_EXCHANGE_TYPE_MISMATCH,
+      note =
+          "AE multi-shard: group key t = unix_timestamp(birthdate) Substrait Float64 vs table Int64"
+              + " -> Failed to create exchange sink (HTTP 500).")
   public void testStatsCountOnFunctionsWithUDTArg() throws IOException {
     JSONObject response =
         executeQuery(

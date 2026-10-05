@@ -223,7 +223,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
                 "source = %s | where id not in ["
                     + "    source = %s | where uid = 0000 | fields uid"
                     + "  ]"
-                    + "| sort  - salary"
+                    + "| sort  - salary, id"
                     + "| fields id, name, salary",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
@@ -253,7 +253,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
                     + "      ]"
                     + "    | fields uid"
                     + "  ]"
-                    + "| sort  - salary"
+                    + "| sort  - salary, id"
                     + "| fields id, name, salary",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_OCCUPATION));
     verifySchema(result, schema("id", "int"), schema("name", "string"), schema("salary", "int"));
@@ -279,7 +279,7 @@ public class CalcitePPLInSubqueryIT extends PPLIntegTestCase {
                     + "      ]"
                     + "    | fields uid"
                     + "  ]"
-                    + "| sort  - salary | fields name, country, occupation, id, salary",
+                    + "| sort  - salary, id | fields name, country, occupation, id, salary",
                 TEST_INDEX_WORKER, TEST_INDEX_WORK_INFORMATION, TEST_INDEX_OCCUPATION));
     verifySchema(
         result,
