@@ -1813,6 +1813,30 @@ public class PredicateAnalyzerTest {
     assertFalse(query.contains(SCRIPT), query);
   }
 
+  /**
+   * A leaf written more than once reads as the JSON of its values, which is no one value and so no
+   * term. An exact match against that text is left to the path that produces it, so both paths
+   * answer it the same way. Text that merely contains a bracket is unaffected.
+   */
+  @Test
+  void flatObjectLeaf_aLiteralThatCouldBeSeveralValues_isNotFolded()
+      throws ExpressionNotAnalyzableException {
+    String equality =
+        analyzeFlat(
+            builder.makeCall(
+                SqlStdOperatorTable.EQUALS,
+                leaf("tags"),
+                builder.makeLiteral("[\"prod\",\"dev\"]")));
+    assertFalse(equality.contains("\"term\""), equality);
+    String points = analyzeFlat(leafSearch(false, "[\"prod\",\"dev\"]", "prod"));
+    assertFalse(points.contains("\"terms\""), points);
+    String text =
+        analyzeFlat(
+            builder.makeCall(
+                SqlStdOperatorTable.EQUALS, leaf("env"), builder.makeLiteral("prod[1]x")));
+    assertTrue(text.contains("\"term\""), text);
+  }
+
   // As SimpleQueryExpression.notEquals does: a record that did not write the leaf is not a record
   // whose leaf differs from the value.
   @Test

@@ -53,6 +53,7 @@ teardown:
           transient:
             plugins.calcite.enabled: null
             plugins.calcite.fallback.allowed: null
+            plugins.calcite.pushdown.enabled: null
 
 ---
 "describe lists the field as flat_object":
@@ -105,6 +106,36 @@ teardown:
         body:
           query: 'source=otel | where service = ''collide'' | fields attributes.a.b'
   - match: {"datarows": [["[\"1\",\"2\"]"]]}
+
+---
+# The reading of several values is the JSON of all of them, which is no one value and so no term the
+# index holds. Folding it would find nothing while a comparison made after reading finds the record,
+# so the predicate is left to the path that produces the text and both plans answer alike.
+"a predicate against the whole reading of several values answers the same either way":
+  - skip:
+      features: [headers]
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | where attributes.tags = ''["a","b"]'' | fields service'
+  - match: {"datarows": [["tags"]]}
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.pushdown.enabled: false
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=otel | where attributes.tags = ''["a","b"]'' | fields service'
+  - match: {"datarows": [["tags"]]}
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.pushdown.enabled: null
 
 ---
 "a leaf can be cast, and typeof reports text":

@@ -425,7 +425,9 @@ public class PredicateAnalyzer {
         case EQUALS, NOT_EQUALS -> {
           for (int i = 0; i < 2; i++) {
             String path = flatObjectLeafPath(operands.get(i));
-            if (path != null && leafLiteral(operands.get(1 - i)) instanceof RexLiteral literal) {
+            if (path != null
+                && leafLiteral(operands.get(1 - i)) instanceof RexLiteral literal
+                && !mayDescribeSeveralValues(literal)) {
               LiteralExpression value = new LiteralExpression(literal);
               return analyzed(
                   call.getKind() == SqlKind.EQUALS
@@ -449,7 +451,9 @@ public class PredicateAnalyzer {
         }
         case SEARCH -> {
           String path = flatObjectLeafPath(operands.get(0));
-          if (path != null && operands.get(1) instanceof RexLiteral literal) {
+          if (path != null
+              && operands.get(1) instanceof RexLiteral literal
+              && !sargPointsMayDescribeSeveralValues(literal)) {
             boolean points = isSearchWithPoints(call);
             boolean complemented = isSearchWithComplementedPoints(call);
             if (points || complemented) {
@@ -505,6 +509,50 @@ public class PredicateAnalyzer {
 
     private static boolean isTextLiteral(RexLiteral literal) {
       return SqlTypeUtil.isCharacter(literal.getType());
+    }
+
+    /**
+     * Whether a literal could be how a leaf that holds several values reads. The index files a term
+     * per value; the engine reads them as the JSON of all of them, which is no one value and so no
+     * term. An exact match against such text is left to the evaluated path, which is the path that
+     * produces it, so both paths answer it the same way -- and a leaf whose single value really is
+     * that text reads as the same text, so nothing is lost by not folding it.
+     *
+     * <p>Only exact matches are decided here. A LIKE pattern over those values is the index's own
+     * answer either way, as it is for any field holding several values.
+     */
+    private static boolean mayDescribeSeveralValues(RexLiteral literal) {
+      // a number is never bracketed text
+      return isTextLiteral(literal) && mayDescribeSeveralValues(RexLiteral.stringValue(literal));
+    }
+
+    private static boolean mayDescribeSeveralValues(String text) {
+      return text != null && text.startsWith("[") && text.endsWith("]");
+    }
+
+    /**
+     * Whether any point of a {@code SEARCH} Sarg could be that reading. Every point appears as a
+     * bound of some range, whether the Sarg lists the points ({@code = a or = b}) or their
+     * complement ({@code != a and != b}), so the bounds are what is checked.
+     */
+    private static boolean sargPointsMayDescribeSeveralValues(RexLiteral sargLiteral) {
+      Sarg<?> sarg = sargLiteral.getValueAs(Sarg.class);
+      if (sarg == null) {
+        return true;
+      }
+      for (var range : sarg.rangeSet.asRanges()) {
+        if (range.hasLowerBound() && isSeveralValues(range.lowerEndpoint())) {
+          return true;
+        }
+        if (range.hasUpperBound() && isSeveralValues(range.upperEndpoint())) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    private static boolean isSeveralValues(Object point) {
+      return point instanceof NlsString text && mayDescribeSeveralValues(text.getValue());
     }
 
     /** The literal a comparison holds, with any cast around it removed; null if it is not one. */
