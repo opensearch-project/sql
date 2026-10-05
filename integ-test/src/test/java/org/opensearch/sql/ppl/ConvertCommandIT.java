@@ -6,11 +6,14 @@
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.util.Capability.STRICT_QUERY_REJECTION;
 import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.util.RequiresCapability;
 
 /** Integration tests for the PPL convert command when Calcite is disabled. */
+@RequiresCapability(STRICT_QUERY_REJECTION)
 public class ConvertCommandIT extends PPLIntegTestCase {
   @Override
   public void init() throws Exception {

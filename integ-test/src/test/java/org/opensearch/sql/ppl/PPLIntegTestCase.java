@@ -24,6 +24,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Rule;
@@ -48,6 +49,8 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   @Rule public final RetryProcessor retryProcessor = new RetryProcessor();
   public static final Integer DEFAULT_SUBSEARCH_MAXOUT = 10000;
   public static final Integer DEFAULT_JOIN_SUBSEARCH_MAXOUT = 50000;
+  private boolean subsearchMaxOutDirty;
+  private boolean joinSubsearchMaxOutDirty;
 
   @Override
   protected void init() throws Exception {
@@ -426,6 +429,7 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   }
 
   protected void setSubsearchMaxOut(Integer limit) throws IOException {
+    subsearchMaxOutDirty = true;
     updateClusterSettings(
         new SQLIntegTestCase.ClusterSetting(
             "transient", Key.PPL_SUBSEARCH_MAXOUT.getKeyValue(), limit.toString()));
@@ -437,9 +441,11 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
             "transient",
             Settings.Key.PPL_SUBSEARCH_MAXOUT.getKeyValue(),
             DEFAULT_SUBSEARCH_MAXOUT.toString()));
+    subsearchMaxOutDirty = false;
   }
 
   protected void setJoinSubsearchMaxOut(Integer limit) throws IOException {
+    joinSubsearchMaxOutDirty = true;
     updateClusterSettings(
         new SQLIntegTestCase.ClusterSetting(
             "transient", Key.PPL_JOIN_SUBSEARCH_MAXOUT.getKeyValue(), limit.toString()));
@@ -451,6 +457,35 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
             "transient",
             Settings.Key.PPL_JOIN_SUBSEARCH_MAXOUT.getKeyValue(),
             DEFAULT_JOIN_SUBSEARCH_MAXOUT.toString()));
+    joinSubsearchMaxOutDirty = false;
+  }
+
+  @After
+  public void resetModifiedSubsearchSettings() throws IOException {
+    IOException failure = null;
+    try {
+      if (subsearchMaxOutDirty) {
+        resetSubsearchMaxOut();
+      }
+    } catch (IOException e) {
+      failure = e;
+    }
+
+    try {
+      if (joinSubsearchMaxOutDirty) {
+        resetJoinSubsearchMaxOut();
+      }
+    } catch (IOException e) {
+      if (failure == null) {
+        failure = e;
+      } else {
+        failure.addSuppressed(e);
+      }
+    }
+
+    if (failure != null) {
+      throw failure;
+    }
   }
 
   /**

@@ -318,6 +318,68 @@ Expected output (trimmed)::
       }
     }
 
+Time Bounds (PPL) [Experimental]
+================================
+
+Description
+-----------
+
+``start_time`` and ``end_time`` tell the engine which time window a request is asking about, and ``time_field`` names the field they constrain. When ``plugins.query.pruning.enabled`` is on, a query over a wildcard index expression then reads only the indices that can hold data in that window, rather than all of them.
+
+The bounds take effect whether or not the query filters on time. What a matching filter decides is whether the answer changes: with an equivalent ``where`` clause on the same field and range, the result is identical to the same query without the bounds, because every index dropped is one the clause already excluded. Without it rows go missing, since the bounds exclude whole indices and nothing else filtered them. Send them only for a window the query itself restricts.
+
+They apply to the outermost ``source=`` only. A ``join``'s other side, a subsearch's source, a ``multisearch`` dataset and a ``lookup``'s dimension table are left alone, since the query's own time filter is not known to constrain them.
+
+Both bounds are required and both are inclusive. ``time_field`` defaults to ``@timestamp``, so an index pattern whose time field is named something else has to give it. Accepted literals:
+
++---------------------------------------------+---------------------------------------------------------+
+| Literal                                     | Example                                                 |
++=============================================+=========================================================+
+| OpenSearch date math                        | ``now``, ``now-7d``, ``now-1d/d``                       |
++---------------------------------------------+---------------------------------------------------------+
+| ISO-8601 date and time, zone optional       | ``2026-02-01T00:00:00.000Z``, ``2026-02-01T00:00:00``   |
++---------------------------------------------+---------------------------------------------------------+
+| ISO-8601 date only                          | ``2026-02-01``                                          |
++---------------------------------------------+---------------------------------------------------------+
+| Epoch milliseconds                          | ``1769904000000``                                       |
++---------------------------------------------+---------------------------------------------------------+
+| Date and time separated by a space          | ``2026-02-01 00:00:00.000``, ``2026-02-01 00:00:00``    |
++---------------------------------------------+---------------------------------------------------------+
+
+Epoch seconds are not accepted; a ten-digit number is read as milliseconds. A value that cannot be used is ignored rather than failing the request, and nothing is pruned. See `plugins.query.pruning.enabled <../admin/settings.rst>`_ for the setting and its limitations.
+
+Example
+-------
+
+Two monthly indices, ``logs-2026.01`` and ``logs-2026.02``. The bounds repeat the window the ``where`` clause already restricts, so only February is read::
+
+	>> curl -H 'Content-Type: application/json' -X POST localhost:9200/_plugins/_ppl -d '{
+	  "query" : "source=logs-* | where `@timestamp` >= \"2026-02-01 00:00:00\" and `@timestamp` <= \"2026-02-28 23:59:59\" | stats count() as requests",
+	  "time_field" : "@timestamp",
+	  "start_time" : "2026-02-01 00:00:00",
+	  "end_time" : "2026-02-28 23:59:59"
+	}'
+
+Result set::
+
+    {
+      "schema": [
+        {
+          "name": "requests",
+          "type": "bigint"
+        }
+      ],
+      "datarows": [
+        [
+          1
+        ]
+      ],
+      "total": 1,
+      "size": 1
+    }
+
+The same query without the bounds returns the same row, having read both indices.
+
 Fetch Size (PPL) [Experimental]
 ================================
 

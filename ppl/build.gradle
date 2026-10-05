@@ -87,6 +87,10 @@ spotless {
 
 test {
     maxParallelForks = Runtime.runtime.availableProcessors()
+    // Default Calcite's charset to Unicode so CJK/emoji string literals encode (matches SQLPlugin).
+    systemProperty 'calcite.default.charset', 'UTF-16LE'
+    systemProperty 'calcite.default.nationalcharset', 'UTF-16LE'
+    systemProperty 'calcite.default.collation.name', 'UTF-16LE$en_US'
     testLogging {
         events "passed", "skipped", "failed"
         exceptionFormat "full"

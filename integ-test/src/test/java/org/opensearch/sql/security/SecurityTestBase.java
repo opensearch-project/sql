@@ -41,7 +41,10 @@ public abstract class SecurityTestBase extends PPLIntegTestCase {
           "indices:admin/mappings/get",
           "indices:monitor/settings/get",
           "indices:data/read/point_in_time/create",
-          "indices:data/read/point_in_time/delete"
+          "indices:data/read/point_in_time/delete",
+          // Index pruning probes with these; ppl_full_access grants both since 3.9.
+          "indices:admin/resolve/index",
+          "indices:data/read/field_caps*"
         });
   }
 

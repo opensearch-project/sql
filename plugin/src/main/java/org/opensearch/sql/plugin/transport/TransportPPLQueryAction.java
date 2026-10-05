@@ -373,7 +373,11 @@ public class TransportPPLQueryAction
         String responseContent =
             formatter.format(
                 new QueryResult(
-                    response.getSchema(), response.getResults(), response.getCursor(), PPL_SPEC));
+                    response.getSchema(),
+                    response.getResults(),
+                    response.getCursor(),
+                    PPL_SPEC,
+                    response.getWarnings()));
         listener.onResponse(new TransportPPLQueryResponse(responseContent));
       }
 
@@ -403,7 +407,7 @@ public class TransportPPLQueryAction
         try {
           delegate.onResponse(transportPPLQueryResponse);
         } finally {
-          QueryProfiling.clear();
+          clearRequestScopedState();
         }
       }
 
@@ -412,9 +416,17 @@ public class TransportPPLQueryAction
         try {
           delegate.onFailure(e);
         } finally {
-          QueryProfiling.clear();
+          clearRequestScopedState();
         }
       }
     };
+  }
+
+  /**
+   * Clear the per-request state carried in {@link QueryContext}'s thread-locals. Transport threads
+   * are pooled, so anything left behind is inherited by the next query to run on this thread.
+   */
+  private static void clearRequestScopedState() {
+    QueryProfiling.clear();
   }
 }

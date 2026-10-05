@@ -35,6 +35,74 @@ class OpenSearchDescribeIndexRequestTest {
 
   @Mock private IndexMapping mapping2;
 
+  /**
+   * Merging must not mutate the mappings it reads: {@code MergeRuleHelper} rewrites the accumulated
+   * type's nested {@code properties} in place, so without a copy the first index's nested field
+   * would be merged into the second's and a fetched mapping would no longer describe its index.
+   */
+  @Test
+  void getFieldTypesLeavesFetchedMappingsIntact() {
+    Map<String, OpenSearchDataType> keywordSide =
+        Map.of("attrs", nestedObject("env", OpenSearchDataType.MappingType.Keyword));
+    Map<String, OpenSearchDataType> textSide =
+        Map.of("attrs", nestedObject("env", OpenSearchDataType.MappingType.Text));
+    when(mapping.getFieldMappings()).thenReturn(keywordSide);
+    when(mapping2.getFieldMappings()).thenReturn(textSide);
+    when(client.getIndexMappings("idx-*"))
+        .thenReturn(ImmutableMap.of("idx-keyword", mapping, "idx-text", mapping2));
+
+    OpenSearchDescribeIndexRequest request = new OpenSearchDescribeIndexRequest(client, "idx-*");
+    request.getFieldTypes();
+
+    // Each fetched mapping must still declare the type it came with.
+    assertEquals(
+        OpenSearchDataType.MappingType.Keyword, nestedFieldType(keywordSide, "attrs", "env"));
+    assertEquals(OpenSearchDataType.MappingType.Text, nestedFieldType(textSide, "attrs", "env"));
+  }
+
+  private static OpenSearchDataType nestedObject(
+      String innerField, OpenSearchDataType.MappingType innerType) {
+    return OpenSearchDataType.of(
+        OpenSearchDataType.MappingType.Object,
+        Map.of("properties", Map.of(innerField, Map.of("type", innerType.toString()))));
+  }
+
+  /** Empty object merged first must accept a populated sibling's leaf (regression: #5791). */
+  @Test
+  void getFieldTypesMergesEmptyObjectWithPopulatedSibling() {
+    Map<String, Object> emptyLeaf = Map.of("type", "object");
+    Map<String, Object> populatedLeaf =
+        Map.of("type", "object", "properties", Map.of("leaf", Map.of("type", "keyword")));
+    when(mapping.getFieldMappings()).thenReturn(Map.of("a", nestedObjectTo("c", emptyLeaf)));
+    when(mapping2.getFieldMappings()).thenReturn(Map.of("a", nestedObjectTo("c", populatedLeaf)));
+    // Empty side first so it becomes the accumulator whose c has no properties.
+    when(client.getIndexMappings("idx-*"))
+        .thenReturn(ImmutableMap.of("idx-empty", mapping, "idx-populated", mapping2));
+
+    OpenSearchDescribeIndexRequest request = new OpenSearchDescribeIndexRequest(client, "idx-*");
+    Map<String, OpenSearchDataType> result = request.getFieldTypes();
+
+    OpenSearchDataType c = result.get("a").getProperties().get("b").getProperties().get("c");
+    assertEquals(
+        OpenSearchDataType.MappingType.Keyword, c.getProperties().get("leaf").getMappingType());
+  }
+
+  /** Builds {@code a: object -> b: object -> c}, with {@code c}'s inner mapping supplied. */
+  private static OpenSearchDataType nestedObjectTo(String leafField, Map<String, Object> leaf) {
+    return OpenSearchDataType.of(
+        OpenSearchDataType.MappingType.Object,
+        Map.of(
+            "type",
+            "object",
+            "properties",
+            Map.of("b", Map.of("type", "object", "properties", Map.of(leafField, leaf)))));
+  }
+
+  private static OpenSearchDataType.MappingType nestedFieldType(
+      Map<String, OpenSearchDataType> mappings, String parent, String child) {
+    return mappings.get(parent).getProperties().get(child).getMappingType();
+  }
+
   @Test
   void testSearch() {
     when(mapping.getFieldMappings())

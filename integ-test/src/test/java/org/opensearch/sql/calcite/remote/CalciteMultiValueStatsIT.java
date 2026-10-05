@@ -141,9 +141,14 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
 
   @Test
   public void testListFunctionWithTime() throws IOException {
+    // `head` without a preceding sort selects an undefined set of rows, so the exact values
+    // asserted below only hold by accident of scan order. `key` is unique in this fixture, so
+    // sorting on it fixes which rows `head` takes without changing the expected values.
     JSONObject response =
         executeQuery(
-            String.format("source=%s | head 1 | stats list(time1) as time_list", TEST_INDEX_CALCS));
+            String.format(
+                "source=%s | sort key | head 1 | stats list(time1) as time_list",
+                TEST_INDEX_CALCS));
     verifySchema(response, schema("time_list", "array"));
     // Time values are stored as strings in the test data
     verifyDataRows(response, rows(List.of("19:36:22")));
@@ -189,9 +194,13 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
 
   @Test
   public void testListFunctionWithNullValues() throws IOException {
+    // `head` without a preceding sort selects an undefined set of rows, so the exact values
+    // asserted below only hold by accident of scan order. `key` is unique in this fixture, so
+    // sorting on it fixes which rows `head` takes without changing the expected values.
     JSONObject response =
         executeQuery(
-            String.format("source=%s | head 5 | stats list(int0) as int_list", TEST_INDEX_CALCS));
+            String.format(
+                "source=%s | sort key | head 5 | stats list(int0) as int_list", TEST_INDEX_CALCS));
     verifySchema(response, schema("int_list", "array"));
     // Nulls are filtered out by list function
     verifyDataRows(response, rows(List.of("1", "7")));
@@ -212,10 +221,14 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
 
   @Test
   public void testListFunctionMultipleFields() throws IOException {
+    // `head` without a preceding sort selects an undefined set of rows, so the exact values
+    // asserted below only hold by accident of scan order. `key` is unique in this fixture, so
+    // sorting on it fixes which rows `head` takes without changing the expected values.
     JSONObject response =
         executeQuery(
             String.format(
-                "source=%s | head 3 | stats list(str2) as str_list, list(int2) as int_list",
+                "source=%s | sort key | head 3 | stats list(str2) as str_list, list(int2) as"
+                    + " int_list",
                 TEST_INDEX_CALCS));
     verifySchema(response, schema("str_list", "array"), schema("int_list", "array"));
 
@@ -276,10 +289,14 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
 
   @Test
   public void testListFunctionWithArithmeticExpression() throws IOException {
+    // `head` without a preceding sort selects an undefined set of rows, so the exact values
+    // asserted below only hold by accident of scan order. `key` is unique in this fixture, so
+    // sorting on it fixes which rows `head` takes without changing the expected values.
     JSONObject response =
         executeQuery(
             String.format(
-                "source=%s | head 3 | stats list(int3 + 1) as arithmetic_list", TEST_INDEX_CALCS));
+                "source=%s | sort key | head 3 | stats list(int3 + 1) as arithmetic_list",
+                TEST_INDEX_CALCS));
     verifySchema(response, schema("arithmetic_list", "array"));
     verifyDataRows(response, rows(List.of("9", "14", "3")));
   }
@@ -338,10 +355,14 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
 
   @Test
   public void testValuesFunctionWithNullValues() throws IOException {
+    // `head` without a preceding sort selects an undefined set of rows, so the exact values
+    // asserted below only hold by accident of scan order. `key` is unique in this fixture, so
+    // sorting on it fixes which rows `head` takes without changing the expected values.
     JSONObject response =
         executeQuery(
             String.format(
-                "source=%s | head 5 | stats values(int0) as int_values", TEST_INDEX_CALCS));
+                "source=%s | sort key | head 5 | stats values(int0) as int_values",
+                TEST_INDEX_CALCS));
     verifySchema(response, schema("int_values", "array"));
     // Nulls are filtered out by values function
     // VALUES returns sorted unique values
@@ -350,10 +371,14 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
 
   @Test
   public void testValuesFunctionGroupBy() throws IOException {
+    // `head` without a preceding sort selects an undefined set of rows, so the exact values
+    // asserted below only hold by accident of scan order. `key` is unique in this fixture, so
+    // sorting on it fixes which rows `head` takes without changing the expected values.
     JSONObject response =
         executeQuery(
             String.format(
-                "source=%s | head 5 | stats values(num0) as num_values by str0", TEST_INDEX_CALCS));
+                "source=%s | sort key | head 5 | stats values(num0) as num_values by str0",
+                TEST_INDEX_CALCS));
     verifySchema(response, schema("num_values", "array"), schema("str0", null, "string"));
 
     // Group by str0 field - should have different groups with their respective unique num0 values
@@ -369,10 +394,14 @@ public class CalciteMultiValueStatsIT extends PPLIntegTestCase {
 
   @Test
   public void testValuesFunctionMultipleFields() throws IOException {
+    // `head` without a preceding sort selects an undefined set of rows, so the exact values
+    // asserted below only hold by accident of scan order. `key` is unique in this fixture, so
+    // sorting on it fixes which rows `head` takes without changing the expected values.
     JSONObject response =
         executeQuery(
             String.format(
-                "source=%s | head 3 | stats values(str2) as str_values, values(int2) as int_values",
+                "source=%s | sort key | head 3 | stats values(str2) as str_values, values(int2) as"
+                    + " int_values",
                 TEST_INDEX_CALCS));
     verifySchema(response, schema("str_values", "array"), schema("int_values", "array"));
 

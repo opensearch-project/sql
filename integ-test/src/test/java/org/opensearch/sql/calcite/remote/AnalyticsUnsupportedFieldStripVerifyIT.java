@@ -90,6 +90,7 @@ public class AnalyticsUnsupportedFieldStripVerifyIT extends PPLIntegTestCase {
           "DEEP_NESTED",
           "NESTED_WITH_NULLS",
           "GRAPH_AIRPORTS",
+          "GRAPH_MULTI",
           "ARRAY",
           "OTELLOGS");
 

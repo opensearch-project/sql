@@ -107,11 +107,21 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
         fieldTypes.putAll(indexMapping.getFieldMappings());
       }
     } else {
+      // Merge deep copies: MergeRuleHelper mutates the field mappings in place, and a fetched
+      // mapping must not be altered by being merged.
       for (IndexMapping indexMapping : indexMappings.values()) {
-        MergeRuleHelper.merge(fieldTypes, indexMapping.getFieldMappings());
+        MergeRuleHelper.merge(fieldTypes, deepCopy(indexMapping.getFieldMappings()));
       }
     }
     return fieldTypes;
+  }
+
+  /** Copy a field-mapping map so an in-place merge cannot mutate the source types. */
+  private static Map<String, OpenSearchDataType> deepCopy(
+      Map<String, OpenSearchDataType> mappings) {
+    Map<String, OpenSearchDataType> copy = new LinkedHashMap<>();
+    mappings.forEach((field, type) -> copy.put(field, type.cloneDeep()));
+    return copy;
   }
 
   /**

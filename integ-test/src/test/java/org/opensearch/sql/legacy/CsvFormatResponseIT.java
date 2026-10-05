@@ -644,7 +644,7 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
             + "  \"-cmd|' /C notepad'!_xlbgnm.A1\": \"@cmd|' /C notepad'!_xlbgnm.A1\"\n"
             + "}";
 
-    Request request = new Request("PUT", "/userdata/_doc/1?refresh=true");
+    Request request = TestUtils.seedDocRequest("userdata", "1");
     request.setJsonEntity(requestBody);
     TestUtils.performRequest(client(), request);
 
@@ -669,7 +669,7 @@ public class CsvFormatResponseIT extends SQLIntegTestCase {
             + "  \"-cmd|' /C notepad,,'!_xlbgnm.A1\": \",,,@cmd|' /C notepad'!_xlbgnm.A1\"\n"
             + "}";
 
-    Request request = new Request("PUT", "/userdata2/_doc/1?refresh=true");
+    Request request = TestUtils.seedDocRequest("userdata2", "1");
     request.setJsonEntity(requestBody);
     TestUtils.performRequest(client(), request);
 

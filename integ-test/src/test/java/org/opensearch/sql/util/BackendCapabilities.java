@@ -16,8 +16,13 @@ public final class BackendCapabilities {
   }
 
   public static void requireCapability(Capability capability, String note) {
-    // Today analytics-engine supports none of the defined capabilities, so all are skipped on it.
-    Assume.assumeTrue(skipMessage(capability, note), !TestUtils.AnalyticsIndexConfig.isEnabled());
+    Assume.assumeTrue(skipMessage(capability, note), activeBackend().supports(capability));
+  }
+
+  private static Backend activeBackend() {
+    return TestUtils.AnalyticsIndexConfig.isEnabled()
+        ? Backend.ANALYTICS_ENGINE
+        : Backend.OPENSEARCH;
   }
 
   private static String skipMessage(Capability capability, String note) {

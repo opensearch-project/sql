@@ -13,6 +13,7 @@ import java.io.Serializable;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 import lombok.Getter;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.externalize.RelJson;
@@ -24,6 +25,7 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.util.JsonBuilder;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.opensearch.executor.OpenSearchExecutionEngine.OperatorTable;
 import org.opensearch.sql.utils.DeserializationFilterUtil;
@@ -44,6 +46,13 @@ import tools.jackson.databind.json.JsonMapper;
 public class RelJsonSerializer {
 
   private final RelOptCluster cluster;
+
+  /**
+   * Supplies cluster settings for deserialization structural limits, resolved lazily because the
+   * script engine is created before plugin settings are initialized. Null falls back to defaults.
+   */
+  private final Supplier<Settings> settingsSupplier;
+
   private static final ObjectMapper mapper =
       JsonMapper.builder()
           .configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true)
@@ -53,7 +62,12 @@ public class RelJsonSerializer {
   private static volatile SqlOperatorTable pplSqlOperatorTable;
 
   public RelJsonSerializer(RelOptCluster cluster) {
+    this(cluster, null);
+  }
+
+  public RelJsonSerializer(RelOptCluster cluster, Supplier<Settings> settingsSupplier) {
     this.cluster = cluster;
+    this.settingsSupplier = settingsSupplier;
   }
 
   private static SqlOperatorTable getPplSqlOperatorTable() {
@@ -121,7 +135,11 @@ public class RelJsonSerializer {
     try {
       ByteArrayInputStream input = new ByteArrayInputStream(Base64.getDecoder().decode(struct));
       ObjectInputStream objectInput = new ObjectInputStream(input);
-      objectInput.setObjectInputFilter(DeserializationFilterUtil.createFilter(""));
+      Settings settings = settingsSupplier == null ? null : settingsSupplier.get();
+      objectInput.setObjectInputFilter(
+          settings == null
+              ? DeserializationFilterUtil.createFilter("")
+              : DeserializationFilterUtil.createFilter(settings, ""));
       exprStr = (String) objectInput.readObject();
 
       // Deserialize RelDataType and RexNode by JSON

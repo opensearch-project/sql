@@ -1,0 +1,98 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  - do:
+      indices.create:
+        index: log_obj_text_5702
+        body:
+          mappings:
+            properties:
+              log:
+                properties:
+                  user_agent:
+                    type: text
+                    fields:
+                      keyword:
+                        type: keyword
+                        ignore_above: 256
+                  idx:
+                    type: integer
+  - do:
+      indices.create:
+        index: log_obj_keyword_5702
+        body:
+          mappings:
+            properties:
+              log:
+                properties:
+                  user_agent:
+                    type: keyword
+                  idx:
+                    type: integer
+  - do:
+      bulk:
+        index: log_obj_text_5702
+        refresh: true
+        body:
+          - '{"index": {"_id": "1"}}'
+          - '{"log": {"user_agent": "requests/2.32.3", "idx": 1}}'
+  - do:
+      bulk:
+        index: log_obj_keyword_5702
+        refresh: true
+        body:
+          - '{"index": {"_id": "1"}}'
+          - '{"log": {"user_agent": "requests/2.32.3", "idx": 2}}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+  - do:
+      indices.delete:
+        index: log_obj_text_5702
+        ignore: 404
+  - do:
+      indices.delete:
+        index: log_obj_keyword_5702
+        ignore: 404
+
+---
+"PPL filter on an object subfield with mixed text/keyword types across indices":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=log_obj_*_5702 | where log.user_agent = 'requests/2.32.3' | fields log.user_agent, log.idx | sort log.idx"
+  - match: {"total": 2}
+  - match: {"datarows": [["requests/2.32.3", 1], ["requests/2.32.3", 2]]}
+
+---
+"PPL script filter on an object subfield with mixed text/keyword types across indices":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=log_obj_*_5702 | where upper(log.user_agent) = 'REQUESTS/2.32.3' | fields log.user_agent, log.idx | sort log.idx"
+  - match: {"total": 2}
+  - match: {"datarows": [["requests/2.32.3", 1], ["requests/2.32.3", 2]]}

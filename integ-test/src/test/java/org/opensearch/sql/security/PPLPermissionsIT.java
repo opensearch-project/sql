@@ -16,6 +16,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.client.ResponseException;
+import org.opensearch.sql.util.ClusterPlugins;
 
 /**
  * Integration tests for PPL permissions issue fix. Tests that PPL queries work correctly when users
@@ -55,6 +56,10 @@ public class PPLPermissionsIT extends SecurityTestBase {
 
   @Override
   protected void init() throws Exception {
+    ClusterPlugins.requirePluginOrAssume(
+        client(),
+        ClusterPlugins.SECURITY_PLUGIN,
+        "opensearch-security plugin not installed on test cluster; skipping FGAC tests");
     super.init();
     createSecurityRolesAndUsers();
     loadIndex(Index.BANK);

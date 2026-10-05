@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Supplier;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.DataContext;
@@ -78,6 +79,7 @@ import org.opensearch.script.ScriptEngine;
 import org.opensearch.script.StringSortScript;
 import org.opensearch.search.lookup.SourceLookup;
 import org.opensearch.sql.calcite.utils.CalciteClassLoaderHelper;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.opensearch.storage.script.aggregation.CalciteAggregationScriptFactory;
 import org.opensearch.sql.opensearch.storage.script.field.CalciteFieldScriptFactory;
@@ -96,7 +98,11 @@ public class CalciteScriptEngine implements ScriptEngine {
   private final RelJsonSerializer relJsonSerializer;
 
   public CalciteScriptEngine(RelOptCluster relOptCluster) {
-    this.relJsonSerializer = new RelJsonSerializer(relOptCluster);
+    this(relOptCluster, (Supplier<Settings>) null);
+  }
+
+  public CalciteScriptEngine(RelOptCluster relOptCluster, Supplier<Settings> settingsSupplier) {
+    this.relJsonSerializer = new RelJsonSerializer(relOptCluster, settingsSupplier);
   }
 
   /** Expression script language name. */
@@ -240,7 +246,11 @@ public class CalciteScriptEngine implements ScriptEngine {
     }
 
     public Object getFromSource(String name) {
-      return this.sourceLookup.get(name);
+      // Resolve the field through the source path, not a flat map lookup: object subfields are
+      // addressed as dotted paths (e.g. "log.user_agent") while _source stores them nested.
+      // SourceLookup#extractValue delegates to XContentMapValues, which walks the nested maps and
+      // still falls back to a literal dotted key when the document has one.
+      return this.sourceLookup.extractValue(name, null);
     }
   }
 

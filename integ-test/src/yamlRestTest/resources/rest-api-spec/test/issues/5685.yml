@@ -1,0 +1,147 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  # Object-vs-scalar conflict: only *_b maps `resource`, so the wildcard merge types
+  # resource.attributes.k8s.namespace as an object while *_a's doc holds a scalar there.
+  - do:
+      indices.create:
+        index: dedup_conflict_a_5685
+        body:
+          mappings:
+            dynamic: false
+            properties:
+              host:
+                type: keyword
+  - do:
+      indices.create:
+        index: dedup_conflict_b_5685
+        body:
+          mappings:
+            properties:
+              host:
+                type: keyword
+              resource:
+                properties:
+                  attributes:
+                    properties:
+                      k8s:
+                        properties:
+                          namespace:
+                            properties:
+                              name:
+                                type: keyword
+  # Mirror conflict: only *c_a maps the path (keyword), while *c_b's doc holds an object there.
+  - do:
+      indices.create:
+        index: dedup_conflict_c_a_5685
+        body:
+          mappings:
+            properties:
+              host:
+                type: keyword
+              resource:
+                properties:
+                  attributes:
+                    properties:
+                      k8s:
+                        properties:
+                          namespace:
+                            type: keyword
+  - do:
+      indices.create:
+        index: dedup_conflict_c_b_5685
+        body:
+          mappings:
+            dynamic: false
+            properties:
+              host:
+                type: keyword
+  - do:
+      bulk:
+        index: dedup_conflict_a_5685
+        refresh: true
+        body:
+          - '{"index": {"_id": "1"}}'
+          - '{"host": "h1", "resource": {"attributes": {"k8s": {"namespace": "prod"}}}}'
+  - do:
+      bulk:
+        index: dedup_conflict_b_5685
+        refresh: true
+        body:
+          - '{"index": {"_id": "1"}}'
+          - '{"host": "h2", "resource": {"attributes": {"k8s": {"namespace": {"name": "pod-x"}}}}}'
+  - do:
+      bulk:
+        index: dedup_conflict_c_a_5685
+        refresh: true
+        body:
+          - '{"index": {"_id": "1"}}'
+          - '{"host": "h1", "resource": {"attributes": {"k8s": {"namespace": "prod"}}}}'
+  - do:
+      bulk:
+        index: dedup_conflict_c_b_5685
+        refresh: true
+        body:
+          - '{"index": {"_id": "1"}}'
+          - '{"host": "h2", "resource": {"attributes": {"k8s": {"namespace": {"name": "pod-x"}}}}}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+  - do:
+      indices.delete:
+        index: dedup_conflict_a_5685
+        ignore: 404
+  - do:
+      indices.delete:
+        index: dedup_conflict_b_5685
+        ignore: 404
+  - do:
+      indices.delete:
+        index: dedup_conflict_c_a_5685
+        ignore: 404
+  - do:
+      indices.delete:
+        index: dedup_conflict_c_b_5685
+        ignore: 404
+
+---
+"dedup over a wildcard where an object-typed path holds a scalar in one index":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=dedup_conflict_a_5685,dedup_conflict_b_5685 | dedup host | fields host | sort host"
+  - match: {"total": 2}
+  - match: {"datarows": [["h1"], ["h2"]]}
+
+---
+"dedup over a wildcard where a scalar-typed path holds an object in one index":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      allowed_warnings:
+        - 'Loading the fielddata on the _id field is deprecated and will be removed in future versions. If you require sorting or aggregating on this field you should also include the id in the body of your documents, and map this field as a keyword field that has [doc_values] enabled'
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=dedup_conflict_c_a_5685,dedup_conflict_c_b_5685 | dedup host | fields host | sort host"
+  - match: {"total": 2}
+  - match: {"datarows": [["h1"], ["h2"]]}

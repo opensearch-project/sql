@@ -17,6 +17,7 @@ import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.legacy.TestUtils;
+import org.opensearch.sql.util.ClusterPlugins;
 
 /**
  * Regression test for SQL cursor pagination under Fine-Grained Access Control (FGAC).
@@ -35,6 +36,10 @@ public class SQLCursorPermissionsIT extends SQLIntegTestCase {
 
   @Override
   protected void init() throws Exception {
+    ClusterPlugins.requirePluginOrAssume(
+        client(),
+        ClusterPlugins.SECURITY_PLUGIN,
+        "opensearch-security plugin not installed on test cluster; skipping FGAC tests");
     loadIndex(Index.ACCOUNT);
     createSecurityRolesAndUsers();
   }

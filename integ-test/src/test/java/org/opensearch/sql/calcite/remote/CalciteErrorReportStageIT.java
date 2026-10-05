@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
+import static org.opensearch.sql.util.Capability.ERROR_REPORT_CONTEXT;
 import static org.opensearch.sql.util.TestUtils.getResponseBody;
 
 import java.io.IOException;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * Integration tests for error report builder with stage tracking. Validates that errors include
@@ -29,6 +31,7 @@ public class CalciteErrorReportStageIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ERROR_REPORT_CONTEXT)
   public void testFieldNotFoundErrorIncludesStage() throws IOException {
     ResponseException exception =
         assertThrows(
@@ -68,6 +71,7 @@ public class CalciteErrorReportStageIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ERROR_REPORT_CONTEXT)
   public void testIndexNotFoundErrorIncludesStage() throws IOException {
     ResponseException exception =
         assertThrows(
@@ -87,6 +91,7 @@ public class CalciteErrorReportStageIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ERROR_REPORT_CONTEXT)
   public void testMultipleFieldErrorsIncludeStage() throws IOException {
     ResponseException exception =
         assertThrows(
@@ -143,6 +148,7 @@ public class CalciteErrorReportStageIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ERROR_REPORT_CONTEXT)
   public void testLocationMessagesAreUserFriendly() throws IOException {
     ResponseException exception =
         assertThrows(
@@ -181,6 +187,7 @@ public class CalciteErrorReportStageIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ERROR_REPORT_CONTEXT)
   public void testStageDescriptionIsUserFriendly() throws IOException {
     ResponseException exception =
         assertThrows(
@@ -220,6 +227,7 @@ public class CalciteErrorReportStageIT extends PPLIntegTestCase {
   // the flattened mapping. It used to surface an opaque NullPointerException; it must now report a
   // structured FIELD_NOT_FOUND error with a suggestion.
   @Test
+  @RequiresCapability(ERROR_REPORT_CONTEXT)
   public void testAliasToUnresolvablePathIncludesStructuredError() throws IOException {
     String index = "test_alias_unresolved_keyword";
     Request createIndex = new Request("PUT", "/" + index);

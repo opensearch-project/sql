@@ -6,6 +6,7 @@
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
+import static org.opensearch.sql.util.Capability.V2_ENGINE_FALLBACK;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -14,6 +15,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class TopCommandIT extends PPLIntegTestCase {
 
@@ -25,6 +27,7 @@ public class TopCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(V2_ENGINE_FALLBACK)
   public void testTopWithoutGroup() throws IOException {
     JSONObject result = executeQuery(String.format("source=%s | top gender", TEST_INDEX_ACCOUNT));
     if (isCalciteEnabled()) {
@@ -36,6 +39,7 @@ public class TopCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(V2_ENGINE_FALLBACK)
   public void testTopNWithoutGroup() throws IOException {
     JSONObject result = executeQuery(String.format("source=%s | top 1 gender", TEST_INDEX_ACCOUNT));
     if (isCalciteEnabled()) {
@@ -47,6 +51,7 @@ public class TopCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(V2_ENGINE_FALLBACK)
   public void testTopNWithGroup() throws IOException {
     JSONObject result =
         executeQuery(String.format("source=%s | top 1 state by gender", TEST_INDEX_ACCOUNT));
@@ -60,6 +65,7 @@ public class TopCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(V2_ENGINE_FALLBACK)
   public void testTopWithShowPerc() throws IOException {
     JSONObject result =
         executeQuery(String.format("source=%s | top showperc=true gender", TEST_INDEX_ACCOUNT));

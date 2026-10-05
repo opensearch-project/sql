@@ -5,17 +5,21 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.util.Capability.EXPLAIN_FORMAT;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.ast.statement.ExplainMode;
+import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 import org.opensearch.sql.ppl.PPLIntegTestCase.GlobalPushdownConfig;
 import org.opensearch.sql.protocol.response.format.Format;
+import org.opensearch.sql.util.RequiresCapability;
 import tools.jackson.databind.ObjectMapper;
 
+@RequiresCapability(EXPLAIN_FORMAT)
 public class CalcitePPLExplainIT extends PPLIntegTestCase {
 
   @Override
@@ -23,16 +27,22 @@ public class CalcitePPLExplainIT extends PPLIntegTestCase {
     super.init();
     enableCalcite();
 
-    Request request1 = new Request("PUT", "/test/_doc/1?refresh=true");
-    request1.setJsonEntity("{\"name\": \"hello\", \"age\": 20}");
-    client().performRequest(request1);
-    Request request2 = new Request("PUT", "/test/_doc/2?refresh=true");
-    request2.setJsonEntity("{\"name\": \"world\", \"age\": 30}");
-    client().performRequest(request2);
+    // Seed once, mirroring loadIndex's isIndexExist guard: init() runs before every test method,
+    // and on the analytics route the append-only store would accumulate a duplicate per method.
+    if (!TestUtils.isIndexExist(client(), "test")) {
+      Request request1 = TestUtils.seedDocRequest("test", "1");
+      request1.setJsonEntity("{\"name\": \"hello\", \"age\": 20}");
+      client().performRequest(request1);
+      Request request2 = TestUtils.seedDocRequest("test", "2");
+      request2.setJsonEntity("{\"name\": \"world\", \"age\": 30}");
+      client().performRequest(request2);
+    }
     // PUT index test1
-    Request request3 = new Request("PUT", "/test1/_doc/1?refresh=true");
-    request3.setJsonEntity("{\"name\": \"HELLO\", \"alias\": \"Hello\"}");
-    client().performRequest(request3);
+    if (!TestUtils.isIndexExist(client(), "test1")) {
+      Request request3 = TestUtils.seedDocRequest("test1", "1");
+      request3.setJsonEntity("{\"name\": \"HELLO\", \"alias\": \"Hello\"}");
+      client().performRequest(request3);
+    }
   }
 
   @Test

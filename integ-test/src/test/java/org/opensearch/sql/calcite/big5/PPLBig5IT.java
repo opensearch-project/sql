@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.big5;
 
+import static org.opensearch.sql.util.Capability.LUCENE_PUSHDOWN_EXPLAIN;
 import static org.opensearch.sql.util.MatcherUtils.assertYamlEqualsIgnoreId;
 
 import java.io.IOException;
@@ -16,8 +17,10 @@ import org.junit.Test;
 import org.junit.runners.MethodSorters;
 import org.opensearch.common.collect.MapBuilder;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 @FixMethodOrder(MethodSorters.JVM)
+@RequiresCapability(LUCENE_PUSHDOWN_EXPLAIN)
 public class PPLBig5IT extends PPLIntegTestCase {
   protected static final MapBuilder<String, Long> summary = MapBuilder.newMapBuilder();
 
@@ -32,6 +35,11 @@ public class PPLBig5IT extends PPLIntegTestCase {
   public static void reset() throws IOException {
     long total = 0;
     Map<String, Long> map = summary.immutableMap();
+    if (map.isEmpty()) {
+      // Every test in the class was skipped (e.g. capability-gated on the analytics route);
+      // there is nothing to summarize and the average below would divide by zero.
+      return;
+    }
     for (long duration : map.values()) {
       total += duration;
     }

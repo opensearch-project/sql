@@ -7,12 +7,14 @@ package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.SYNTAX_EX_MSG_FRAGMENT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
+import static org.opensearch.sql.util.Capability.SEARCH_FILTER_SYNTAX;
 
 import java.io.IOException;
 import org.junit.Test;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class QueryAnalysisIT extends PPLIntegTestCase {
   @Override
@@ -23,6 +25,7 @@ public class QueryAnalysisIT extends PPLIntegTestCase {
 
   /** Valid commands should pass both syntax analysis and semantic check. */
   @Test
+  @RequiresCapability(SEARCH_FILTER_SYNTAX)
   public void searchCommandShouldPassSemanticCheck() {
     String query = String.format("search source=%s age=20", TEST_INDEX_ACCOUNT);
     queryShouldPassSyntaxAndSemanticCheck(query);
@@ -106,6 +109,7 @@ public class QueryAnalysisIT extends PPLIntegTestCase {
 
   /** Commands that fail semantic analysis should throw {@link SemanticCheckException}. */
   @Test
+  @RequiresCapability(SEARCH_FILTER_SYNTAX)
   public void nonexistentFieldShouldFailSemanticCheck() {
     String query = String.format("search source=%s | fields name", TEST_INDEX_ACCOUNT);
     queryShouldThrowSemanticException(

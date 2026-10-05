@@ -1423,10 +1423,18 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   void projectPlusOverriding(
       List<RexNode> newFields, List<String> newNames, CalcitePlanContext context) {
-    Set<String> originalFieldNameSet =
-        new HashSet<>(context.relBuilder.peek().getRowType().getFieldNames());
+    RelDataType originalRowType = context.relBuilder.peek().getRowType();
+    Set<String> originalFieldNameSet = new HashSet<>(originalRowType.getFieldNames());
     List<String> overriddenNames =
         newNames.stream().filter(originalFieldNameSet::contains).toList();
+    // Issue #5718: an override replacing a container-typed parent sheds the stale flattened
+    // leaves the scan exposed alongside it. Runs before any new columns are added, so the
+    // prefix match only ever sees pre-existing columns — never the incoming newNames.
+    for (String overridden : overriddenNames) {
+      if (isContainerType(originalRowType.getField(overridden, true, false).getType())) {
+        dropStructChildrenFor(overridden, context);
+      }
+    }
     List<RexNode> toOverrideList =
         overriddenNames.stream().map(a -> (RexNode) context.relBuilder.field(a)).toList();
     // 1. add the new fields, For example "age0, country0"
@@ -1457,6 +1465,33 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // to brand-new dotted paths that were not already in the row schema.
     for (String overridden : overriddenNames) {
       dropStructParentsFor(overridden, context);
+    }
+  }
+
+  /** An OpenSearch object parent surfaces as MAP in the row schema, a nested parent as ARRAY. */
+  private static boolean isContainerType(RelDataType type) {
+    return type.isStruct()
+        || type.getSqlTypeName() == SqlTypeName.MAP
+        || type.getSqlTypeName() == SqlTypeName.ARRAY;
+  }
+
+  /**
+   * Mirror of {@link #dropStructParentsFor(String, CalcitePlanContext)} for issue #5718: when an
+   * override replaces a container-typed column (e.g. {@code spath input=body output=log} with
+   * mapped {@code log.*} subfields), drop the flattened leaf columns so the replacement shadows the
+   * entire dotted subtree. The row schema carries no parent-child provenance, so this applies
+   * uniformly to any MAP/ARRAY column. No-op when no such child columns exist.
+   */
+  private void dropStructChildrenFor(String parentName, CalcitePlanContext context) {
+    String prefix = parentName + ".";
+    List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+    List<RexNode> childrenToDrop =
+        fieldNames.stream()
+            .filter(f -> f.startsWith(prefix))
+            .map(f -> (RexNode) context.relBuilder.field(f))
+            .toList();
+    if (!childrenToDrop.isEmpty()) {
+      context.relBuilder.projectExcept(childrenToDrop);
     }
   }
 
@@ -1581,7 +1616,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         distinctRefsOfCounts = refsPerCount.stream().flatMap(List::stream).distinct().toList();
       }
       if (distinctRefsOfCounts.size() == 1 && refsPerCount.stream().noneMatch(List::isEmpty)) {
-        context.relBuilder.filter(context.relBuilder.isNotNull(distinctRefsOfCounts.getFirst()));
+        // The filter is stacked on the Project, so its reference must address the Project's output.
+        // distinctRefsOfCounts may hold an index mapped through the Project, which addresses its
+        // input; that mapping only serves to prove two aliases are one column. refsPerCount is
+        // already in the output frame, and every entry here denotes the same column.
+        RexInputRef filterRef =
+            refsPerCount.stream().flatMap(List::stream).findFirst().orElseThrow();
+        context.relBuilder.filter(context.relBuilder.isNotNull(filterRef));
       }
     }
 
@@ -3156,7 +3197,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     for (RelNode input : unifiedInputs) {
       context.relBuilder.push(input);
     }
-    context.relBuilder.union(true, unifiedInputs.size()); // true = UNION ALL
+    context.relBuilder.union(!node.isDistinct(), unifiedInputs.size()); // all = !distinct
 
     if (node.getMaxout() != null) {
       context.relBuilder.push(
@@ -3841,6 +3882,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RexNode colSplit = relBuilder.field(1);
     String columnSplitName = relBuilder.peek().getRowType().getFieldNames().get(1);
     if (!SqlTypeUtil.isCharacter(colSplit.getType())) {
+      // Object, array and other non-scalar types have no string representation to pivot on
+      if (!SqlTypeUtil.isAtomic(colSplit.getType())) {
+        String containerType = OpenSearchTypeFactory.getContainerTypeName(colSplit.getType());
+        String reason =
+            "object".equals(containerType) ? "it is an object" : "it holds multiple values";
+        throw new IllegalArgumentException(
+            StringUtils.format(
+                "Cannot chart by [%s] because %s.",
+                StringUtils.unquoteIdentifier(columnSplitName), reason));
+      }
       colSplit =
           relBuilder.alias(
               context.rexBuilder.makeCast(

@@ -549,6 +549,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "account",
         getAccountIndexMapping(),
         "src/test/resources/accounts.json"),
+    ACCOUNT_SINGLE_SHARD(
+        TestsConstants.TEST_INDEX_ACCOUNT_SINGLE_SHARD,
+        "account_single_shard",
+        getMappingFile("account_single_shard_index_mapping.json"), // 1 shard: exact aggregations
+        "src/test/resources/accounts.json"),
     ACCOUNT_EXTENDED(
         TestsConstants.TEST_INDEX_ACCOUNT_EXTENDED,
         "account_extended",
@@ -748,7 +753,10 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         getDateTimeSimpleIndexMapping(),
         "src/test/resources/datetime_simple.json"),
     BEER(
-        TestsConstants.TEST_INDEX_BEER, "beer", null, "src/test/resources/beer.stackexchange.json"),
+        TestsConstants.TEST_INDEX_BEER,
+        "beer",
+        getMappingFile("beer_index_mapping.json"),
+        "src/test/resources/beer.stackexchange.json"),
     NULL_MISSING(
         TestsConstants.TEST_INDEX_NULL_MISSING,
         "null_missing",
@@ -818,6 +826,26 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "state_country_with_null",
         getStateCountryIndexMapping(), // with null index use the same schema
         "src/test/resources/state_country_with_null.json"),
+    STATE_COUNTRY_ORDERED(
+        TestsConstants.TEST_INDEX_STATE_COUNTRY_ORDERED,
+        "state_country_ordered",
+        getMappingFile("state_country_ordered_index_mapping.json"),
+        "src/test/resources/state_country_ordered.json"),
+    STATE_COUNTRY_WITH_NULL_ORDERED(
+        TestsConstants.TEST_INDEX_STATE_COUNTRY_WITH_NULL_ORDERED,
+        "state_country_with_null_ordered",
+        getMappingFile("state_country_ordered_index_mapping.json"), // same schema, plus seq
+        "src/test/resources/state_country_with_null_ordered.json"),
+    STATE_COUNTRY_SINGLE_SHARD(
+        TestsConstants.TEST_INDEX_STATE_COUNTRY_SINGLE_SHARD,
+        "state_country_single_shard",
+        getMappingFile("state_country_single_shard_index_mapping.json"),
+        "src/test/resources/state_country.json"),
+    STATE_COUNTRY_WITH_NULL_SINGLE_SHARD(
+        TestsConstants.TEST_INDEX_STATE_COUNTRY_WITH_NULL_SINGLE_SHARD,
+        "state_country_with_null_single_shard",
+        getMappingFile("state_country_single_shard_index_mapping.json"), // 1 shard, no seq needed
+        "src/test/resources/state_country_with_null.json"),
     OCCUPATION(
         TestsConstants.TEST_INDEX_OCCUPATION,
         "occupation",
@@ -874,6 +902,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "duplication_nullable",
         getDuplicationNullableIndexMapping(),
         "src/test/resources/duplication_nullable.json"),
+    DUPLICATION_NULLABLE_ORDERED(
+        TestsConstants.TEST_INDEX_DUPLICATION_NULLABLE_ORDERED,
+        "duplication_nullable_ordered",
+        getMappingFile("duplication_nullable_ordered_index_mapping.json"),
+        "src/test/resources/duplication_nullable_ordered.json"),
     // Graph lookup test indices (inspired by MongoDB $graphLookup examples)
     GRAPH_EMPLOYEES(
         TestsConstants.TEST_INDEX_GRAPH_EMPLOYEES,
@@ -890,6 +923,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "graph_airports",
         getGraphAirportsIndexMapping(),
         "src/test/resources/graph_airports.json"),
+    GRAPH_MULTI(
+        TestsConstants.TEST_INDEX_GRAPH_MULTI,
+        "graph_multi",
+        getGraphMultiIndexMapping(),
+        "src/test/resources/graph_multi.json"),
     TPCH_ORDERS(
         "orders",
         "tpch",

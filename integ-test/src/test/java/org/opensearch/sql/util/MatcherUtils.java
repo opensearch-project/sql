@@ -48,8 +48,14 @@ public class MatcherUtils {
   /** Absolute tolerance floor for {@link #closeTo} numeric comparisons. */
   private static final double ABSOLUTE_TOLERANCE = 1e-10;
 
-  /** Number of ULPs tolerated by {@link #closeTo} to absorb platform-dependent rounding. */
-  private static final int ULP_TOLERANCE_FACTOR = 4;
+  /**
+   * Number of ULPs tolerated by {@link #closeTo} to absorb platform-dependent rounding and
+   * shard-order-dependent floating-point summation. Double addition is not associative: on
+   * multi-shard indices the reduction order of SUM/AVG follows shard arrival order, so repeated
+   * runs legitimately differ by a few ULPs in the last digits (observed up to ~6 ULPs on TPC-H Q1
+   * sum_charge at 5 shards). 16 ULPs (~1e-15 relative) is still far below any real defect.
+   */
+  private static final int ULP_TOLERANCE_FACTOR = 16;
 
   private static final Logger LOG = LogManager.getLogger();
   private static final ObjectMapper JSON_MAPPER = new ObjectMapper();

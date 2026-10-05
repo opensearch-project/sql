@@ -7,6 +7,7 @@ package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.SQLIntegTestCase.Index.FLATTENED_VALUE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_FLATTENED_VALUE;
+import static org.opensearch.sql.util.Capability.DOTTED_PATH_DOC;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -17,7 +18,9 @@ import org.hamcrest.TypeSafeMatcher;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.util.RequiresCapability;
 
+@RequiresCapability(DOTTED_PATH_DOC)
 public class FlattenDocValueIT extends PPLIntegTestCase {
   @Override
   public void init() throws Exception {

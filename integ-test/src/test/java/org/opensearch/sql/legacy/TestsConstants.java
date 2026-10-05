@@ -16,6 +16,13 @@ public class TestsConstants {
   public static final String TEST_INDEX_ONLINE = TEST_INDEX + "_online";
   public static final String TEST_INDEX_ACCOUNT = TEST_INDEX + "_account";
   public static final String TEST_INDEX_ACCOUNT_EXTENDED = TEST_INDEX_ACCOUNT + "_extended";
+  // Single-shard (number_of_shards=1) variant of the accounts fixture. Used by the stats
+  // sort-on-measure tests: ordering a terms aggregation by a sub-aggregation is approximate on
+  // multi-shard indices because each shard returns only its local top-N (shard_size) buckets, so
+  // a bucket whose partial sums are spread across shards can be pruned where it is large and
+  // survive where it is small, yielding a wrong coordinator total. A single shard makes the
+  // aggregation exact so the tests assert true totals.
+  public static final String TEST_INDEX_ACCOUNT_SINGLE_SHARD = TEST_INDEX_ACCOUNT + "_single_shard";
   public static final String TEST_INDEX_PHRASE = TEST_INDEX + "_phrase";
   public static final String TEST_INDEX_DOG = TEST_INDEX + "_dog";
   public static final String TEST_INDEX_DOG2 = TEST_INDEX + "_dog2";
@@ -81,15 +88,39 @@ public class TestsConstants {
   public static final String TEST_INDEX_STATE_COUNTRY = TEST_INDEX + "_state_country";
   public static final String TEST_INDEX_STATE_COUNTRY_WITH_NULL =
       TEST_INDEX + "_state_country_with_null";
+  // Deterministic-order variants of the state_country fixtures for multi-shard streamstats tests:
+  // same documents plus an explicit `seq` field so a `sort seq` restores the single-shard encounter
+  // order on any shard layout. The single_shard variant pins number_of_shards=1 for the
+  // reverse-after-streamstats no-op tests, where injecting a sort would change the behavior under
+  // test.
+  public static final String TEST_INDEX_STATE_COUNTRY_ORDERED =
+      TEST_INDEX + "_state_country_ordered";
+  public static final String TEST_INDEX_STATE_COUNTRY_WITH_NULL_ORDERED =
+      TEST_INDEX + "_state_country_with_null_ordered";
+  public static final String TEST_INDEX_STATE_COUNTRY_SINGLE_SHARD =
+      TEST_INDEX + "_state_country_single_shard";
+  // Single-shard (number_of_shards=1) variant of state_country_with_null. Used by the reset
+  // streamstats null test: `reset_before`/`reset_after` builds a self-correlated plan that the
+  // physical compiler cannot combine with an upstream `sort` (planner IndexOutOfBounds), so the
+  // seq-sort determinism trick used by the other streamstats tests is unavailable here. Pinning a
+  // single shard yields the deterministic insertion-order stream without injecting a sort.
+  public static final String TEST_INDEX_STATE_COUNTRY_WITH_NULL_SINGLE_SHARD =
+      TEST_INDEX + "_state_country_with_null_single_shard";
   public static final String TEST_INDEX_OCCUPATION = TEST_INDEX + "_occupation";
   public static final String TEST_INDEX_OCCUPATION_TOP_RARE = TEST_INDEX + "_occupation_top_rare";
   public static final String TEST_INDEX_HOBBIES = TEST_INDEX + "_hobbies";
   public static final String TEST_INDEX_WORKER = TEST_INDEX + "_worker";
   public static final String TEST_INDEX_WORK_INFORMATION = TEST_INDEX + "_work_information";
   public static final String TEST_INDEX_DUPLICATION_NULLABLE = TEST_INDEX + "_duplication_nullable";
+  // Deterministic-order variant of duplication_nullable: same documents plus an explicit `seq`
+  // field so a `sort seq` restores the single-shard encounter order for CONSECUTIVE dedup on any
+  // shard layout.
+  public static final String TEST_INDEX_DUPLICATION_NULLABLE_ORDERED =
+      TEST_INDEX + "_duplication_nullable_ordered";
   public static final String TEST_INDEX_GRAPH_EMPLOYEES = TEST_INDEX + "_graph_employees";
   public static final String TEST_INDEX_GRAPH_TRAVELERS = TEST_INDEX + "_graph_travelers";
   public static final String TEST_INDEX_GRAPH_AIRPORTS = TEST_INDEX + "_graph_airports";
+  public static final String TEST_INDEX_GRAPH_MULTI = TEST_INDEX + "_graph_multi";
   public static final String TEST_INDEX_MERGE_TEST_1 = TEST_INDEX + "_merge_test_1";
   public static final String TEST_INDEX_MERGE_TEST_2 = TEST_INDEX + "_merge_test_2";
   public static final String TEST_INDEX_MERGE_TEST_WILDCARD = TEST_INDEX + "_merge_test_*";

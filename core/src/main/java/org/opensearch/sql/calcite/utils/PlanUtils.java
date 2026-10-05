@@ -232,6 +232,23 @@ public interface PlanUtils {
             true,
             lowerBound,
             upperBound);
+      // Calcite rank operators disallow framing, so the ROWS/RANGE flag below is normalized away.
+      case RANK:
+        return withOver(
+            context.relBuilder.aggregateCall(SqlStdOperatorTable.RANK),
+            partitions,
+            orderKeys,
+            false,
+            lowerBound,
+            upperBound);
+      case DENSE_RANK:
+        return withOver(
+            context.relBuilder.aggregateCall(SqlStdOperatorTable.DENSE_RANK),
+            partitions,
+            orderKeys,
+            false,
+            lowerBound,
+            upperBound);
       case NTH_VALUE:
         return withOver(
             context.relBuilder.aggregateCall(SqlStdOperatorTable.NTH_VALUE, field, argList.get(0)),

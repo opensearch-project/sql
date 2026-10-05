@@ -69,7 +69,7 @@ dmlStatement
 // Primary DML Statements
 selectStatement
    : querySpecification                                          # simpleSelect
-   | querySpecification (UNION ALL querySpecification)+          # unionSelect
+   | querySpecification (UNION ALL? querySpecification)+         # unionSelect
    ;
 
 adminStatement

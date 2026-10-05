@@ -31,6 +31,7 @@ import org.opensearch.index.IndexSettings;
 import org.opensearch.search.aggregations.MultiBucketConsumerService;
 import org.opensearch.sql.common.antlr.AstBuildGuard;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.utils.DeserializationFilterUtil;
 
 /** Setting implementation on OpenSearch. */
 @Log4j2
@@ -209,11 +210,42 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<?> QUERY_PRUNING_ENABLED_SETTING =
+      Setting.boolSetting(
+          Key.QUERY_PRUNING_ENABLED.getKeyValue(),
+          true,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   public static final Setting<Integer> MAX_EXPRESSION_DEPTH_SETTING =
       Setting.intSetting(
           Key.MAX_EXPRESSION_DEPTH.getKeyValue(),
           AstBuildGuard.DEFAULT_MAX_DEPTH,
           0,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<Integer> DESERIALIZATION_MAX_DEPTH_SETTING =
+      Setting.intSetting(
+          Key.DESERIALIZATION_MAX_DEPTH.getKeyValue(),
+          DeserializationFilterUtil.DEFAULT_MAX_DEPTH,
+          1,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<Integer> DESERIALIZATION_MAX_REFS_SETTING =
+      Setting.intSetting(
+          Key.DESERIALIZATION_MAX_REFS.getKeyValue(),
+          DeserializationFilterUtil.DEFAULT_MAX_REFS,
+          1,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<Integer> DESERIALIZATION_MAX_BYTES_SETTING =
+      Setting.intSetting(
+          Key.DESERIALIZATION_MAX_BYTES.getKeyValue(),
+          DeserializationFilterUtil.DEFAULT_MAX_BYTES,
+          1,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
@@ -510,9 +542,33 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.QUERY_PRUNING_ENABLED,
+        QUERY_PRUNING_ENABLED_SETTING,
+        new Updater(Key.QUERY_PRUNING_ENABLED));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.MAX_EXPRESSION_DEPTH,
         MAX_EXPRESSION_DEPTH_SETTING,
         new Updater(Key.MAX_EXPRESSION_DEPTH));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.DESERIALIZATION_MAX_DEPTH,
+        DESERIALIZATION_MAX_DEPTH_SETTING,
+        new Updater(Key.DESERIALIZATION_MAX_DEPTH));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.DESERIALIZATION_MAX_REFS,
+        DESERIALIZATION_MAX_REFS_SETTING,
+        new Updater(Key.DESERIALIZATION_MAX_REFS));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.DESERIALIZATION_MAX_BYTES,
+        DESERIALIZATION_MAX_BYTES_SETTING,
+        new Updater(Key.DESERIALIZATION_MAX_BYTES));
     register(
         settingBuilder,
         clusterSettings,
@@ -693,6 +749,9 @@ public class OpenSearchSettings extends Settings {
         .add(SQL_SLOWLOG_SETTING)
         .add(SQL_CURSOR_KEEP_ALIVE_SETTING)
         .add(MAX_EXPRESSION_DEPTH_SETTING)
+        .add(DESERIALIZATION_MAX_DEPTH_SETTING)
+        .add(DESERIALIZATION_MAX_REFS_SETTING)
+        .add(DESERIALIZATION_MAX_BYTES_SETTING)
         .add(PPL_ENABLED_SETTING)
         .add(PPL_QUERY_TIMEOUT_SETTING)
         .add(PPL_SYNTAX_LEGACY_PREFERRED_SETTING)
@@ -712,6 +771,7 @@ public class OpenSearchSettings extends Settings {
         .add(PPL_JOIN_SUBSEARCH_MAXOUT_SETTING)
         .add(QUERY_MEMORY_LIMIT_SETTING)
         .add(QUERY_SIZE_LIMIT_SETTING)
+        .add(QUERY_PRUNING_ENABLED_SETTING)
         .add(QUERY_BUCKET_SIZE_SETTING)
         .add(METRICS_ROLLING_WINDOW_SETTING)
         .add(METRICS_ROLLING_INTERVAL_SETTING)

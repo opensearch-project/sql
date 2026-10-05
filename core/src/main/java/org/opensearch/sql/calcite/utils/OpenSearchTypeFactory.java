@@ -252,6 +252,11 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
           INTERVAL;
       case ARRAY -> ARRAY;
       case MAP -> STRUCT;
+      // Calcite spells a struct as ROW. convertExprTypeToRelDataType builds STRUCT as
+      // MAP<VARCHAR, ANY> since the v2 path only passes _source JSON through, so a genuine ROW —
+      // from an engine that builds a struct out of typed columns — matched nothing and fell
+      // through to UNKNOWN.
+      case ROW -> STRUCT;
       case GEOMETRY -> GEO_POINT;
       case NULL, ANY, OTHER -> UNDEFINED;
       default -> UNKNOWN;
@@ -263,6 +268,18 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     ExprType type = convertRelDataTypeToExprType(relDataType);
     return (queryType == PPL ? PPL_SPEC.typeName(type) : type.legacyTypeName())
         .toUpperCase(Locale.ROOT);
+  }
+
+  /**
+   * Name a multi-value type the way a query author sees it in a mapping, for error messages:
+   * "object" for an object field, "array" for an array one. Returns null for scalar types.
+   */
+  public static @Nullable String getContainerTypeName(RelDataType relDataType) {
+    return switch (relDataType.getSqlTypeName()) {
+      case MAP, ROW -> "object";
+      case ARRAY, MULTISET -> "array";
+      default -> null;
+    };
   }
 
   /** Converts a Calcite data type to OpenSearch ExprCoreType. */
