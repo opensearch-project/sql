@@ -104,13 +104,11 @@ public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
     names.stream()
         .filter(n -> cells.stream().noneMatch(c -> c.command().equals(n) && c.status() == 200))
         .forEach(n -> failures.add(n + " never returned 200, so it tests nothing"));
-    String tag = tag();
     Set<String> serverErrors = new TreeSet<>();
     for (Cell cell : cells) {
       if (cell.status() >= 500) {
         serverErrors.add(cell.key());
-        System.out.println(
-            tag + "500 " + cell.key() + " | " + cell.source() + " | " + cell.error());
+        logger.info("500 {} | {} | {}", cell.key(), cell.source(), cell.error());
         if (KNOWN_500S.stream()
             .noneMatch(p -> p.covers(cell.pair(), cell.winner(), cell.command(), cell.source()))) {
           failures.add(
@@ -123,14 +121,11 @@ public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
         }
       }
     }
-    System.out.println(
-        tag
-            + cells.size()
-            + " queries, "
-            + cells.stream().filter(c -> c.status() >= 500).count()
-            + " return 500 across "
-            + serverErrors.size()
-            + " pair, winner and command keys");
+    logger.info(
+        "{} queries, {} return 500 across {} pair, winner and command keys",
+        cells.size(),
+        cells.stream().filter(c -> c.status() >= 500).count(),
+        serverErrors.size());
     Set<String> pairs = cells.stream().map(Cell::pair).collect(Collectors.toSet());
     for (Pin pin : KNOWN_500S) {
       pin.commands().stream()
@@ -198,8 +193,7 @@ public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
       stream.rollover(factory.drift(name));
       for (String source : List.of(name, name + "*")) {
         String resolved = winner(source, field);
-        System.out.println(
-            tag() + "pass " + pair + ", field " + field + " via " + source + " reads " + resolved);
+        logger.info("pass {}, field {} via {} reads {}", pair, field, source, resolved);
         for (Command command : commands) {
           String query = command.query(source, field, control());
           Response response = run(query);
@@ -224,10 +218,6 @@ public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
     }
     stream.delete();
     return cells;
-  }
-
-  private String tag() {
-    return "[" + getClass().getSimpleName() + "] ";
   }
 
   /** The PPL type the merged schema gives the field, or the status when it cannot be read. */
