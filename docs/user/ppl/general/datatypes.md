@@ -142,13 +142,6 @@ Reading a leaf, or the whole field, costs no more than reading a keyword field, 
 
 This is the cost the field type exists to avoid, and it is the same cost the same operation carries on a `spath` field. On a large index, put a supported filter before one of these so the script runs over a narrow set rather than the whole scan; `explain` shows which of the two a query got -- a `term`, `terms`, `wildcard` or `exists` clause, or a `script` clause.
 
-**Two existing gaps in how PPL compares an indexed value, neither introduced by this field type.** A filter can answer differently depending on whether it reached the index, because the index holds a value the engine does not read back identically. The same gap is reached with a plain `keyword` or `integer` field, which [#5834](https://github.com/opensearch-project/sql/issues/5834) records, and whether a predicate reaches the index depends on where it sits in the pipeline, so neither answer is simply the correct one. A leaf meets fewer of them than a mapped field does: having no doc values it never reaches the index for `sort`, `dedup`, `stats ... by`, `top` or `rare`, so only a filter is affected.
-
-- **A number is indexed as the token the record wrote and read in its canonical form.** `1e3` is indexed as `1e3` and reads as `1000.0`; `1.50` as `1.50` and `1.5`. So `where attributes.n = '1e3'` finds the record as a term lookup and not after reading, and `where attributes.n = '1000.0'` the other way round. To match a number however it was written, cast it: `where cast(attributes.n as double) = 1000` finds both `1e3` and `1000`, and is correct either way, at the cost of the evaluated path above.
-- **A path holding several values is indexed as a term for each and read as their JSON.** The index matches any one of the values, while a comparison made after reading is against the whole JSON, which equals none of them. This is what `where attributes.tags = 'a'` turns on. An exact match against the JSON itself -- `where attributes.tags = '["a","b"]'` -- is not folded into a term, so that one answers the same either way.
-
-**`expand` is not supported on a leaf.** It takes a column of the index to correlate the expansion with, and a leaf is not one. Expand the field itself, or project the leaf first.
-
 ### Example: People  
 
 There are three fields in test index `people`: 1) deep nested object field `city`; 2) object field of array value `account`; 3) nested field `projects`
