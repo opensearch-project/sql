@@ -100,6 +100,31 @@ public class PPLQueryTaskTest {
   }
 
   @Test
+  public void testInlineExplainIsNotReported() {
+    // "explain source=t | ..." reaches the execute route because isExplainRequest() only looks at
+    // the path, so the sink's flag is what keeps it out of Top N.
+    PPLQueryTask task = newTask();
+    task.setQueryInsightsAnonymizedQuery("explain source=table | fields identifier");
+    task.setQueryInsightsExplain(true);
+    assertFalse(TransportPPLQueryAction.shouldReportToQueryInsights(task));
+  }
+
+  @Test
+  public void testSyntaxErrorIsNotReported() {
+    // A parse failure throws before the sink runs, leaving no query text to report.
+    assertFalse(TransportPPLQueryAction.shouldReportToQueryInsights(newTask()));
+  }
+
+  @Test
+  public void testRuntimeFailureAfterPlanningIsReported() {
+    // Planning succeeded, so the metadata is present; a later execution failure must still report.
+    PPLQueryTask task = newTask();
+    task.setQueryInsightsAnonymizedQuery("source=table | where identifier > ***");
+    task.setQueryInsightsFailed(true);
+    assertTrue(TransportPPLQueryAction.shouldReportToQueryInsights(task));
+  }
+
+  @Test
   public void testQueryInsightsParentHeaderName() {
     assertEquals("X-Query-Insights-Parent", QueryInsightsMarker.PARENT_HEADER);
   }

@@ -13,5 +13,8 @@ import java.util.List;
  *
  * @param anonymizedQuery the query with literals masked by {@code PPLQueryDataAnonymizer}
  * @param indices the source index name(s) the query reads from; empty when none are resolvable
+ * @param explain whether the statement is an {@code explain}, which plans but runs no search. The
+ *     endpoint alone cannot tell: {@code explain} is also valid inside the query text.
  */
-public record QueryInsightsMetadata(String anonymizedQuery, List<String> indices) {}
+public record QueryInsightsMetadata(
+    String anonymizedQuery, List<String> indices, boolean explain) {}

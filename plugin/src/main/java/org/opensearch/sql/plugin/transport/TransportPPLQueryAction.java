@@ -253,7 +253,21 @@ public class TransportPPLQueryAction
   }
 
   /** Serialize a completed PPL query and send it to Query Insights; errors are ignored. */
+  /**
+   * Whether a finished task should produce a Top N record. Decided from what the metadata sink
+   * captured rather than from the route, because the route cannot see either case: {@code explain}
+   * is valid inside the query text (not just on {@code /_explain}), and a query that fails to parse
+   * never reaches the sink at all, so it has no query text or indices to report.
+   */
+  static boolean shouldReportToQueryInsights(PPLQueryTask pplQueryTask) {
+    return pplQueryTask.getQueryInsightsAnonymizedQuery() != null
+        && !pplQueryTask.isQueryInsightsExplain();
+  }
+
   private void writeQueryInsightsRecord(PPLQueryTask pplQueryTask) {
+    if (!shouldReportToQueryInsights(pplQueryTask)) {
+      return;
+    }
     try {
       String nodeId = clusterServiceRef.localNode().getId();
       String queryText = pplQueryTask.getQueryInsightsAnonymizedQuery();
@@ -399,6 +413,7 @@ public class TransportPPLQueryAction
             if (metadataTarget != null) {
               metadataTarget.setQueryInsightsAnonymizedQuery(metadata.anonymizedQuery());
               metadataTarget.setQueryInsightsIndices(metadata.indices());
+              metadataTarget.setQueryInsightsExplain(metadata.explain());
             }
           };
       PPLService pplService = injector.getInstance(PPLService.class);

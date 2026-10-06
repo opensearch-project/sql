@@ -162,7 +162,9 @@ public class PPLService {
       log.info("[{}] Incoming request {}", QueryContext.getRequestId(), anonymized);
 
       UnresolvedPlan unresolvedPlan = ((Query) statement).getPlan();
-      sink.accept(new QueryInsightsMetadata(anonymized, extractIndexNames(statement)));
+      sink.accept(
+          new QueryInsightsMetadata(
+              anonymized, extractIndexNames(statement), statement instanceof Explain));
       AbstractPlan analyzePlan =
           queryExecutionFactory.createAnalyzePlan(unresolvedPlan, PPL_QUERY, listener);
       queryManager.submit(analyzePlan);
@@ -212,7 +214,9 @@ public class PPLService {
 
     // Extract indices from the same AST that will execute, so recorded metadata matches the
     // executed query and the query is parsed only once.
-    sink.accept(new QueryInsightsMetadata(anonymized, extractIndexNames(statement)));
+    sink.accept(
+        new QueryInsightsMetadata(
+            anonymized, extractIndexNames(statement), statement instanceof Explain));
 
     AbstractPlan plan = queryExecutionFactory.create(statement, queryListener, explainListener);
     return plan;
