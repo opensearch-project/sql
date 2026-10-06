@@ -22,6 +22,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.support.ActionFilters;
+import org.opensearch.action.support.ContextPreservingActionListener;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
 import org.opensearch.cluster.service.ClusterService;
@@ -320,10 +321,9 @@ public class TransportPPLQueryAction
       if (isQueryInsightsRecordingEnabled()) {
         // Only track resource usage when Query Insights recording and core's task resource tracking
         // are both on, so a disabled feature adds no ThreadMXBean overhead and we don't populate
-        // _tasks resource_stats behind the operator's back.
+        // _tasks resource_stats behind the operator's back. The header stamp and report listener
+        // are set up only on the execute route below.
         pplQueryTask.setResourceTrackingEnabled(isTaskResourceTrackingEnabled());
-        stampQueryInsightsParentHeader(pplQueryTask);
-        registerQueryInsightsReport(pplQueryTask);
       }
     }
     Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_TOTAL).increment();
@@ -412,12 +412,27 @@ public class TransportPPLQueryAction
             transformedRequest,
             createAnalyzeResponseListener(transformedRequest, clearingListener),
             queryInsightsSink);
+      } else if (pplQueryTask != null && isQueryInsightsRecordingEnabled()) {
+        // Query Insights is set up only on this execute route: explain, analyze, and the analytics
+        // engine run no search, so stamping their child searches would orphan them under a parent
+        // that never reports, and reporting the query itself would put an empty record in Top N.
+        final ThreadContext threadContext = clientRef.threadPool().getThreadContext();
+        // Capture the caller's context before stamping, so the callback runs without our header.
+        // The worker thread that completes the query carries it, and an in-process caller invoked
+        // via NodeClient would otherwise inherit it in onResponse.
+        ActionListener<TransportPPLQueryResponse> callerListener =
+            ContextPreservingActionListener.wrapPreservingContext(clearingListener, threadContext);
+        // Stamp inside a stored context so the header is dropped from this thread when doExecute
+        // returns, keeping a caller that issues several PPL queries from tagging later ones (or a
+        // plain DSL search) with this query's marker. Child searches still see it: the executor
+        // captures the thread context when the work is scheduled, which happens inside this block.
+        try (ThreadContext.StoredContext ignored = threadContext.newStoredContext(true)) {
+          stampQueryInsightsParentHeader(pplQueryTask);
+          registerQueryInsightsReport(pplQueryTask);
+          executePplQuery(pplService, transformedRequest, callerListener, queryInsightsSink);
+        }
       } else {
-        pplService.execute(
-            transformedRequest,
-            createListener(transformedRequest, clearingListener),
-            createExplainResponseListener(transformedRequest, clearingListener),
-            queryInsightsSink);
+        executePplQuery(pplService, transformedRequest, clearingListener, queryInsightsSink);
       }
     } catch (Exception e) {
       clearingListener.onFailure(e);
@@ -548,6 +563,18 @@ public class TransportPPLQueryAction
       throw new IllegalArgumentException(
           String.format(Locale.ROOT, "response in %s format is not supported.", format));
     }
+  }
+
+  private void executePplQuery(
+      PPLService pplService,
+      PPLQueryRequest request,
+      ActionListener<TransportPPLQueryResponse> listener,
+      Consumer<QueryInsightsMetadata> queryInsightsSink) {
+    pplService.execute(
+        request,
+        createListener(request, listener),
+        createExplainResponseListener(request, listener),
+        queryInsightsSink);
   }
 
   /** Returns {@code delegate} unchanged when there is no PPL task to mark. */
