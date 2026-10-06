@@ -73,11 +73,18 @@ public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
     }
   }
 
+  /**
+   * The merged schema keeps the type of the backing index it iterates last, in an order set by the
+   * index names and a salt each JVM draws at start. Every scenario recreates the same two names, so
+   * one node gives them all one order, and running a pair as a/b and then b/a lets each type win
+   * once. Each node draws its own salt and requests spread across nodes, so several nodes break it.
+   */
   private void requireOneNode() throws IOException {
     JSONArray nodes = new JSONArray(executeRequest(new Request("GET", "/_cat/nodes?format=json")));
     if (nodes.length() != 1) {
       throw new IllegalStateException(
-          "The swap needs one node to fix the merge order, the cluster has " + nodes.length());
+          "The scenarios need one node to hold the merge order fixed, the cluster has "
+              + nodes.length());
     }
   }
 
