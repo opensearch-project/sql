@@ -9,7 +9,7 @@ import java.util.List;
 
 /**
  * The data the OTel data stream ITs run over, meaning the field types the drifts cross, the PPL
- * commands, and the 500s pinned to their issues. {@link OtelDataStreamConflictTestCase} holds the
+ * commands, and the known 500s with their issues. {@link OtelDataStreamConflictTestCase} holds the
  * flow, so a fix that clears a 500 edits only this file.
  */
 final class MappingConflictFixtures {
@@ -20,11 +20,11 @@ final class MappingConflictFixtures {
 
   /**
    * A PPL command template, holding {@code {I}} for the source, {@code {F}} for the field under
-   * test and {@code {K}} for a control field.
+   * test and {@code {K}} for a stable field that no drift touches.
    */
   record Command(String name, String template) {
-    String query(String source, String field, String control) {
-      return template.replace("{I}", source).replace("{F}", field).replace("{K}", control);
+    String query(String source, String field, String stableField) {
+      return template.replace("{I}", source).replace("{F}", field).replace("{K}", stableField);
     }
   }
 
@@ -58,7 +58,7 @@ final class MappingConflictFixtures {
               "source={I} | head 100 | inner join left = l right = r on l.{F} = r.{F} [ source={I}"
                   + " | head 100 ] | head 10"));
 
-  /** The source a pin covers, the data stream name, the wildcard over it, or both. */
+  /** The source a known 500 covers, the data stream name, the wildcard over it, or both. */
   enum Source {
     DATA_STREAM,
     WILDCARD,
@@ -70,70 +70,70 @@ final class MappingConflictFixtures {
   }
 
   /**
-   * Every listed command over every listed pair returns a 500 under {@code winner}, the PPL type
-   * the merged schema reports, or under every winner the pair shows when {@code winner} is null,
-   * through {@code source}. A fix narrows its pin to the cells that still fail, splitting the pin
-   * if they no longer form one set of commands over one set of pairs, and the run fails until it
-   * does.
+   * A group of queries that return a 500 today, tied to the issue that tracks them. Every listed
+   * command over every listed pair returns a 500 under {@code winner}, the PPL type the merged
+   * schema reports, or under every winner the pair shows when {@code winner} is null, through
+   * {@code source}. A fix narrows its entry to the queries that still fail, splitting the entry if
+   * they no longer form one set of commands over one set of pairs, and the run fails until it does.
    */
-  record Pin(
+  record Known500(
       String issue, List<String> commands, List<String> pairs, String winner, Source source) {
-    Pin {
+    Known500 {
       if (commands.isEmpty() || pairs.isEmpty()) {
-        throw new IllegalArgumentException("The " + issue + " pin needs commands and pairs");
+        throw new IllegalArgumentException("The " + issue + " known 500 needs commands and pairs");
       }
     }
 
-    /** A pin that covers both sources. */
-    Pin(String issue, List<String> commands, List<String> pairs, String winner) {
+    /** A known 500 on both sources. */
+    Known500(String issue, List<String> commands, List<String> pairs, String winner) {
       this(issue, commands, pairs, winner, Source.BOTH);
     }
 
-    boolean covers(String pair, String cellWinner, String command, String cellSource) {
+    boolean covers(String pair, String observedWinner, String command, String observedSource) {
       return pairs.contains(pair)
           && commands.contains(command)
-          && (winner == null || winner.equals(cellWinner))
-          && source.matches(cellSource);
+          && (winner == null || winner.equals(observedWinner))
+          && source.matches(observedSource);
     }
   }
 
   /**
-   * The cells that return a 500 today, grouped by the issue that tracks them. Logs and traces
-   * return the same ones, since the drift lands on the same fields. Each pin lists its own commands
-   * and pairs, so a fix edits only its own entry.
+   * The queries that return a 500 today, grouped by the issue that tracks them. Logs and traces
+   * return the same ones, since the drift lands on the same fields. Each entry lists its own
+   * commands and pairs, so a fix edits only its own entry.
    */
-  static final List<Pin> KNOWN_500S =
+  static final List<Known500> KNOWN_500S =
       List.of(
           // #5811 Composite aggregation pushdown does not support a field whose type differs across
           // indices
-          new Pin(
+          new Known500(
               "#5811",
               List.of("stats_count_by", "dedup", "top", "rare", "chart_by", "timechart_by"),
               List.of("keyword/byte", "keyword/integer", "keyword/long"),
               null),
           // #5811 Composite aggregation pushdown does not support a field whose type differs across
           // indices
-          new Pin(
+          new Known500(
               "#5811",
               List.of("stats_count_by", "dedup", "top", "rare", "chart_by", "timechart_by"),
               List.of("keyword/date"),
               "string"),
           // #5825 sort returns 500 when a field is keyword or ip in one index and a number, date or
           // boolean in another
-          new Pin(
+          new Known500(
               "#5825",
               List.of("sort", "reverse_after_sort", "head_after_sort", "join_self"),
               List.of("keyword/byte", "keyword/integer", "keyword/long", "keyword/date"),
               null),
           // #5835 stats max and stats min return 500 when a field is keyword or ip and boolean or a
           // number in another
-          new Pin(
+          new Known500(
               "#5835",
               List.of("stats_max"),
               List.of("keyword/byte", "keyword/integer", "keyword/long", "keyword/date"),
               "string"),
           // #5836 sort, stats max, and stats min on an object or nested field return 500
-          new Pin(
+          new Known500(
               "#5836",
               List.of("sort", "reverse_after_sort", "head_after_sort", "join_self", "stats_max"),
               List.of("text/object", "object/absent", "absent/object"),
