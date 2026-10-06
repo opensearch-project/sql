@@ -37,6 +37,12 @@ public class AppendCol extends UnresolvedPlan {
     return this;
   }
 
+  /** {@inheritDoc} Adds the appended sub-search, which is not a child. */
+  @Override
+  public List<UnresolvedPlan> getSources() {
+    return this.subSearch == null ? ImmutableList.of() : ImmutableList.of(this.subSearch);
+  }
+
   @Override
   public List<? extends Node> getChild() {
     return this.child == null ? ImmutableList.of() : ImmutableList.of(this.child);

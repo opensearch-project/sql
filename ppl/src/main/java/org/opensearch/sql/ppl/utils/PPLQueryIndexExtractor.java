@@ -10,19 +10,15 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
-import org.opensearch.sql.ast.tree.Append;
-import org.opensearch.sql.ast.tree.AppendCol;
-import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
-import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Join;
-import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 
@@ -31,15 +27,17 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
  * Relation#getQualifiedNames()}) instead of regex-matching text, which mishandles multi-index and
  * datasource-qualified sources.
  *
- * <p>The default visitor only follows {@code getChild()}, so a source held in any other field is
- * reached by an explicit override: a {@link Join}'s left/right branches, a {@link Lookup} table,
- * the sub-search of {@link Append}/{@link AppendCol}/{@link AppendPipe}, a {@link GraphLookup}'s
- * {@code from} table, and subquery relations embedded in {@link Filter}/{@link Eval} condition
- * expressions. Returns distinct names in encounter order. This is best-effort metadata; a source it
- * cannot resolve is simply omitted.
+ * <p>Plan sources are found generically: the walk follows {@code getChild()} plus {@link
+ * UnresolvedPlan#getSources()}, which each node uses to declare a plan it holds in a field (a
+ * sub-search, a lookup table, a join's right branch). A new command therefore only has to declare
+ * its sources on the node itself to be covered here.
  *
- * <p>A subquery in a {@link Join}'s ON condition is not walked (only left/right branches are),
- * unlike {@link Filter}/{@link Eval}; such a source is dropped from this best-effort list.
+ * <p>Subqueries carried in <em>expressions</em> are not reachable that way, so {@link Filter} and
+ * {@link Eval} conditions are bridged explicitly. A subquery in a {@link Join}'s ON condition is
+ * still not walked and is dropped.
+ *
+ * <p>Returns distinct names in encounter order. This is best-effort metadata; a source it cannot
+ * resolve is simply omitted and query execution is unaffected.
  */
 public final class PPLQueryIndexExtractor {
 
@@ -63,58 +61,29 @@ public final class PPLQueryIndexExtractor {
       return null;
     }
 
+    /**
+     * Walks {@code getChild()} as usual, then the node's declared {@link
+     * UnresolvedPlan#getSources()}. Commands whose source lives in a field are covered without this
+     * collector knowing each one.
+     */
     @Override
-    public Void visitJoin(Join node, Set<String> names) {
-      // getChild() exposes only the left branch (and only once attached, so it may be null); visit
-      // both sides explicitly, guarding the nullable left.
-      if (node.getLeft() != null) {
-        node.getLeft().accept(this, names);
+    public Void visitChildren(Node node, Set<String> names) {
+      super.visitChildren(node, names);
+      if (node instanceof UnresolvedPlan plan) {
+        for (UnresolvedPlan source : plan.getSources()) {
+          if (source != null) {
+            source.accept(this, names);
+          }
+        }
       }
-      node.getRight().accept(this, names);
-      return null;
-    }
-
-    @Override
-    public Void visitLookup(Lookup node, Set<String> names) {
-      // getChild() returns only the piped input; the lookup table is a separate relation.
-      super.visitChildren(node, names);
-      node.getLookupRelation().accept(this, names);
-      return null;
-    }
-
-    @Override
-    public Void visitAppend(Append node, Set<String> names) {
-      super.visitChildren(node, names);
-      acceptIfPresent(node.getSubSearch(), names);
-      return null;
-    }
-
-    @Override
-    public Void visitAppendCol(AppendCol node, Set<String> names) {
-      super.visitChildren(node, names);
-      acceptIfPresent(node.getSubSearch(), names);
-      return null;
-    }
-
-    @Override
-    public Void visitAppendPipe(AppendPipe node, Set<String> names) {
-      super.visitChildren(node, names);
-      acceptIfPresent(node.getSubQuery(), names);
-      return null;
-    }
-
-    @Override
-    public Void visitGraphLookup(GraphLookup node, Set<String> names) {
-      super.visitChildren(node, names);
-      acceptIfPresent(node.getFromTable(), names);
       return null;
     }
 
     @Override
     public Void visitFilter(Filter node, Set<String> names) {
       // The condition can hold a subquery (where id in [ source=b ... ]); the plan walk doesn't
-      // descend into it, so bridge into the expression here.
-      super.visitChildren(node, names);
+      // descend into expressions, so bridge into it here.
+      visitChildren(node, names);
       if (node.getCondition() != null) {
         node.getCondition().accept(this, names);
       }
@@ -123,7 +92,7 @@ public final class PPLQueryIndexExtractor {
 
     @Override
     public Void visitEval(Eval node, Set<String> names) {
-      super.visitChildren(node, names);
+      visitChildren(node, names);
       if (node.getExpressionList() != null) {
         for (Let let : node.getExpressionList()) {
           if (let != null && let.getExpression() != null) {
@@ -150,12 +119,6 @@ public final class PPLQueryIndexExtractor {
     public Void visitExistsSubquery(ExistsSubquery node, Set<String> names) {
       node.getQuery().accept(this, names);
       return null;
-    }
-
-    private void acceptIfPresent(UnresolvedPlan plan, Set<String> names) {
-      if (plan != null) {
-        plan.accept(this, names);
-      }
     }
   }
 }
