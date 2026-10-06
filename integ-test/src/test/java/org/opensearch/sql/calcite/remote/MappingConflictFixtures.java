@@ -58,23 +58,42 @@ final class MappingConflictFixtures {
               "source={I} | head 100 | inner join left = l right = r on l.{F} = r.{F} [ source={I}"
                   + " | head 100 ] | head 10"));
 
+  /** The source a pin covers, the data stream name, the wildcard over it, or both. */
+  enum Source {
+    DATA_STREAM,
+    WILDCARD,
+    BOTH;
+
+    boolean matches(String source) {
+      return this == BOTH || (this == WILDCARD) == source.endsWith("*");
+    }
+  }
+
   /**
    * Every listed command over every listed pair returns a 500 under {@code winner}, the PPL type
-   * the merged schema reports, or under every winner the pair shows when {@code winner} is null. A
-   * fix narrows its pin to the cells that still fail, splitting the pin if they no longer form one
-   * set of commands over one set of pairs, and the run fails until it does.
+   * the merged schema reports, or under every winner the pair shows when {@code winner} is null,
+   * through {@code source}. A fix narrows its pin to the cells that still fail, splitting the pin
+   * if they no longer form one set of commands over one set of pairs, and the run fails until it
+   * does.
    */
-  record Pin(String issue, List<String> commands, List<String> pairs, String winner) {
+  record Pin(
+      String issue, List<String> commands, List<String> pairs, String winner, Source source) {
     Pin {
       if (commands.isEmpty() || pairs.isEmpty()) {
         throw new IllegalArgumentException("The " + issue + " pin needs commands and pairs");
       }
     }
 
-    boolean covers(String pair, String cellWinner, String command) {
+    /** A pin that covers both sources. */
+    Pin(String issue, List<String> commands, List<String> pairs, String winner) {
+      this(issue, commands, pairs, winner, Source.BOTH);
+    }
+
+    boolean covers(String pair, String cellWinner, String command, String cellSource) {
       return pairs.contains(pair)
           && commands.contains(command)
-          && (winner == null || winner.equals(cellWinner));
+          && (winner == null || winner.equals(cellWinner))
+          && source.matches(cellSource);
     }
   }
 

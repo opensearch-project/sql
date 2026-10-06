@@ -35,7 +35,8 @@ import org.opensearch.sql.util.OtelDataStream.Drift;
  * a two-index stream can produce and cover every winner production can return. A 500 fails the run
  * unless {@link MappingConflictFixtures#KNOWN_500S} pins its cell to an issue, and a pinned cell
  * that stops returning 500 fails too. An unpinned 200 or 4xx passes, since this checks only that
- * schema evolution never returns a 500.
+ * schema evolution never returns a 500, but a command that never returns 200 fails, since it tests
+ * nothing.
  */
 public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
 
@@ -53,7 +54,10 @@ public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
     enableCalcite();
   }
 
-  /** Runs every drift under {@code name} and fails on any unpinned 500 or stale pin. */
+  /**
+   * Runs every drift under {@code name} and fails on any unpinned 500, stale pin, or command that
+   * never returns 200.
+   */
   protected void runDrifts(String name) throws IOException {
     JSONArray nodes = new JSONArray(executeRequest(new Request("GET", "/_cat/nodes?format=json")));
     if (nodes.length() != 1) {
@@ -89,11 +93,17 @@ public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
               commands));
     }
     cells.stream()
-        .filter(c -> c.winner().startsWith("unread-"))
+        .filter(
+            c ->
+                c.winner().startsWith("unread-")
+                    && (c.pair().contains("absent") || !c.winner().startsWith("unread-4")))
         .forEach(
             c ->
                 failures.add(
                     c.pair() + " via " + c.source() + " could not read its winner, " + c.winner()));
+    names.stream()
+        .filter(n -> cells.stream().noneMatch(c -> c.command().equals(n) && c.status() == 200))
+        .forEach(n -> failures.add(n + " never returned 200, so it tests nothing"));
     String tag = tag();
     Set<String> serverErrors = new TreeSet<>();
     for (Cell cell : cells) {
@@ -102,7 +112,7 @@ public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
         System.out.println(
             tag + "500 " + cell.key() + " | " + cell.source() + " | " + cell.error());
         if (KNOWN_500S.stream()
-            .noneMatch(p -> p.covers(cell.pair(), cell.winner(), cell.command()))) {
+            .noneMatch(p -> p.covers(cell.pair(), cell.winner(), cell.command(), cell.source()))) {
           failures.add(
               "unpinned 500, "
                   + cell.label()
@@ -128,7 +138,9 @@ public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
           .forEach(
               c -> failures.add("the " + pin.issue() + " pin lists " + c + ", which never runs"));
       List<Cell> covered =
-          cells.stream().filter(c -> pin.covers(c.pair(), c.winner(), c.command())).toList();
+          cells.stream()
+              .filter(c -> pin.covers(c.pair(), c.winner(), c.command(), c.source()))
+              .toList();
       pin.pairs().stream()
           .filter(p -> covered.stream().noneMatch(c -> c.pair().equals(p)))
           .forEach(
@@ -139,7 +151,8 @@ public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
                           + " pin lists "
                           + p
                           + (pairs.contains(p)
-                              ? ", which yields no cell under its winner, so fix or remove it"
+                              ? ", which yields no cell under its winner and source, so fix or"
+                                  + " remove it"
                               : ", which never runs, so check its spelling and TYPES order")));
       covered.stream()
           .filter(c -> c.status() < 500)
