@@ -149,7 +149,22 @@ public class OpenSearchQueryManager implements QueryManager {
    * @return true if tracking started; only then should {@link #stopThreadResourceTracking} be
    *     called.
    */
+  /**
+   * Whether the JVM can report per-thread allocation, mirroring core's {@code
+   * TaskResourceTrackingService.isTaskResourceTrackingSupported()}. Core refuses to track when this
+   * is false, so we must too: otherwise a PPL task would record stats on a JVM where core
+   * deliberately records none, and {@code getThreadAllocatedBytes} is not meaningful there.
+   */
+  static boolean isThreadResourceTrackingSupported() {
+    return THREAD_MX_BEAN != null
+        && THREAD_MX_BEAN.isThreadAllocatedMemorySupported()
+        && THREAD_MX_BEAN.isThreadAllocatedMemoryEnabled();
+  }
+
   static boolean startThreadResourceTracking(CancellableTask task, long threadId) {
+    if (!isThreadResourceTrackingSupported()) {
+      return false;
+    }
     try {
       task.startThreadResourceTracking(
           threadId, ResourceStatsType.WORKER_STATS, currentThreadResourceMetrics(threadId));

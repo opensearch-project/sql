@@ -160,6 +160,21 @@ class OpenSearchQueryManagerTest {
   }
 
   @Test
+  public void trackingIsSkippedWhenJvmDoesNotSupportIt() {
+    // Core refuses to track unless per-thread allocation is supported AND enabled
+    // (TaskResourceTrackingService.isTaskResourceTrackingSupported). We mirror that, so a PPL task
+    // never records stats on a JVM where core would record none.
+    TrackingTask task = new TrackingTask(true);
+    boolean started = OpenSearchQueryManager.startThreadResourceTracking(task, 1L);
+    if (OpenSearchQueryManager.isThreadResourceTrackingSupported()) {
+      assertTrue("supported JVM should track", started);
+    } else {
+      assertFalse("unsupported JVM must not track", started);
+      assertTrue("no entries recorded when unsupported", task.getResourceStats().isEmpty());
+    }
+  }
+
+  @Test
   public void startThreadResourceTrackingReturnsFalseOnFailure() {
     CancellableTask task = mock(CancellableTask.class);
     doThrow(new RuntimeException("bean failure"))
