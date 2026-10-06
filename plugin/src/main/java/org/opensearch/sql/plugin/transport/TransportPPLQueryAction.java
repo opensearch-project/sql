@@ -34,7 +34,6 @@ import org.opensearch.common.settings.Setting;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.action.NotifyOnceListener;
-import org.opensearch.core.tasks.resourcetracker.TaskResourceUsage;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
@@ -214,9 +213,9 @@ public class TransportPPLQueryAction
   }
 
   /**
-   * Mirrors core's {@code task_resource_tracking.enabled} gate so PPL resource tracking is not
-   * enabled when an operator has disabled task resource tracking cluster-wide. Defaults to the core
-   * setting's own default ({@code true}) if the value can't be read.
+   * Whether to measure this query's thread usage. Follows core's {@code
+   * task_resource_tracking.enabled}: with it off, core doesn't measure the child searches either,
+   * so measuring only the PPL threads would produce a partial total. Treated as off if unreadable.
    */
   private boolean isTaskResourceTrackingEnabled() {
     try {
@@ -224,12 +223,15 @@ public class TransportPPLQueryAction
           .getClusterSettings()
           .get(TaskResourceTrackingService.TASK_RESOURCE_TRACKING_ENABLED);
     } catch (Exception e) {
-      LOG.debug("Failed to read task_resource_tracking.enabled; defaulting to enabled", e);
-      return true;
+      LOG.debug("Failed to read task_resource_tracking.enabled; not measuring PPL threads", e);
+      return false;
     }
   }
 
-  /** Report the finished PPL query once its resource tracking completes (stats are final). */
+  /**
+   * Report the finished PPL query once the task is unregistered and every accounting scope has
+   * closed, so the measured usage is final.
+   */
   private void registerQueryInsightsReport(PPLQueryTask pplQueryTask) {
     try {
       boolean registered =
@@ -252,7 +254,6 @@ public class TransportPPLQueryAction
     }
   }
 
-  /** Serialize a completed PPL query and send it to Query Insights; errors are ignored. */
   /**
    * Whether a finished task should produce a Top N record. Decided from what the metadata sink
    * captured rather than from the route, because the route cannot see either case: {@code explain}
@@ -264,6 +265,7 @@ public class TransportPPLQueryAction
         && !pplQueryTask.isQueryInsightsExplain();
   }
 
+  /** Serialize a completed PPL query and send it to Query Insights; errors are ignored. */
   private void writeQueryInsightsRecord(PPLQueryTask pplQueryTask) {
     if (!shouldReportToQueryInsights(pplQueryTask)) {
       return;
@@ -272,9 +274,8 @@ public class TransportPPLQueryAction
       String nodeId = clusterServiceRef.localNode().getId();
       String queryText = pplQueryTask.getQueryInsightsAnonymizedQuery();
 
-      TaskResourceUsage usage = pplQueryTask.getTotalResourceStats();
-      long cpuNanos = usage == null ? 0L : usage.getCpuTimeInNanos();
-      long memoryBytes = usage == null ? 0L : usage.getMemoryInBytes();
+      long cpuNanos = pplQueryTask.getCpuNanos();
+      long memoryBytes = pplQueryTask.getAllocatedBytes();
 
       // Wall-clock latency (monotonic); the profile total collapses to ~0 across the finish thread.
       long latencyMillis =
@@ -435,12 +436,9 @@ public class TransportPPLQueryAction
         // plain DSL search) with this query's marker. Child searches still see it: the executor
         // captures the thread context when the work is scheduled, which happens inside this block.
         try (ThreadContext.StoredContext ignored = threadContext.newStoredContext(true)) {
-          // Enable per-thread accounting only here, where a record will actually consume it, and
-          // only when core's task_resource_tracking is on so we never populate _tasks
-          // resource_stats behind the operator's back. The engine's brackets gate on
-          // supportsResourceTracking(), which stays false for every other route and when the
-          // feature is off, so they cost nothing then.
-          pplQueryTask.setResourceTrackingEnabled(isTaskResourceTrackingEnabled());
+          // Measure thread usage only on this route, where a record consumes it. Every other route
+          // leaves accounting off, so the engine's scopes are no-ops there.
+          pplQueryTask.setResourceAccountingEnabled(isTaskResourceTrackingEnabled());
           stampQueryInsightsParentHeader(pplQueryTask);
           registerQueryInsightsReport(pplQueryTask);
           executePplQuery(pplService, transformedRequest, callerListener, queryInsightsSink);

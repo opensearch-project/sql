@@ -5,12 +5,21 @@
 
 package org.opensearch.sql.plugin.transport;
 
+import com.sun.management.ThreadMXBean;
+import java.lang.management.ManagementFactory;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.LongAdder;
 import org.opensearch.core.tasks.TaskId;
+import org.opensearch.sql.opensearch.executor.ThreadResourceAccounting;
 import org.opensearch.tasks.CancellableTask;
 
-public class PPLQueryTask extends CancellableTask {
+public class PPLQueryTask extends CancellableTask implements ThreadResourceAccounting {
+
+  /** Null when the JVM can't report per-thread CPU and allocation; accounting is then a no-op. */
+  private static final ThreadMXBean THREAD_MX_BEAN = resolveThreadMXBean();
 
   // The fields below are captured on the request thread and read later by the report listener
   // (which runs on a different thread), for the Query Insights record.
@@ -30,12 +39,14 @@ public class PPLQueryTask extends CancellableTask {
   /** Whether the statement is an {@code explain}, which plans but runs no search. */
   private volatile boolean queryInsightsExplain = false;
 
-  /**
-   * Whether per-thread CPU/memory accounting is enabled for this task. Off by default so a normal
-   * PPL query behaves like any {@link CancellableTask}; turned on only when Query Insights
-   * recording and core's task resource tracking are both enabled.
-   */
-  private volatile boolean resourceTrackingEnabled = false;
+  /** Whether this query's thread usage is measured; off unless Query Insights will report it. */
+  private volatile boolean resourceAccountingEnabled = false;
+
+  private final LongAdder cpuNanos = new LongAdder();
+  private final LongAdder allocatedBytes = new LongAdder();
+
+  /** Threads with an open scope, so a nested scope on the same thread isn't counted twice. */
+  private final Set<Long> accountedThreads = ConcurrentHashMap.newKeySet();
 
   public PPLQueryTask(
       long id,
@@ -87,22 +98,74 @@ public class PPLQueryTask extends CancellableTask {
     return queryInsightsFailed;
   }
 
-  public void setResourceTrackingEnabled(boolean enabled) {
-    this.resourceTrackingEnabled = enabled;
+  public void setResourceAccountingEnabled(boolean enabled) {
+    this.resourceAccountingEnabled = enabled && THREAD_MX_BEAN != null;
+  }
+
+  /** CPU time used on the SQL plugin's threads; child searches are measured by core. */
+  public long getCpuNanos() {
+    return cpuNanos.sum();
+  }
+
+  /** Bytes allocated on the SQL plugin's threads; child searches are measured by core. */
+  public long getAllocatedBytes() {
+    return allocatedBytes.sum();
+  }
+
+  /**
+   * Measures the current thread until the scope closes. The scope also holds the task's
+   * resource-tracking thread count, so the completion listener the Query Insights report hangs off
+   * fires only after every scope has recorded its usage. Nothing is written to the task's {@code
+   * resource_stats}, so {@code _tasks} output and {@code task_resource_tracking.enabled} are
+   * untouched.
+   */
+  @Override
+  public Scope enterThread() {
+    if (!resourceAccountingEnabled) {
+      return Scope.NOOP;
+    }
+    final Thread thread = Thread.currentThread();
+    final long threadId = thread.threadId();
+    if (!accountedThreads.add(threadId)) {
+      return Scope.NOOP;
+    }
+    incrementResourceTrackingThreads();
+    final long cpuStart = THREAD_MX_BEAN.getCurrentThreadCpuTime();
+    final long allocatedStart = THREAD_MX_BEAN.getCurrentThreadAllocatedBytes();
+    return () -> {
+      assert Thread.currentThread() == thread : "scope closed on a different thread";
+      try {
+        addDelta(cpuNanos, cpuStart, THREAD_MX_BEAN.getCurrentThreadCpuTime());
+        addDelta(allocatedBytes, allocatedStart, THREAD_MX_BEAN.getCurrentThreadAllocatedBytes());
+      } finally {
+        accountedThreads.remove(threadId);
+        decrementResourceTrackingThreads();
+      }
+    };
+  }
+
+  /** The bean returns -1 when the measurement is unsupported or disabled; record nothing then. */
+  private static void addDelta(LongAdder total, long start, long end) {
+    if (start >= 0 && end >= start) {
+      total.add(end - start);
+    }
+  }
+
+  private static ThreadMXBean resolveThreadMXBean() {
+    try {
+      if (ManagementFactory.getThreadMXBean() instanceof ThreadMXBean bean
+          && bean.isCurrentThreadCpuTimeSupported()
+          && bean.isThreadAllocatedMemorySupported()) {
+        return bean;
+      }
+    } catch (Exception e) {
+      // Fall through: accounting stays off.
+    }
+    return null;
   }
 
   @Override
   public boolean shouldCancelChildrenOnCancellation() {
     return true;
-  }
-
-  /**
-   * Per-thread CPU/memory accounting for the coordinator task, enabled only when Query Insights
-   * recording and core's {@code task_resource_tracking.enabled} are both on (see {@code
-   * TransportPPLQueryAction}). {@link CancellableTask} defaults to {@code false}.
-   */
-  @Override
-  public boolean supportsResourceTracking() {
-    return resourceTrackingEnabled;
   }
 }

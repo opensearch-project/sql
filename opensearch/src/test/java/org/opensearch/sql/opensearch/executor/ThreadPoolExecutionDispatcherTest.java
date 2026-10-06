@@ -13,7 +13,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -21,6 +20,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 import static org.opensearch.common.settings.Settings.EMPTY;
 import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_COMPLEX_WORKER_THREAD_POOL_NAME;
 
@@ -40,8 +40,6 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.core.tasks.resourcetracker.ResourceStatsType;
-import org.opensearch.core.tasks.resourcetracker.ResourceUsageMetric;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
@@ -378,14 +376,16 @@ class ThreadPoolExecutionDispatcherTest {
   }
 
   @Test
-  void bracketsResourceTrackingOnComplexPool() {
+  void opensAccountingScopeOnComplexPool() {
     when(settings.<Boolean>getSettingValue(Settings.Key.SQL_COMPLEX_WORKER_POOL_ENABLED))
         .thenReturn(true);
     when(settings.<TimeValue>getSettingValue(Settings.Key.PPL_QUERY_TIMEOUT))
         .thenReturn(new TimeValue(60000));
-    CancellableTask trackingTask = mock(CancellableTask.class);
-    when(trackingTask.supportsResourceTracking()).thenReturn(true);
-    OpenSearchQueryManager.setCancellableTask(trackingTask);
+    CancellableTask accountingTask =
+        mock(CancellableTask.class, withSettings().extraInterfaces(ThreadResourceAccounting.class));
+    ThreadResourceAccounting.Scope scope = mock(ThreadResourceAccounting.Scope.class);
+    when(((ThreadResourceAccounting) accountingTask).enterThread()).thenReturn(scope);
+    OpenSearchQueryManager.setCancellableTask(accountingTask);
 
     doAnswer(
             invocation -> {
@@ -402,14 +402,8 @@ class ThreadPoolExecutionDispatcherTest {
     AbstractCalciteIndexScan scan = createMockScanWithScripts();
     dispatcher.dispatch(scan, context, listener, engine);
 
-    // start/stopThreadResourceTracking take (threadId, statsType, ResourceUsageMetric...) varargs.
-    verify(trackingTask).supportsResourceTracking();
-    verify(trackingTask)
-        .startThreadResourceTracking(
-            anyLong(), any(ResourceStatsType.class), any(ResourceUsageMetric[].class));
-    verify(trackingTask)
-        .stopThreadResourceTracking(
-            anyLong(), any(ResourceStatsType.class), any(ResourceUsageMetric[].class));
+    verify((ThreadResourceAccounting) accountingTask).enterThread();
+    verify(scope).close();
   }
 
   @Test

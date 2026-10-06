@@ -8,8 +8,12 @@ package org.opensearch.sql.plugin.transport;
 import static org.junit.Assert.*;
 
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
+import org.opensearch.core.action.NotifyOnceListener;
 import org.opensearch.core.tasks.TaskId;
+import org.opensearch.sql.opensearch.executor.ThreadResourceAccounting;
+import org.opensearch.tasks.Task;
 
 public class PPLQueryTaskTest {
 
@@ -74,17 +78,68 @@ public class PPLQueryTaskTest {
   }
 
   @Test
-  public void testSupportsResourceTrackingOffByDefault() {
-    // Off by default so a PPL query adds no resource-tracking overhead unless Query Insights
-    // recording (and core's task resource tracking) are enabled.
-    assertFalse(newTask().supportsResourceTracking());
+  public void testAccountingOffByDefault() {
+    PPLQueryTask task = newTask();
+    assertSame(ThreadResourceAccounting.Scope.NOOP, task.enterThread());
+    // Never touches core's tracking, so _tasks resource_stats stays empty.
+    assertFalse(task.supportsResourceTracking());
+    assertTrue(task.getResourceStats().isEmpty());
   }
 
   @Test
-  public void testSupportsResourceTrackingWhenEnabled() {
+  public void testAccountingRecordsUsageWithoutTouchingResourceStats() {
     PPLQueryTask task = newTask();
-    task.setResourceTrackingEnabled(true);
-    assertTrue(task.supportsResourceTracking());
+    task.setResourceAccountingEnabled(true);
+    try (ThreadResourceAccounting.Scope ignored = task.enterThread()) {
+      burnCpu();
+    }
+    assertTrue(task.getCpuNanos() > 0);
+    assertTrue(task.getAllocatedBytes() > 0);
+    assertFalse(task.supportsResourceTracking());
+    assertTrue(task.getResourceStats().isEmpty());
+  }
+
+  @Test
+  public void testNestedScopeOnSameThreadIsNotCountedTwice() {
+    PPLQueryTask task = newTask();
+    task.setResourceAccountingEnabled(true);
+    try (ThreadResourceAccounting.Scope outer = task.enterThread()) {
+      assertSame(ThreadResourceAccounting.Scope.NOOP, task.enterThread());
+    }
+  }
+
+  @Test
+  public void testReportWaitsForOpenScopes() {
+    PPLQueryTask task = newTask();
+    task.setResourceAccountingEnabled(true);
+    AtomicInteger fired = new AtomicInteger();
+    assertTrue(
+        task.addResourceTrackingCompletionListener(
+            new NotifyOnceListener<>() {
+              @Override
+              protected void innerOnResponse(Task t) {
+                fired.incrementAndGet();
+              }
+
+              @Override
+              protected void innerOnFailure(Exception e) {}
+            }));
+
+    ThreadResourceAccounting.Scope scope = task.enterThread();
+    // What TaskManager.unregister does once the response is sent.
+    task.decrementResourceTrackingThreads();
+    assertEquals("must not report while a thread is still accounting", 0, fired.get());
+
+    scope.close();
+    assertEquals(1, fired.get());
+  }
+
+  private static void burnCpu() {
+    long x = 0;
+    for (int i = 0; i < 1_000_000; i++) {
+      x += Integer.toString(i).hashCode();
+    }
+    assertNotEquals(42, x);
   }
 
   @Test

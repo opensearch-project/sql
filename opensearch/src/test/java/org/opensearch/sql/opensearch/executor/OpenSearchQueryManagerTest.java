@@ -6,19 +6,16 @@
 package org.opensearch.sql.opensearch.executor;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,9 +23,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.tasks.TaskId;
-import org.opensearch.core.tasks.resourcetracker.ResourceStatsType;
-import org.opensearch.core.tasks.resourcetracker.ResourceUsageMetric;
-import org.opensearch.core.tasks.resourcetracker.ThreadResourceInfo;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
@@ -97,105 +91,38 @@ class OpenSearchQueryManagerTest {
   }
 
   @Test
-  public void tracksResourceUsageWhenTaskSupportsIt() {
-    TrackingTask task = new TrackingTask(true);
+  public void accountingScopeSpansExecution() {
+    AccountingTask task = new AccountingTask();
     OpenSearchQueryManager.setCancellableTask(task);
 
-    runSubmit();
+    runSubmit(() -> task.openDuringExecute.set(task.openScopes.get() == 1), null);
 
-    Map<Long, List<ThreadResourceInfo>> stats = task.getResourceStats();
-    assertEquals(1, stats.size());
-    List<ThreadResourceInfo> infos = stats.values().iterator().next();
-    assertEquals(1, infos.size());
-    assertFalse("resource entry should be closed after execution", infos.get(0).isActive());
+    assertTrue("scope must be open while the plan executes", task.openDuringExecute.get());
+    assertEquals(1, task.entered.get());
+    assertEquals("scope must close after execution", 0, task.openScopes.get());
   }
 
   @Test
-  public void skipsResourceTrackingWhenTaskDoesNotSupportIt() {
-    TrackingTask task = new TrackingTask(false);
+  public void accountingScopeClosesWhenExecutionThrows() {
+    AccountingTask task = new AccountingTask();
     OpenSearchQueryManager.setCancellableTask(task);
+    RuntimeException boom = new RuntimeException("execute failed");
 
-    runSubmit();
+    assertThrows(RuntimeException.class, () -> runSubmit(null, boom));
 
-    assertTrue("no resource entries expected", task.getResourceStats().isEmpty());
+    assertEquals(1, task.entered.get());
+    assertEquals(0, task.openScopes.get());
   }
 
   @Test
   public void propagatesExecutionException() {
     RuntimeException boom = new RuntimeException("execute failed");
-    RuntimeException thrown =
-        org.junit.jupiter.api.Assertions.assertThrows(
-            RuntimeException.class, () -> runSubmitThatThrows(boom));
+    RuntimeException thrown = assertThrows(RuntimeException.class, () -> runSubmit(null, boom));
     assertEquals(boom, thrown);
   }
 
-  /** Runs a trivial query through the manager with the schedule hook executing tasks inline. */
-  private void runSubmit() {
-    NodeClient nodeClient = mock(NodeClient.class);
-    ThreadPool threadPool = mock(ThreadPool.class);
-    Settings settings = mock(Settings.class);
-    Scheduler.ScheduledCancellable mockScheduledTask = mock(Scheduler.ScheduledCancellable.class);
-
-    when(nodeClient.threadPool()).thenReturn(threadPool);
-
-    when(settings.getSettingValue(Settings.Key.PPL_QUERY_TIMEOUT))
-        .thenReturn(TimeValue.timeValueSeconds(60));
-
-    AbstractPlan queryPlan =
-        new QueryPlan(queryId, queryType, plan, queryService, listener) {
-          @Override
-          public void execute() {}
-        };
-
-    doAnswer(
-            invocation -> {
-              Runnable task = invocation.getArgument(0);
-              task.run();
-              return mockScheduledTask;
-            })
-        .when(threadPool)
-        .schedule(any(), any(), any());
-
-    new OpenSearchQueryManager(nodeClient, settings).submit(queryPlan);
-  }
-
-  @Test
-  public void trackingIsSkippedWhenJvmDoesNotSupportIt() {
-    // Core refuses to track unless per-thread allocation is supported AND enabled
-    // (TaskResourceTrackingService.isTaskResourceTrackingSupported). We mirror that, so a PPL task
-    // never records stats on a JVM where core would record none.
-    TrackingTask task = new TrackingTask(true);
-    boolean started = OpenSearchQueryManager.startThreadResourceTracking(task, 1L);
-    if (OpenSearchQueryManager.isThreadResourceTrackingSupported()) {
-      assertTrue("supported JVM should track", started);
-    } else {
-      assertFalse("unsupported JVM must not track", started);
-      assertTrue("no entries recorded when unsupported", task.getResourceStats().isEmpty());
-    }
-  }
-
-  @Test
-  public void startThreadResourceTrackingReturnsFalseOnFailure() {
-    CancellableTask task = mock(CancellableTask.class);
-    doThrow(new RuntimeException("bean failure"))
-        .when(task)
-        .startThreadResourceTracking(
-            anyLong(), any(ResourceStatsType.class), any(ResourceUsageMetric[].class));
-    assertFalse(OpenSearchQueryManager.startThreadResourceTracking(task, 1L));
-  }
-
-  @Test
-  public void stopThreadResourceTrackingSwallowsFailure() {
-    CancellableTask task = mock(CancellableTask.class);
-    doThrow(new RuntimeException("bean failure"))
-        .when(task)
-        .stopThreadResourceTracking(
-            anyLong(), any(ResourceStatsType.class), any(ResourceUsageMetric[].class));
-    OpenSearchQueryManager.stopThreadResourceTracking(task, 1L);
-  }
-
-  /** Runs a query whose execute() throws, so the wrapped task's catch/finally path is exercised. */
-  private void runSubmitThatThrows(RuntimeException toThrow) {
+  /** Runs a query through the manager, executing only the worker task inline. */
+  private void runSubmit(Runnable onExecute, RuntimeException toThrow) {
     NodeClient nodeClient = mock(NodeClient.class);
     ThreadPool threadPool = mock(ThreadPool.class);
     Settings settings = mock(Settings.class);
@@ -210,18 +137,19 @@ class OpenSearchQueryManagerTest {
         new QueryPlan(queryId, queryType, plan, queryService, listener) {
           @Override
           public void execute() {
-            throw toThrow;
+            if (onExecute != null) {
+              onExecute.run();
+            }
+            if (toThrow != null) {
+              throw toThrow;
+            }
           }
         };
 
-    // Run only the worker task inline; do NOT run the timeout task (running it would interrupt the
-    // thread and turn the thrown exception into an OpenSearchTimeoutException).
     doAnswer(
             invocation -> {
-              Object executor = invocation.getArgument(2);
-              if ("sql-worker".equals(executor)) {
-                Runnable task = invocation.getArgument(0);
-                task.run();
+              if ("sql-worker".equals(invocation.getArgument(2))) {
+                invocation.<Runnable>getArgument(0).run();
               }
               return mockScheduledTask;
             })
@@ -231,18 +159,21 @@ class OpenSearchQueryManagerTest {
     new OpenSearchQueryManager(nodeClient, settings).submit(queryPlan);
   }
 
-  /** Minimal CancellableTask whose resource-tracking support is configurable. */
-  private static class TrackingTask extends CancellableTask {
-    private final boolean supportsTracking;
+  /** CancellableTask that counts the accounting scopes the engine opens on it. */
+  private static class AccountingTask extends CancellableTask implements ThreadResourceAccounting {
+    final AtomicInteger entered = new AtomicInteger();
+    final AtomicInteger openScopes = new AtomicInteger();
+    final AtomicBoolean openDuringExecute = new AtomicBoolean();
 
-    TrackingTask(boolean supportsTracking) {
+    AccountingTask() {
       super(1L, "ppl", "action", "desc", TaskId.EMPTY_TASK_ID, Collections.emptyMap());
-      this.supportsTracking = supportsTracking;
     }
 
     @Override
-    public boolean supportsResourceTracking() {
-      return supportsTracking;
+    public Scope enterThread() {
+      entered.incrementAndGet();
+      openScopes.incrementAndGet();
+      return openScopes::decrementAndGet;
     }
 
     @Override
