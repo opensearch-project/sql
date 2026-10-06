@@ -286,16 +286,6 @@ public class AsyncPPLQueryLifecycleIT extends PPLIntegTestCase {
     }
   }
 
-  /**
-   * Covers the shared {@code plugins.ppl.query.timeout} setting from the async perspective. With a
-   * sub-millisecond budget, the engine's mapping fetch (an interruptible {@code Future.get}) is
-   * interrupted during analysis for both sync and async; the async GET must therefore reach a
-   * terminal {@code FAILED} state and carry the same sync-shape error body (same {@code type},
-   * {@code reason}, {@code details}, {@code code}, {@code context}, {@code location}). This also
-   * guards against regressions that would leave a timed-out job stuck in {@code RUNNING} without
-   * retention attached — tracked for backstop improvements in issue #5801 (cases where the engine
-   * swallows the interrupt).
-   */
   @Test
   public void async_perNodeTimeoutDrivesJobToFailedWithSyncShapeError() throws Exception {
     String query =
