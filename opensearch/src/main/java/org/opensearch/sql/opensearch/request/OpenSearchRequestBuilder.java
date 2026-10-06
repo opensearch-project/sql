@@ -186,9 +186,10 @@ public class OpenSearchRequestBuilder {
 
   private String createPit(
       OpenSearchRequest.IndexName indexName, TimeValue cursorKeepAlive, OpenSearchClient client) {
-    // Create PIT ID for request
+    // Allow partial creation, as the search path allows partial results: a missing shard makes the
+    // result partial, which the response reports, rather than failing the query outright.
     CreatePitRequest createPitRequest =
-        new CreatePitRequest(cursorKeepAlive, false, indexName.getIndexNames());
+        new CreatePitRequest(cursorKeepAlive, true, indexName.getIndexNames());
     return client.createPit(createPitRequest);
   }
 
