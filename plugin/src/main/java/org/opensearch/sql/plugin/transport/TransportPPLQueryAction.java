@@ -281,6 +281,12 @@ public class TransportPPLQueryAction
       long latencyMillis =
           Math.max(0L, (System.nanoTime() - pplQueryTask.getStartTimeNanos()) / 1_000_000L);
 
+      // Start time, not report time: Query Insights stamps a search record with the request's
+      // start (SearchRequest#getOrCreateAbsoluteStartMillis). Stamping completion here would put a
+      // query that crosses a Top N window boundary in a later window than its own child searches,
+      // and the marker roll-up would then miss them.
+      long timestampMillis = pplQueryTask.getStartTime();
+
       // Same marker stamped on child DSL tasks, so their cpu/memory rolls up into this parent.
       String parentMarker = QueryInsightsMarker.value("PPL", nodeId, pplQueryTask.getId());
 
@@ -295,7 +301,7 @@ public class TransportPPLQueryAction
           parentMarker,
           nodeId,
           queryText,
-          System.currentTimeMillis(),
+          timestampMillis,
           latencyMillis,
           cpuNanos,
           memoryBytes,
