@@ -6,9 +6,9 @@
 package org.opensearch.sql.legacy;
 
 import static java.util.stream.Collectors.toSet;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.opensearch.sql.util.Capability.DYNAMIC_STRING_NO_KEYWORD;
 import static org.opensearch.sql.util.Capability.NESTED_FIELDS;
@@ -30,6 +30,8 @@ import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.client.Request;
+import org.opensearch.client.ResponseException;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.sql.util.RequiresCapability;
 
 /**
@@ -104,14 +106,26 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
   @RequiresCapability(RESPONSE_FORMAT)
   public void wrongIndexType() throws IOException {
     String type = "wrongType";
-    try {
-      executeQuery(
-          String.format(
-              Locale.ROOT, "SELECT * FROM %s/%s", TestsConstants.TEST_INDEX_ACCOUNT, type));
-    } catch (IllegalArgumentException e) {
-      assertThat(
-          e.getMessage(), is(String.format(Locale.ROOT, "Index type %s does not exist", type)));
-    }
+    // Querying a non-existent index type is a client error and must return HTTP 400,
+    // not an HTTP 200 with an error embedded in the body.
+    ResponseException exception =
+        assertThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        Locale.ROOT,
+                        "SELECT * FROM %s/%s",
+                        TestsConstants.TEST_INDEX_ACCOUNT,
+                        type)));
+    assertThat(
+        exception.getResponse().getStatusLine().getStatusCode(),
+        equalTo(RestStatus.BAD_REQUEST.getStatus()));
+    assertThat(
+        TestUtils.getResponseBody(exception.getResponse()),
+        containsString(
+            String.format(
+                Locale.ROOT, "no such index [%s / %s]", TestsConstants.TEST_INDEX_ACCOUNT, type)));
   }
 
   @Test

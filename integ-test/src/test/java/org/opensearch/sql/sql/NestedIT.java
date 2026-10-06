@@ -608,6 +608,8 @@ public class NestedIT extends SQLIntegTestCase {
 
     Exception exception = assertThrows(RuntimeException.class, () -> executeJdbcRequest(query));
 
+    // Misusing nested(...) in ORDER BY is a malformed user query, so it is reported as a 400
+    // client error rather than a 500 internal error.
     assertTrue(
         exception
             .getMessage()
@@ -615,11 +617,11 @@ public class NestedIT extends SQLIntegTestCase {
                 ""
                     + "{\n"
                     + "  \"error\": {\n"
-                    + "    \"reason\": \"There was internal problem at backend\",\n"
+                    + "    \"reason\": \"Invalid SQL query\",\n"
                     + "    \"details\": \"Invalid use of expression nested(message.*)\",\n"
-                    + "    \"type\": \"UnsupportedOperationException\"\n"
+                    + "    \"type\": \"SemanticCheckException\"\n"
                     + "  },\n"
-                    + "  \"status\": 500\n"
+                    + "  \"status\": 400\n"
                     + "}"));
   }
 

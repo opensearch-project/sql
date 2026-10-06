@@ -201,7 +201,9 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
                 unresolvedExpression -> {
                   var ret = analyze(unresolvedExpression, context);
                   if (ret == null) {
-                    throw new UnsupportedOperationException(
+                    // An argument that cannot be analyzed (e.g. nested(message.*)) is a malformed
+                    // user query, so report it as a semantic error rather than an internal one.
+                    throw new SemanticCheckException(
                         String.format("Invalid use of expression %s", unresolvedExpression));
                   } else {
                     return ret;

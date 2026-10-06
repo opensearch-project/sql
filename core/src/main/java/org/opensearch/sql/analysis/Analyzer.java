@@ -932,7 +932,9 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
                 sortField -> {
                   var analyzed = expressionAnalyzer.analyze(sortField.getField(), context);
                   if (analyzed == null) {
-                    throw new UnsupportedOperationException(
+                    // A sort key that cannot be analyzed (e.g. nested(message.*)) is a malformed
+                    // user query, so report it as a semantic error rather than an internal one.
+                    throw new SemanticCheckException(
                         String.format("Invalid use of expression %s", sortField.getField()));
                   }
                   Expression expression = optimizer.optimize(analyzed, context);

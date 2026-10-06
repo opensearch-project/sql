@@ -549,7 +549,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   @Test
   public void sort_with_nested_all_tuple_fields_throws_exception() {
     assertThrows(
-        UnsupportedOperationException.class,
+        SemanticCheckException.class,
         () ->
             analyze(
                 AstDSL.project(
@@ -560,7 +560,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   @Test
   public void filter_with_nested_all_tuple_fields_throws_exception() {
     assertThrows(
-        UnsupportedOperationException.class,
+        SemanticCheckException.class,
         () ->
             analyze(
                 AstDSL.project(
