@@ -297,20 +297,26 @@ public class AsyncPPLQueryLifecycleIT extends PPLIntegTestCase {
 
     setClusterSetting("plugins.ppl.query.timeout", "1ms");
     try {
-      JSONObject syncError = errorObject(syncErrorBodyFor(query));
-
       JSONObject body =
           new JSONObject().put("query", query).put("wait_for_completion_timeout", "0");
       String queryId = new JSONObject(postPpl(client(), body)).getString("id");
       JSONObject terminal = pollUntilTerminal(client(), queryId, 30_000);
+      // Core assertion: a timed-out job reaches a terminal state (not stuck in RUNNING) and the
+      // GET body carries a structured error — the same shape sync returns on timeout.
       Assert.assertEquals("FAILED", terminal.getString("status"));
       Object errorField = terminal.get("error");
       Assert.assertTrue(
           "timed-out GET error must be a structured object, got " + errorField.getClass(),
           errorField instanceof JSONObject);
-      // Timeout fires at the first interruptible blocking call (mapping fetch), so sync and async
-      // observe the same exception. Field-by-field parity must hold.
-      assertSameSyncShape(syncError, (JSONObject) errorField);
+      JSONObject error = (JSONObject) errorField;
+      // The exact exception type and rule name depend on where the planner was when the interrupt
+      // fired — Calcite checks for interruption between rules, so sync and async may land on
+      // different rules. Field-level parity is covered by the parity_* tests (deterministic
+      // failure modes); here we only pin the stable envelope.
+      Assert.assertTrue(
+          "error must carry a reason", error.has("reason") && !error.getString("reason").isEmpty());
+      Assert.assertTrue(
+          "error must carry a type", error.has("type") && !error.getString("type").isEmpty());
     } finally {
       setClusterSetting("plugins.ppl.query.timeout", null);
     }
