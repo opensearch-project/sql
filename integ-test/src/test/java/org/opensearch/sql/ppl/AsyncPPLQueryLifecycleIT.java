@@ -286,6 +286,56 @@ public class AsyncPPLQueryLifecycleIT extends PPLIntegTestCase {
     }
   }
 
+  /**
+   * Covers the shared {@code plugins.ppl.query.timeout} setting from the async perspective. With a
+   * sub-millisecond budget, the engine's mapping fetch (an interruptible {@code Future.get}) is
+   * interrupted during analysis for both sync and async; the async GET must therefore reach a
+   * terminal {@code FAILED} state and carry the same sync-shape error body (same {@code type},
+   * {@code reason}, {@code details}, {@code code}, {@code context}, {@code location}). This also
+   * guards against regressions that would leave a timed-out job stuck in {@code RUNNING} without
+   * retention attached — tracked for backstop improvements in issue #5801 (cases where the engine
+   * swallows the interrupt).
+   */
+  @Test
+  public void async_perNodeTimeoutDrivesJobToFailedWithSyncShapeError() throws Exception {
+    String query =
+        "source="
+            + TEST_INDEX_ACCOUNT
+            + " | inner join left=a, right=b on 1=1 "
+            + TEST_INDEX_ACCOUNT
+            + " | streamstats count() as c | sort c";
+
+    setClusterSetting("plugins.ppl.query.timeout", "1ms");
+    try {
+      JSONObject syncError = errorObject(syncErrorBodyFor(query));
+
+      JSONObject body =
+          new JSONObject().put("query", query).put("wait_for_completion_timeout", "0");
+      String queryId = new JSONObject(postPpl(client(), body)).getString("id");
+      JSONObject terminal = pollUntilTerminal(client(), queryId, 30_000);
+      Assert.assertEquals("FAILED", terminal.getString("status"));
+      Object errorField = terminal.get("error");
+      Assert.assertTrue(
+          "timed-out GET error must be a structured object, got " + errorField.getClass(),
+          errorField instanceof JSONObject);
+      // Timeout fires at the first interruptible blocking call (mapping fetch), so sync and async
+      // observe the same exception. Field-by-field parity must hold.
+      assertSameSyncShape(syncError, (JSONObject) errorField);
+    } finally {
+      setClusterSetting("plugins.ppl.query.timeout", null);
+    }
+  }
+
+  private void setClusterSetting(String key, String value) throws IOException {
+    Request request = new Request("PUT", "/_cluster/settings");
+    String payload =
+        value == null
+            ? "{\"transient\":{\"" + key + "\": null}}"
+            : "{\"transient\":{\"" + key + "\": \"" + value + "\"}}";
+    request.setJsonEntity(payload);
+    client().performRequest(request);
+  }
+
   @Test
   public void async_fetchTerminalReturnsResultWithSchemaAndRows() throws Exception {
     JSONObject body = new JSONObject();
