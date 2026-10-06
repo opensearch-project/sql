@@ -176,8 +176,14 @@ public class TransportPPLQueryAction
       String value =
           QueryInsightsMarker.value(
               "PPL", clusterServiceRef.localNode().getId(), pplQueryTask.getId());
+      // An outer marker is kept rather than replaced: putHeader rejects a duplicate key, and
+      // clearing the context first would drop the authenticated-user headers the child searches
+      // need. The child searches then belong to that outer query, so this one does not report a
+      // record -- see shouldReportToQueryInsights.
       if (threadContext.getHeader(QueryInsightsMarker.PARENT_HEADER) == null) {
         threadContext.putHeader(QueryInsightsMarker.PARENT_HEADER, value);
+      } else {
+        pplQueryTask.setQueryInsightsNested(true);
       }
       // Capture the user here; the report listener runs on a thread without the transient.
       pplQueryTask.setQueryInsightsUserInfo(
@@ -259,10 +265,15 @@ public class TransportPPLQueryAction
    * captured rather than from the route, because the route cannot see either case: {@code explain}
    * is valid inside the query text (not just on {@code /_explain}), and a query that fails to parse
    * never reaches the sink at all, so it has no query text or indices to report.
+   *
+   * <p>A nested query is also skipped: its child searches carry the outer query's marker, so a
+   * record built from this task's own id would advertise a marker no child references, and the
+   * children's cost would be counted against both records.
    */
   static boolean shouldReportToQueryInsights(PPLQueryTask pplQueryTask) {
     return pplQueryTask.getQueryInsightsAnonymizedQuery() != null
-        && !pplQueryTask.isQueryInsightsExplain();
+        && !pplQueryTask.isQueryInsightsExplain()
+        && !pplQueryTask.isQueryInsightsNested();
   }
 
   /** Serialize a completed PPL query and send it to Query Insights; errors are ignored. */

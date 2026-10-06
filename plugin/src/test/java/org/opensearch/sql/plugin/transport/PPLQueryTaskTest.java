@@ -180,6 +180,25 @@ public class PPLQueryTaskTest {
   }
 
   @Test
+  public void testNestedQueryIsNotReported() {
+    // An outer marker was already in the context, so the child searches rolled up into that query.
+    // Reporting here would advertise a marker no child references and double count their cost.
+    PPLQueryTask task = newTask();
+    task.setQueryInsightsAnonymizedQuery("source=table | where identifier > ***");
+    task.setQueryInsightsNested(true);
+    assertFalse(TransportPPLQueryAction.shouldReportToQueryInsights(task));
+  }
+
+  @Test
+  public void testNonNestedQueryIsReportedByDefault() {
+    // Guards the default: a plain query must not be mistaken for a nested one.
+    PPLQueryTask task = newTask();
+    task.setQueryInsightsAnonymizedQuery("source=table | where identifier > ***");
+    assertFalse("nested must default to false", task.isQueryInsightsNested());
+    assertTrue(TransportPPLQueryAction.shouldReportToQueryInsights(task));
+  }
+
+  @Test
   public void testQueryInsightsParentHeaderName() {
     assertEquals("X-Query-Insights-Parent", QueryInsightsMarker.PARENT_HEADER);
   }

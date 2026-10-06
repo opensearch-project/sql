@@ -39,6 +39,13 @@ public class PPLQueryTask extends CancellableTask implements ThreadResourceAccou
   /** Whether the statement is an {@code explain}, which plans but runs no search. */
   private volatile boolean queryInsightsExplain = false;
 
+  /**
+   * Whether an outer query's parent marker was already in the thread context, so this query's child
+   * searches are attributed to that query rather than to this one. No in-process caller does this
+   * today; the flag keeps the record honest if one is ever added.
+   */
+  private volatile boolean queryInsightsNested = false;
+
   /** Whether this query's thread usage is measured; off unless Query Insights will report it. */
   private volatile boolean resourceAccountingEnabled = false;
 
@@ -88,6 +95,14 @@ public class PPLQueryTask extends CancellableTask implements ThreadResourceAccou
 
   public boolean isQueryInsightsExplain() {
     return queryInsightsExplain;
+  }
+
+  public void setQueryInsightsNested(boolean nested) {
+    this.queryInsightsNested = nested;
+  }
+
+  public boolean isQueryInsightsNested() {
+    return queryInsightsNested;
   }
 
   public void setQueryInsightsFailed(boolean failed) {
