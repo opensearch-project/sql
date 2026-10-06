@@ -35,6 +35,32 @@ setup:
           - '{"service": "collide", "attributes": {"a": {"b": 1}, "a.b": 2}}'
 
   - do:
+      indices.create:
+        index: otel_nested
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              service:
+                type: keyword
+              projects:
+                type: nested
+                properties:
+                  kw:
+                    type: keyword
+                  attributes:
+                    type: flat_object
+
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "otel_nested", "_id": "1"}}'
+          - '{"service": "checkout", "projects": [{"kw": "v", "attributes": {"k": "v"}}]}'
+
+  - do:
       query.settings:
         body:
           transient:
@@ -45,7 +71,7 @@ setup:
 teardown:
   - do:
       indices.delete:
-        index: otel
+        index: otel,otel_nested
         ignore_unavailable: true
   - do:
       query.settings:
@@ -211,6 +237,65 @@ teardown:
         body:
           query: "source=otel | where like(attributes.duration_ms, '1%') | fields service"
   - match: {"calcite.physical": "/\"wildcard\":\\{\"attributes.duration_ms\"/"}
+
+---
+# A nested field is indexed as hidden child documents, so a term naming a leaf under one is filed on
+# the child and not on the root a search returns. Unwrapped it matches nothing and nothing is
+# raised -- the row disappears -- so the leaf carries its nested path like every mapped field does,
+# and the keyword sibling below shows the shape it has to have.
+"a leaf under a nested field is reached through a nested query":
+  - skip:
+      features: [headers]
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl.explain:
+        body:
+          query: "source=otel_nested | where projects.attributes.k = 'v' | fields service"
+  - match: {"calcite.physical": "/\"nested\":\\{\"query\":\\{\"term\":\\{\"projects.attributes.k\"/"}
+  - match: {"calcite.physical": "/\"path\":\"projects\"/"}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: "source=otel_nested | where projects.attributes.k = 'v' | fields service"
+  - match: {"datarows": [["checkout"]]}
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.pushdown.enabled: false
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: "source=otel_nested | where projects.attributes.k = 'v' | fields service"
+  - match: {"datarows": [["checkout"]]}
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.pushdown.enabled: null
+
+---
+# The other side of the table in the docs: what the index cannot answer is planned as a script that
+# reads the leaf out of _source per record. Asserted so that a change which silently turns one of
+# these into a term query -- comparing text where the query asked for a number -- is caught.
+"what the index cannot answer is planned as a script":
+  - skip:
+      features: [headers]
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl.explain:
+        body:
+          query: "source=otel | where cast(attributes.duration_ms as double) > 5 | fields service"
+  - match: {"calcite.physical": "/opensearch_compounded_script/"}
+  - match: {"calcite.physical": "/^((?!\"range\":).)*$/"}
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl.explain:
+        body:
+          query: "source=otel | where attributes.tags = '[\"a\",\"b\"]' | fields service"
+  - match: {"calcite.physical": "/^((?!\"term\":\\{\"attributes.tags\").)*$/"}
 
 ---
 # A flat_object can be a sub-field of an ordinary object, which the field type's documentation shows

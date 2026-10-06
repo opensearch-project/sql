@@ -1729,6 +1729,63 @@ public class PredicateAnalyzerTest {
         .toString();
   }
 
+  /** A nested parent carrying the flat_object column: {@code projects.attributes}. */
+  private static final String NESTED = "projects";
+
+  private static final String NESTED_FLAT = NESTED + "." + FLAT;
+
+  private RexNode nestedLeaf(String key) {
+    return builder.makeCall(
+        SqlStdOperatorTable.ITEM, builder.makeInputRef(flatMap(), 0), builder.makeLiteral(key));
+  }
+
+  /**
+   * The same analysis with the flat_object column under a nested field. Nested is carried in the
+   * type map as {@link ExprCoreType#ARRAY}, which is what {@link
+   * org.opensearch.sql.utils.Utils#resolveNestedPath} looks for.
+   */
+  private String analyzeNestedFlat(RexNode call) throws ExpressionNotAnalyzableException {
+    Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(0L));
+    RelDataType rowType =
+        typeFactory.builder().kind(StructKind.FULLY_QUALIFIED).add(NESTED_FLAT, flatMap()).build();
+    return PredicateAnalyzer.analyzeExpression(
+            call,
+            List.of(NESTED_FLAT),
+            Map.of(NESTED, ExprCoreType.ARRAY, NESTED_FLAT, OpenSearchFlatObjectType.of()),
+            rowType,
+            cluster)
+        .builder()
+        .toString();
+  }
+
+  /**
+   * A nested field is indexed as hidden child documents, so a term naming a leaf under one is filed
+   * on the child and not on the root a search returns. Unwrapped it matches nothing and no error is
+   * raised -- the row just disappears -- so the leaf has to carry its nested path like every mapped
+   * field does.
+   */
+  @Test
+  void flatObjectLeafUnderANestedField_isWrappedInANestedQuery()
+      throws ExpressionNotAnalyzableException {
+    String query =
+        analyzeNestedFlat(
+            builder.makeCall(
+                SqlStdOperatorTable.EQUALS, nestedLeaf("k"), builder.makeLiteral("v")));
+    assertTrue(query.contains("\"nested\""), query);
+    assertTrue(query.contains("\"path\" : \"" + NESTED + "\""), query);
+    assertTrue(query.contains("\"" + NESTED_FLAT + ".k\""), query);
+    assertFalse(query.contains(SCRIPT), query);
+  }
+
+  // A leaf that is not under a nested field keeps the bare query, with no wrapper to pay for.
+  @Test
+  void flatObjectLeafOutsideANestedField_isNotWrapped() throws ExpressionNotAnalyzableException {
+    String query =
+        analyzeFlat(
+            builder.makeCall(SqlStdOperatorTable.EQUALS, leaf("k"), builder.makeLiteral("v")));
+    assertFalse(query.contains("\"nested\""), query);
+  }
+
   @Test
   void flatObjectLeaf_equality_isATermQueryAlone() throws ExpressionNotAnalyzableException {
     String query =

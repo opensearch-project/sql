@@ -496,10 +496,16 @@ public class PredicateAnalyzer {
      * NamedFieldExpression} false and both of its references the path itself, which is how a
      * keyword field behaves -- and a keyword term per leaf is what the index holds. So the queries
      * come from {@link SimpleQueryExpression}, the same ones a mapped field gets.
+     *
+     * <p>The nested path is resolved, as it is for every mapped field. A flat_object under a nested
+     * field has its terms filed on the hidden child document, so a query naming the leaf has to be
+     * wrapped to reach it; left unresolved, the term is matched against root documents and the row
+     * silently disappears.
      */
-    private static SimpleQueryExpression leaf(String path) {
+    private SimpleQueryExpression leaf(String path) {
       return (SimpleQueryExpression)
-          QueryExpression.create(new NamedFieldExpression(path, null, null));
+          QueryExpression.create(
+              new NamedFieldExpression(path, null, Utils.resolveNestedPath(path, fieldTypes)));
     }
 
     private static QueryExpression analyzed(QueryExpression expression, RexCall call) {
