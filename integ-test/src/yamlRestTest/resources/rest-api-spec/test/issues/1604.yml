@@ -206,53 +206,13 @@ teardown:
   - match: {"datarows": [["12.5"], ["4"]]}
 
 ---
-# A leaf is one keyword term with the path folded in, so an exact-match predicate is answered by the
-# index. Written with no spaces: MatchAssertion compiles these with Pattern.COMMENTS, which discards
-# unescaped whitespace.
-"an exact-match predicate on a leaf reaches the index, not a script":
-  - skip:
-      features: [headers]
-  - do:
-      headers: {Content-Type: 'application/json'}
-      ppl.explain:
-        body:
-          query: "source=otel | where attributes.duration_ms = '4' | fields service"
-  - match: {"calcite.physical": "/\"term\":\\{\"attributes.duration_ms\"/"}
-  - match: {"calcite.physical": "/^((?!opensearch_compounded_script).)*$/"}
-  - do:
-      headers: {Content-Type: 'application/json'}
-      ppl.explain:
-        body:
-          query: "source=otel | where attributes.duration_ms in ('4','12.5') | fields service"
-  - match: {"calcite.physical": "/\"terms\":\\{\"attributes.duration_ms\"/"}
-  - do:
-      headers: {Content-Type: 'application/json'}
-      ppl.explain:
-        body:
-          query: "source=otel | where isnotnull(attributes.duration_ms) | fields service"
-  - match: {"calcite.physical": "/\"exists\":\\{\"field\":\"attributes.duration_ms\"/"}
-  - do:
-      headers: {Content-Type: 'application/json'}
-      ppl.explain:
-        body:
-          query: "source=otel | where like(attributes.duration_ms, '1%') | fields service"
-  - match: {"calcite.physical": "/\"wildcard\":\\{\"attributes.duration_ms\"/"}
-
----
 # A nested field is indexed as hidden child documents, so a term naming a leaf under one is filed on
 # the child and not on the root a search returns. Unwrapped it matches nothing and nothing is
-# raised -- the row disappears -- so the leaf carries its nested path like every mapped field does,
-# and the keyword sibling below shows the shape it has to have.
+# raised -- the row disappears -- so the leaf carries its nested path like every mapped field does.
+# The query it becomes is asserted in CalciteExplainIT; this is the answer it has to give.
 "a leaf under a nested field is reached through a nested query":
   - skip:
       features: [headers]
-  - do:
-      headers: {Content-Type: 'application/json'}
-      ppl.explain:
-        body:
-          query: "source=otel_nested | where projects.attributes.k = 'v' | fields service"
-  - match: {"calcite.physical": "/\"nested\":\\{\"query\":\\{\"term\":\\{\"projects.attributes.k\"/"}
-  - match: {"calcite.physical": "/\"path\":\"projects\"/"}
   - do:
       headers: {Content-Type: 'application/json'}
       ppl:
@@ -277,19 +237,12 @@ teardown:
             plugins.calcite.pushdown.enabled: null
 
 ---
-# The other side of the table in the docs: what the index cannot answer is planned as a script that
-# reads the leaf out of _source per record. Asserted so that a change which silently turns one of
-# these into a term query -- comparing text where the query asked for a number -- is caught.
-"what the index cannot answer is planned as a script":
+# The reading of several values is no term the index holds, so the predicate must not be folded.
+# This one is asserted here rather than in CalciteExplainIT because its literal contains double
+# quotes, which PPLIntegTestCase.buildRequest interpolates into the request body unescaped.
+"a predicate against the whole reading of several values is not folded into a term":
   - skip:
       features: [headers]
-  - do:
-      headers: {Content-Type: 'application/json'}
-      ppl.explain:
-        body:
-          query: "source=otel | where cast(attributes.duration_ms as double) > 5 | fields service"
-  - match: {"calcite.physical": "/opensearch_compounded_script/"}
-  - match: {"calcite.physical": "/^((?!\"range\":).)*$/"}
   - do:
       headers: {Content-Type: 'application/json'}
       ppl.explain:
@@ -346,12 +299,6 @@ teardown:
           query: 'source=sub | where issue.labels.category.level = ''enhancement'' | fields issue.number'
   - match: {"datarows": [[123456.0]]}
   - do:
-      headers: {Content-Type: 'application/json'}
-      ppl.explain:
-        body:
-          query: "source=sub | where issue.labels.category.level = 'enhancement' | fields issue.number"
-  - match: {"calcite.physical": "/\"term\":\\{\"issue.labels.category.level\"/"}
-  - do:
       indices.delete:
         index: sub
 
@@ -397,12 +344,6 @@ teardown:
         body:
           query: 'source=aliased | where attrs.duration_ms = ''4'' | fields service'
   - match: {"datarows": [["payments"]]}
-  - do:
-      headers: {Content-Type: 'application/json'}
-      ppl.explain:
-        body:
-          query: "source=aliased | where attrs.duration_ms = '4' | fields service"
-  - match: {"calcite.physical": "/\"term\":\\{\"attributes.duration_ms\"/"}
   - do:
       indices.delete:
         index: aliased
