@@ -51,8 +51,8 @@ import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.encryptor.Encryptor;
 import org.opensearch.sql.datasources.exceptions.DataSourceNotFoundException;
+import org.opensearch.sql.opensearch.client.PluginClient;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
-import org.opensearch.transport.client.Client;
 
 @ExtendWith(MockitoExtension.class)
 public class OpenSearchDataSourceMetadataStorageTest {
@@ -60,7 +60,7 @@ public class OpenSearchDataSourceMetadataStorageTest {
   private static final String TEST_DATASOURCE_INDEX_NAME = "testDS";
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-  private Client client;
+  private PluginClient client;
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private ClusterService clusterService;
@@ -340,7 +340,6 @@ public class OpenSearchDataSourceMetadataStorageTest {
     Mockito.verify(encryptor, Mockito.times(1)).encrypt("access_key");
     Mockito.verify(client.admin().indices(), Mockito.times(1)).create(ArgumentMatchers.any());
     Mockito.verify(client, Mockito.times(1)).index(ArgumentMatchers.any());
-    Mockito.verify(client.threadPool().getThreadContext(), Mockito.times(2)).stashContext();
   }
 
   @Test
@@ -361,7 +360,6 @@ public class OpenSearchDataSourceMetadataStorageTest {
     Mockito.verify(encryptor, Mockito.times(1)).encrypt("access_key");
     Mockito.verify(client.admin().indices(), Mockito.times(0)).create(ArgumentMatchers.any());
     Mockito.verify(client, Mockito.times(1)).index(ArgumentMatchers.any());
-    Mockito.verify(client.threadPool().getThreadContext(), Mockito.times(1)).stashContext();
   }
 
   @Test
@@ -395,7 +393,6 @@ public class OpenSearchDataSourceMetadataStorageTest {
     Mockito.verify(encryptor, Mockito.times(1)).encrypt("access_key");
     Mockito.verify(client.admin().indices(), Mockito.times(1)).create(ArgumentMatchers.any());
     Mockito.verify(client, Mockito.times(1)).index(ArgumentMatchers.any());
-    Mockito.verify(client.threadPool().getThreadContext(), Mockito.times(2)).stashContext();
   }
 
   @Test
@@ -426,7 +423,6 @@ public class OpenSearchDataSourceMetadataStorageTest {
     Mockito.verify(encryptor, Mockito.times(1)).encrypt("access_key");
     Mockito.verify(client.admin().indices(), Mockito.times(1)).create(ArgumentMatchers.any());
     Mockito.verify(client, Mockito.times(1)).index(ArgumentMatchers.any());
-    Mockito.verify(client.threadPool().getThreadContext(), Mockito.times(2)).stashContext();
   }
 
   @Test
@@ -458,7 +454,6 @@ public class OpenSearchDataSourceMetadataStorageTest {
     Mockito.verify(encryptor, Mockito.times(1)).encrypt("access_key");
     Mockito.verify(client.admin().indices(), Mockito.times(1)).create(ArgumentMatchers.any());
     Mockito.verify(client, Mockito.times(1)).index(ArgumentMatchers.any());
-    Mockito.verify(client.threadPool().getThreadContext(), Mockito.times(2)).stashContext();
   }
 
   @Test
@@ -489,7 +484,6 @@ public class OpenSearchDataSourceMetadataStorageTest {
     Mockito.verify(encryptor, Mockito.times(1)).encrypt("secret_key");
     Mockito.verify(encryptor, Mockito.times(1)).encrypt("access_key");
     Mockito.verify(client.admin().indices(), Mockito.times(1)).create(ArgumentMatchers.any());
-    Mockito.verify(client.threadPool().getThreadContext(), Mockito.times(1)).stashContext();
   }
 
   @Test
@@ -508,7 +502,6 @@ public class OpenSearchDataSourceMetadataStorageTest {
     Mockito.verify(encryptor, Mockito.times(1)).encrypt("access_key");
     Mockito.verify(client.admin().indices(), Mockito.times(0)).create(ArgumentMatchers.any());
     Mockito.verify(client, Mockito.times(1)).update(ArgumentMatchers.any());
-    Mockito.verify(client.threadPool().getThreadContext(), Mockito.times(1)).stashContext();
   }
 
   @Test
@@ -527,7 +520,6 @@ public class OpenSearchDataSourceMetadataStorageTest {
     Mockito.verify(encryptor, Mockito.times(1)).encrypt("access_key");
     Mockito.verify(client.admin().indices(), Mockito.times(0)).create(ArgumentMatchers.any());
     Mockito.verify(client, Mockito.times(1)).update(ArgumentMatchers.any());
-    Mockito.verify(client.threadPool().getThreadContext(), Mockito.times(1)).stashContext();
   }
 
   @Test
@@ -554,7 +546,6 @@ public class OpenSearchDataSourceMetadataStorageTest {
     Mockito.verify(encryptor, Mockito.times(1)).encrypt("access_key");
     Mockito.verify(client.admin().indices(), Mockito.times(0)).create(ArgumentMatchers.any());
     Mockito.verify(client, Mockito.times(1)).update(ArgumentMatchers.any());
-    Mockito.verify(client.threadPool().getThreadContext(), Mockito.times(1)).stashContext();
   }
 
   @Test
@@ -580,7 +571,6 @@ public class OpenSearchDataSourceMetadataStorageTest {
     Mockito.verify(encryptor, Mockito.times(1)).encrypt("access_key");
     Mockito.verify(client.admin().indices(), Mockito.times(0)).create(ArgumentMatchers.any());
     Mockito.verify(client, Mockito.times(1)).update(ArgumentMatchers.any());
-    Mockito.verify(client.threadPool().getThreadContext(), Mockito.times(1)).stashContext();
   }
 
   @Test
@@ -606,7 +596,6 @@ public class OpenSearchDataSourceMetadataStorageTest {
     Mockito.verify(encryptor, Mockito.times(1)).encrypt("access_key");
     Mockito.verify(client.admin().indices(), Mockito.times(0)).create(ArgumentMatchers.any());
     Mockito.verify(client, Mockito.times(1)).update(ArgumentMatchers.any());
-    Mockito.verify(client.threadPool().getThreadContext(), Mockito.times(1)).stashContext();
   }
 
   @Test
@@ -621,7 +610,6 @@ public class OpenSearchDataSourceMetadataStorageTest {
     Mockito.verifyNoInteractions(encryptor);
     Mockito.verify(client.admin().indices(), Mockito.times(0)).create(ArgumentMatchers.any());
     Mockito.verify(client, Mockito.times(1)).delete(ArgumentMatchers.any());
-    Mockito.verify(client.threadPool().getThreadContext(), Mockito.times(1)).stashContext();
   }
 
   @Test
@@ -641,7 +629,6 @@ public class OpenSearchDataSourceMetadataStorageTest {
     Mockito.verifyNoInteractions(encryptor);
     Mockito.verify(client.admin().indices(), Mockito.times(0)).create(ArgumentMatchers.any());
     Mockito.verify(client, Mockito.times(1)).delete(ArgumentMatchers.any());
-    Mockito.verify(client.threadPool().getThreadContext(), Mockito.times(1)).stashContext();
   }
 
   @Test
@@ -662,7 +649,6 @@ public class OpenSearchDataSourceMetadataStorageTest {
     Mockito.verifyNoInteractions(encryptor);
     Mockito.verify(client.admin().indices(), Mockito.times(0)).create(ArgumentMatchers.any());
     Mockito.verify(client, Mockito.times(1)).delete(ArgumentMatchers.any());
-    Mockito.verify(client.threadPool().getThreadContext(), Mockito.times(1)).stashContext();
   }
 
   @Test

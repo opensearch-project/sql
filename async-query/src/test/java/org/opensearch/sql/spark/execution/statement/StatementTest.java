@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.spark.execution.statement;
 
+import org.opensearch.sql.spark.utils.TestPluginClient;
 import static org.opensearch.sql.spark.constants.TestConstants.TEST_DATASOURCE_NAME;
 import static org.opensearch.sql.spark.execution.session.SessionTestUtil.createSessionRequest;
 import static org.opensearch.sql.spark.execution.statement.StatementState.CANCELLED;
@@ -57,7 +58,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
   @Before
   public void setup() {
-    StateStore stateStore = new StateStore(client(), clusterService());
+    StateStore stateStore = new StateStore(TestPluginClient.of(client()), clusterService());
     statementStorageService =
         new OpenSearchStatementStorageService(stateStore, new StatementModelXContentSerializer());
     sessionStorageService =

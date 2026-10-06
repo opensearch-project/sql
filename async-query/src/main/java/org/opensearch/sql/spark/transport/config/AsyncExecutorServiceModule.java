@@ -18,6 +18,7 @@ import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.legacy.metrics.GaugeMetric;
 import org.opensearch.sql.legacy.metrics.Metrics;
+import org.opensearch.sql.opensearch.client.PluginClient;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorServiceImpl;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryJobMetadataStorageService;
@@ -97,7 +98,7 @@ public class AsyncExecutorServiceModule extends AbstractModule {
 
   @Provides
   @Singleton
-  public StateStore stateStore(NodeClient client, ClusterService clusterService) {
+  public StateStore stateStore(PluginClient client, ClusterService clusterService) {
     StateStore stateStore = new StateStore(client, clusterService);
     registerStateStoreMetrics(stateStore);
     return stateStore;

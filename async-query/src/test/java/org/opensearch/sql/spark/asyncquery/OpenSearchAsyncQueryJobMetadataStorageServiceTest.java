@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.spark.asyncquery;
 
+import org.opensearch.sql.spark.utils.TestPluginClient;
 import static org.opensearch.sql.spark.constants.TestConstants.EMRS_APPLICATION_ID;
 import static org.opensearch.sql.spark.constants.TestConstants.EMR_JOB_ID;
 
@@ -35,7 +36,7 @@ public class OpenSearchAsyncQueryJobMetadataStorageServiceTest extends OpenSearc
   public void setup() {
     openSearchJobMetadataStorageService =
         new OpenSearchAsyncQueryJobMetadataStorageService(
-            new StateStore(client(), clusterService()),
+            new StateStore(TestPluginClient.of(client()), clusterService()),
             new AsyncQueryJobMetadataXContentSerializer());
   }
 
