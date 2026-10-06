@@ -29,6 +29,8 @@ import org.opensearch.sql.data.type.ExprType;
 @EqualsAndHashCode(callSuper = true)
 public class OpenSearchDateType extends OpenSearchDataType {
 
+  private static final long serialVersionUID = 1L;
+
   private static final OpenSearchDateType instance = new OpenSearchDateType();
 
   /** Numeric formats which support full datetime. */

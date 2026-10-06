@@ -16,6 +16,8 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = false)
 public class OpenSearchBinaryType extends OpenSearchDataType {
 
+  private static final long serialVersionUID = 1L;
+
   private static final OpenSearchBinaryType instance = new OpenSearchBinaryType();
 
   private OpenSearchBinaryType() {
