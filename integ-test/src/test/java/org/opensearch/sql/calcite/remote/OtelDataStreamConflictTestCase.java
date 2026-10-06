@@ -30,11 +30,13 @@ import org.opensearch.sql.util.OtelDataStream.Drift;
 /**
  * Runs PPL commands over an OTel data stream whose second backing index changes the type of one
  * {@code attributes.types} field, removes it, or adds one, through the stream name and a wildcard.
- * Every pair of {@link MappingConflictFixtures#TYPES} runs twice, once with each type in 000001.
- * One node reads the backing indices in a fixed order, so the two scenarios of a pair feed the
- * merge both orders a two-index stream can produce and cover every winner production can return. A
- * 500 fails the run unless {@link MappingConflictFixtures#KNOWN_500S} lists it as a known 500 tied
- * to an issue, and a known 500 that stops returning 500 fails too. A 200 or 4xx outside {@code
+ * That change is the drift. A pair names the two types the field takes, with {@code absent} for the
+ * index that lacks it, and the winner is the type the merged schema reports for the field. Every
+ * pair of {@link MappingConflictFixtures#TYPES} runs twice, once with each type in 000001. One node
+ * reads the backing indices in a fixed order, so the two scenarios of a pair feed the merge both
+ * orders a two-index stream can produce and cover every winner production can return. A 500 fails
+ * the run unless {@link MappingConflictFixtures#KNOWN_500S} lists it as a known 500 tied to an
+ * issue, and a known 500 that stops returning 500 fails too. A 200 or 4xx outside {@code
  * KNOWN_500S} passes, since this checks only that schema evolution never returns a 500, but a
  * command that never returns 200 fails, since it tests nothing.
  */
@@ -348,6 +350,7 @@ public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
       int status,
       String error) {
 
+    /** The pair, winner and command, the unit the run counts 500s by. */
     String key() {
       return pair + " " + winner + " " + command;
     }
