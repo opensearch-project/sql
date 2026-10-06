@@ -31,12 +31,12 @@ import org.opensearch.sql.util.OtelDataStream.Drift;
  * Runs PPL commands over an OTel data stream whose second backing index changes the type of one
  * {@code attributes.types} field, removes it, or adds one, through the stream name and a wildcard.
  * Every pair of {@link MappingConflictFixtures#TYPES} runs twice, once with each type in 000001.
- * One node reads the backing indices in a fixed order, so the two passes feed the merge both orders
- * a two-index stream can produce and cover every winner production can return. A 500 fails the run
- * unless {@link MappingConflictFixtures#KNOWN_500S} lists it as a known 500 tied to an issue, and a
- * known 500 that stops returning 500 fails too. A 200 or 4xx outside {@code KNOWN_500S} passes,
- * since this checks only that schema evolution never returns a 500, but a command that never
- * returns 200 fails, since it tests nothing.
+ * One node reads the backing indices in a fixed order, so the two scenarios of a pair feed the
+ * merge both orders a two-index stream can produce and cover every winner production can return. A
+ * 500 fails the run unless {@link MappingConflictFixtures#KNOWN_500S} lists it as a known 500 tied
+ * to an issue, and a known 500 that stops returning 500 fails too. A 200 or 4xx outside {@code
+ * KNOWN_500S} passes, since this checks only that schema evolution never returns a 500, but a
+ * command that never returns 200 fails, since it tests nothing.
  */
 public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
 
@@ -59,157 +59,102 @@ public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
    * {@code KNOWN_500S} entry, or a command that never returns 200.
    */
   protected void runDrifts(String name) throws IOException {
-    JSONArray nodes = new JSONArray(executeRequest(new Request("GET", "/_cat/nodes?format=json")));
-    if (nodes.length() != 1) {
-      throw new IllegalStateException(
-          "The swap needs one node to fix the merge order, the cluster has " + nodes.length());
-    }
-    List<Command> commands = REPRESENTATIVE;
-    Set<String> names = commands.stream().map(Command::name).collect(Collectors.toSet());
-    List<Observation> observations = new ArrayList<>();
+    requireOneNode();
+    Observations observed = observe(name, Scenario.allDrifts(TYPES));
+    logSummary(observed);
     List<String> failures = new ArrayList<>();
-    for (int i = 0; i < TYPES.size(); i++) {
-      for (int j = i + 1; j < TYPES.size(); j++) {
-        String a = TYPES.get(i);
-        String b = TYPES.get(j);
-        String pair = a + "/" + b;
-        observations.addAll(observe(name, pair, a, retype(a, b), commands));
-        observations.addAll(observe(name, pair, b, retype(b, a), commands));
-      }
-    }
-    for (String type : TYPES) {
-      String field = "attributes.types." + type;
-      observations.addAll(
-          observe(name, type + "/absent", type, n -> Drift.remove(field, BASE_DOCS), commands));
-      String added = "added_" + type;
-      observations.addAll(
-          observe(
-              name,
-              "absent/" + type,
-              added,
-              n ->
-                  Drift.add(
-                      "attributes.types." + added, type, baseValues(n, "types." + type).toArray()),
-              commands));
-    }
-    observations.stream()
-        .filter(
-            o ->
-                o.winner().startsWith("unread-")
-                    && (o.pair().contains("absent") || !o.winner().startsWith("unread-4")))
-        .forEach(
-            o ->
-                failures.add(
-                    o.pair() + " via " + o.source() + " could not read its winner, " + o.winner()));
-    names.stream()
-        .filter(
-            n -> observations.stream().noneMatch(o -> o.command().equals(n) && o.status() == 200))
-        .forEach(n -> failures.add(n + " never returned 200, so it tests nothing"));
-    Set<String> serverErrors = new TreeSet<>();
-    for (Observation observation : observations) {
-      if (observation.status() >= 500) {
-        serverErrors.add(observation.key());
-        logger.info(
-            "500 {} | {} | {}", observation.key(), observation.source(), observation.error());
-        if (KNOWN_500S.stream()
-            .noneMatch(
-                k ->
-                    k.covers(
-                        observation.pair(),
-                        observation.winner(),
-                        observation.command(),
-                        observation.source()))) {
-          failures.add(
-              "500 missing from KNOWN_500S, "
-                  + observation.label()
-                  + "\n  query: "
-                  + observation.query()
-                  + "\n  error: "
-                  + observation.error().substring(0, Math.min(200, observation.error().length())));
-        }
-      }
-    }
-    logger.info(
-        "{} queries, {} return 500 across {} pair, winner and command keys",
-        observations.size(),
-        observations.stream().filter(o -> o.status() >= 500).count(),
-        serverErrors.size());
-    Set<String> pairs = observations.stream().map(Observation::pair).collect(Collectors.toSet());
-    for (Known500 known : KNOWN_500S) {
-      known.commands().stream()
-          .filter(c -> !names.contains(c))
-          .forEach(
-              c ->
-                  failures.add(
-                      "the " + known.issue() + " known 500 lists " + c + ", which never runs"));
-      List<Observation> covered =
-          observations.stream()
-              .filter(o -> known.covers(o.pair(), o.winner(), o.command(), o.source()))
-              .toList();
-      known.pairs().stream()
-          .filter(p -> covered.stream().noneMatch(o -> o.pair().equals(p)))
-          .forEach(
-              p ->
-                  failures.add(
-                      "the "
-                          + known.issue()
-                          + " known 500 lists "
-                          + p
-                          + (pairs.contains(p)
-                              ? ", which yields no query under its winner and source, so fix or"
-                                  + " remove it"
-                              : ", which never runs, so check its spelling and TYPES order")));
-      covered.stream()
-          .filter(o -> o.status() < 500)
-          .forEach(
-              o ->
-                  failures.add(
-                      "listed under "
-                          + known.issue()
-                          + " in KNOWN_500S but no longer returns 500, "
-                          + o.label()
-                          + ", narrow that entry to the queries that still fail\n  query: "
-                          + o.query()));
-    }
+    failures.addAll(observed.unreadableWinners());
+    failures.addAll(observed.commandsThatNeverReturn200());
+    failures.addAll(observed.missingKnown500s());
+    failures.addAll(observed.staleKnown500s());
     if (!failures.isEmpty()) {
       Set<String> distinct = new TreeSet<>(failures);
       fail(distinct.size() + " failures\n" + String.join("\n", distinct));
     }
   }
 
+  private void requireOneNode() throws IOException {
+    JSONArray nodes = new JSONArray(executeRequest(new Request("GET", "/_cat/nodes?format=json")));
+    if (nodes.length() != 1) {
+      throw new IllegalStateException(
+          "The swap needs one node to fix the merge order, the cluster has " + nodes.length());
+    }
+  }
+
+  /**
+   * One rollover, meaning the pair its queries report under, the field they read, and the drift
+   * that 000002 applies.
+   */
+  private record Scenario(String pair, String field, DriftFactory drift) {
+
+    /**
+     * Every pair of {@code types} twice, once with each type in 000001, then each type removed and
+     * each type added, so 56 scenarios for 7 types.
+     */
+    static List<Scenario> allDrifts(List<String> types) {
+      List<Scenario> scenarios = new ArrayList<>();
+      for (int i = 0; i < types.size(); i++) {
+        for (int j = i + 1; j < types.size(); j++) {
+          String a = types.get(i);
+          String b = types.get(j);
+          String pair = a + "/" + b;
+          scenarios.add(new Scenario(pair, "attributes.types." + a, retype(a, b)));
+          scenarios.add(new Scenario(pair, "attributes.types." + b, retype(b, a)));
+        }
+      }
+      for (String type : types) {
+        String field = "attributes.types." + type;
+        scenarios.add(new Scenario(type + "/absent", field, n -> Drift.remove(field, BASE_DOCS)));
+        String added = "attributes.types.added_" + type;
+        scenarios.add(
+            new Scenario(
+                "absent/" + type,
+                added,
+                n -> Drift.add(added, type, baseValues(n, "types." + type).toArray())));
+      }
+      return scenarios;
+    }
+  }
+
   /** Builds a drift once the stream exists, since its values come from the base documents. */
   @FunctionalInterface
   private interface DriftFactory {
-    Drift drift(String name) throws IOException;
+    Drift build(String name) throws IOException;
   }
 
   /** Changes {@code from}'s field to {@code to}, filled with {@code to}'s base values. */
-  private DriftFactory retype(String from, String to) {
+  private static DriftFactory retype(String from, String to) {
     return n ->
         Drift.changeType("attributes.types." + from, to, baseValues(n, "types." + to).toArray());
   }
 
+  private Observations observe(String name, List<Scenario> scenarios) throws IOException {
+    List<Observation> all = new ArrayList<>();
+    for (Scenario scenario : scenarios) {
+      all.addAll(observe(name, scenario));
+    }
+    return new Observations(all);
+  }
+
   /**
-   * Rolls the stream over to the drift and runs every command through the stream name and the
-   * wildcard, each under the winner its merged schema reports.
+   * Creates the stream, rolls it over to the scenario's drift, and runs every command through the
+   * stream name and the wildcard, each under the winner its merged schema reports.
    */
-  private List<Observation> observe(
-      String name, String pair, String type, DriftFactory factory, List<Command> commands)
-      throws IOException {
+  private List<Observation> observe(String name, Scenario scenario) throws IOException {
     OtelDataStream stream = create(name);
     List<Observation> observations = new ArrayList<>();
     try {
-      String field = "`attributes.types." + type + "`";
-      stream.rollover(factory.drift(name));
+      String field = "`" + scenario.field() + "`";
+      stream.rollover(scenario.drift().build(name));
       for (String source : List.of(name, name + "*")) {
         String resolved = winner(source, field);
-        logger.info("pair {}, field {} via {} reads {}", pair, field, source, resolved);
-        for (Command command : commands) {
+        logger.info("pair {}, field {} via {} reads {}", scenario.pair(), field, source, resolved);
+        for (Command command : REPRESENTATIVE) {
           String query = command.query(source, field, stableField());
           Response response = run(query);
           observations.add(
               new Observation(
-                  pair,
+                  scenario.pair(),
                   resolved,
                   command.name(),
                   source,
@@ -230,6 +175,104 @@ public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
     return observations;
   }
 
+  private void logSummary(Observations observed) {
+    Set<String> keys = new TreeSet<>();
+    for (Observation o : observed.all()) {
+      if (o.status() >= 500) {
+        keys.add(o.key());
+        logger.info("500 {} | {} | {}", o.key(), o.source(), o.error());
+      }
+    }
+    logger.info(
+        "{} queries, {} return 500 across {} pair, winner and command keys",
+        observed.all().size(),
+        observed.all().stream().filter(o -> o.status() >= 500).count(),
+        keys.size());
+  }
+
+  /** Every observation of a run, with the checks that turn them into failure lines. */
+  private record Observations(List<Observation> all) {
+
+    /**
+     * A winner probe that failed. A 4xx on a type pair passes, since a fix may reject the conflict,
+     * but not on a pair with an absent side, where nothing conflicts.
+     */
+    List<String> unreadableWinners() {
+      return all.stream()
+          .filter(
+              o ->
+                  o.winner().startsWith("unread-")
+                      && (o.pair().contains("absent") || !o.winner().startsWith("unread-4")))
+          .map(o -> o.pair() + " via " + o.source() + " could not read its winner, " + o.winner())
+          .toList();
+    }
+
+    List<String> commandsThatNeverReturn200() {
+      return REPRESENTATIVE.stream()
+          .map(Command::name)
+          .filter(n -> all.stream().noneMatch(o -> o.command().equals(n) && o.status() == 200))
+          .map(n -> n + " never returned 200, so it tests nothing")
+          .toList();
+    }
+
+    List<String> missingKnown500s() {
+      return all.stream()
+          .filter(o -> o.status() >= 500 && KNOWN_500S.stream().noneMatch(o::isCoveredBy))
+          .map(
+              o ->
+                  "500 missing from KNOWN_500S, "
+                      + o.label()
+                      + "\n  query: "
+                      + o.query()
+                      + "\n  error: "
+                      + o.error().substring(0, Math.min(200, o.error().length())))
+          .toList();
+    }
+
+    /**
+     * A {@code KNOWN_500S} entry that lists a command or pair the run never reaches, or covers a
+     * query that no longer returns 500.
+     */
+    List<String> staleKnown500s() {
+      Set<String> pairs = all.stream().map(Observation::pair).collect(Collectors.toSet());
+      List<String> failures = new ArrayList<>();
+      for (Known500 known : KNOWN_500S) {
+        known.commands().stream()
+            .filter(c -> REPRESENTATIVE.stream().noneMatch(command -> command.name().equals(c)))
+            .forEach(
+                c ->
+                    failures.add(
+                        "the " + known.issue() + " known 500 lists " + c + ", which never runs"));
+        List<Observation> covered = all.stream().filter(o -> o.isCoveredBy(known)).toList();
+        known.pairs().stream()
+            .filter(p -> covered.stream().noneMatch(o -> o.pair().equals(p)))
+            .forEach(
+                p ->
+                    failures.add(
+                        "the "
+                            + known.issue()
+                            + " known 500 lists "
+                            + p
+                            + (pairs.contains(p)
+                                ? ", which yields no query under its winner and source, so fix or"
+                                    + " remove it"
+                                : ", which never runs, so check its spelling and TYPES order")));
+        covered.stream()
+            .filter(o -> o.status() < 500)
+            .forEach(
+                o ->
+                    failures.add(
+                        "listed under "
+                            + known.issue()
+                            + " in KNOWN_500S but no longer returns 500, "
+                            + o.label()
+                            + ", narrow that entry to the queries that still fail\n  query: "
+                            + o.query()));
+      }
+      return failures;
+    }
+  }
+
   /** The PPL type the merged schema gives the field, or the status when it cannot be read. */
   private String winner(String source, String field) throws IOException {
     Response response = run("source=" + source + " | fields " + field + " | head 1");
@@ -239,7 +282,7 @@ public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
   }
 
   /** Each base document's value for a flattened {@code attributes} key. */
-  private List<Object> baseValues(String name, String key) throws IOException {
+  private static List<Object> baseValues(String name, String key) throws IOException {
     JSONObject body =
         new JSONObject(
             getResponseBody(
@@ -305,6 +348,10 @@ public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
     /** The observation as a failure line reads it. */
     String label() {
       return "pair " + pair + ", winner " + winner + ", command " + command;
+    }
+
+    boolean isCoveredBy(Known500 known) {
+      return known.covers(pair, winner, command, source);
     }
   }
 }
