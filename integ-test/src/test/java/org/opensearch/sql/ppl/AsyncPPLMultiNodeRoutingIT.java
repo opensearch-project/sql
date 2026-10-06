@@ -48,6 +48,12 @@ public class AsyncPPLMultiNodeRoutingIT extends PPLIntegTestCase {
   protected void init() throws Exception {
     super.init();
     loadIndex(Index.ACCOUNT);
+    // Match the single-node lifecycle IT: the legacy v2 analyzer throws SemanticCheckException
+    // synchronously from pplService.execute for field-not-found errors, which short-circuits the
+    // async submit path (await(0) sees FAILED instead of RUNNING) and returns 400 inline. Calcite
+    // delivers the same error through the response listener on the engine thread, so submit
+    // returns a RUNNING id and the GET body carries the structured sync-shape error.
+    enableCalcite();
 
     // getClusterHosts() returns one HttpHost per bound address — in test clusters each node binds
     // both [::1] AND 127.0.0.1, so a two-node cluster yields four hosts of which hosts[0] and
