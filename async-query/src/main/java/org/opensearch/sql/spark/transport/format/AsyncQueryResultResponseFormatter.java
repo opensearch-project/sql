@@ -57,7 +57,13 @@ public class AsyncQueryResultResponseFormatter extends JsonResponseFormatter<Asy
       json.datarows(fetchDataRows(response));
     }
     json.status(response.getStatus());
-    if (!Strings.isEmpty(response.getError())) {
+    // Prefer the structured error map (PPL FAILED path) over the error string (Spark path).
+    // Spark results never populate errorDetails, so the string branch here is byte-identical
+    // to the pre-change behavior; the Gson field type (`Object`) serializes String as a JSON
+    // string and Map as a JSON object.
+    if (response.getErrorDetails() != null && !response.getErrorDetails().isEmpty()) {
+      json.error(response.getErrorDetails());
+    } else if (!Strings.isEmpty(response.getError())) {
       json.error(response.getError());
     }
 
@@ -87,7 +93,13 @@ public class AsyncQueryResultResponseFormatter extends JsonResponseFormatter<Asy
 
     private Integer total;
     private Integer size;
-    private final String error;
+
+    /**
+     * Either a human-readable string (Spark path) or a structured map matching the sync REST
+     * error body (PPL {@code FAILED} path). Typed as {@link Object} so Gson emits either shape
+     * verbatim without a wrapping envelope.
+     */
+    private final Object error;
   }
 
   @RequiredArgsConstructor

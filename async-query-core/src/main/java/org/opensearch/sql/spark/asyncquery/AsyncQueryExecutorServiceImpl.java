@@ -227,13 +227,22 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
       }
     }
     if (status.state() == QueryJobState.FAILED) {
+      // Carry the structured error map produced at failure time so the GET body matches the
+      // sync REST error body. The `error` string stays populated so Spark-only clients that
+      // read it continue to work; the formatter prefers `errorDetails` when both are present.
+      java.util.Map<String, Object> details =
+          status.failure().map(QueryFailure::details).orElse(null);
+      if (details != null && details.isEmpty()) {
+        details = null;
+      }
       return new AsyncQueryExecutionResponse(
           status.state().name(),
           EMPTY_SCHEMA,
           List.of(),
           status.failure().map(QueryFailure::reason).orElse("query execution failed"),
           null,
-          null);
+          null,
+          details);
     }
     return new AsyncQueryExecutionResponse(
         status.state().name(), EMPTY_SCHEMA, List.of(), null, null, null);

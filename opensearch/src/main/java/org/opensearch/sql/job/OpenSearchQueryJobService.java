@@ -7,8 +7,10 @@ package org.opensearch.sql.job;
 
 import java.time.Clock;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.sql.job.exceptions.QueryJobForbiddenException;
 import org.opensearch.sql.job.exceptions.QueryJobNotFoundException;
@@ -31,6 +33,19 @@ public final class OpenSearchQueryJobService implements QueryJobService {
   private final ClusterService clusterService;
   private final Clock clock;
   private final RetentionPolicy retentionPolicy;
+  private final Function<Throwable, Map<String, Object>> failureRenderer;
+
+  /**
+   * Legacy constructor without a failure renderer; existing tests and the no-wiring case keep
+   * working. Equivalent to passing {@code null} for {@code failureRenderer}.
+   */
+  public OpenSearchQueryJobService(
+      QueryJobStore store,
+      ClusterService clusterService,
+      Clock clock,
+      RetentionPolicy retentionPolicy) {
+    this(store, clusterService, clock, retentionPolicy, null);
+  }
 
   /**
    * @param store registry that will hold submitted jobs
@@ -39,17 +54,23 @@ public final class OpenSearchQueryJobService implements QueryJobService {
    * @param clock time source for the state machine
    * @param retentionPolicy attaches eviction only to jobs exposed for polling; may be {@code null}
    *     to disable retention (test-only)
-   * @throws NullPointerException if any required argument is {@code null}
+   * @param failureRenderer supplies the structured {@code details} payload captured on {@link
+   *     QueryFailure} when a job transitions to {@code FAILED}; may be {@code null} (empty
+   *     details). Forwarded to every submitted {@link QueryJob} and invoked at most once per job.
+   * @throws NullPointerException if {@code store}, {@code clusterService}, or {@code clock} is
+   *     {@code null}
    */
   public OpenSearchQueryJobService(
       QueryJobStore store,
       ClusterService clusterService,
       Clock clock,
-      RetentionPolicy retentionPolicy) {
+      RetentionPolicy retentionPolicy,
+      Function<Throwable, Map<String, Object>> failureRenderer) {
     this.store = Objects.requireNonNull(store, "store must not be null");
     this.clusterService = Objects.requireNonNull(clusterService, "clusterService must not be null");
     this.clock = Objects.requireNonNull(clock, "clock must not be null");
     this.retentionPolicy = retentionPolicy;
+    this.failureRenderer = failureRenderer;
   }
 
   @Override
@@ -107,7 +128,7 @@ public final class OpenSearchQueryJobService implements QueryJobService {
   private QueryJob publish(QueryRunner runner, Principal owner) {
     while (true) {
       QueryJobId id = QueryJobId.create(clusterService.localNode().getId());
-      QueryJob job = new QueryJob(id, owner, runner, clock);
+      QueryJob job = new QueryJob(id, owner, runner, clock, failureRenderer);
       if (store.register(job) == null) {
         return job;
       }

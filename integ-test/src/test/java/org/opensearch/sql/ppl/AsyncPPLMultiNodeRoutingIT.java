@@ -132,6 +132,48 @@ public class AsyncPPLMultiNodeRoutingIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void failed_forwardsFromNonOwnerNodeToOwner() throws Exception {
+    // Capture the sync error body on nodeA so the parity assertion is anchored to a real sync
+    // response rather than hard-coded fields.
+    JSONObject syncBody = new JSONObject();
+    syncBody.put("query", "source=" + TEST_INDEX_ACCOUNT + " | fields nonexistent_field");
+    org.opensearch.client.Request syncRequest =
+        new org.opensearch.client.Request("POST", AsyncPPLTestHelpers.PPL_ENDPOINT);
+    syncRequest.setJsonEntity(syncBody.toString());
+    org.opensearch.client.ResponseException syncEx =
+        Assert.assertThrows(
+            org.opensearch.client.ResponseException.class, () -> nodeA.performRequest(syncRequest));
+    JSONObject syncError =
+        new JSONObject(
+                org.opensearch.sql.legacy.TestUtils.getResponseBody(syncEx.getResponse(), true))
+            .getJSONObject("error");
+
+    // Submit on nodeA with wait=0 so the runner fails after the submit returns.
+    JSONObject body = new JSONObject();
+    body.put("query", "source=" + TEST_INDEX_ACCOUNT + " | fields nonexistent_field");
+    body.put("wait_for_completion_timeout", "0");
+    String queryId = new JSONObject(postPpl(nodeA, body)).getString("id");
+
+    // Poll via nodeB (non-owner); request forwards to nodeA, which renders the full error body.
+    JSONObject terminal = pollUntilTerminal(nodeB, queryId, 30_000);
+    Assert.assertEquals("FAILED", terminal.getString("status"));
+    Object errorField = terminal.get("error");
+    Assert.assertTrue(
+        "cross-node GET error must be a structured object", errorField instanceof JSONObject);
+    JSONObject asyncError = (JSONObject) errorField;
+    // Full deep equality — every field the sync body publishes (type, reason, details, code,
+    // context, location, suggestion if present) must appear in the cross-node async body with
+    // the same value. The sync and async paths render through the same SyncErrorReportRenderer.
+    Assert.assertEquals(
+        "cross-node async error must carry the same top-level keys as sync",
+        syncError.keySet(),
+        asyncError.keySet());
+    Assert.assertTrue(
+        "cross-node async error must deep-equal sync; sync=" + syncError + " async=" + asyncError,
+        syncError.similar(asyncError));
+  }
+
+  @Test
   public void explain_forwardsFromNonOwnerNodeToOwner() throws Exception {
     JSONObject body = new JSONObject();
     body.put("query", "explain source=" + TEST_INDEX_ACCOUNT + " | stats count() as c");

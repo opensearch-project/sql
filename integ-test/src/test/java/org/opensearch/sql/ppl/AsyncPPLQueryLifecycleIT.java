@@ -49,6 +49,75 @@ public class AsyncPPLQueryLifecycleIT extends PPLIntegTestCase {
   protected void init() throws Exception {
     super.init();
     loadIndex(Index.ACCOUNT);
+    enableCalcite();
+  }
+
+  /**
+   * Posts a sync PPL query that is expected to fail, and returns the raw error body. Used by the
+   * sync-vs-async parity assertions below.
+   */
+  private String syncErrorBodyFor(String query) {
+    JSONObject body = new JSONObject().put("query", query);
+    Request request = new Request("POST", PPL_ENDPOINT);
+    request.setJsonEntity(body.toString());
+    ResponseException ex =
+        Assert.assertThrows(ResponseException.class, () -> client().performRequest(request));
+    try {
+      return org.opensearch.sql.legacy.TestUtils.getResponseBody(ex.getResponse(), true);
+    } catch (IOException e) {
+      throw new AssertionError(e);
+    }
+  }
+
+  private static JSONObject errorObject(String responseBody) {
+    return new JSONObject(responseBody).getJSONObject("error");
+  }
+
+  /**
+   * Asserts that the async {@code error} object carries the full content of the sync {@code error}
+   * object field-for-field. Mirrors {@code CalciteErrorReportStageIT} style — every field the sync
+   * body publishes must appear in the async body with the same value, so a client that reads the
+   * sync body cannot tell the two apart.
+   *
+   * <p>The sync and async paths render through the same {@code SyncErrorReportRenderer}, so {@link
+   * JSONObject#similar(Object)} (deep structural equality) must hold.
+   */
+  private static void assertSameSyncShape(
+      JSONObject expectedSyncError, JSONObject actualAsyncError) {
+    Assert.assertEquals(
+        "async error must carry the same top-level keys as sync",
+        expectedSyncError.keySet(),
+        actualAsyncError.keySet());
+    for (String key : expectedSyncError.keySet()) {
+      Object expected = expectedSyncError.get(key);
+      Object actual = actualAsyncError.get(key);
+      if (expected instanceof JSONObject expectedObject && actual instanceof JSONObject) {
+        Assert.assertTrue(
+            "async `"
+                + key
+                + "` must deep-equal sync `"
+                + key
+                + "`; sync="
+                + expectedObject
+                + " async="
+                + actual,
+            expectedObject.similar(actual));
+      } else if (expected instanceof org.json.JSONArray expectedArray
+          && actual instanceof org.json.JSONArray) {
+        Assert.assertTrue(
+            "async `"
+                + key
+                + "` must deep-equal sync `"
+                + key
+                + "`; sync="
+                + expectedArray
+                + " async="
+                + actual,
+            expectedArray.similar(actual));
+      } else {
+        Assert.assertEquals("async `" + key + "` must equal sync `" + key + "`", expected, actual);
+      }
+    }
   }
 
   @Test
@@ -113,6 +182,108 @@ public class AsyncPPLQueryLifecycleIT extends PPLIntegTestCase {
     body.put("query", "source=");
     body.put("wait_for_completion_timeout", "30s");
     assertRejectedWith400(PPL_ENDPOINT, body);
+  }
+
+  /**
+   * Asserts that the structured error body is deep-equal across all three request shapes a client
+   * can hit:
+   *
+   * <ol>
+   *   <li><b>Pure sync</b> — {@code POST /_plugins/_ppl} without {@code
+   *       wait_for_completion_timeout}; goes through {@code pplService.execute} directly to {@code
+   *       RestPPLQueryAction.onFailure}.
+   *   <li><b>Inline async (runner wins)</b> — {@code POST} with a wait longer than the runner
+   *       takes; goes through {@code submitAsync} but the failure bubbles out of {@code
+   *       whenComplete} to the same {@code RestPPLQueryAction.onFailure} chain.
+   *   <li><b>GET after timeout</b> — {@code POST} with {@code wait_for_completion_timeout=0}, then
+   *       {@code GET /_plugins/_async_query/{id}} until {@code FAILED}; this is the only path that
+   *       stores the error via {@code QueryFailure.details} and re-renders it on GET.
+   * </ol>
+   *
+   * <p>Mirrors the scenarios in {@code CalciteErrorReportStageIT}. A regression in any of the three
+   * paths — including a future refactor that routes inline-async failures through a different
+   * renderer — makes this test fail.
+   */
+  private void assertAsyncErrorMatchesSync(String query) throws Exception {
+    // (1) Pure sync baseline — no wait_for_completion_timeout.
+    JSONObject syncError = errorObject(syncErrorBodyFor(query));
+
+    // (2) Inline async (runner wins). A non-zero wait longer than the trivial runner duration
+    // forces submitAsync, but the failure races the wait and is returned inline.
+    JSONObject inlineBody =
+        new JSONObject().put("query", query).put("wait_for_completion_timeout", "30s");
+    Request inlineRequest = new Request("POST", PPL_ENDPOINT);
+    inlineRequest.setJsonEntity(inlineBody.toString());
+    ResponseException inlineEx =
+        Assert.assertThrows(ResponseException.class, () -> client().performRequest(inlineRequest));
+    JSONObject inlineError =
+        errorObject(
+            org.opensearch.sql.legacy.TestUtils.getResponseBody(inlineEx.getResponse(), true));
+    assertSameSyncShape(syncError, inlineError);
+
+    // (3) GET after wait=0. The runner fails AFTER the submit response, so the error is
+    // captured by SyncErrorReportRenderer at QueryJob.onRunnerFailure time, stored on
+    // QueryFailure.details, and re-rendered by the async formatter on GET.
+    JSONObject submitBody =
+        new JSONObject().put("query", query).put("wait_for_completion_timeout", "0");
+    String queryId = new JSONObject(postPpl(client(), submitBody)).getString("id");
+    JSONObject terminal = pollUntilTerminal(client(), queryId, 30_000);
+    Assert.assertEquals("FAILED", terminal.getString("status"));
+    Object errorField = terminal.get("error");
+    Assert.assertTrue(
+        "async GET error must be a structured object, got " + errorField.getClass(),
+        errorField instanceof JSONObject);
+    assertSameSyncShape(syncError, (JSONObject) errorField);
+  }
+
+  // -------------------------------------------------------------------------------------------
+  // Sync-vs-async parity cases — one per CalciteErrorReportStageIT scenario. Each asserts that
+  // the structured error body returned by sync POST, inline async POST, and GET on an
+  // after-timeout FAILED job are byte-for-byte identical. Every scenario the sync path reports
+  // through ErrorReport flows through the same SyncErrorReportRenderer in async, so parity holds
+  // without engine-type-specific special casing.
+  // -------------------------------------------------------------------------------------------
+
+  @Test
+  public void parity_fieldNotFound() throws Exception {
+    assertAsyncErrorMatchesSync("source=" + TEST_INDEX_ACCOUNT + " | fields nonexistent_field");
+  }
+
+  @Test
+  public void parity_indexNotFound() throws Exception {
+    assertAsyncErrorMatchesSync("source=nonexistent_index | fields age");
+  }
+
+  @Test
+  public void parity_multipleFieldErrors() throws Exception {
+    assertAsyncErrorMatchesSync(
+        "source=" + TEST_INDEX_ACCOUNT + " | fields nonexistent1, nonexistent2, nonexistent3");
+  }
+
+  @Test
+  public void parity_aliasToUnresolvablePathWithSuggestion() throws Exception {
+    // Mirrors CalciteErrorReportStageIT.testAliasToUnresolvablePathIncludesStructuredError. The
+    // sync body carries a `suggestion` field — parity requires async to carry the identical
+    // suggestion too.
+    String index = "test_async_alias_unresolved_keyword";
+    Request createIndex = new Request("PUT", "/" + index);
+    createIndex.setJsonEntity(
+        "{ \"mappings\": { \"properties\": {"
+            + "  \"source\": { \"type\": \"text\", \"fields\": { \"keyword\": { \"type\":"
+            + " \"keyword\" } } },"
+            + "  \"source_alias\": { \"type\": \"alias\", \"path\": \"source.keyword\" } } } }");
+    client().performRequest(createIndex);
+
+    try {
+      JSONObject syncError = errorObject(syncErrorBodyFor("source=" + index));
+      // Guard: the suggestion field is what motivates this scenario; make sure sync produced it.
+      Assert.assertTrue(
+          "sync body for alias-to-unresolved-path must carry a suggestion",
+          syncError.has("suggestion"));
+      assertAsyncErrorMatchesSync("source=" + index);
+    } finally {
+      client().performRequest(new Request("DELETE", "/" + index));
+    }
   }
 
   @Test

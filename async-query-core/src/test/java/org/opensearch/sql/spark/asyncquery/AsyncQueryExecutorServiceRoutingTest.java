@@ -106,13 +106,31 @@ class AsyncQueryExecutorServiceRoutingTest {
     stubSnapshot(
         QueryJobState.FAILED,
         Optional.empty(),
-        Optional.of(new QueryFailure("IllegalArgumentException", "invalid query")));
+        Optional.of(new QueryFailure("IllegalArgumentException", "invalid query", Map.of())));
 
     AsyncQueryExecutionResponse response = fetch();
 
     assertEquals("FAILED", response.getStatus());
     assertEquals("invalid query", response.getError());
+    assertNull(response.getErrorDetails());
     assertEmptyResults(response);
+    verifyNoSparkCalls();
+  }
+
+  @Test
+  void failedJobCarriesStructuredErrorDetails() {
+    Map<String, Object> details =
+        Map.of("code", "FIELD_NOT_FOUND", "reason", "Field [x] not found.");
+    stubSnapshot(
+        QueryJobState.FAILED,
+        Optional.empty(),
+        Optional.of(new QueryFailure("IllegalArgumentException", "Field [x] not found.", details)));
+
+    AsyncQueryExecutionResponse response = fetch();
+
+    assertEquals("FAILED", response.getStatus());
+    assertEquals("Field [x] not found.", response.getError());
+    assertEquals(details, response.getErrorDetails());
     verifyNoSparkCalls();
   }
 

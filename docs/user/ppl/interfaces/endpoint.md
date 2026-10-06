@@ -727,3 +727,27 @@ The client then polls `GET /_plugins/_async_query/{id}` until it returns a termi
 ```
 GET    /_plugins/_async_query/<id>
 ```
+
+Both terminal states return HTTP `200`. The body shape differs by state:
+
+- `SUCCEEDED` — a row-shaped response (`status`, `schema`, `datarows`, `total`, `size`), or the explain body when the submitted query starts with `explain`.
+- `FAILED` — `status: "FAILED"` plus an `error` object whose fields match the body a synchronous PPL request would have returned on the same failure. Typical fields: `type`, `reason`, `details`, `code`, `context.stage`, `location[]`, and `suggestion` when applicable. Example:
+
+```
+{
+  "status": "FAILED",
+  "error": {
+    "type": "IllegalArgumentException",
+    "reason": "Field [nonexistent_field] not found.",
+    "details": "Field [nonexistent_field] not found.",
+    "code": "FIELD_NOT_FOUND",
+    "context": {
+      "stage": "analyzing",
+      "stage_description": "Parsing and validating the query"
+    },
+    "location": ["while preparing and validating the query plan"]
+  }
+}
+```
+
+The GET HTTP status is `200` whenever the poll itself succeeds. `404` from GET means the id is unknown or has expired beyond `keep_alive`; `403` means the caller is not the job's owner.

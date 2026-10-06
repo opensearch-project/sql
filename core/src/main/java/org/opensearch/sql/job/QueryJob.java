@@ -7,6 +7,7 @@ package org.opensearch.sql.job;
 
 import java.time.Clock;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
@@ -14,6 +15,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 /**
  * Active object that carries one query through the lifecycle state machine.
@@ -44,6 +46,7 @@ public final class QueryJob {
   private final Principal owner;
   private final QueryRunner runner;
   private final Clock clock;
+  private final Function<Throwable, Map<String, Object>> failureRenderer;
   private final long submittedAtMillis;
   private final CompletableFuture<QueryResult> completion = new CompletableFuture<>();
 
@@ -63,13 +66,33 @@ public final class QueryJob {
    * @param runner engine adapter that will produce the result; started later via {@link
    *     #startRunner()}
    * @param clock time source used for submission, start, and completion timestamps
-   * @throws NullPointerException if any argument is {@code null}
+   * @throws NullPointerException if any of {@code id}, {@code owner}, {@code runner}, or {@code
+   *     clock} is {@code null}
    */
   QueryJob(QueryJobId id, Principal owner, QueryRunner runner, Clock clock) {
+    this(id, owner, runner, clock, null);
+  }
+
+  /**
+   * Creates a job in {@link QueryJobState#PENDING} with a failure renderer. Package-private: only
+   * {@link QueryJobService} implementations may construct a job.
+   *
+   * @param failureRenderer supplies the structured {@code details} payload on failure; nullable
+   *     (empty details). Invoked on the runner-completing thread exactly once if the job reaches
+   *     {@code FAILED}. Exceptions from the renderer are swallowed — see {@link
+   *     QueryFailure#of(Throwable, Function)}.
+   */
+  QueryJob(
+      QueryJobId id,
+      Principal owner,
+      QueryRunner runner,
+      Clock clock,
+      Function<Throwable, Map<String, Object>> failureRenderer) {
     this.id = Objects.requireNonNull(id, "id must not be null");
     this.owner = Objects.requireNonNull(owner, "owner must not be null");
     this.runner = Objects.requireNonNull(runner, "runner must not be null");
     this.clock = Objects.requireNonNull(clock, "clock must not be null");
+    this.failureRenderer = failureRenderer;
     this.submittedAtMillis = clock.millis();
   }
 
@@ -225,7 +248,7 @@ public final class QueryJob {
       }
       state = QueryJobState.FAILED;
       completedAtMillis = OptionalLong.of(clock.millis());
-      failure = Optional.of(QueryFailure.of(throwable));
+      failure = Optional.of(QueryFailure.of(throwable, failureRenderer));
     }
     completion.completeExceptionally(throwable);
   }

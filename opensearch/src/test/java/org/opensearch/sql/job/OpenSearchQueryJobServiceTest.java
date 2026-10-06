@@ -283,11 +283,37 @@ class OpenSearchQueryJobServiceTest {
   }
 
   private OpenSearchQueryJobService newService(RetentionPolicy policy) {
+    return newService(policy, null);
+  }
+
+  private OpenSearchQueryJobService newService(
+      RetentionPolicy policy,
+      java.util.function.Function<Throwable, java.util.Map<String, Object>> renderer) {
     ClusterService clusterService = mock(ClusterService.class);
     DiscoveryNode localNode = mock(DiscoveryNode.class);
     when(localNode.getId()).thenReturn("node-a");
     when(clusterService.localNode()).thenReturn(localNode);
-    return new OpenSearchQueryJobService(store, clusterService, Clock.systemUTC(), policy);
+    return new OpenSearchQueryJobService(
+        store, clusterService, Clock.systemUTC(), policy, renderer);
+  }
+
+  @Test
+  void submit_rendererCapturesStructuredDetailsOnFailure() throws Exception {
+    service =
+        newService(
+            retentionPolicy,
+            t -> java.util.Map.of("code", "FIELD_NOT_FOUND", "reason", t.getMessage()));
+    RecordingRunner runner = new RecordingRunner();
+    QueryResult result =
+        service
+            .submit(runner, ALICE, Duration.ofMillis(1), KEEP_ALIVE)
+            .toCompletableFuture()
+            .get(2, TimeUnit.SECONDS);
+    QueryResult.Running running = assertInstanceOf(QueryResult.Running.class, result);
+    runner.fail(new IllegalArgumentException("Field [x] not found."));
+    QueryFailure failure = service.get(running.id(), ALICE).failure().orElseThrow();
+    assertEquals("FIELD_NOT_FOUND", failure.details().get("code"));
+    assertEquals("Field [x] not found.", failure.details().get("reason"));
   }
 
   private static final class RecordingRunner implements QueryRunner {

@@ -236,6 +236,45 @@ public class TransportGetAsyncQueryResultActionTest {
   }
 
   @Test
+  public void failedResponseWithStructuredErrorEmitsObject() {
+    // The PPL FAILED path populates errorDetails so GET returns the sync-shape error body.
+    java.util.LinkedHashMap<String, Object> details = new java.util.LinkedHashMap<>();
+    details.put("type", "IllegalArgumentException");
+    details.put("reason", "Field [x] not found.");
+    details.put("code", "FIELD_NOT_FOUND");
+    AsyncQueryExecutionResponse response =
+        new AsyncQueryExecutionResponse(
+            "FAILED", null, null, "Field [x] not found.", null, null, details);
+    when(jobExecutorService.getAsyncQueryResults(eq("jobId"), any())).thenReturn(response);
+
+    action.doExecute(task, new GetAsyncQueryResultActionRequest("jobId"), actionListener);
+
+    verify(actionListener).onResponse(createJobActionResponseArgumentCaptor.capture());
+    org.json.JSONObject body =
+        new org.json.JSONObject(createJobActionResponseArgumentCaptor.getValue().getResult());
+    Assertions.assertEquals("FAILED", body.getString("status"));
+    org.json.JSONObject error = body.getJSONObject("error");
+    Assertions.assertEquals("FIELD_NOT_FOUND", error.getString("code"));
+    Assertions.assertEquals("IllegalArgumentException", error.getString("type"));
+    Assertions.assertEquals("Field [x] not found.", error.getString("reason"));
+  }
+
+  @Test
+  public void failedResponseWithoutStructuredErrorKeepsSparkStringBranch() {
+    AsyncQueryExecutionResponse response =
+        new AsyncQueryExecutionResponse("FAILED", null, null, "spark error", null, null);
+    when(jobExecutorService.getAsyncQueryResults(eq("jobId"), any())).thenReturn(response);
+
+    action.doExecute(task, new GetAsyncQueryResultActionRequest("jobId"), actionListener);
+
+    verify(actionListener).onResponse(createJobActionResponseArgumentCaptor.capture());
+    org.json.JSONObject body =
+        new org.json.JSONObject(createJobActionResponseArgumentCaptor.getValue().getResult());
+    // String branch — error is a plain JSON string, not an object.
+    Assertions.assertEquals("spark error", body.getString("error"));
+  }
+
+  @Test
   public void explainResponseIsRenderedWithExplainFormatter() {
     ExecutionEngine.ExplainResponseNodeV2 plan =
         new ExecutionEngine.ExplainResponseNodeV2("logical", "physical", null);

@@ -153,7 +153,14 @@ public class OpenSearchPluginModule extends AbstractModule {
   @Singleton
   public QueryJobService queryJobService(
       QueryJobStore store, ClusterService clusterService, RetentionPolicy retentionPolicy) {
-    return new OpenSearchQueryJobService(store, clusterService, Clock.systemUTC(), retentionPolicy);
+    return new OpenSearchQueryJobService(
+        store,
+        clusterService,
+        Clock.systemUTC(),
+        retentionPolicy,
+        // Reuse the sync REST renderer so an async GET on a FAILED job returns the same
+        // structured error body a synchronous POST would have returned for the same exception.
+        org.opensearch.sql.plugin.rest.SyncErrorReportRenderer::renderErrorMap);
   }
 
   /** {@link QueryPlanFactory}. */

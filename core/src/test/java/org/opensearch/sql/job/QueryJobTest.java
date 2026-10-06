@@ -74,6 +74,42 @@ class QueryJobTest {
     QueryJobStatus status = job.status();
     assertEquals(QueryJobState.FAILED, status.state());
     assertEquals("IllegalStateException", status.failure().orElseThrow().type());
+    assertEquals(java.util.Map.of(), status.failure().orElseThrow().details());
+  }
+
+  @Test
+  void failure_appliesRendererForStructuredDetails() {
+    RecordingRunner runner = new RecordingRunner();
+    QueryJob job =
+        new QueryJob(
+            ID,
+            OWNER,
+            runner,
+            Clock.fixed(Instant.ofEpochMilli(25L), ZoneOffset.UTC),
+            t -> java.util.Map.of("code", "FIELD_NOT_FOUND", "reason", t.getMessage()));
+    job.startRunner();
+    runner.fail(new IllegalArgumentException("Field [x] not found."));
+    QueryFailure failure = job.status().failure().orElseThrow();
+    assertEquals("FIELD_NOT_FOUND", failure.details().get("code"));
+    assertEquals("Field [x] not found.", failure.details().get("reason"));
+  }
+
+  @Test
+  void failure_rendererBugDoesNotBlockTerminalTransition() {
+    RecordingRunner runner = new RecordingRunner();
+    QueryJob job =
+        new QueryJob(
+            ID,
+            OWNER,
+            runner,
+            Clock.fixed(Instant.ofEpochMilli(26L), ZoneOffset.UTC),
+            t -> {
+              throw new RuntimeException("renderer bug");
+            });
+    job.startRunner();
+    runner.fail(new IllegalStateException("boom"));
+    assertEquals(QueryJobState.FAILED, job.status().state());
+    assertEquals(java.util.Map.of(), job.status().failure().orElseThrow().details());
   }
 
   @Test

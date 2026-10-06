@@ -92,7 +92,8 @@ public class TransportGetAsyncQueryResultAction
                   asyncQueryExecutionResponse.getSchema(),
                   asyncQueryExecutionResponse.getResults(),
                   Cursor.None,
-                  asyncQueryExecutionResponse.getError()));
+                  asyncQueryExecutionResponse.getError(),
+                  asyncQueryExecutionResponse.getErrorDetails()));
       listener.onResponse(new GetAsyncQueryResultActionResponse(responseContent));
     } catch (org.opensearch.sql.job.exceptions.QueryJobNotFoundException e) {
       // Translate to a transport-serializable OpenSearchException so cross-node forwarding
