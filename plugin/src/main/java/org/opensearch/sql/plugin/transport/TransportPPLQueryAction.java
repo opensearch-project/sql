@@ -332,13 +332,6 @@ public class TransportPPLQueryAction
     final PPLQueryTask pplQueryTask = task instanceof PPLQueryTask ? (PPLQueryTask) task : null;
     if (pplQueryTask != null) {
       OpenSearchQueryManager.setCancellableTask(pplQueryTask);
-      if (isQueryInsightsRecordingEnabled()) {
-        // Only track resource usage when Query Insights recording and core's task resource tracking
-        // are both on, so a disabled feature adds no ThreadMXBean overhead and we don't populate
-        // _tasks resource_stats behind the operator's back. The header stamp and report listener
-        // are set up only on the execute route below.
-        pplQueryTask.setResourceTrackingEnabled(isTaskResourceTrackingEnabled());
-      }
     }
     Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_TOTAL).increment();
     Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_COUNT_TOTAL).increment();
@@ -442,6 +435,12 @@ public class TransportPPLQueryAction
         // plain DSL search) with this query's marker. Child searches still see it: the executor
         // captures the thread context when the work is scheduled, which happens inside this block.
         try (ThreadContext.StoredContext ignored = threadContext.newStoredContext(true)) {
+          // Enable per-thread accounting only here, where a record will actually consume it, and
+          // only when core's task_resource_tracking is on so we never populate _tasks
+          // resource_stats behind the operator's back. The engine's brackets gate on
+          // supportsResourceTracking(), which stays false for every other route and when the
+          // feature is off, so they cost nothing then.
+          pplQueryTask.setResourceTrackingEnabled(isTaskResourceTrackingEnabled());
           stampQueryInsightsParentHeader(pplQueryTask);
           registerQueryInsightsReport(pplQueryTask);
           executePplQuery(pplService, transformedRequest, callerListener, queryInsightsSink);
