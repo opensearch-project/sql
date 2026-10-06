@@ -22,7 +22,7 @@ import org.json.JSONObject;
 import org.opensearch.client.Request;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.calcite.remote.MappingConflictFixtures.Command;
-import org.opensearch.sql.calcite.remote.MappingConflictFixtures.Pin;
+import org.opensearch.sql.calcite.remote.MappingConflictFixtures.Known500;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 import org.opensearch.sql.util.OtelDataStream;
 import org.opensearch.sql.util.OtelDataStream.Drift;
@@ -33,10 +33,10 @@ import org.opensearch.sql.util.OtelDataStream.Drift;
  * Every pair of {@link MappingConflictFixtures#TYPES} runs twice, once with each type in 000001.
  * One node reads the backing indices in a fixed order, so the two passes feed the merge both orders
  * a two-index stream can produce and cover every winner production can return. A 500 fails the run
- * unless {@link MappingConflictFixtures#KNOWN_500S} pins its cell to an issue, and a pinned cell
- * that stops returning 500 fails too. An unpinned 200 or 4xx passes, since this checks only that
- * schema evolution never returns a 500, but a command that never returns 200 fails, since it tests
- * nothing.
+ * unless {@link MappingConflictFixtures#KNOWN_500S} lists it as a known 500 tied to an issue, and a
+ * known 500 that stops returning 500 fails too. A 200 or 4xx outside {@code KNOWN_500S} passes,
+ * since this checks only that schema evolution never returns a 500, but a command that never
+ * returns 200 fails, since it tests nothing.
  */
 public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
 
@@ -46,7 +46,7 @@ public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
   protected abstract OtelDataStream create(String name) throws IOException;
 
   /** A keyword field no drift touches, for {@code {K}}. */
-  protected abstract String control();
+  protected abstract String stableField();
 
   @Override
   public void init() throws Exception {
@@ -55,8 +55,8 @@ public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
   }
 
   /**
-   * Runs every drift under {@code name} and fails on any unpinned 500, stale pin, or command that
-   * never returns 200.
+   * Runs every drift under {@code name} and fails on a 500 missing from {@code KNOWN_500S}, a stale
+   * {@code KNOWN_500S} entry, or a command that never returns 200.
    */
   protected void runDrifts(String name) throws IOException {
     JSONArray nodes = new JSONArray(executeRequest(new Request("GET", "/_cat/nodes?format=json")));
@@ -66,24 +66,24 @@ public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
     }
     List<Command> commands = REPRESENTATIVE;
     Set<String> names = commands.stream().map(Command::name).collect(Collectors.toSet());
-    List<Cell> cells = new ArrayList<>();
+    List<Observation> observations = new ArrayList<>();
     List<String> failures = new ArrayList<>();
     for (int i = 0; i < TYPES.size(); i++) {
       for (int j = i + 1; j < TYPES.size(); j++) {
         String a = TYPES.get(i);
         String b = TYPES.get(j);
         String pair = a + "/" + b;
-        cells.addAll(pass(name, pair, a, retype(a, b), commands));
-        cells.addAll(pass(name, pair, b, retype(b, a), commands));
+        observations.addAll(observe(name, pair, a, retype(a, b), commands));
+        observations.addAll(observe(name, pair, b, retype(b, a), commands));
       }
     }
     for (String type : TYPES) {
       String field = "attributes.types." + type;
-      cells.addAll(
-          pass(name, type + "/absent", type, n -> Drift.remove(field, BASE_DOCS), commands));
+      observations.addAll(
+          observe(name, type + "/absent", type, n -> Drift.remove(field, BASE_DOCS), commands));
       String added = "added_" + type;
-      cells.addAll(
-          pass(
+      observations.addAll(
+          observe(
               name,
               "absent/" + type,
               added,
@@ -92,74 +92,84 @@ public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
                       "attributes.types." + added, type, baseValues(n, "types." + type).toArray()),
               commands));
     }
-    cells.stream()
+    observations.stream()
         .filter(
-            c ->
-                c.winner().startsWith("unread-")
-                    && (c.pair().contains("absent") || !c.winner().startsWith("unread-4")))
+            o ->
+                o.winner().startsWith("unread-")
+                    && (o.pair().contains("absent") || !o.winner().startsWith("unread-4")))
         .forEach(
-            c ->
+            o ->
                 failures.add(
-                    c.pair() + " via " + c.source() + " could not read its winner, " + c.winner()));
+                    o.pair() + " via " + o.source() + " could not read its winner, " + o.winner()));
     names.stream()
-        .filter(n -> cells.stream().noneMatch(c -> c.command().equals(n) && c.status() == 200))
+        .filter(
+            n -> observations.stream().noneMatch(o -> o.command().equals(n) && o.status() == 200))
         .forEach(n -> failures.add(n + " never returned 200, so it tests nothing"));
     Set<String> serverErrors = new TreeSet<>();
-    for (Cell cell : cells) {
-      if (cell.status() >= 500) {
-        serverErrors.add(cell.key());
-        logger.info("500 {} | {} | {}", cell.key(), cell.source(), cell.error());
+    for (Observation observation : observations) {
+      if (observation.status() >= 500) {
+        serverErrors.add(observation.key());
+        logger.info(
+            "500 {} | {} | {}", observation.key(), observation.source(), observation.error());
         if (KNOWN_500S.stream()
-            .noneMatch(p -> p.covers(cell.pair(), cell.winner(), cell.command(), cell.source()))) {
+            .noneMatch(
+                k ->
+                    k.covers(
+                        observation.pair(),
+                        observation.winner(),
+                        observation.command(),
+                        observation.source()))) {
           failures.add(
-              "unpinned 500, "
-                  + cell.label()
+              "500 missing from KNOWN_500S, "
+                  + observation.label()
                   + "\n  query: "
-                  + cell.query()
+                  + observation.query()
                   + "\n  error: "
-                  + cell.error().substring(0, Math.min(200, cell.error().length())));
+                  + observation.error().substring(0, Math.min(200, observation.error().length())));
         }
       }
     }
     logger.info(
         "{} queries, {} return 500 across {} pair, winner and command keys",
-        cells.size(),
-        cells.stream().filter(c -> c.status() >= 500).count(),
+        observations.size(),
+        observations.stream().filter(o -> o.status() >= 500).count(),
         serverErrors.size());
-    Set<String> pairs = cells.stream().map(Cell::pair).collect(Collectors.toSet());
-    for (Pin pin : KNOWN_500S) {
-      pin.commands().stream()
+    Set<String> pairs = observations.stream().map(Observation::pair).collect(Collectors.toSet());
+    for (Known500 known : KNOWN_500S) {
+      known.commands().stream()
           .filter(c -> !names.contains(c))
           .forEach(
-              c -> failures.add("the " + pin.issue() + " pin lists " + c + ", which never runs"));
-      List<Cell> covered =
-          cells.stream()
-              .filter(c -> pin.covers(c.pair(), c.winner(), c.command(), c.source()))
+              c ->
+                  failures.add(
+                      "the " + known.issue() + " known 500 lists " + c + ", which never runs"));
+      List<Observation> covered =
+          observations.stream()
+              .filter(o -> known.covers(o.pair(), o.winner(), o.command(), o.source()))
               .toList();
-      pin.pairs().stream()
-          .filter(p -> covered.stream().noneMatch(c -> c.pair().equals(p)))
+      known.pairs().stream()
+          .filter(p -> covered.stream().noneMatch(o -> o.pair().equals(p)))
           .forEach(
               p ->
                   failures.add(
                       "the "
-                          + pin.issue()
-                          + " pin lists "
+                          + known.issue()
+                          + " known 500 lists "
                           + p
                           + (pairs.contains(p)
-                              ? ", which yields no cell under its winner and source, so fix or"
+                              ? ", which yields no query under its winner and source, so fix or"
                                   + " remove it"
                               : ", which never runs, so check its spelling and TYPES order")));
       covered.stream()
-          .filter(c -> c.status() < 500)
+          .filter(o -> o.status() < 500)
           .forEach(
-              c ->
+              o ->
                   failures.add(
-                      "pinned to "
-                          + pin.issue()
-                          + " but no longer returns 500, "
-                          + c.label()
-                          + ", narrow that pin to the cells that still fail\n  query: "
-                          + c.query()));
+                      "listed under "
+                          + known.issue()
+                          + " in KNOWN_500S but no longer returns 500, "
+                          + o.label()
+                          + ", narrow that entry to the queries that still fail\n  query: "
+                          + o.query()));
     }
     if (!failures.isEmpty()) {
       Set<String> distinct = new TreeSet<>(failures);
@@ -183,22 +193,22 @@ public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
    * Rolls the stream over to the drift and runs every command through the stream name and the
    * wildcard, each under the winner its merged schema reports.
    */
-  private List<Cell> pass(
+  private List<Observation> observe(
       String name, String pair, String type, DriftFactory factory, List<Command> commands)
       throws IOException {
     OtelDataStream stream = create(name);
-    List<Cell> cells = new ArrayList<>();
+    List<Observation> observations = new ArrayList<>();
     try {
       String field = "`attributes.types." + type + "`";
       stream.rollover(factory.drift(name));
       for (String source : List.of(name, name + "*")) {
         String resolved = winner(source, field);
-        logger.info("pass {}, field {} via {} reads {}", pair, field, source, resolved);
+        logger.info("pair {}, field {} via {} reads {}", pair, field, source, resolved);
         for (Command command : commands) {
-          String query = command.query(source, field, control());
+          String query = command.query(source, field, stableField());
           Response response = run(query);
-          cells.add(
-              new Cell(
+          observations.add(
+              new Observation(
                   pair,
                   resolved,
                   command.name(),
@@ -217,7 +227,7 @@ public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
       throw e;
     }
     stream.delete();
-    return cells;
+    return observations;
   }
 
   /** The PPL type the merged schema gives the field, or the status when it cannot be read. */
@@ -278,8 +288,8 @@ public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
 
   private record Response(int status, String type, String error) {}
 
-  /** One command over one source under one winner. */
-  private record Cell(
+  /** The outcome of one query, meaning one command over one source under one winner. */
+  private record Observation(
       String pair,
       String winner,
       String command,
@@ -292,7 +302,7 @@ public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
       return pair + " " + winner + " " + command;
     }
 
-    /** The cell as a failure line reads it. */
+    /** The observation as a failure line reads it. */
     String label() {
       return "pair " + pair + ", winner " + winner + ", command " + command;
     }

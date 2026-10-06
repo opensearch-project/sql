@@ -18,7 +18,7 @@ public class CalciteOtelTracesDataStreamIT extends OtelDataStreamConflictTestCas
   }
 
   @Override
-  protected String control() {
+  protected String stableField() {
     return "serviceName";
   }
 
