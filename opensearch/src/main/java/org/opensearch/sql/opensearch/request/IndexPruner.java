@@ -76,7 +76,7 @@ public class IndexPruner {
         // Field caps could not check these, so they may match; the search reports what it can't
         // read.
         Set<String> keep = new LinkedHashSet<>(Arrays.asList(candidates));
-        keep.addAll(Arrays.asList(probe.getFailedIndices()));
+        keep.addAll(probe.getFailures().keySet());
         if (indexExpr.isPrunedBy(keep.size())) {
           return new IndexName(String.join(",", keep));
         }
