@@ -213,15 +213,16 @@ public final class AsyncPPLTestHelpers {
   }
 
   /**
-   * Waits for every SQL pool to drain, asserts the search delta since {@code searchesAtDelete}
+   * Waits for every SQL pool to drain, asserts the search delta since {@code searchesAfterDelete}
    * stayed within {@link #MAX_SEARCHES_AFTER_CANCEL}, and confirms the tracked PITs were released.
-   * {@code searchesAtDelete} must be captured immediately before the DELETE.
+   * {@code searchesAfterDelete} must be captured after DELETE acknowledges cancellation, so work
+   * done while the request is travelling to the owner is excluded.
    */
   public static void assertStopped(
-      RestClient owner, String ownerNodeId, long searchesAtDelete, List<String> pitsSeenRunning)
+      RestClient owner, String ownerNodeId, long searchesAfterDelete, List<String> pitsSeenRunning)
       throws Exception {
     awaitPoolsIdle(owner, ownerNodeId);
-    long delta = indexSearchCount(owner) - searchesAtDelete;
+    long delta = indexSearchCount(owner) - searchesAfterDelete;
     Assert.assertTrue(
         "cancelled query must not keep scanning past "
             + MAX_SEARCHES_AFTER_CANCEL

@@ -549,12 +549,12 @@ public class AsyncPPLQueryLifecycleIT extends PPLIntegTestCase {
         Assert.assertEquals(
             "RUNNING", new JSONObject(getAsyncQuery(owner, queryId)).getString("status"));
 
-        long searchesAtDelete = indexSearchCount(owner);
         Response deleted = deleteAsyncQuery(owner, queryId);
         Assert.assertEquals(200, deleted.getStatusLine().getStatusCode());
         Assert.assertEquals(
             "CANCELLED", new JSONObject(getResponseBody(deleted, true)).getString("status"));
-        assertStopped(owner, ownerNodeId, searchesAtDelete, runningPits);
+        long searchesAfterDelete = indexSearchCount(owner);
+        assertStopped(owner, ownerNodeId, searchesAfterDelete, runningPits);
         assertNotFound(() -> getAsyncQuery(owner, queryId));
         assertNotFound(() -> deleteAsyncQuery(owner, queryId));
       } finally {

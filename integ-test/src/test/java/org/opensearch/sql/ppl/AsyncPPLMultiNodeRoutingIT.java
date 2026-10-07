@@ -238,13 +238,13 @@ public class AsyncPPLMultiNodeRoutingIT extends PPLIntegTestCase {
     List<String> runningPits = awaitRunning(nodeA, nodeAId, searchesBefore);
     Assert.assertEquals(
         "RUNNING", new JSONObject(getAsyncQuery(nodeA, queryId)).getString("status"));
-    long searchesAtDelete = indexSearchCount(nodeA);
 
     Response deleted = deleteAsyncQuery(nodeB, queryId);
     Assert.assertEquals(200, deleted.getStatusLine().getStatusCode());
     Assert.assertEquals(
         "CANCELLED", new JSONObject(getResponseBody(deleted, true)).getString("status"));
-    assertStopped(nodeA, nodeAId, searchesAtDelete, runningPits);
+    long searchesAfterDelete = indexSearchCount(nodeA);
+    assertStopped(nodeA, nodeAId, searchesAfterDelete, runningPits);
     assertNotFound(() -> getAsyncQuery(nodeA, queryId));
     assertNotFound(() -> getAsyncQuery(nodeB, queryId));
     assertNotFound(() -> deleteAsyncQuery(nodeB, queryId));
@@ -256,7 +256,6 @@ public class AsyncPPLMultiNodeRoutingIT extends PPLIntegTestCase {
     long searchesBefore = indexSearchCount(nodeA);
     String queryId = submitAsync(nodeA, STREAMSTATS_QUERY);
     List<String> runningPits = awaitRunning(nodeA, nodeAId, searchesBefore);
-    long searchesAtDelete = indexSearchCount(nodeA);
 
     CountDownLatch start = new CountDownLatch(1);
     ExecutorService executor = Executors.newFixedThreadPool(2);
@@ -282,7 +281,8 @@ public class AsyncPPLMultiNodeRoutingIT extends PPLIntegTestCase {
     }
     codes.sort(null);
     Assert.assertEquals(List.of(200, 404), codes);
-    assertStopped(nodeA, nodeAId, searchesAtDelete, runningPits);
+    long searchesAfterDelete = indexSearchCount(nodeA);
+    assertStopped(nodeA, nodeAId, searchesAfterDelete, runningPits);
     assertNotFound(() -> getAsyncQuery(nodeA, queryId));
   }
 

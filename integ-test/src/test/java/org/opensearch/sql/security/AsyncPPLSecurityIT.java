@@ -92,12 +92,10 @@ public class AsyncPPLSecurityIT extends SecurityTestBase {
         "RUNNING",
         new JSONObject(asUser(peer, "GET", ASYNC_PATH + queryId, ALICE, null)).getString("status"));
 
-    // Capture the search counter right before Alice's DELETE so the post-cancel delta excludes
-    // legitimate work performed while Bob was denied and Alice polled.
-    long searchesAtDelete = indexSearchCount(owner);
     JSONObject deleted = new JSONObject(asUser(peer, "DELETE", ASYNC_PATH + queryId, ALICE, null));
     Assert.assertEquals("CANCELLED", deleted.getString("status"));
-    assertStopped(owner, ownerNodeId, searchesAtDelete, runningPits);
+    long searchesAfterDelete = indexSearchCount(owner);
+    assertStopped(owner, ownerNodeId, searchesAfterDelete, runningPits);
     assertNotFound(() -> asUser(owner, "GET", ASYNC_PATH + queryId, ALICE, null));
   }
 
