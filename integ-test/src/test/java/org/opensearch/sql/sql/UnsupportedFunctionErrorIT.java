@@ -34,20 +34,24 @@ public class UnsupportedFunctionErrorIT extends SQLIntegTestCase {
             ResponseException.class,
             () -> executeQuery("SELECT JSON_EXTRACT(message, '$.name') FROM json_test"));
 
-    // ponytail: regression test for V2358402234
-    // Status code is correct (400), but response format is broken (plain text not JSON)
-    // AOSS 2.17: {"error": {...}, "status": 500} → JSON + wrong status
-    // Current 3.x: "The following method is not supported..." → plain text + correct status
-    // Root cause: commit f0cc2e064 (Oct 1, 2026) in AsyncRestExecutor.java line 125
-    //   uses BytesRestResponse(status, e.getMessage()) instead of reportError() → loses JSON
+    // V2358402234: UnsupportedOperationException should return 400 (client error) not 500
     assertEquals(400, exception.getResponse().getStatusLine().getStatusCode());
-    String body = getResponseBody(exception.getResponse());
-    assertTrue(
-        "Error message should mention JSON_EXTRACT",
-        body.contains("JSON_EXTRACT") || body.contains("not supported"));
 
-    // TODO: Fix AsyncRestExecutor to use ErrorMessageFactory, then assert JSON format:
-    // JSONObject error = new JSONObject(body);
-    // assertTrue(error.has("error") && error.has("status"));
+    String body = getResponseBody(exception.getResponse());
+    org.json.JSONObject response = new org.json.JSONObject(body);
+
+    // Verify JSON error structure
+    assertTrue("Response should have 'error' field", response.has("error"));
+    assertTrue("Response should have 'status' field", response.has("status"));
+    assertEquals("Status in body should match HTTP status", 400, response.getInt("status"));
+
+    org.json.JSONObject error = response.getJSONObject("error");
+    assertTrue("Error should have 'type' field", error.has("type"));
+    assertTrue("Error should have 'details' field", error.has("details"));
+
+    String details = error.getString("details");
+    assertTrue(
+        "Error details should mention JSON_EXTRACT or unsupported",
+        details.contains("JSON_EXTRACT") || details.contains("not supported"));
   }
 }
