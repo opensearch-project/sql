@@ -47,8 +47,9 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.sql.job.QueryJobId;
 
 /**
- * Multi-node IT for owner-node routing (issue #5765). Runs against the {@code asyncMultiNodeIT}
- * two-node test cluster.
+ * Multi-node IT for owner-node routing (issue #5765).
+ *
+ * <p>Runs against the {@code asyncMultiNodeIT} test cluster (two nodes). Verifies:
  *
  * <ul>
  *   <li>submit lands on node A; the returned queryId encodes node A as owner;
@@ -62,6 +63,10 @@ import org.opensearch.sql.job.QueryJobId;
  *       the owner;
  *   <li>a job that fails naturally after the full scan reports FAILED on DELETE via the peer.
  * </ul>
+ *
+ * <p>Each request is pinned to a specific node by constructing a dedicated {@link RestClient} for
+ * that node's HTTP address. The base {@link PPLIntegTestCase#client()} would round-robin across the
+ * cluster hosts, which defeats the purpose of the test.
  */
 public class AsyncPPLMultiNodeRoutingIT extends PPLIntegTestCase {
 
@@ -72,14 +77,17 @@ public class AsyncPPLMultiNodeRoutingIT extends PPLIntegTestCase {
   @Override
   protected void init() throws Exception {
     super.init();
+    // Match the single-node lifecycle IT: the legacy v2 analyzer throws SemanticCheckException
+    // synchronously from pplService.execute for field-not-found errors, which short-circuits the
+    // async submit path (await(0) sees FAILED instead of RUNNING) and returns 400 inline. Calcite
+    // delivers the same error through the response listener on the engine thread, so submit
+    // returns a RUNNING id and the GET body carries the structured sync-shape error.
     enableCalcite();
     loadIndex(Index.ACCOUNT);
-    // Calcite reports field-not-found failures through the response listener so wait=0 returns
-    // a RUNNING id and the subsequent GET carries the structured synchronous error body.
-    // getClusterHosts() returns one HttpHost per bound address — a two-node cluster typically
-    // yields four hosts of which hosts[0] and hosts[1] are the same node. Shared helper resolves
-    // node ids per host and picks two with distinct ids; without this, owner-node forwarding never
-    // triggers and the tests give a false pass.
+    // getClusterHosts() returns one HttpHost per bound address — in test clusters each node binds
+    // both [::1] AND 127.0.0.1, so a two-node cluster yields four hosts of which hosts[0] and
+    // hosts[1] are typically the *same* node. Resolve node ids per host and pick two with distinct
+    // ids, otherwise owner-node forwarding never triggers and the test gives a false pass.
     RestClient[] nodes = AsyncPPLTestHelpers.twoNodeClients(getClusterHosts(), this::nodeClient);
     nodeA = nodes[0];
     nodeB = nodes[1];
@@ -89,10 +97,7 @@ public class AsyncPPLMultiNodeRoutingIT extends PPLIntegTestCase {
   @After
   public void closeNodeClients() throws Exception {
     try {
-      // A running-cancel test that fails before its DELETE lands leaves a Calcite scan drawing
-      // batches from the fixture index; wait for nodeA to drain so the next test can't take its
-      // baseline against that orphan scan. If the drain still fails, raise it: a busy owner is
-      // itself a defect worth surfacing, not something to swallow.
+      // Drain any scan left by a failed cancellation test before the next test takes its baseline.
       if (nodeA != null && nodeAId != null) {
         awaitPoolsIdle(nodeA, nodeAId);
       }
@@ -126,10 +131,13 @@ public class AsyncPPLMultiNodeRoutingIT extends PPLIntegTestCase {
 
   @Test
   public void getUnknownPplIdFromNonOwner_returns404() throws Exception {
+    // A QueryJobId whose node id matches nodeA (owner-encoded) but the context id doesn't exist.
     String fakeId = QueryJobId.create(nodeAId).encode();
     Request request = new Request("GET", ASYNC_QUERY_ENDPOINT + fakeId);
     ResponseException ex =
         Assert.assertThrows(ResponseException.class, () -> nodeB.performRequest(request));
+    // Owner's QueryJobNotFoundException must translate to a transport-serializable 404 so
+    // forwarding doesn't drop it to 500.
     Assert.assertEquals(404, ex.getResponse().getStatusLine().getStatusCode());
   }
 
@@ -231,7 +239,6 @@ public class AsyncPPLMultiNodeRoutingIT extends PPLIntegTestCase {
 
   @Test
   public void deleteOnPeerForwardsCancellationOfStreamstatsAndStopsExecution() throws Exception {
-    // Uses default settings and executes on sql-complex-worker.
     AsyncPPLTestHelpers.createIndex(nodeA);
     long searchesBefore = indexSearchCount(nodeA);
     String queryId = submitAsync(nodeA, STREAMSTATS_QUERY);

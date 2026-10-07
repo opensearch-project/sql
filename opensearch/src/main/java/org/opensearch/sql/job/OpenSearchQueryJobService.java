@@ -147,8 +147,8 @@ public final class OpenSearchQueryJobService implements QueryJobService {
   }
 
   /**
-   * Resolves {@code id} against the store or raises {@link QueryJobNotFoundException}. Shared by
-   * {@link #get}, {@link #cancel}, and {@link #delete} so all surface the same "not-found" error.
+   * Resolves {@code id} against the store or raises {@link QueryJobNotFoundException}. Extracted
+   * from {@link #get} and {@link #cancel} so both surface the same "not-found" error uniformly.
    *
    * @param id id supplied by the caller; must be non-{@code null}
    * @return the job registered under {@code id}

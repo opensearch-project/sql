@@ -25,10 +25,9 @@ import org.opensearch.client.ResponseException;
 import org.opensearch.client.RestClient;
 
 /**
- * Shared helpers for the async PPL integration tests ({@link AsyncPPLQueryLifecycleIT}, {@link
- * AsyncPPLMultiNodeRoutingIT}, and {@code AsyncPPLSecurityIT}). Covers lifecycle plumbing and the
- * cancellation fixture: a dedicated bulk-loaded index, a streamstats workload, running proof, and
- * the stop oracle.
+ * Shared helpers for the async PPL integration tests ({@link AsyncPPLQueryLifecycleIT} and {@link
+ * AsyncPPLMultiNodeRoutingIT}). Keeps the two IT classes free of duplicated boilerplate for POST /
+ * GET / poll-until-terminal.
  */
 public final class AsyncPPLTestHelpers {
 

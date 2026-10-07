@@ -530,8 +530,7 @@ testClusters {
     }
     integTestWithSecurity {
         testDistribution = 'archive'
-        // Two nodes so AsyncPPLSecurityIT can exercise owner forwarding on the shared secured
-        // cluster. Pre-existing security suites keep running against the same cluster.
+        // AsyncPPLSecurityIT needs two nodes to exercise owner forwarding.
         numberOfNodes = 2
         plugin(getJobSchedulerPlugin())
         plugin ":opensearch-sql-plugin"
