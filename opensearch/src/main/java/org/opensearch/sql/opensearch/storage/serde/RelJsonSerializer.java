@@ -149,7 +149,10 @@ public class RelJsonSerializer {
               .withInputTranslator(ExtendedRelJson::translateInput)
               .withOperatorTable(getPplSqlOperatorTable());
       Map<String, Object> exprMap = mapper.readValue(exprStr, TYPE_REF);
-      return relJson.toRex(cluster, exprMap);
+      RexNode rexNode = relJson.toRex(cluster, exprMap);
+      // Reject client-forged expressions before they reach code generation / Janino compilation.
+      RexLiteralSafetyValidator.validate(rexNode);
+      return rexNode;
     } catch (Exception e) {
       throw new IllegalStateException("Failed to deserialize RexNode " + exprStr, e);
     }
