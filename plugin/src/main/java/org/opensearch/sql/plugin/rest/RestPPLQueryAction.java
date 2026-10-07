@@ -78,7 +78,9 @@ public class RestPPLQueryAction extends BaseRestHandler {
   }
 
   private static RestStatus loggedErrorCode(Exception ex) {
-    int code = getRawErrorCode(ex);
+    // The status mapping was moved to SyncErrorReportRenderer so the async failure-capture path
+    // can reuse it. Behavior here must stay byte-identical.
+    int code = SyncErrorReportRenderer.statusCodeFor(ex);
 
     // If we hit neither branch, no-op as false alarm error? I don't believe we can ever hit this
     // scenario.

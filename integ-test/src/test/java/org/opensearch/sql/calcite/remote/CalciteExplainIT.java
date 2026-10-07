@@ -12,6 +12,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CASCADED_NESTED;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DEEP_NESTED;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_FLAT_OBJECT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_GRAPH_EMPLOYEES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
@@ -62,6 +63,12 @@ public class CalciteExplainIT extends ExplainIT {
     loadIndex(Index.WORK_INFORMATION);
     loadIndex(Index.WEBLOG);
     loadIndex(Index.DATA_TYPE_ALIAS);
+    // flat_object holds a multi-value array, which the parquet store rejects at bulk load
+    // (MULTI_VALUE_FIELD_LOAD); skip the load on the AE route so it doesn't abort init() for the
+    // independent tests. The dependent tests are @RequiresCapability-gated.
+    if (!isAnalyticsParquetIndicesEnabled()) {
+      loadIndex(Index.FLAT_OBJECT);
+    }
     // deep_nested has a multi-value array for a scalar-mapped field, which the parquet store
     // rejects at bulk load (MULTI_VALUE_FIELD_LOAD); skip the load on the AE route so it
     // doesn't abort init() for the independent tests. The dependent tests are
@@ -3147,5 +3154,145 @@ public class CalciteExplainIT extends ExplainIT {
     // Verify physical plan also has structured format
     JSONObject physical = calcite.getJSONObject("physical");
     Assert.assertTrue("Physical plan should contain 'rels' array", physical.has("rels"));
+  }
+
+  // A flat_object leaf is ITEM(<column>, 'key') with no mapping of its own, and the index files it
+  // as one keyword term with the path folded in, so an exact match is the whole query and no record
+  // is opened. The plan is asserted in full: a regex over the DSL would pass on a query that names
+  // the leaf but asks the wrong thing of it.
+  @Test
+  @RequiresCapability(
+      value = MULTI_VALUE_FIELD_LOAD,
+      note =
+          "reads the flat_object dataset, whose multi-value field can't load on the AE store"
+              + " (MULTI_VALUE_FIELD_LOAD).")
+  public void explainFlatObjectLeafFilterPushDown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        "source=" + TEST_INDEX_FLAT_OBJECT + " | where attributes.env = 'prod' | fields service";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_flat_object_leaf_term_push.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  // A nested field is indexed as hidden child documents, so the term has to be wrapped to reach
+  // them; unwrapped it matches no root document and the row silently disappears.
+  @Test
+  @RequiresCapability(
+      value = MULTI_VALUE_FIELD_LOAD,
+      note =
+          "reads the flat_object dataset, whose multi-value field can't load on the AE store"
+              + " (MULTI_VALUE_FIELD_LOAD).")
+  public void explainFlatObjectLeafUnderNestedFieldFilterPushDown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        "source="
+            + TEST_INDEX_FLAT_OBJECT
+            + " | where projects.attributes.k = 'v' | fields service";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_flat_object_leaf_nested_term_push.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  // The other half: a leaf has no doc values, so what the index cannot answer is a script that
+  // reads it out of _source per candidate record. An ordered comparison is deliberately not folded
+  // into a range -- the terms are text, and a range over them would compare text.
+  @Test
+  @RequiresCapability(
+      value = MULTI_VALUE_FIELD_LOAD,
+      note =
+          "reads the flat_object dataset, whose multi-value field can't load on the AE store"
+              + " (MULTI_VALUE_FIELD_LOAD).")
+  public void explainFlatObjectLeafOrderedComparisonIsAScript() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        "source="
+            + TEST_INDEX_FLAT_OBJECT
+            + " | where cast(attributes.duration_ms as double) > 5 | fields service";
+    var result = explainQueryYaml(query);
+    String expected = loadExpectedPlan("explain_flat_object_leaf_script_push.yaml");
+    assertYamlEqualsIgnoreId(expected, result);
+  }
+
+  // The rest of the table: each operator the index answers, asserted as the query it becomes.
+  @Test
+  @RequiresCapability(
+      value = MULTI_VALUE_FIELD_LOAD,
+      note =
+          "reads the flat_object dataset, whose multi-value field can't load on the AE store"
+              + " (MULTI_VALUE_FIELD_LOAD).")
+  public void explainFlatObjectLeafInIsATermsQuery() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        "source="
+            + TEST_INDEX_FLAT_OBJECT
+            + " | where attributes.env in ('prod','staging') | fields service";
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("explain_flat_object_leaf_terms_push.yaml"), explainQueryYaml(query));
+  }
+
+  @Test
+  @RequiresCapability(
+      value = MULTI_VALUE_FIELD_LOAD,
+      note =
+          "reads the flat_object dataset, whose multi-value field can't load on the AE store"
+              + " (MULTI_VALUE_FIELD_LOAD).")
+  public void explainFlatObjectLeafIsNotNullIsAnExistsQuery() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        "source=" + TEST_INDEX_FLAT_OBJECT + " | where isnotnull(attributes.env) | fields service";
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("explain_flat_object_leaf_exists_push.yaml"), explainQueryYaml(query));
+  }
+
+  @Test
+  @RequiresCapability(
+      value = MULTI_VALUE_FIELD_LOAD,
+      note =
+          "reads the flat_object dataset, whose multi-value field can't load on the AE store"
+              + " (MULTI_VALUE_FIELD_LOAD).")
+  public void explainFlatObjectLeafLikeIsAWildcardQuery() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        "source="
+            + TEST_INDEX_FLAT_OBJECT
+            + " | where like(attributes.env, 'pro%') | fields service";
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("explain_flat_object_leaf_wildcard_push.yaml"), explainQueryYaml(query));
+  }
+
+  // A flat_object sub-field of an ordinary object is named by the whole path, and the index term
+  // carries all of it, so the lookup is the same one.
+  @Test
+  @RequiresCapability(
+      value = MULTI_VALUE_FIELD_LOAD,
+      note =
+          "reads the flat_object dataset, whose multi-value field can't load on the AE store"
+              + " (MULTI_VALUE_FIELD_LOAD).")
+  public void explainFlatObjectSubFieldOfObjectFilterPushDown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        "source="
+            + TEST_INDEX_FLAT_OBJECT
+            + " | where issue.labels.category.level = 'warn' | fields service";
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("explain_flat_object_subfield_of_object_push.yaml"),
+        explainQueryYaml(query));
+  }
+
+  // An alias to a flat_object is looked up under the target's path: by the time the predicate is
+  // folded the name is already the target's, which is why the term names attributes.duration_ms.
+  @Test
+  @RequiresCapability(
+      value = MULTI_VALUE_FIELD_LOAD,
+      note =
+          "reads the flat_object dataset, whose multi-value field can't load on the AE store"
+              + " (MULTI_VALUE_FIELD_LOAD).")
+  public void explainFlatObjectThroughAliasFilterPushDown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    String query =
+        "source=" + TEST_INDEX_FLAT_OBJECT + " | where attrs.duration_ms = 'n/a' | fields service";
+    assertYamlEqualsIgnoreId(
+        loadExpectedPlan("explain_flat_object_through_alias_push.yaml"), explainQueryYaml(query));
   }
 }

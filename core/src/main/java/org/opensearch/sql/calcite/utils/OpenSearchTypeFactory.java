@@ -206,6 +206,15 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         return TYPE_FACTORY.createSqlType(SqlTypeName.GEOMETRY, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("text")) {
         return TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, nullable);
+      } else if (fieldType.legacyTypeName().equalsIgnoreCase("flat_object")) {
+        // Keys are the dotted leaf paths, values are text: a flat_object gives its leaves no type
+        // of their own, and the index holds each as a keyword term. This is what spath already
+        // does for a JSON string -- every value reads as text, and a path holding several values
+        // reads as their JSON.
+        return TYPE_FACTORY.createMapType(
+            TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
+            TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, true),
+            nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("ip")) {
         return TYPE_FACTORY.createUDT(ExprUDT.EXPR_IP, nullable);
       } else if (fieldType.getOriginalPath().isPresent()) {
