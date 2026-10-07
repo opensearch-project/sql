@@ -1,0 +1,10 @@
+{"index":{"_id":"1"}}
+{"service":"checkout","attributes":{"http.response.status_code":500,"duration_ms":12.5,"env":"prod"}}
+{"index":{"_id":"2"}}
+{"service":"payments","attributes":{"http":{"response":{"status_code":503}},"duration_ms":"4","env":"staging"}}
+{"index":{"_id":"3"}}
+{"service":"tags","attributes":{"tags":["a","b"]}}
+{"index":{"_id":"4"}}
+{"service":"nested","projects":[{"kw":"v","attributes":{"k":"v"}}]}
+{"index":{"_id":"5"}}
+{"service":"subfield","issue":{"labels":{"category":{"level":"warn"}}}}

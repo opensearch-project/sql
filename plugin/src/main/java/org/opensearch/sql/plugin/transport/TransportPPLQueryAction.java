@@ -10,16 +10,18 @@ import static org.opensearch.sql.executor.ExecutionEngine.ExplainResponse.normal
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
-import java.util.LinkedHashMap;
+import java.time.Clock;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.apache.calcite.rel.RelNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.ContextPreservingActionListener;
@@ -42,6 +44,12 @@ import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
 import org.opensearch.sql.executor.AnalyzeResponse;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.job.OpenSearchQueryJobService;
+import org.opensearch.sql.job.OpenSearchSecurityAdapter;
+import org.opensearch.sql.job.QueryJob;
+import org.opensearch.sql.job.QueryJobService;
+import org.opensearch.sql.job.QueryRunner;
+import org.opensearch.sql.job.SecurityAdapter;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.monitor.profile.ProfileScope;
@@ -54,11 +62,13 @@ import org.opensearch.sql.plugin.config.OpenSearchPluginModule;
 import org.opensearch.sql.plugin.rest.AnalyticsEngineFormatSupport;
 import org.opensearch.sql.plugin.rest.AnalyticsExecutorHolder;
 import org.opensearch.sql.plugin.rest.RestUnifiedQueryAction;
+import org.opensearch.sql.ppl.PPLQueryRunner;
 import org.opensearch.sql.ppl.PPLService;
 import org.opensearch.sql.ppl.QueryInsightsMetadata;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.CsvResponseFormatter;
+import org.opensearch.sql.protocol.response.format.ExplainResponseJsonFormatter;
 import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.RawResponseFormatter;
@@ -96,6 +106,8 @@ public class TransportPPLQueryAction
   private final ClusterService clusterServiceRef;
   private final org.opensearch.sql.common.setting.Settings pluginSettingsRef;
   private final TransportService transportServiceRef;
+  private final QueryJobService queryJobService;
+  private final SecurityAdapter securityAdapter;
 
   @Inject
   public TransportPPLQueryAction(
@@ -106,11 +118,15 @@ public class TransportPPLQueryAction
       DataSourceServiceImpl dataSourceService,
       org.opensearch.common.settings.Settings clusterSettings,
       EngineExtensionsHolder extensionsHolder,
-      Tracer tracer) {
+      Tracer tracer,
+      OpenSearchQueryJobService queryJobService,
+      OpenSearchSecurityAdapter securityAdapter) {
     super(PPLQueryAction.NAME, transportService, actionFilters, TransportPPLQueryRequest::new);
     this.clientRef = client;
     this.clusterServiceRef = clusterService;
     this.transportServiceRef = transportService;
+    this.queryJobService = queryJobService;
+    this.securityAdapter = securityAdapter;
 
     ModulesBuilder modules = new ModulesBuilder();
     modules.add(new OpenSearchPluginModule(extensionsHolder.engines(), tracer));
@@ -122,6 +138,9 @@ public class TransportPPLQueryAction
           b.bind(NodeClient.class).toInstance(client);
           b.bind(org.opensearch.sql.common.setting.Settings.class).toInstance(pluginSettings);
           b.bind(DataSourceService.class).toInstance(dataSourceService);
+          b.bind(ClusterService.class).toInstance(clusterService);
+          b.bind(org.opensearch.common.util.concurrent.ThreadContext.class)
+              .toInstance(client.threadPool().getThreadContext());
         });
     this.injector = Guice.createInjector(modules);
     this.tracer = tracer;
@@ -438,6 +457,12 @@ public class TransportPPLQueryAction
             transformedRequest,
             createAnalyzeResponseListener(transformedRequest, clearingListener),
             queryInsightsSink);
+      } else if (transformedRequest.shouldRunAsync()) {
+        // Async submission answers RUNNING and the query outlives this task, so the task's
+        // completion is not the query's end: a record stamped from it would carry near-zero
+        // latency and reference child searches that have not run yet. Left out of Top N until the
+        // job path reports for itself.
+        submitAsync(pplService, transformedRequest, clearingListener, queryInsightsSink);
       } else if (pplQueryTask != null && isQueryInsightsRecordingEnabled()) {
         // Query Insights is set up only on this execute route: explain, analyze, and the analytics
         // engine run no search, so stamping their child searches would orphan them under a parent
@@ -470,6 +495,72 @@ public class TransportPPLQueryAction
       // Clear the task in case an early return/throw skipped submit() and left it on this thread.
       OpenSearchQueryManager.clearCancellableTask();
     }
+  }
+
+  private void submitAsync(
+      PPLService pplService,
+      PPLQueryRequest transformedRequest,
+      ActionListener<TransportPPLQueryResponse> listener,
+      Consumer<QueryInsightsMetadata> queryInsightsSink) {
+    QueryRunner runner =
+        new PPLQueryRunner(pplService, transformedRequest, queryInsightsSink, Clock.systemUTC());
+    ThreadContext threadContext = clientRef.threadPool().getThreadContext();
+    ActionListener<TransportPPLQueryResponse> ctxListener =
+        ContextPreservingActionListener.wrapPreservingContext(listener, threadContext);
+    ResponseListener<ExecutionEngine.QueryResponse> responseListener =
+        createListener(transformedRequest, ctxListener);
+    CompletionStage<org.opensearch.sql.job.QueryResult> submission;
+    try {
+      submission =
+          queryJobService.submit(
+              runner,
+              securityAdapter.current(),
+              transformedRequest.effectiveWaitForCompletion(),
+              transformedRequest.effectiveKeepAlive());
+    } catch (RuntimeException e) {
+      responseListener.onFailure(e);
+      return;
+    }
+    submission.whenComplete(
+        (result, error) -> {
+          if (error != null) {
+            // whenComplete on a dependent CompletionStage wraps the exception in
+            // CompletionException. Unwrap so OpenSearch's status mapper sees the engine's
+            // original exception type (preserves 4xx classification and PPL error context).
+            Throwable cause = QueryJob.unwrap(error);
+            responseListener.onFailure(
+                cause instanceof Exception ex ? ex : new RuntimeException(cause));
+            return;
+          }
+          switch (result) {
+            case org.opensearch.sql.job.QueryResult.Rows rows -> {
+              ExecutionEngine.QueryResponse response =
+                  new ExecutionEngine.QueryResponse(rows.schema(), rows.rows(), rows.cursor());
+              response.setWarnings(rows.warnings());
+              responseListener.onResponse(response);
+            }
+            case org.opensearch.sql.job.QueryResult.Explain explain -> {
+              createExplainResponseListener(transformedRequest, ctxListener)
+                  .onResponse(explain.response());
+            }
+            case org.opensearch.sql.job.QueryResult.Running running ->
+                ctxListener.onResponse(new TransportPPLQueryResponse(formatRunning(running)));
+          }
+        });
+  }
+
+  /**
+   * Wire shape of a {@link org.opensearch.sql.job.QueryResult.Running}; must match the async-query
+   * GET RUNNING body.
+   */
+  private static String formatRunning(org.opensearch.sql.job.QueryResult.Running running) {
+    return new JSONObject()
+        .put("id", running.id().encode())
+        .put("status", "RUNNING")
+        .put("schema", new JSONArray())
+        .put("datarows", new JSONArray())
+        .put("total", 0)
+        .toString();
   }
 
   private ResponseListener<AnalyzeResponse> createAnalyzeResponseListener(
@@ -517,25 +608,7 @@ public class TransportPPLQueryAction
                 }
               };
         } else {
-          formatter =
-              new JsonResponseFormatter<>(PRETTY) {
-                @Override
-                protected Object buildJsonObject(ExecutionEngine.ExplainResponse response) {
-                  // For json_tree format, use parsed tree objects instead of strings
-                  if (response.getCalcite() != null
-                      && response.getCalcite().getLogicalTree() != null) {
-                    Map<String, Object> result = new LinkedHashMap<>();
-                    Map<String, Object> calcite = new LinkedHashMap<>();
-                    calcite.put("logical", response.getCalcite().getLogicalTree());
-                    if (response.getCalcite().getPhysicalTree() != null) {
-                      calcite.put("physical", response.getCalcite().getPhysicalTree());
-                    }
-                    result.put("calcite", calcite);
-                    return result;
-                  }
-                  return response;
-                }
-              };
+          formatter = new ExplainResponseJsonFormatter(PRETTY);
         }
         listener.onResponse(
             new TransportPPLQueryResponse(formatter.format(response), formatter.contentType()));
