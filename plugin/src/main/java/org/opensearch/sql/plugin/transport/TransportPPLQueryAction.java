@@ -306,10 +306,10 @@ public class TransportPPLQueryAction
       PPLQueryRequest transformedRequest,
       ActionListener<TransportPPLQueryResponse> listener,
       Consumer<String> anonymizedQuerySink) {
-    Runnable cancelExecution =
-        task instanceof PPLQueryTask pplQueryTask
-            ? () -> pplQueryTask.cancel("async PPL query cancelled")
-            : () -> {};
+    if (!(task instanceof PPLQueryTask pplQueryTask)) {
+      throw new IllegalArgumentException("Async PPL queries require a cancellable PPLQueryTask");
+    }
+    Runnable cancelExecution = () -> pplQueryTask.cancel("async PPL query cancelled");
     QueryRunner runner =
         new PPLQueryRunner(
             pplService,
