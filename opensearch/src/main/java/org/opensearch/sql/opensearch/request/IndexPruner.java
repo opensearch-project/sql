@@ -9,7 +9,9 @@ import static org.opensearch.action.search.SearchRequest.DEFAULT_INDICES_OPTIONS
 import static org.opensearch.sql.calcite.plan.OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP;
 
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -23,6 +25,7 @@ import org.opensearch.index.query.ConstantScoreQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest.IndexName;
+import org.opensearch.transport.RemoteClusterAware;
 import org.opensearch.transport.client.node.NodeClient;
 
 /**
@@ -67,9 +70,16 @@ public class IndexPruner {
         return indexName;
       }
 
-      String[] candidates = indexExpr.probeMatching(filter, timeField).getIndices();
+      FieldCapabilitiesResponse probe = indexExpr.probeMatching(filter, timeField);
+      String[] candidates = probe.getIndices();
       if (0 < candidates.length && indexExpr.isPrunedBy(candidates.length)) {
-        return new IndexName(String.join(",", candidates));
+        // Field caps could not check these, so they may match; the search reports what it can't
+        // read.
+        Set<String> keep = new LinkedHashSet<>(Arrays.asList(candidates));
+        keep.addAll(Arrays.asList(probe.getFailedIndices()));
+        if (indexExpr.isPrunedBy(keep.size())) {
+          return new IndexName(String.join(",", keep));
+        }
       }
       log.info(
           "Index pruning declined: {} of {} indices matched",
@@ -84,6 +94,8 @@ public class IndexPruner {
   private static boolean isPrunable(IndexExpression expression, boolean hasTimeRange) {
     return expression.hasWildcard()
         && hasTimeRange
+        // Field caps omits an unreachable remote cluster without error.
+        && !expression.hasRemoteCluster()
         // Last: these resolve the expression. An alias may carry a filter that substituting its
         // concrete indices would drop.
         && !expression.hasAlias()
@@ -121,6 +133,11 @@ public class IndexPruner {
       return Arrays.stream(indexName.getIndexNames()).anyMatch(Regex::isSimpleMatchPattern);
     }
 
+    boolean hasRemoteCluster() {
+      return Arrays.stream(indexName.getIndexNames())
+          .anyMatch(name -> name.indexOf(RemoteClusterAware.REMOTE_CLUSTER_INDEX_SEPARATOR) >= 0);
+    }
+
     boolean hasAlias() {
       return !resolved().getAliases().isEmpty();
     }
@@ -147,8 +164,9 @@ public class IndexPruner {
     @Override
     public String toString() {
       return String.format(
-          "wildcard=%s, alias=%s, dataStream=%s",
+          "wildcard=%s, remote=%s, alias=%s, dataStream=%s",
           hasWildcard(),
+          hasRemoteCluster(),
           // Guarded so neither a log nor a debugger inspection can fire a resolve probe.
           resolved == null ? "n/a" : hasAlias(),
           resolved == null ? "n/a" : hasDataStream());

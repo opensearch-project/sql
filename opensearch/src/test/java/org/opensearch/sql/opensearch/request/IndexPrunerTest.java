@@ -24,7 +24,9 @@ import static org.opensearch.sql.calcite.plan.OpenSearchConstants.IMPLICIT_FIELD
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -35,6 +37,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.action.NoShardAvailableActionException;
 import org.opensearch.action.admin.indices.resolve.ResolveIndexAction;
 import org.opensearch.action.fieldcaps.FieldCapabilitiesRequest;
 import org.opensearch.action.fieldcaps.FieldCapabilitiesResponse;
@@ -93,6 +96,36 @@ class IndexPrunerTest {
     @Test
     void shouldNotPruneWhenFilterHasNoTimestampRange() {
       givenIndexExpression("logs-*", queryStringQuery("error")).shouldNotPrune().shouldNotProbe();
+    }
+
+    @Test
+    void shouldNotPruneAnExpressionNamingARemoteCluster() {
+      givenIndexExpression("logs-*,remote:logs-*", timeRange()).shouldNotPrune().shouldNotProbe();
+    }
+  }
+
+  @Nested
+  class UncheckedIndices {
+
+    @Test
+    void shouldKeepAnIndexFieldCapsCouldNotCheck() {
+      givenIndexExpression(indices("logs-*", 3), timeRange())
+          .whenMatchingWithFailures(new String[] {"logs-a"}, "logs-down")
+          .shouldPruneTo("logs-a,logs-down");
+    }
+
+    @Test
+    void shouldNotPruneWhenKeepingUncheckedIndicesLeavesNothingToDrop() {
+      givenIndexExpression(indices("logs-*", 2), timeRange())
+          .whenMatchingWithFailures(new String[] {"logs-a"}, "logs-down")
+          .shouldNotPrune();
+    }
+
+    @Test
+    void shouldNotPruneWhenNothingMatchedEvenWithAnUncheckedIndex() {
+      givenIndexExpression(indices("logs-*", 3), timeRange())
+          .whenMatchingWithFailures(new String[0], "logs-down")
+          .shouldNotPrune();
     }
   }
 
@@ -368,6 +401,18 @@ class IndexPrunerTest {
       when(node.fieldCaps(any())).thenReturn(matchFuture);
       when(matchFuture.actionGet(any(TimeValue.class)))
           .thenReturn(new FieldCapabilitiesResponse(matching, Collections.emptyMap()));
+      return this;
+    }
+
+    /** {@code failed} are indices field caps could not check. */
+    Fixture whenMatchingWithFailures(String[] matching, String... failed) {
+      Map<String, Exception> failures = new LinkedHashMap<>();
+      for (String index : failed) {
+        failures.put(index, new NoShardAvailableActionException(null, "unavailable"));
+      }
+      when(node.fieldCaps(any())).thenReturn(matchFuture);
+      when(matchFuture.actionGet(any(TimeValue.class)))
+          .thenReturn(new FieldCapabilitiesResponse(matching, Collections.emptyMap(), failures));
       return this;
     }
 
