@@ -1645,8 +1645,8 @@ task integTestRemote(type: RestIntegTestTask) {
     exclude 'org/opensearch/sql/datasource/DataSourceAPIsIT.class'
     exclude 'org/opensearch/sql/datasource/DataSourceEnabledIT.class'
 
-    // Suites that pin the 500s of one build on a single node with the composite assert off. An
-    // external cluster can add nodes, which redraws the merge winner per request, and cannot drop
-    // the assert, so they run only in :mappingConflictIntegTest.
+    // Suites that list the known 500s of one build on a single node with the InternalComposite
+    // asserts off. An external cluster can add nodes, which redraws the merge winner per request,
+    // and cannot drop the assert, so they run only in :mappingConflictIntegTest.
     exclude 'org/opensearch/sql/calcite/remote/CalciteOtel*DataStreamIT.class'
 }

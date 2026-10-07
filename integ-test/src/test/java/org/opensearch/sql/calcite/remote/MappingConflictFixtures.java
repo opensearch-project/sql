@@ -20,7 +20,7 @@ final class MappingConflictFixtures {
 
   /**
    * A PPL command template, holding {@code {I}} for the source, {@code {F}} for the field under
-   * test and {@code {K}} for a stable field that no drift touches.
+   * test and {@code {K}} for a keyword field that no drift touches.
    */
   record Command(String name, String template) {
     String query(String source, String field, String stableField) {
