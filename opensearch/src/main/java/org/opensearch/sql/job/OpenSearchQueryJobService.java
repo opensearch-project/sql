@@ -116,6 +116,17 @@ public final class OpenSearchQueryJobService implements QueryJobService {
     return job.status();
   }
 
+  @Override
+  public QueryJobStatus delete(QueryJobId id, Principal caller) {
+    QueryJob job = requireJob(id);
+    authorize(job, caller);
+    if (!store.remove(id, job)) {
+      throw new QueryJobNotFoundException(id);
+    }
+    job.cancel();
+    return job.status();
+  }
+
   /**
    * Mints a fresh {@link QueryJobId}, constructs the {@link QueryJob}, and inserts it into the
    * store. Retries on the (in practice unreachable) UUID collision so the store's invariant "one
@@ -136,8 +147,8 @@ public final class OpenSearchQueryJobService implements QueryJobService {
   }
 
   /**
-   * Resolves {@code id} against the store or raises {@link QueryJobNotFoundException}. Extracted
-   * from {@link #get} and {@link #cancel} so both surface the same "not-found" error uniformly.
+   * Resolves {@code id} against the store or raises {@link QueryJobNotFoundException}. Shared by
+   * {@link #get}, {@link #cancel}, and {@link #delete} so all surface the same "not-found" error.
    *
    * @param id id supplied by the caller; must be non-{@code null}
    * @return the job registered under {@code id}

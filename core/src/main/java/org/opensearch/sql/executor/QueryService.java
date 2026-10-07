@@ -6,8 +6,12 @@
 package org.opensearch.sql.executor;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nullable;
@@ -76,6 +80,9 @@ import org.opensearch.sql.protocol.response.format.Format;
 @RequiredArgsConstructor
 @Log4j2
 public class QueryService {
+  private static final String TASK_CANCELLED_EXCEPTION =
+      "org.opensearch.core.tasks.TaskCancelledException";
+
   private final Analyzer analyzer;
   private final ExecutionEngine executionEngine;
   private final Planner planner;
@@ -614,6 +621,10 @@ public class QueryService {
   }
 
   private boolean isCalciteFallbackAllowed(@Nullable Throwable t) {
+    // A cancelled query must stop, not restart on the V2 engine.
+    if (isCancellation(t)) {
+      return false;
+    }
     // We always allow fallback the query failed with CalciteUnsupportedException.
     // This is for avoiding breaking changes when enable Calcite by default.
     if (isCalciteUnsupportedError(t)) {
@@ -697,6 +708,21 @@ public class QueryService {
 
   private static boolean isCheckableLongType(org.apache.calcite.rel.type.RelDataType type) {
     return type.getSqlTypeName() == org.apache.calcite.sql.type.SqlTypeName.BIGINT;
+  }
+
+  /**
+   * Whether {@code t} or any throwable in its cause chain signals cancellation. The OpenSearch task
+   * exception is matched by name because {@code opensearch-core} is compile-only in this module.
+   */
+  static boolean isCancellation(@Nullable Throwable t) {
+    Set<Throwable> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+    for (Throwable cause = t; cause != null && visited.add(cause); cause = cause.getCause()) {
+      if (cause instanceof CancellationException
+          || TASK_CANCELLED_EXCEPTION.equals(cause.getClass().getName())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**

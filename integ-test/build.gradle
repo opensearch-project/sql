@@ -530,6 +530,9 @@ testClusters {
     }
     integTestWithSecurity {
         testDistribution = 'archive'
+        // Two nodes so AsyncPPLSecurityIT can exercise owner forwarding on the shared secured
+        // cluster. Pre-existing security suites keep running against the same cluster.
+        numberOfNodes = 2
         plugin(getJobSchedulerPlugin())
         plugin ":opensearch-sql-plugin"
         // Only /_cluster/health is registered; pin the allow-list to it for RestCommandSecurityIT.
@@ -1608,6 +1611,9 @@ task integTestRemote(type: RestIntegTestTask) {
     // Exclude the same tests that are excluded for integTest
     exclude 'org/opensearch/sql/doctest/**/*IT.class'
     exclude 'org/opensearch/sql/correctness/**'
+    // AsyncPPLSecurityIT needs two local nodes for owner forwarding; integTestRemote runs
+    // against an externally supplied cluster that is not guaranteed to have two.
+    exclude 'org/opensearch/sql/security/AsyncPPLSecurityIT.class'
     exclude 'org/opensearch/sql/legacy/ExplainIT.class'
     exclude 'org/opensearch/sql/legacy/PrettyFormatterIT.class'
     exclude 'org/opensearch/sql/legacy/TermQueryExplainIT.class'

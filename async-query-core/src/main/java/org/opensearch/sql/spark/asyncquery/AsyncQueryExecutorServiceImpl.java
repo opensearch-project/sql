@@ -42,9 +42,9 @@ import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
  *
  * <p>Also serves as the id-shape router in front of the in-JVM {@link QueryJobService} for PPL
  * async submissions per issue #5765. When {@link #queryJobService} is non-null and a queryId parses
- * as {@link QueryJobId}, get is dispatched to the neutral job service; the Spark path is otherwise
- * unchanged. This keeps the existing {@code /_plugins/_async_query} transport actions untouched and
- * avoids adding new REST endpoints or new transport {@code ActionType}s.
+ * as {@link QueryJobId}, get and delete are dispatched to the neutral job service; the Spark path
+ * is otherwise unchanged. This keeps the existing {@code /_plugins/_async_query} transport actions
+ * untouched and avoids adding new REST endpoints or new transport {@code ActionType}s.
  */
 public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService {
   private static final Schema EMPTY_SCHEMA = new Schema(List.of());
@@ -73,8 +73,8 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
 
   /**
    * Full constructor including the in-JVM job service and security adapter. When both are provided,
-   * get dispatches to {@link QueryJobService} for ids that parse as {@link QueryJobId}; other ids
-   * fall through to the Spark path.
+   * get and delete dispatch to {@link QueryJobService} for ids that parse as {@link QueryJobId};
+   * other ids fall through to the Spark path.
    */
   public AsyncQueryExecutorServiceImpl(
       AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService,
@@ -174,8 +174,17 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
     throw new AsyncQueryNotFoundException(String.format("QueryId: %s not found", queryId));
   }
 
+  /**
+   * Deletes a {@link QueryJobId} through {@link QueryJobService#delete} and returns the job's final
+   * state name ({@code CANCELLED}, {@code SUCCEEDED}, or {@code FAILED}); cancels any other id on
+   * the Spark path and returns the cancelled query id.
+   */
   @Override
   public String cancelQuery(String queryId, AsyncQueryRequestContext asyncQueryRequestContext) {
+    Optional<QueryJobId> jobId = asJobId(queryId);
+    if (jobId.isPresent() && queryJobService != null) {
+      return queryJobService.delete(jobId.get(), currentPrincipal()).state().name();
+    }
     Optional<AsyncQueryJobMetadata> asyncQueryJobMetadata =
         asyncQueryJobMetadataStorageService.getJobMetadata(queryId);
     if (asyncQueryJobMetadata.isPresent()) {

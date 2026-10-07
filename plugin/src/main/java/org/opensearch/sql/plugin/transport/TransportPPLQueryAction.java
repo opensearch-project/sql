@@ -285,7 +285,7 @@ public class TransportPPLQueryAction
             createAnalyzeResponseListener(transformedRequest, clearingListener),
             anonymizedQuerySink);
       } else if (transformedRequest.shouldRunAsync()) {
-        submitAsync(pplService, transformedRequest, clearingListener, anonymizedQuerySink);
+        submitAsync(task, pplService, transformedRequest, clearingListener, anonymizedQuerySink);
       } else {
         pplService.execute(
             transformedRequest,
@@ -301,12 +301,22 @@ public class TransportPPLQueryAction
   }
 
   private void submitAsync(
+      Task task,
       PPLService pplService,
       PPLQueryRequest transformedRequest,
       ActionListener<TransportPPLQueryResponse> listener,
       Consumer<String> anonymizedQuerySink) {
+    Runnable cancelExecution =
+        task instanceof PPLQueryTask pplQueryTask
+            ? () -> pplQueryTask.cancel("async PPL query cancelled")
+            : () -> {};
     QueryRunner runner =
-        new PPLQueryRunner(pplService, transformedRequest, anonymizedQuerySink, Clock.systemUTC());
+        new PPLQueryRunner(
+            pplService,
+            transformedRequest,
+            anonymizedQuerySink,
+            Clock.systemUTC(),
+            cancelExecution);
     ThreadContext threadContext = clientRef.threadPool().getThreadContext();
     ActionListener<TransportPPLQueryResponse> ctxListener =
         ContextPreservingActionListener.wrapPreservingContext(listener, threadContext);

@@ -35,10 +35,12 @@ public interface AsyncQueryExecutorService {
       String queryId, AsyncQueryRequestContext asyncQueryRequestContext);
 
   /**
-   * Cancels running async query and returns the cancelled queryId.
+   * Cancels running async query and returns the cancelled queryId. An in-JVM query job is also
+   * removed: it is cancelled if still running, later lookups of its id fail as not found, and its
+   * final state name ({@code CANCELLED}, {@code SUCCEEDED}, or {@code FAILED}) is returned instead.
    *
    * @param queryId queryId.
-   * @return {@link String} cancelledQueryId.
+   * @return {@link String} cancelledQueryId, or the removed query job's final state name.
    */
   String cancelQuery(String queryId, AsyncQueryRequestContext asyncQueryRequestContext);
 }

@@ -5,10 +5,19 @@
 
 package org.opensearch.sql.ppl;
 
+import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.ASYNC_QUERY_ENDPOINT;
 import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.PPL_ENDPOINT;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.STREAMSTATS_QUERY;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.assertNotFound;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.assertStopped;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.awaitPoolsIdle;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.awaitRunning;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.deleteAsyncQuery;
 import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.getAsyncQuery;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.indexSearchCount;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.localNodeId;
 import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.pollUntilTerminal;
 import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.postPpl;
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -18,11 +27,17 @@ import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.List;
+import org.apache.hc.core5.http.HttpHost;
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Test;
 import org.opensearch.client.Request;
+import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
+import org.opensearch.client.RestClient;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.sql.job.QueryJobId;
 
 /**
  * End-to-end IT for the async PPL lifecycle (issue #5765). Verifies:
@@ -40,8 +55,15 @@ import org.opensearch.client.ResponseException;
  *       and returns the explain body on GET;
  *   <li>sync-only request shapes (explain endpoint, analyze endpoint, profile flag, csv format) are
  *       rejected with 400 when they carry {@code wait_for_completion_timeout};
- *   <li>{@code keep_alive} drives retention — a job is evicted after its TTL elapses.
+ *   <li>{@code keep_alive} drives retention — a job is evicted after its TTL elapses;
+ *   <li>{@code DELETE /_plugins/_async_query/{id}} acknowledges with the job's final status and
+ *       removes it, so later GET and DELETE return 404; unknown, expired, and absent-owner ids
+ *       return 404.
  * </ul>
+ *
+ * <p>Runs on the Calcite engine. Also covers running-query cancellation on a single node (local
+ * owner DELETE) via the fixture in {@link AsyncPPLTestHelpers}; forwarded cancellation, concurrent
+ * deletes, and the FAILED path live in {@link AsyncPPLMultiNodeRoutingIT}.
  */
 public class AsyncPPLQueryLifecycleIT extends PPLIntegTestCase {
 
@@ -445,14 +467,45 @@ public class AsyncPPLQueryLifecycleIT extends PPLIntegTestCase {
       try {
         getAsyncQuery(client(), queryId);
       } catch (ResponseException ex) {
-        int code = ex.getResponse().getStatusLine().getStatusCode();
-        Assert.assertTrue(
-            "expected 4xx after keep_alive expiry, got " + code, code >= 400 && code < 500);
+        Assert.assertEquals(404, ex.getResponse().getStatusLine().getStatusCode());
+        assertNotFound(() -> deleteAsyncQuery(client(), queryId));
         return;
       }
       Thread.sleep(200);
     }
     Assert.fail("job [" + queryId + "] was not evicted within 3s after keep_alive=1s");
+  }
+
+  @Test
+  public void async_deleteCompletedJobReturnsStatusAndRemovesIt() throws Exception {
+    String queryId =
+        new JSONObject(
+                postPpl(
+                    client(),
+                    withAsyncWait("source=" + TEST_INDEX_ACCOUNT + " | stats count() as c")))
+            .getString("id");
+    Assert.assertEquals(
+        "SUCCEEDED", pollUntilTerminal(client(), queryId, 30_000).getString("status"));
+
+    Response deleted = deleteAsyncQuery(client(), queryId);
+
+    Assert.assertEquals(200, deleted.getStatusLine().getStatusCode());
+    Assert.assertEquals(
+        "SUCCEEDED", new JSONObject(getResponseBody(deleted, true)).getString("status"));
+    assertNotFound(() -> getAsyncQuery(client(), queryId));
+    assertNotFound(() -> deleteAsyncQuery(client(), queryId));
+  }
+
+  @Test
+  public void async_deleteUnknownQueryIdReturns404() throws IOException {
+    String unknownId = QueryJobId.create(localNodeId(client())).encode();
+    assertNotFound(() -> deleteAsyncQuery(client(), unknownId));
+  }
+
+  @Test
+  public void async_deleteWithAbsentOwnerReturns404() {
+    String absentOwnerId = QueryJobId.create("absent-node").encode();
+    assertNotFound(() -> deleteAsyncQuery(client(), absentOwnerId));
   }
 
   @Test
@@ -479,6 +532,45 @@ public class AsyncPPLQueryLifecycleIT extends PPLIntegTestCase {
     body.put("wait_for_completion_timeout", "0");
     body.put("keep_alive", "0"); // not strictly positive
     assertRejectedWith400(PPL_ENDPOINT, body);
+  }
+
+  @Test
+  public void async_deleteOnOwnerCancelsStreamstatsAndStopsExecution() throws Exception {
+    AsyncPPLTestHelpers.createIndex(client());
+    try (RestClient owner = pinnedOwnerClient()) {
+      String ownerNodeId = localNodeId(owner);
+      try {
+        long searchesBefore = indexSearchCount(owner);
+        JSONObject body = new JSONObject();
+        body.put("query", STREAMSTATS_QUERY);
+        body.put("wait_for_completion_timeout", "0");
+        String queryId = new JSONObject(postPpl(owner, body)).getString("id");
+        List<String> runningPits = awaitRunning(owner, ownerNodeId, searchesBefore);
+        Assert.assertEquals(
+            "RUNNING", new JSONObject(getAsyncQuery(owner, queryId)).getString("status"));
+
+        long searchesAtDelete = indexSearchCount(owner);
+        Response deleted = deleteAsyncQuery(owner, queryId);
+        Assert.assertEquals(200, deleted.getStatusLine().getStatusCode());
+        Assert.assertEquals(
+            "CANCELLED", new JSONObject(getResponseBody(deleted, true)).getString("status"));
+        assertStopped(owner, ownerNodeId, searchesAtDelete, runningPits);
+        assertNotFound(() -> getAsyncQuery(owner, queryId));
+        assertNotFound(() -> deleteAsyncQuery(owner, queryId));
+      } finally {
+        awaitPoolsIdle(owner, ownerNodeId);
+      }
+    }
+  }
+
+  /**
+   * Pins a {@link RestClient} to the first cluster host so {@link #client()} round-robin cannot
+   * split pre/post observations between nodes. Uses {@code buildClient(Settings.EMPTY, ...)} so the
+   * remote-client options the base test case already honors are inherited.
+   */
+  private RestClient pinnedOwnerClient() throws IOException {
+    HttpHost host = getClusterHosts().get(0);
+    return buildClient(Settings.EMPTY, new HttpHost[] {host});
   }
 
   private static JSONObject withAsyncWait(String query) {
