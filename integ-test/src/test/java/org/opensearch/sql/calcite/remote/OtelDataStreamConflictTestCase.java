@@ -43,9 +43,6 @@ public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
   /** Creates the stream with its base documents in 000001. */
   protected abstract OtelDataStream create(String name) throws IOException;
 
-  /** A keyword field no drift touches, for {@code {K}}. */
-  protected abstract String stableField();
-
   @Override
   public void init() throws Exception {
     super.init();
@@ -161,7 +158,7 @@ public abstract class OtelDataStreamConflictTestCase extends PPLIntegTestCase {
         String resolved = winner(source, field);
         logger.info("pair {}, field {} via {} reads {}", scenario.pair(), field, source, resolved);
         for (Command command : REPRESENTATIVE) {
-          String query = command.query(source, field, stableField());
+          String query = command.query(source, field);
           Response response = run(query);
           observations.add(
               new Observation(

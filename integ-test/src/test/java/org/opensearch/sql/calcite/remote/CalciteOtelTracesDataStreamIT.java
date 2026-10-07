@@ -17,11 +17,6 @@ public class CalciteOtelTracesDataStreamIT extends OtelDataStreamConflictTestCas
     return OtelDataStream.traces(client(), name);
   }
 
-  @Override
-  protected String stableField() {
-    return "serviceName";
-  }
-
   @Test
   public void typeDrifts() throws IOException {
     runDrifts("otel-traces-drift");

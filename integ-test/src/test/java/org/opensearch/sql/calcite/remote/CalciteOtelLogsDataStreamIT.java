@@ -17,11 +17,6 @@ public class CalciteOtelLogsDataStreamIT extends OtelDataStreamConflictTestCase 
     return OtelDataStream.logs(client(), name);
   }
 
-  @Override
-  protected String stableField() {
-    return "`resource.attributes.service.name`";
-  }
-
   @Test
   public void typeDrifts() throws IOException {
     runDrifts("otel-logs-drift");

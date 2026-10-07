@@ -19,12 +19,12 @@ final class MappingConflictFixtures {
       List.of("text", "keyword", "byte", "integer", "long", "date", "object");
 
   /**
-   * A PPL command template, holding {@code {I}} for the source, {@code {F}} for the field under
-   * test and {@code {K}} for a keyword field that no drift touches.
+   * A PPL command template, holding {@code {I}} for the source and {@code {F}} for the field under
+   * test.
    */
   record Command(String name, String template) {
-    String query(String source, String field, String stableField) {
-      return template.replace("{I}", source).replace("{F}", field).replace("{K}", stableField);
+    String query(String source, String field) {
+      return template.replace("{I}", source).replace("{F}", field);
     }
   }
 
@@ -34,7 +34,7 @@ final class MappingConflictFixtures {
    */
   static final List<Command> REPRESENTATIVE =
       List.of(
-          new Command("where_isnotnull", "source={I} | where isnotnull({F}) | fields {K}"),
+          new Command("where_isnotnull", "source={I} | where isnotnull({F})"),
           new Command("fields_keep", "source={I} | fields {F}"),
           new Command("eval_cast_string", "source={I} | eval x = cast({F} as string) | fields x"),
           new Command("stats_count_by", "source={I} | stats count() by {F}"),
@@ -42,13 +42,12 @@ final class MappingConflictFixtures {
           new Command("stats_dc", "source={I} | stats dc({F})"),
           new Command("stats", "source={I} | stats count()"),
           new Command("eventstats_by", "source={I} | eventstats count() by {F}"),
-          new Command(
-              "streamstats_count_by", "source={I} | streamstats count() by {F} | fields {K}"),
+          new Command("streamstats_count_by", "source={I} | streamstats count() by {F}"),
           new Command("timechart_by", "source={I} | timechart span=1d count() by {F}"),
-          new Command("chart_by", "source={I} | chart count() over {K} by {F}"),
+          new Command("chart_by", "source={I} | chart count() by {F}"),
           new Command("sort", "source={I} | sort {F}"),
-          new Command("reverse_after_sort", "source={I} | sort {F} | reverse | fields {K}"),
-          new Command("head_after_sort", "source={I} | sort {F} | head 1 | fields {K}"),
+          new Command("reverse_after_sort", "source={I} | sort {F} | reverse"),
+          new Command("head_after_sort", "source={I} | sort {F} | head 1"),
           new Command("dedup", "source={I} | dedup {F}"),
           new Command("top", "source={I} | top {F}"),
           new Command("rare", "source={I} | rare {F}"),
