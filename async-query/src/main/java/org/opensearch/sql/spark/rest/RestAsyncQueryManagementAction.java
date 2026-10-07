@@ -107,7 +107,7 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
   @Override
   protected RestChannelConsumer prepareRequest(RestRequest restRequest, NodeClient nodeClient)
       throws IOException {
-    if (!dataSourcesEnabled()) {
+    if (!dataSourcesEnabled() && !isPplRequest(restRequest)) {
       return dataSourcesDisabledError(restRequest);
     }
     switch (restRequest.method()) {
@@ -285,6 +285,21 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
 
   private boolean dataSourcesEnabled() {
     return settings.getSettingValue(Settings.Key.DATASOURCES_ENABLED);
+  }
+
+  /**
+   * A GET or DELETE whose {@code queryId} parses as a neutral {@link
+   * org.opensearch.sql.job.QueryJobId} is a PPL async submission ({@code POST /_plugins/_ppl} with
+   * {@code wait_for_completion_timeout}), not a Spark datasource request. The {@link
+   * Settings.Key#DATASOURCES_ENABLED} gate only governs Spark access and must not block
+   * fetch/cancel of PPL jobs.
+   */
+  static boolean isPplRequest(RestRequest req) {
+    if (req.method() != GET && req.method() != DELETE) {
+      return false;
+    }
+    String queryId = req.param("queryId");
+    return queryId != null && org.opensearch.sql.job.QueryJobId.tryParse(queryId).isPresent();
   }
 
   private RestChannelConsumer dataSourcesDisabledError(RestRequest request) {

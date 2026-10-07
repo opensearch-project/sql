@@ -491,6 +491,14 @@ testClusters {
         // Only /_cluster/health is registered; pin the allow-list to it for the rest ITs.
         setting 'plugins.ppl.rest.allowed_endpoints', '/_cluster/health'
     }
+    // Dedicated two-node cluster for exercising owner-node routing on QueryJobId responses.
+    asyncMultiNodeIT {
+        testDistribution = 'archive'
+        numberOfNodes = 2
+        plugin(getJobSchedulerPlugin())
+        plugin ":opensearch-sql-plugin"
+        setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
+    }
     tracingIntegTest {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
@@ -761,6 +769,32 @@ task integJdbcTest(type: RestIntegTestTask) {
     }
 }
 
+task asyncMultiNodeIT(type: RestIntegTestTask) {
+    useCluster testClusters.asyncMultiNodeIT
+
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+
+    systemProperty 'tests.security.manager', 'false'
+    // Resolve dataset files (accounts.json, bank.json, ...) relative to the project.
+    systemProperty 'project.root', project.projectDir.absolutePath
+    // Match the defaults the standard integTest task sets so re-runs produce identical plans.
+    systemProperty 'defaultQuerySizeLimit', '10000'
+    systemProperty 'defaultQueryBucketSize', '1000'
+    systemProperty 'defaultMaxResultWindow', '10000'
+    doFirst {
+        systemProperty 'cluster.debug', getDebug()
+    }
+
+    filter {
+        includeTestsMatching 'org.opensearch.sql.ppl.AsyncPPLMultiNodeRoutingIT'
+    }
+}
+
+// Wire the two-node routing IT into the default verification path so CI runs it alongside the
+// single-node integTest. Without this, AsyncPPLMultiNodeRoutingIT is excluded from `integTest`
+// (needs a 2-node cluster) and would never actually run.
+check.dependsOn asyncMultiNodeIT
+
 task integTestWithSecurity(type: RestIntegTestTask) {
     useCluster testClusters.integTestWithSecurity
     useCluster testClusters.remoteIntegTestWithSecurity
@@ -911,6 +945,9 @@ integTest {
 
     exclude 'org/opensearch/sql/doctest/**/*IT.class'
     exclude 'org/opensearch/sql/correctness/**'
+
+    // Run on dedicated two-node cluster via :integ-test:asyncMultiNodeIT.
+    exclude 'org/opensearch/sql/ppl/AsyncPPLMultiNodeRoutingIT.class'
 
     // Exclude tests that require the analytics engine plugin stack (run separately via dedicated tasks)
     exclude 'org/opensearch/sql/analytics/AnalyticsEngineProfileIT.class'

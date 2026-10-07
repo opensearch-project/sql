@@ -7,6 +7,7 @@ package org.opensearch.sql.ppl.domain;
 
 import static org.opensearch.sql.calcite.plan.OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -72,6 +73,48 @@ public class PPLQueryRequest {
   @Getter
   @Accessors(fluent = true)
   private String queryId = null;
+
+  public static final Duration DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT = Duration.ofSeconds(30);
+  public static final Duration DEFAULT_KEEP_ALIVE = Duration.ofMinutes(5);
+
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
+  private Duration waitForCompletionTimeout = null;
+
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
+  private Duration keepAlive = null;
+
+  /**
+   * Returns {@code true} iff this request should take the async submit pipeline — the caller
+   * declared async intent via {@code wait_for_completion_timeout} / {@code keep_alive} AND the
+   * request shape supports it. Sync-only shapes (endpoint-level explain / analyze, profile flag,
+   * non-JDBC response formats) return {@code false} even when the async body fields are present;
+   * the dispatch then falls through to the synchronous pipeline and the async fields are ignored.
+   */
+  public boolean shouldRunAsync() {
+    if (waitForCompletionTimeout == null && keepAlive == null) {
+      return false;
+    }
+    if (isExplainRequest() || analyze || profile) {
+      return false;
+    }
+    return Format.of(format).orElse(null) == Format.JDBC;
+  }
+
+  /** Caller-supplied {@code wait_for_completion_timeout} or the default. Never null. */
+  public Duration effectiveWaitForCompletion() {
+    return waitForCompletionTimeout != null
+        ? waitForCompletionTimeout
+        : DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT;
+  }
+
+  /** Caller-supplied {@code keep_alive} or the default. Never null. */
+  public Duration effectiveKeepAlive() {
+    return keepAlive != null ? keepAlive : DEFAULT_KEEP_ALIVE;
+  }
 
   public PPLQueryRequest(String pplQuery, JSONObject jsonContent, String path) {
     this(pplQuery, jsonContent, path, "");
