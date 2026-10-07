@@ -45,6 +45,7 @@ import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
 import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionRequest;
 import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionResponse;
 import org.opensearch.tasks.Task;
+import org.opensearch.transport.TransportException;
 import org.opensearch.transport.TransportRequest;
 import org.opensearch.transport.TransportRequestOptions;
 import org.opensearch.transport.TransportResponseHandler;
@@ -155,6 +156,32 @@ public class TransportCancelAsyncQueryRequestActionTest {
         new CancelAsyncQueryActionResponse("{\"status\":\"CANCELLED\"}");
     handlerCaptor.getValue().handleResponse(response);
     verify(actionListener).onResponse(response);
+    verifyNoInteractions(asyncQueryExecutorService);
+  }
+
+  @Test
+  public void nonOwnerRelaysTransportFailureWithoutLocalExecution() {
+    stubLocalNode("entry-node");
+    DiscoveryNode owner = mock(DiscoveryNode.class);
+    stubClusterNode(JOB_ID.ownerNodeId(), owner);
+    CancelAsyncQueryActionRequest request = new CancelAsyncQueryActionRequest(JOB_ID.encode());
+
+    action.doExecute(task, request, actionListener);
+
+    ArgumentCaptor<TransportResponseHandler<CancelAsyncQueryActionResponse>> handlerCaptor =
+        ArgumentCaptor.forClass(TransportResponseHandler.class);
+    verify(transportService)
+        .sendRequest(
+            eq(owner),
+            eq(TransportCancelAsyncQueryRequestAction.NAME),
+            eq(request),
+            eq(TransportRequestOptions.EMPTY),
+            handlerCaptor.capture());
+    TransportException failure = new TransportException("owner unavailable");
+    handlerCaptor.getValue().handleException(failure);
+
+    verify(actionListener).onFailure(failure);
+    verify(actionListener, never()).onResponse(any());
     verifyNoInteractions(asyncQueryExecutorService);
   }
 
