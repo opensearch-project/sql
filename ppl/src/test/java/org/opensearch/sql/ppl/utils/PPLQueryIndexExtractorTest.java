@@ -95,6 +95,14 @@ public class PPLQueryIndexExtractorTest extends AstPlanningTestBase {
   }
 
   @Test
+  public void existsSubqueryCapturesInnerSource() {
+    // exists takes a different AST node than `in`, so it needs its own visit to be reached.
+    List<String> result = indices("source=outer | where exists [ source=inner | where a = b ]");
+    assertTrue(result.contains("outer"));
+    assertTrue(result.contains("inner"));
+  }
+
+  @Test
   public void graphLookupCapturesFromTable() {
     List<String> result =
         indices(
