@@ -8,6 +8,7 @@ package org.opensearch.sql.ppl;
 import static org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import static org.opensearch.sql.executor.execution.QueryPlanFactory.NO_CONSUMER_RESPONSE_LISTENER;
 
+import com.google.common.base.Strings;
 import java.util.List;
 import java.util.function.Consumer;
 import lombok.extern.log4j.Log4j2;
@@ -210,7 +211,7 @@ public class PPLService {
   /** Explain format requested on the URL, or null when none was given. */
   private static org.opensearch.sql.protocol.response.format.Format explainFormat(
       PPLQueryRequest request) {
-    if (request.getFormat() == null || request.getFormat().isEmpty()) {
+    if (Strings.isNullOrEmpty(request.getFormat())) {
       return null;
     }
     return org.opensearch.sql.protocol.response.format.Format.ofExplain(request.getFormat())
