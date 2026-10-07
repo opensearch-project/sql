@@ -220,8 +220,11 @@ public class PPLService {
   /**
    * Best-effort source index names from an already-parsed statement (unwrapping an {@code explain}
    * to its inner query); empty on any failure.
+   *
+   * <p>Package-private so the fallbacks can be tested: neither is reachable through the public API,
+   * because the parser only ever yields a {@link Query} or an {@link Explain} wrapping one.
    */
-  private static List<String> extractIndexNames(Statement statement) {
+  static List<String> extractIndexNames(Statement statement) {
     try {
       Statement inner =
           statement instanceof Explain ? ((Explain) statement).getStatement() : statement;

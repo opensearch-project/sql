@@ -19,6 +19,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.statement.Query;
+import org.opensearch.sql.ast.statement.Statement;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.AnalyzeResponse;
@@ -27,6 +31,7 @@ import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.executor.QueryService;
+import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
 import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
@@ -218,6 +223,36 @@ public class PPLServiceTest {
     // stay untouched: there is no anonymized query to report for a query that never parsed.
     Assert.assertNotNull(failure.get());
     Assert.assertNull(metadata.get());
+  }
+
+  @Test
+  public void testExtractIndexNamesOnNonQueryStatementYieldsEmpty() {
+    // Defensive fallback: the parser only produces Query or Explain, so this cannot happen through
+    // the public API. Pinned so the fallback stays a fallback and does not become a null return.
+    Statement notAQuery = new Statement() {};
+    Assert.assertEquals(Collections.emptyList(), PPLService.extractIndexNames(notAQuery));
+  }
+
+  @Test
+  public void testExtractIndexNamesSwallowsWalkFailure() {
+    // Index extraction is best-effort metadata: a plan that blows up during the walk must yield no
+    // indices rather than failing the query that is about to execute.
+    UnresolvedPlan exploding =
+        new UnresolvedPlan() {
+          @Override
+          public UnresolvedPlan attach(UnresolvedPlan child) {
+            return this;
+          }
+
+          @Override
+          public <R, C> R accept(AbstractNodeVisitor<R, C> visitor, C context) {
+            throw new IllegalStateException("walk blew up");
+          }
+        };
+
+    Assert.assertEquals(
+        Collections.emptyList(),
+        PPLService.extractIndexNames(new Query(exploding, 0, QueryType.PPL)));
   }
 
   @Test
