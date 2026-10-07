@@ -130,41 +130,18 @@ public class PPLService {
       ResponseListener<AnalyzeResponse> listener,
       Consumer<QueryInsightsMetadata> sink) {
     try {
-      String queryText = request.getRequest();
-      Statement statement;
-      String anonymized;
-      // Transport-thread work — parse, AST build, anonymize. Trace-only: QueryProfiling isn't
-      // active yet on this thread. Cold-start ANTLR grammar init dominates this region.
-      try (ProfileScope preparePhase = ProfileScope.openTraceOnly("prepare")) {
-        try {
-          ParseTree cst = parser.parse(queryText);
-          statement =
-              cst.accept(
-                  new AstStatementBuilder(
-                      new AstBuilder(queryText, settings, request.getTimeBounds()),
-                      AstStatementBuilder.StatementBuilderContext.builder()
-                          .isExplain(false)
-                          .fetchSize(request.getFetchSize())
-                          .highlightConfig(request.getHighlightConfig())
-                          .format(
-                              request.getFormat() != null && !request.getFormat().isEmpty()
-                                  ? org.opensearch.sql.protocol.response.format.Format.ofExplain(
-                                          request.getFormat())
-                                      .orElse(null)
-                                  : null)
-                          .build()));
-          anonymized = anonymizer.anonymizeStatement(statement);
-        } catch (Exception e) {
-          preparePhase.setError(e);
-          throw e;
-        }
-      }
-      log.info("[{}] Incoming request {}", QueryContext.getRequestId(), anonymized);
+      Prepared prepared =
+          prepare(
+              request,
+              AstStatementBuilder.StatementBuilderContext.builder()
+                  .isExplain(false)
+                  .fetchSize(request.getFetchSize())
+                  .highlightConfig(request.getHighlightConfig())
+                  .format(explainFormat(request))
+                  .build());
+      sink.accept(prepared.metadata());
 
-      UnresolvedPlan unresolvedPlan = ((Query) statement).getPlan();
-      sink.accept(
-          new QueryInsightsMetadata(
-              anonymized, extractIndexNames(statement), statement instanceof Explain));
+      UnresolvedPlan unresolvedPlan = ((Query) prepared.statement()).getPlan();
       AbstractPlan analyzePlan =
           queryExecutionFactory.createAnalyzePlan(unresolvedPlan, PPL_QUERY, listener);
       queryManager.submit(analyzePlan);
@@ -178,6 +155,33 @@ public class PPLService {
       ResponseListener<QueryResponse> queryListener,
       ResponseListener<ExplainResponse> explainListener,
       Consumer<QueryInsightsMetadata> sink) {
+    Prepared prepared =
+        prepare(
+            request,
+            AstStatementBuilder.StatementBuilderContext.builder()
+                .isExplain(request.isExplainRequest())
+                .fetchSize(request.getFetchSize())
+                .highlightConfig(request.getHighlightConfig())
+                .format(explainFormat(request))
+                .explainMode(request.getExplainMode())
+                .includeMetadata(request.getIncludeMetadata())
+                .build());
+    sink.accept(prepared.metadata());
+
+    return queryExecutionFactory.create(prepared.statement(), queryListener, explainListener);
+  }
+
+  /** A parsed statement and the query-insights metadata collected from that same AST. */
+  private record Prepared(Statement statement, QueryInsightsMetadata metadata) {}
+
+  /**
+   * Parses the request once and collects the query-insights metadata from the AST it produced, so
+   * the recorded query text and source indices are the ones that execute. The caller supplies the
+   * statement-builder context because each route configures it differently.
+   */
+  private Prepared prepare(
+      PPLQueryRequest request, AstStatementBuilder.StatementBuilderContext context) {
+    String queryText = request.getRequest();
     Statement statement;
     String anonymized;
     // Transport-thread work — parse, AST build, anonymize. Trace-only: QueryProfiling isn't
@@ -185,25 +189,11 @@ public class PPLService {
     try (ProfileScope preparePhase = ProfileScope.openTraceOnly("prepare")) {
       try {
         // 1. Parse query and convert parse tree (CST) to abstract syntax tree (AST)
-        ParseTree cst = parser.parse(request.getRequest());
-        boolean includeMetadata = request.getIncludeMetadata();
+        ParseTree cst = parser.parse(queryText);
         statement =
             cst.accept(
                 new AstStatementBuilder(
-                    new AstBuilder(request.getRequest(), settings, request.getTimeBounds()),
-                    AstStatementBuilder.StatementBuilderContext.builder()
-                        .isExplain(request.isExplainRequest())
-                        .fetchSize(request.getFetchSize())
-                        .highlightConfig(request.getHighlightConfig())
-                        .format(
-                            request.getFormat() != null && !request.getFormat().isEmpty()
-                                ? org.opensearch.sql.protocol.response.format.Format.ofExplain(
-                                        request.getFormat())
-                                    .orElse(null)
-                                : null)
-                        .explainMode(request.getExplainMode())
-                        .includeMetadata(includeMetadata)
-                        .build()));
+                    new AstBuilder(queryText, settings, request.getTimeBounds()), context));
         anonymized = anonymizer.anonymizeStatement(statement);
       } catch (RuntimeException e) {
         preparePhase.setError(e);
@@ -211,15 +201,20 @@ public class PPLService {
       }
     }
     log.info("[{}] Incoming request {}", QueryContext.getRequestId(), anonymized);
-
-    // Extract indices from the same AST that will execute, so recorded metadata matches the
-    // executed query and the query is parsed only once.
-    sink.accept(
+    return new Prepared(
+        statement,
         new QueryInsightsMetadata(
             anonymized, extractIndexNames(statement), statement instanceof Explain));
+  }
 
-    AbstractPlan plan = queryExecutionFactory.create(statement, queryListener, explainListener);
-    return plan;
+  /** Explain format requested on the URL, or null when none was given. */
+  private static org.opensearch.sql.protocol.response.format.Format explainFormat(
+      PPLQueryRequest request) {
+    if (request.getFormat() == null || request.getFormat().isEmpty()) {
+      return null;
+    }
+    return org.opensearch.sql.protocol.response.format.Format.ofExplain(request.getFormat())
+        .orElse(null);
   }
 
   /**
