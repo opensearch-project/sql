@@ -586,11 +586,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           } else if (addedFields.add(fieldName)) {
             RexNode resolved = rexVisitor.analyze(field, context);
             /*
-             * Dotted path access is resolved into ITEM(map, path) function call without aliasing.
-             * Re-apply the alias so the projected column retains the user-visible name.
+             * A dotted path resolves to a node with no name of its own: ITEM(map, path) for a
+             * flattened object, or a chain of field accesses for one stored as a struct. Neither
+             * reports the path the user asked for, so Calcite derives $f0, $f1, ... and the response
+             * schema loses the field names, which breaks any caller that looks a column up by name.
+             * Re-apply the alias so the projected column keeps the user-visible name.
              * TODO: Introduce path navigation semantics without relying on projection-time aliasing.
              */
-            if (resolved.getKind() == SqlKind.ITEM) {
+            if (!(resolved instanceof RexInputRef)) {
+              // A resolved path carries no name of its own. A plain column reference already has
+              // one, and `EMP.EMPNO` is alias-qualified rather than a path, so aliasing it would
+              // rename the output column.
               resolved = context.relBuilder.alias(resolved, fieldName);
             }
             expandedFields.add(resolved);
