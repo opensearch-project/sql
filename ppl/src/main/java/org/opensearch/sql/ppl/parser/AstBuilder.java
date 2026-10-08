@@ -191,7 +191,11 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
     if (timeBounds == null) {
       return new Relation(tableSources);
     }
-    return new Relation(tableSources.stream().map(this::withTimeBounds).toList());
+    // Only the last: the sources are joined with commas, and the joined name must end in one block.
+    List<UnresolvedExpression> sources = new ArrayList<>(tableSources);
+    int last = sources.size() - 1;
+    sources.set(last, withTimeBounds(sources.get(last)));
+    return new Relation(sources);
   }
 
   /**
