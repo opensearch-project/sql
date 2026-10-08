@@ -131,8 +131,11 @@ public class CalciteFlattenCommandIT extends PPLIntegTestCase {
     Request deleteRequest =
         new Request(
             "DELETE",
+            // String.valueOf, not %d: %d localizes digits under the test framework's random
+            // locale, so the delete would target a different _id than the String.valueOf seed.
             String.format(
-                "/%s/_doc/%d?refresh=true", TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS, docId));
+                "/%s/_doc/%s?refresh=true",
+                TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS, String.valueOf(docId)));
     client().performRequest(deleteRequest);
   }
 
