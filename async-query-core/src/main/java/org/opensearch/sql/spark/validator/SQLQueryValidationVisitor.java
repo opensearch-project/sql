@@ -398,9 +398,7 @@ public class SQLQueryValidationVisitor extends SqlBaseParserBaseVisitor<Void> {
 
   @Override
   public Void visitTransformClause(TransformClauseContext ctx) {
-    if (ctx.TRANSFORM() != null) {
-      validateAllowed(SQLGrammarElement.TRANSFORM);
-    }
+    validateAllowed(SQLGrammarElement.TRANSFORM);
     return super.visitTransformClause(ctx);
   }
 
