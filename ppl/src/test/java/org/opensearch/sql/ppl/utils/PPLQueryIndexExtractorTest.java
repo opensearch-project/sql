@@ -11,16 +11,23 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Test;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.AppendCol;
 import org.opensearch.sql.ast.tree.AppendPipe;
 import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Foreach;
+import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ppl.AstPlanningTestBase;
@@ -97,6 +104,89 @@ public class PPLQueryIndexExtractorTest extends AstPlanningTestBase {
     List<String> result = indices("source=outer | eval m = [ source=inner | stats max(b) ]");
     assertTrue(result.contains("outer"));
     assertTrue(result.contains("inner"));
+  }
+
+  // Every command whose expression the engine evaluates can carry a subquery. These were found by
+  // probing each expression-bearing command; all but eventstats/streamstats execute on a live
+  // cluster, so the inner source is a real read.
+
+  @Test
+  public void joinOnConditionSubqueryCapturesInnerSource() {
+    // Documented form: `on l.a = r.a AND r.a in [ source = inner | fields d ]` (subquery.md).
+    List<String> result =
+        indices(
+            "source = t1 | inner join left = l right = r"
+                + " on l.a = r.a AND r.a in [ source = inner | fields d ] t2");
+    assertEquals(List.of("t1", "t2", "inner"), result);
+  }
+
+  @Test
+  public void joinOnConditionAndRightSubsearchBothCaptured() {
+    List<String> result =
+        indices(
+            "source = t1 | inner join left = l right = r on l.a = r.a AND r.a in [ source = inner |"
+                + " fields d ] [ source = t2 | fields a ]");
+    assertEquals(List.of("t1", "t2", "inner"), result);
+  }
+
+  @Test
+  public void statsArgumentSubqueryCapturesInnerSource() {
+    List<String> result = indices("source=outer | stats max([ source=inner | stats max(b) ])");
+    assertEquals(List.of("outer", "inner"), result);
+  }
+
+  @Test
+  public void eventstatsArgumentSubqueryCapturesInnerSource() {
+    List<String> result = indices("source=outer | eventstats max([ source=inner | stats max(b) ])");
+    assertEquals(List.of("outer", "inner"), result);
+  }
+
+  @Test
+  public void streamstatsArgumentSubqueryCapturesInnerSource() {
+    List<String> result =
+        indices("source=outer | streamstats max([ source=inner | stats max(b) ])");
+    assertEquals(List.of("outer", "inner"), result);
+  }
+
+  @Test
+  public void chartArgumentSubqueryCapturesInnerSource() {
+    List<String> result = indices("source=outer | chart max([ source=inner | stats max(b) ]) by c");
+    assertEquals(List.of("outer", "inner"), result);
+  }
+
+  @Test
+  public void timechartArgumentSubqueryCapturesInnerSource() {
+    List<String> result = indices("source=outer | timechart max([ source=inner | stats max(b) ])");
+    assertEquals(List.of("outer", "inner"), result);
+  }
+
+  @Test
+  public void fillnullReplacementSubqueryCapturesInnerSource() {
+    assertEquals(
+        List.of("outer", "inner"),
+        indices("source=outer | fillnull with [ source=inner | stats max(b) ] in a"));
+    assertEquals(
+        List.of("outer", "inner"),
+        indices("source=outer | fillnull value=[ source=inner | stats max(b) ]"));
+    assertEquals(
+        List.of("outer", "inner"),
+        indices("source=outer | fillnull using a = [ source=inner | stats max(b) ]"));
+  }
+
+  @Test
+  public void foreachAssignmentSubqueryCapturesInnerSource() {
+    List<String> result =
+        indices("source=outer | foreach a [ eval x = [ source=inner | stats max(b) ] ]");
+    assertEquals(List.of("outer", "inner"), result);
+  }
+
+  @Test
+  public void aliasedExpressionIsWalkedThrough() {
+    // Alias keeps Node's null getChild(); without an explicit bridge the aggregate beneath it, and
+    // any subquery in its argument, is invisible and the walk itself NPEs.
+    List<String> result =
+        indices("source=outer | stats max([ source=inner | stats max(b) ]) as m by c");
+    assertEquals(List.of("outer", "inner"), result);
   }
 
   @Test
@@ -187,6 +277,91 @@ public class PPLQueryIndexExtractorTest extends AstPlanningTestBase {
   public void evalWithoutExpressionsStillWalksItsChild() {
     UnresolvedPlan plan = new Eval(null).attach(baseRelation());
     assertEquals(List.of("base"), PPLQueryIndexExtractor.extractIndexNames(plan));
+  }
+
+  @Test
+  public void planWithNullChildListIsWalkedAsLeaf() {
+    // Node.getChild() defaults to null; a plan that keeps the default must read as "no children",
+    // not NPE, and still contribute its declared sources.
+    UnresolvedPlan nullChildren =
+        new UnresolvedPlan() {
+          @Override
+          public List<UnresolvedPlan> getSources() {
+            return List.of(baseRelation());
+          }
+
+          @Override
+          public UnresolvedPlan attach(UnresolvedPlan child) {
+            return this;
+          }
+        };
+    assertEquals(List.of("base"), PPLQueryIndexExtractor.extractIndexNames(nullChildren));
+  }
+
+  @Test
+  public void nullEntryInChildListIsSkipped() {
+    UnresolvedPlan holeyChildren =
+        new UnresolvedPlan() {
+          @Override
+          public List<UnresolvedPlan> getChild() {
+            return Arrays.asList(null, baseRelation());
+          }
+
+          @Override
+          public UnresolvedPlan attach(UnresolvedPlan child) {
+            return this;
+          }
+        };
+    assertEquals(List.of("base"), PPLQueryIndexExtractor.extractIndexNames(holeyChildren));
+  }
+
+  @Test
+  public void aggregationWithNullExpressionListsStillWalksItsChild() {
+    UnresolvedPlan plan = new Aggregation(null, null, null).attach(baseRelation());
+    assertEquals(List.of("base"), PPLQueryIndexExtractor.extractIndexNames(plan));
+  }
+
+  @Test
+  public void fillnullWithNullOrMissingReplacementsStillWalksItsChild() {
+    assertEquals(
+        List.of("base"),
+        PPLQueryIndexExtractor.extractIndexNames(
+            FillNull.ofVariousValue(null).attach(baseRelation())));
+    List<Pair<Field, UnresolvedExpression>> holey = Arrays.asList(null, Pair.of(null, null));
+    assertEquals(
+        List.of("base"),
+        PPLQueryIndexExtractor.extractIndexNames(
+            FillNull.ofVariousValue(holey).attach(baseRelation())));
+  }
+
+  @Test
+  public void foreachWithNullOrMissingClausesStillWalksItsChild() {
+    assertEquals(
+        List.of("base"),
+        PPLQueryIndexExtractor.extractIndexNames(
+            new Foreach(null, null, null, null, null).attach(baseRelation())));
+    List<Foreach.ForeachEvalClause> holey =
+        Arrays.asList(null, new Foreach.ForeachEvalClause("x", null));
+    assertEquals(
+        List.of("base"),
+        PPLQueryIndexExtractor.extractIndexNames(
+            new Foreach(null, null, null, null, holey).attach(baseRelation())));
+  }
+
+  @Test
+  public void joinWithNullConditionStillWalksBothSides() {
+    UnresolvedPlan plan =
+        new Join(
+                new Relation(new QualifiedName("right")),
+                Optional.empty(),
+                Optional.empty(),
+                Join.JoinType.INNER,
+                null,
+                new Join.JoinHint(),
+                Optional.empty(),
+                new org.opensearch.sql.ast.expression.Argument.ArgumentMap(List.of()))
+            .attach(baseRelation());
+    assertEquals(List.of("base", "right"), PPLQueryIndexExtractor.extractIndexNames(plan));
   }
 
   @Test
