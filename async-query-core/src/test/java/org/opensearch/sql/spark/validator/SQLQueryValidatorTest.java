@@ -684,6 +684,109 @@ class SQLQueryValidatorTest {
   }
 
   @Test
+  void testValidateFlintExtensionQuery_blocksMapUsingInMV() {
+    when(mockedProvider.getValidatorForDatasource(any()))
+        .thenReturn(new S3GlueSQLGrammarElementValidator());
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            sqlQueryValidator.validateFlintExtensionQuery(
+                "CREATE MATERIALIZED VIEW mv AS MAP col USING 'cmd' AS (x) FROM tbl"
+                    + " WITH (auto_refresh = false)",
+                DataSourceType.S3GLUE));
+  }
+
+  @Test
+  void testValidateFlintExtensionQuery_blocksReduceUsingInMV() {
+    when(mockedProvider.getValidatorForDatasource(any()))
+        .thenReturn(new S3GlueSQLGrammarElementValidator());
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            sqlQueryValidator.validateFlintExtensionQuery(
+                "CREATE MATERIALIZED VIEW mv AS REDUCE col USING 'cmd' AS (x) FROM tbl"
+                    + " WITH (auto_refresh = false)",
+                DataSourceType.S3GLUE));
+  }
+
+  @Test
+  void testValidate_blocksMapUsing() {
+    when(mockedProvider.getValidatorForDatasource(any()))
+        .thenReturn(new S3GlueSQLGrammarElementValidator());
+    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.S3GLUE);
+    v.ng("MAP col USING 'cmd' AS (x) FROM tbl");
+  }
+
+  @Test
+  void testValidate_blocksReduceUsing() {
+    when(mockedProvider.getValidatorForDatasource(any()))
+        .thenReturn(new S3GlueSQLGrammarElementValidator());
+    VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.S3GLUE);
+    v.ng("REDUCE col USING 'cmd' AS (x) FROM tbl");
+  }
+
+  @Test
+  void testValidateFlintExtensionQuery_blocksReflectInCoveringIndexWhere() {
+    when(mockedProvider.getValidatorForDatasource(any()))
+        .thenReturn(new S3GlueSQLGrammarElementValidator());
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            sqlQueryValidator.validateFlintExtensionQuery(
+                "CREATE INDEX idx ON tbl (col) WHERE reflect('java.lang.System', 'getenv',"
+                    + " 'PATH') IS NOT NULL",
+                DataSourceType.S3GLUE));
+  }
+
+  @Test
+  void testValidateFlintExtensionQuery_blocksJavaMethodInCoveringIndexWhere() {
+    when(mockedProvider.getValidatorForDatasource(any()))
+        .thenReturn(new S3GlueSQLGrammarElementValidator());
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            sqlQueryValidator.validateFlintExtensionQuery(
+                "CREATE INDEX idx ON tbl (col) WHERE java_method('java.lang.System', 'getenv',"
+                    + " 'PATH') IS NOT NULL",
+                DataSourceType.S3GLUE));
+  }
+
+  @Test
+  void testValidateFlintExtensionQuery_coveringIndexSafeWherePass() {
+    when(mockedProvider.getValidatorForDatasource(any()))
+        .thenReturn(new S3GlueSQLGrammarElementValidator());
+    assertDoesNotThrow(
+        () ->
+            sqlQueryValidator.validateFlintExtensionQuery(
+                "CREATE INDEX idx ON tbl (col) WHERE status > 0 AND age < 100",
+                DataSourceType.S3GLUE));
+  }
+
+  @Test
+  void testValidateFlintExtensionQuery_blocksReflectInSkippingIndexWhere() {
+    when(mockedProvider.getValidatorForDatasource(any()))
+        .thenReturn(new S3GlueSQLGrammarElementValidator());
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            sqlQueryValidator.validateFlintExtensionQuery(
+                "CREATE SKIPPING INDEX ON tbl (col VALUE_SET) WHERE reflect('java.lang.System',"
+                    + " 'getenv', 'PATH') IS NOT NULL",
+                DataSourceType.S3GLUE));
+  }
+
+  @Test
+  void testValidateFlintExtensionQuery_skippingIndexSafeWherePass() {
+    when(mockedProvider.getValidatorForDatasource(any()))
+        .thenReturn(new S3GlueSQLGrammarElementValidator());
+    assertDoesNotThrow(
+        () ->
+            sqlQueryValidator.validateFlintExtensionQuery(
+                "CREATE SKIPPING INDEX ON tbl (col VALUE_SET) WHERE status > 0",
+                DataSourceType.S3GLUE));
+  }
+
+  @Test
   void testInvalidIdentifier() {
     when(mockedProvider.getValidatorForDatasource(any())).thenReturn(element -> true);
     VerifyValidator v = new VerifyValidator(sqlQueryValidator, DataSourceType.S3GLUE);
