@@ -213,4 +213,69 @@ public class CalciteTextFunctionIT extends TextFunctionIT {
         rows("world", false, true),
         rows("helloworld", true, true));
   }
+
+  @Test
+  public void testLeftWithArithmeticLength() throws IOException {
+    // LEFT with arithmetic length argument. PPL arithmetic widens to BIGINT but LEFT expects int.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = left(name, 1 + 1) | head 1 | fields result",
+                TEST_INDEX_STRINGS));
+
+    verifySchema(actual, schema("result", null, "string"));
+  }
+
+  @Test
+  public void testRightWithArithmeticLength() throws IOException {
+    // RIGHT with arithmetic length argument. PPL arithmetic widens to BIGINT but RIGHT expects int.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = right(name, 1 + 1) | head 1 | fields result",
+                TEST_INDEX_STRINGS));
+
+    verifySchema(actual, schema("result", null, "string"));
+  }
+
+  @Test
+  public void testSubstringWithArithmeticArgs() throws IOException {
+    // SUBSTRING with arithmetic start and length. Both widen to BIGINT but SUBSTRING expects int.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = substring(name, 1 + 0, 2 + 1) | head 1 | fields result",
+                TEST_INDEX_STRINGS));
+
+    verifySchema(actual, schema("result", null, "string"));
+  }
+
+  @Test
+  public void testLeftWithCastLongLength() throws IOException {
+    // LEFT with an explicit cast(x as long) length. Pre-existing bug: a genuinely-BIGINT value
+    // handed to LEFT's int parameter must be narrowed to INTEGER.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = left('abcdef', cast(2 as long)) | head 1 | fields"
+                    + " result",
+                TEST_INDEX_STRINGS));
+
+    verifySchema(actual, schema("result", null, "string"));
+    verifyDataRows(actual, rows("ab"));
+  }
+
+  @Test
+  public void testRightWithCastLongLength() throws IOException {
+    // RIGHT with an explicit cast(x as long) length.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = right('abcdef', cast(2 as long)) | head 1 | fields"
+                    + " result",
+                TEST_INDEX_STRINGS));
+
+    verifySchema(actual, schema("result", null, "string"));
+    verifyDataRows(actual, rows("ef"));
+  }
 }
