@@ -14,11 +14,16 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
+import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestResponse;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
+import org.opensearch.sql.spark.transport.TransportCancelAsyncQueryRequestAction;
+import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionRequest;
+import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionResponse;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -138,6 +143,54 @@ public class RestAsyncQueryManagementActionTest {
     Mockito.verify(threadPool, Mockito.times(1))
         .schedule(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any());
     Mockito.verifyNoInteractions(channel);
+  }
+
+  @Test
+  @SneakyThrows
+  public void pplDelete_respondsOkWithStatusAcknowledgement() {
+    setDataSourcesEnabled(false);
+    String acknowledgement = "{\"status\":\"CANCELLED\"}";
+
+    RestResponse response =
+        deleteAndRespond(
+            org.opensearch.sql.job.QueryJobId.create("node-a").encode(), acknowledgement);
+
+    Assertions.assertEquals(RestStatus.OK, response.status());
+    Assertions.assertEquals(acknowledgement, response.content().utf8ToString());
+  }
+
+  @Test
+  @SneakyThrows
+  public void sparkDelete_keepsNoContentStatus() {
+    setDataSourcesEnabled(true);
+
+    RestResponse response =
+        deleteAndRespond("00abc1234efghij5", "Deleted async query with id: 00abc1234efghij5");
+
+    Assertions.assertEquals(RestStatus.NO_CONTENT, response.status());
+  }
+
+  @SuppressWarnings("unchecked")
+  private RestResponse deleteAndRespond(String queryId, String transportResult) throws Exception {
+    Mockito.when(request.method()).thenReturn(RestRequest.Method.DELETE);
+    Mockito.when(request.param("queryId")).thenReturn(queryId);
+    unit.handleRequest(request, channel, nodeClient);
+    ArgumentCaptor<Runnable> scheduled = ArgumentCaptor.forClass(Runnable.class);
+    Mockito.verify(threadPool)
+        .schedule(scheduled.capture(), ArgumentMatchers.any(), ArgumentMatchers.any());
+    scheduled.getValue().run();
+    ArgumentCaptor<ActionListener<CancelAsyncQueryActionResponse>> listener =
+        ArgumentCaptor.forClass(ActionListener.class);
+    Mockito.verify(nodeClient)
+        .execute(
+            ArgumentMatchers.eq(TransportCancelAsyncQueryRequestAction.ACTION_TYPE),
+            ArgumentMatchers.argThat(
+                (CancelAsyncQueryActionRequest r) -> queryId.equals(r.getQueryId())),
+            listener.capture());
+    listener.getValue().onResponse(new CancelAsyncQueryActionResponse(transportResult));
+    ArgumentCaptor<RestResponse> response = ArgumentCaptor.forClass(RestResponse.class);
+    Mockito.verify(channel).sendResponse(response.capture());
+    return response.getValue();
   }
 
   private void setDataSourcesEnabled(boolean value) {

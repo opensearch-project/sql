@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -24,10 +25,16 @@ import static org.mockito.Mockito.when;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -233,6 +240,146 @@ class OpenSearchQueryJobServiceTest {
   }
 
   @Test
+  void cancel_isIdempotentAndKeepsJobRetained() {
+    RecordingRunner runner = new RecordingRunner();
+    QueryResult.Running running = submitRunning(runner);
+
+    service.cancel(running.id(), ALICE);
+    QueryJobStatus again = service.cancel(running.id(), ALICE);
+
+    assertEquals(QueryJobState.CANCELLED, again.state());
+    assertEquals(QueryJobState.CANCELLED, service.get(running.id(), ALICE).state());
+    assertEquals(1, runner.cancelCount());
+  }
+
+  @Test
+  void delete_runningJobCancelsOnceAndRemovesIt() {
+    RecordingRunner runner = new RecordingRunner();
+    QueryResult.Running running = submitRunning(runner);
+
+    QueryJobStatus status = service.delete(running.id(), ALICE);
+
+    assertEquals(QueryJobState.CANCELLED, status.state());
+    assertEquals(1, runner.cancelCount());
+    assertThrows(QueryJobNotFoundException.class, () -> service.get(running.id(), ALICE));
+    assertThrows(QueryJobNotFoundException.class, () -> service.delete(running.id(), ALICE));
+    assertEquals(1, runner.cancelCount());
+  }
+
+  @Test
+  void delete_completedJobReturnsPriorStatusAndRemovesIt() {
+    RecordingRunner runner = new RecordingRunner();
+    QueryResult.Running running = submitRunning(runner);
+    runner.complete(RESULT);
+
+    QueryJobStatus status = service.delete(running.id(), ALICE);
+
+    assertEquals(QueryJobState.SUCCEEDED, status.state());
+    assertSame(RESULT, status.result().orElseThrow());
+    assertFalse(runner.wasCancelled());
+    assertThrows(QueryJobNotFoundException.class, () -> service.get(running.id(), ALICE));
+  }
+
+  @Test
+  void delete_failedJobReturnsPriorStatusAndRemovesIt() {
+    RecordingRunner runner = new RecordingRunner();
+    QueryResult.Running running = submitRunning(runner);
+    runner.fail(new IllegalStateException("execution failed"));
+
+    assertEquals(QueryJobState.FAILED, service.delete(running.id(), ALICE).state());
+    assertThrows(QueryJobNotFoundException.class, () -> service.get(running.id(), ALICE));
+  }
+
+  @Test
+  void delete_lateCompletionDoesNotRestoreJob() {
+    RecordingRunner runner = new RecordingRunner();
+    QueryResult.Running running = submitRunning(runner);
+    service.delete(running.id(), ALICE);
+
+    runner.complete(RESULT);
+
+    assertThrows(QueryJobNotFoundException.class, () -> service.get(running.id(), ALICE));
+    assertTrue(store.jobs().isEmpty());
+  }
+
+  @Test
+  void delete_forbidsOtherPrincipalWithoutRemovingOrCancelling() {
+    RecordingRunner runner = new RecordingRunner();
+    QueryResult.Running running = submitRunning(runner);
+
+    assertThrows(QueryJobForbiddenException.class, () -> service.delete(running.id(), BOB));
+
+    assertEquals(QueryJobState.RUNNING, service.get(running.id(), ALICE).state());
+    assertFalse(runner.wasCancelled());
+  }
+
+  @Test
+  void delete_afterRetentionEvictionReturnsNotFound() {
+    RecordingRunner runner = new RecordingRunner();
+    QueryResult.Running running = submitRunning(runner);
+    runner.complete(RESULT);
+    expireRetainedJob();
+
+    assertThrows(QueryJobNotFoundException.class, () -> service.delete(running.id(), ALICE));
+  }
+
+  @Test
+  void delete_losingRemovalRaceReturnsNotFoundWithoutCancelling() {
+    InMemoryQueryJobStore racingStore = spy(store);
+    OpenSearchQueryJobService racingService =
+        new OpenSearchQueryJobService(
+            racingStore, clusterService("node-a"), Clock.systemUTC(), retentionPolicy);
+    RecordingRunner runner = new RecordingRunner();
+    QueryJobId id =
+        assertInstanceOf(
+                QueryResult.Running.class,
+                racingService
+                    .submit(runner, ALICE, Duration.ZERO, KEEP_ALIVE)
+                    .toCompletableFuture()
+                    .join())
+            .id();
+    QueryJob resolved = store.find(id).orElseThrow();
+    doReturn(false).when(racingStore).remove(id, resolved);
+
+    assertThrows(QueryJobNotFoundException.class, () -> racingService.delete(id, ALICE));
+
+    assertFalse(runner.wasCancelled());
+    assertEquals(QueryJobState.RUNNING, service.get(id, ALICE).state());
+  }
+
+  @Test
+  void delete_concurrentCallsRemoveAndCancelExactlyOnce() throws Exception {
+    RecordingRunner runner = new RecordingRunner();
+    QueryResult.Running running = submitRunning(runner);
+    CountDownLatch start = new CountDownLatch(1);
+    ExecutorService executor = Executors.newFixedThreadPool(2);
+    try {
+      Callable<Object> delete =
+          () -> {
+            start.await();
+            try {
+              return service.delete(running.id(), ALICE);
+            } catch (QueryJobNotFoundException e) {
+              return e;
+            }
+          };
+      Future<Object> first = executor.submit(delete);
+      Future<Object> second = executor.submit(delete);
+      start.countDown();
+
+      List<Object> outcomes =
+          List.of(first.get(5, TimeUnit.SECONDS), second.get(5, TimeUnit.SECONDS));
+
+      assertEquals(1, outcomes.stream().filter(QueryJobStatus.class::isInstance).count());
+      assertEquals(
+          1, outcomes.stream().filter(QueryJobNotFoundException.class::isInstance).count());
+      assertEquals(1, runner.cancelCount());
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  @Test
   void get_throwsNotFoundForMissingId() {
     assertThrows(
         QueryJobNotFoundException.class,
@@ -289,12 +436,16 @@ class OpenSearchQueryJobServiceTest {
   private OpenSearchQueryJobService newService(
       RetentionPolicy policy,
       java.util.function.Function<Throwable, java.util.Map<String, Object>> renderer) {
+    return new OpenSearchQueryJobService(
+        store, clusterService("node-a"), Clock.systemUTC(), policy, renderer);
+  }
+
+  private static ClusterService clusterService(String localNodeId) {
     ClusterService clusterService = mock(ClusterService.class);
     DiscoveryNode localNode = mock(DiscoveryNode.class);
-    when(localNode.getId()).thenReturn("node-a");
+    when(localNode.getId()).thenReturn(localNodeId);
     when(clusterService.localNode()).thenReturn(localNode);
-    return new OpenSearchQueryJobService(
-        store, clusterService, Clock.systemUTC(), policy, renderer);
+    return clusterService;
   }
 
   @Test
@@ -319,7 +470,7 @@ class OpenSearchQueryJobServiceTest {
   private static final class RecordingRunner implements QueryRunner {
     private final CompletableFuture<QueryResult> future = new CompletableFuture<>();
     private boolean ran;
-    private boolean cancelled;
+    private final AtomicInteger cancels = new AtomicInteger();
 
     @Override
     public CompletionStage<QueryResult> run() {
@@ -329,7 +480,7 @@ class OpenSearchQueryJobServiceTest {
 
     @Override
     public void cancel() {
-      cancelled = true;
+      cancels.incrementAndGet();
     }
 
     boolean wasRun() {
@@ -337,7 +488,11 @@ class OpenSearchQueryJobServiceTest {
     }
 
     boolean wasCancelled() {
-      return cancelled;
+      return cancels.get() > 0;
+    }
+
+    int cancelCount() {
+      return cancels.get();
     }
 
     void complete(QueryResult result) {

@@ -213,6 +213,8 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
   private RestChannelConsumer executeDeleteRequest(RestRequest restRequest, NodeClient nodeClient) {
     MetricUtils.incrementNumericalMetric(MetricName.ASYNC_QUERY_CANCEL_API_REQUEST_COUNT);
     String queryId = restRequest.param("queryId");
+    // PPL jobs acknowledge with their final status; Spark keeps its existing 204 contract.
+    RestStatus successStatus = isPplRequest(restRequest) ? RestStatus.OK : RestStatus.NO_CONTENT;
     return restChannel ->
         Scheduler.schedule(
             nodeClient,
@@ -226,7 +228,7 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
                           CancelAsyncQueryActionResponse cancelAsyncQueryActionResponse) {
                         restChannel.sendResponse(
                             new BytesRestResponse(
-                                RestStatus.NO_CONTENT,
+                                successStatus,
                                 "application/json; charset=UTF-8",
                                 cancelAsyncQueryActionResponse.getResult()));
                       }
