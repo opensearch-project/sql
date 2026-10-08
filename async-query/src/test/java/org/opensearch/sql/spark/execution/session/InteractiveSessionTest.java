@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.spark.execution.session;
 
+import org.opensearch.sql.spark.utils.TestPluginClient;
 import static org.opensearch.sql.spark.constants.TestConstants.TEST_CLUSTER_NAME;
 import static org.opensearch.sql.spark.constants.TestConstants.TEST_DATASOURCE_NAME;
 import static org.opensearch.sql.spark.execution.session.SessionState.NOT_STARTED;
@@ -54,7 +55,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
   public void setup() {
     emrsClient = new TestEMRServerlessClient();
     startJobRequest = new StartJobRequest("", null, "appId", "", "", new HashMap<>(), false, "");
-    StateStore stateStore = new StateStore(client(), clusterService());
+    StateStore stateStore = new StateStore(TestPluginClient.of(client()), clusterService());
     sessionStorageService =
         new OpenSearchSessionStorageService(stateStore, new SessionModelXContentSerializer());
     statementStorageService =

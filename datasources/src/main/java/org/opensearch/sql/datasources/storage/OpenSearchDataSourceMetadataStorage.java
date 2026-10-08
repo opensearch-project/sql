@@ -33,7 +33,6 @@ import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.action.update.UpdateResponse;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.action.ActionFuture;
-import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.index.engine.DocumentMissingException;
 import org.opensearch.index.engine.VersionConflictEngineException;
@@ -47,8 +46,8 @@ import org.opensearch.sql.datasources.encryptor.Encryptor;
 import org.opensearch.sql.datasources.exceptions.DataSourceNotFoundException;
 import org.opensearch.sql.datasources.service.DataSourceMetadataStorage;
 import org.opensearch.sql.datasources.utils.XContentParserUtils;
+import org.opensearch.sql.opensearch.client.PluginClient;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
-import org.opensearch.transport.client.Client;
 
 public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataStorage {
 
@@ -59,7 +58,7 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
   private static final String DATASOURCE_INDEX_SETTINGS_FILE_NAME =
       "datasources-index-settings.yml";
   private static final Logger LOG = LogManager.getLogger();
-  private final Client client;
+  private final PluginClient client;
   private final ClusterService clusterService;
 
   private final Encryptor encryptor;
@@ -69,12 +68,12 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
    * This class implements DataSourceMetadataStorage interface using OpenSearch as underlying
    * storage.
    *
-   * @param client opensearch NodeClient.
+   * @param client client that runs as the plugin's own subject.
    * @param clusterService ClusterService.
    * @param encryptor Encryptor.
    */
   public OpenSearchDataSourceMetadataStorage(
-      Client client,
+      PluginClient client,
       ClusterService clusterService,
       Encryptor encryptor,
       OpenSearchSettings settings) {
@@ -127,8 +126,7 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
     indexRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
     ActionFuture<IndexResponse> indexResponseActionFuture;
     IndexResponse indexResponse;
-    try (ThreadContext.StoredContext storedContext =
-        client.threadPool().getThreadContext().stashContext()) {
+    try {
       indexRequest.source(XContentParserUtils.convertToXContent(dataSourceMetadata));
       indexResponseActionFuture = client.index(indexRequest);
       indexResponse = indexResponseActionFuture.actionGet();
@@ -157,8 +155,7 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
     UpdateRequest updateRequest =
         new UpdateRequest(DATASOURCE_INDEX_NAME, dataSourceMetadata.getName());
     UpdateResponse updateResponse;
-    try (ThreadContext.StoredContext storedContext =
-        client.threadPool().getThreadContext().stashContext()) {
+    try {
       updateRequest.doc(XContentParserUtils.convertToXContent(dataSourceMetadata));
       updateRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
       ActionFuture<UpdateResponse> updateResponseActionFuture = client.update(updateRequest);
@@ -188,11 +185,7 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
     DeleteRequest deleteRequest = new DeleteRequest(DATASOURCE_INDEX_NAME);
     deleteRequest.id(datasourceName);
     deleteRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-    ActionFuture<DeleteResponse> deleteResponseActionFuture;
-    try (ThreadContext.StoredContext storedContext =
-        client.threadPool().getThreadContext().stashContext()) {
-      deleteResponseActionFuture = client.delete(deleteRequest);
-    }
+    ActionFuture<DeleteResponse> deleteResponseActionFuture = client.delete(deleteRequest);
     DeleteResponse deleteResponse = deleteResponseActionFuture.actionGet();
     if (deleteResponse.getResult().equals(DocWriteResponse.Result.DELETED)) {
       LOG.debug("DatasourceMetadata : {}  successfully deleted", datasourceName);
@@ -221,11 +214,8 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
           .mapping(IOUtils.toString(mappingFileStream, StandardCharsets.UTF_8), XContentType.YAML)
           .settings(
               IOUtils.toString(settingsFileStream, StandardCharsets.UTF_8), XContentType.YAML);
-      ActionFuture<CreateIndexResponse> createIndexResponseActionFuture;
-      try (ThreadContext.StoredContext ignored =
-          client.threadPool().getThreadContext().stashContext()) {
-        createIndexResponseActionFuture = client.admin().indices().create(createIndexRequest);
-      }
+      ActionFuture<CreateIndexResponse> createIndexResponseActionFuture =
+          client.admin().indices().create(createIndexRequest);
       CreateIndexResponse createIndexResponse = createIndexResponseActionFuture.actionGet();
       if (createIndexResponse.isAcknowledged()) {
         LOG.info("Index: {} creation Acknowledged", DATASOURCE_INDEX_NAME);
@@ -250,11 +240,7 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
     searchRequest.source(searchSourceBuilder);
     // https://github.com/opensearch-project/sql/issues/1801.
     searchRequest.preference("_primary_first");
-    ActionFuture<SearchResponse> searchResponseActionFuture;
-    try (ThreadContext.StoredContext ignored =
-        client.threadPool().getThreadContext().stashContext()) {
-      searchResponseActionFuture = client.search(searchRequest);
-    }
+    ActionFuture<SearchResponse> searchResponseActionFuture = client.search(searchRequest);
     SearchResponse searchResponse = searchResponseActionFuture.actionGet();
     if (searchResponse.status().getStatus() != 200) {
       throw new RuntimeException(

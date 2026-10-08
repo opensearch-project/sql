@@ -1,0 +1,38 @@
+---
+##
+# Copyright OpenSearch Contributors
+# SPDX-License-Identifier: Apache-2.0
+##
+
+# The plugin subject already has every index action on the system indices this plugin registers, so
+# the plain gets, searches, indexes, updates, deletes and index creations in
+# OpenSearchDataSourceMetadataStorage and StateStore need nothing here. Listed below is only what
+# falls outside that: actions security classifies as cluster permissions, and the one index the
+# plugin writes that is deliberately not a system index.
+
+cluster_permissions:
+  # IndexCleanup.deleteDocsByQuery runs a delete-by-query, which drives itself with a scroll.
+  # Scroll and clear-scroll read an index but are classified as cluster permissions, so a plugin
+  # subject only gets them from this file. Bulk is classified the same way but security grants it
+  # to every plugin already.
+  - "indices:data/read/scroll"
+  - "indices:data/read/scroll/clear"
+
+index_permissions:
+  # The async query result index holds the output of a query the user ran: the Spark job writes it
+  # and the user reads it back through the plugin as themselves, so it is not a system index and is
+  # not registered as one. FlintIndexRetention still purges it on the cluster manager, where there
+  # is no user to act for, and outside its own system indices the plugin subject is evaluated like
+  # any other role. The pattern matches the default name and the per-datasource names derived from
+  # it, which DataSourceMetadata requires to start with query_execution_result.
+  - index_patterns:
+      - "query_execution_result*"
+    allowed_actions:
+      # the delete-by-query itself
+      - "indices:data/write/delete/byquery"
+      # the search that opens its scroll
+      - "indices:data/read/search"
+      # the shard level bulk that carries the deletes
+      - "indices:data/write/bulk*"
+      # setRefresh(true) on the delete-by-query request
+      - "indices:admin/refresh"
