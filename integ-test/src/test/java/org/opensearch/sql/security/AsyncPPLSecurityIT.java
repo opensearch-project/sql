@@ -13,7 +13,9 @@ import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.awaitPoolsIdle;
 import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.indexSearchCount;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import org.apache.hc.core5.http.HttpHost;
 import org.json.JSONObject;
 import org.junit.After;
@@ -29,14 +31,15 @@ import org.opensearch.sql.job.QueryJobId;
 import org.opensearch.sql.ppl.AsyncPPLTestHelpers;
 
 /**
- * Async PPL ownership checks on the shared two-node secured {@code integTestWithSecurity} cluster.
- * Both users hold every async permission, so a 403 can only come from job ownership. Requests are
- * sent to the non-owner node to exercise owner forwarding.
+ * Async PPL ownership and permission checks on the shared two-node secured {@code
+ * integTestWithSecurity} cluster. Ownership checks use two fully authorized users; DELETE
+ * permission is checked separately. Requests cover both local execution and owner forwarding.
  */
 public class AsyncPPLSecurityIT extends SecurityTestBase {
 
   private static final String ALICE = "async_alice";
   private static final String BOB = "async_bob";
+  private static final String NO_DELETE_USER = "async_no_delete";
   private static final String ASYNC_PATH = "/_plugins/_async_query/";
 
   private RestClient owner;
@@ -48,8 +51,9 @@ public class AsyncPPLSecurityIT extends SecurityTestBase {
     super.init();
     enableCalcite();
     AsyncPPLTestHelpers.createIndex(client());
-    createAsyncUser(ALICE);
-    createAsyncUser(BOB);
+    createAsyncUser(ALICE, true);
+    createAsyncUser(BOB, true);
+    createAsyncUser(NO_DELETE_USER, false);
     RestClient[] nodes = AsyncPPLTestHelpers.twoNodeClients(getClusterHosts(), this::nodeClient);
     owner = nodes[0];
     peer = nodes[1];
@@ -99,16 +103,52 @@ public class AsyncPPLSecurityIT extends SecurityTestBase {
     assertNotFound(() -> asUser(owner, "GET", ASYNC_PATH + queryId, ALICE, null));
   }
 
-  private void createAsyncUser(String user) throws IOException {
+  @Test
+  public void ownerWithoutDeletePermissionCannotDeleteOnEitherNode() throws Exception {
+    JSONObject submit = new JSONObject();
+    submit.put("query", STREAMSTATS_QUERY);
+    submit.put("wait_for_completion_timeout", "0");
+    String queryId =
+        new JSONObject(asUser(owner, "POST", "/_plugins/_ppl", NO_DELETE_USER, submit))
+            .getString("id");
+    assertBusy(
+        () ->
+            Assert.assertEquals(
+                "SUCCEEDED",
+                new JSONObject(asUser(owner, "GET", ASYNC_PATH + queryId, NO_DELETE_USER, null))
+                    .getString("status")),
+        30,
+        TimeUnit.SECONDS);
+
+    for (RestClient node : List.of(owner, peer)) {
+      assertForbidden(() -> asUser(node, "DELETE", ASYNC_PATH + queryId, NO_DELETE_USER, null));
+      Assert.assertEquals(
+          "SUCCEEDED",
+          new JSONObject(asUser(node, "GET", ASYNC_PATH + queryId, NO_DELETE_USER, null))
+              .getString("status"));
+    }
+
+    createAsyncUser(NO_DELETE_USER, true);
+    Assert.assertEquals(
+        "SUCCEEDED",
+        new JSONObject(asUser(peer, "DELETE", ASYNC_PATH + queryId, NO_DELETE_USER, null))
+            .getString("status"));
+    assertNotFound(() -> asUser(owner, "GET", ASYNC_PATH + queryId, NO_DELETE_USER, null));
+  }
+
+  private void createAsyncUser(String user, boolean canDelete) throws IOException {
     String role = user + "_role";
+    List<String> clusterPermissions =
+        new ArrayList<>(
+            List.of(
+                "cluster:admin/opensearch/ppl", "cluster:admin/opensearch/ql/async_query/result"));
+    if (canDelete) {
+      clusterPermissions.add("cluster:admin/opensearch/ql/async_query/delete");
+    }
     createRoleWithPermissions(
         role,
         INDEX,
-        new String[] {
-          "cluster:admin/opensearch/ppl",
-          "cluster:admin/opensearch/ql/async_query/result",
-          "cluster:admin/opensearch/ql/async_query/delete"
-        },
+        clusterPermissions.toArray(new String[0]),
         new String[] {
           "indices:data/read/search*",
           "indices:admin/mappings/get",
