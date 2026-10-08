@@ -666,11 +666,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     Set<String> allFields = new HashSet<>(context.relBuilder.peek().getRowType().getFieldNames());
     List<RexNode> duplicatedNestedFields =
         allFields.stream()
-            .filter(
-                field -> {
-                  int lastDot = field.lastIndexOf(".");
-                  return -1 != lastDot && allFields.contains(field.substring(0, lastDot));
-                })
+            .filter(field -> hasAncestorField(field, allFields))
             .map(field -> (RexNode) context.relBuilder.field(field))
             .toList();
     if (!duplicatedNestedFields.isEmpty()) {
@@ -683,6 +679,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       // equivalent to renaming the flattened sub-fields. E.g. emp.name -> name.
       forceProjectExcept(context.relBuilder, duplicatedNestedFields);
     }
+  }
+
+  private static boolean hasAncestorField(String field, Set<String> allFields) {
+    int dot = field.indexOf('.');
+    while (-1 != dot) {
+      if (allFields.contains(field.substring(0, dot))) {
+        return true;
+      }
+      dot = field.indexOf('.', dot + 1);
+    }
+    return false;
   }
 
   /**
