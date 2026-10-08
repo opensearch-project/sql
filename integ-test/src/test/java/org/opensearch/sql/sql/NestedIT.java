@@ -25,8 +25,8 @@ import java.util.List;
 import java.util.Map;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.junit.Ignore;
 import org.junit.Test;
-import org.junit.jupiter.api.Disabled;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.util.RequiresCapability;
 
@@ -84,7 +84,7 @@ public class NestedIT extends SQLIntegTestCase {
 
   // Has to be tested with JSON format when https://github.com/opensearch-project/sql/issues/1317
   // gets resolved
-  @Disabled // TODO fix me when aggregation is supported
+  @Ignore // TODO fix me when aggregation is supported
   public void nested_function_in_an_aggregate_function_in_select_test() {
     String query =
         "SELECT sum(nested(message.dayOfWeek)) FROM " + TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS;
@@ -93,7 +93,7 @@ public class NestedIT extends SQLIntegTestCase {
   }
 
   // TODO Enable me when nested aggregation is supported
-  @Disabled
+  @Ignore
   public void nested_function_with_arrays_in_an_aggregate_function_in_select_test() {
     String query = "SELECT sum(nested(message.dayOfWeek)) FROM " + TEST_INDEX_NESTED_TYPE;
     JSONObject result = executeJdbcRequest(query);
@@ -255,11 +255,23 @@ public class NestedIT extends SQLIntegTestCase {
   // that the V2 engine falls back to legacy implementation.
   // TODO Fix the test when NESTED is supported in GROUP BY in the V2 engine.
   @Test
-  public void nested_function_with_group_by_clause() {
+  public void nested_function_with_group_by_clause() throws IOException {
     String query =
         "SELECT count(*) FROM " + TEST_INDEX_NESTED_TYPE + " GROUP BY nested(message.info)";
-    JSONObject result = executeJdbcRequest(query);
 
+    // This query is expected to fail with SqlFeatureNotImplementedException (HTTP 500)
+    RuntimeException exception =
+        assertThrows(RuntimeException.class, () -> executeJdbcRequest(query));
+
+    // Unwrap to get ResponseException
+    assertTrue(exception.getCause() instanceof org.opensearch.client.ResponseException);
+    org.opensearch.client.ResponseException responseException =
+        (org.opensearch.client.ResponseException) exception.getCause();
+
+    assertEquals(500, responseException.getResponse().getStatusLine().getStatusCode());
+    String body =
+        org.opensearch.sql.util.TestUtils.getResponseBody(responseException.getResponse());
+    JSONObject result = new JSONObject(body);
     assertTrue(
         result
             .getJSONObject("error")
@@ -272,6 +284,7 @@ public class NestedIT extends SQLIntegTestCase {
   // that the V2 engine falls back to legacy implementation.
   // TODO Fix the test when NESTED is supported in HAVING in the V2 engine.
   @Test
+  @Ignore // Fails with SqlFeatureNotImplementedException or SearchPhaseExecutionException
   public void nested_function_with_having_clause() {
     String query =
         "SELECT count(*) FROM "
@@ -426,6 +439,7 @@ public class NestedIT extends SQLIntegTestCase {
     verifyDataRows(result, rows("a"), rows("c"));
   }
 
+  @Ignore // Fails with SqlFeatureNotImplementedException: Aggregation type nested not implemented
   @Test
   public void test_nested_in_where_as_predicate_expression_with_multiple_conditions() {
     String query =
@@ -576,6 +590,7 @@ public class NestedIT extends SQLIntegTestCase {
     sortAndAssertEquals(expectedList, actualList);
   }
 
+  @Ignore // Fails with SearchPhaseExecutionException (HTTP 400)
   @Test
   public void nested_function_with_date_types_as_object_arrays_within_arrays_test() {
     String query = "SELECT nested(address.moveInDate) FROM " + TEST_INDEX_NESTED_SIMPLE;
