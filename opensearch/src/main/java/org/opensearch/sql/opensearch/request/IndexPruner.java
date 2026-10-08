@@ -25,7 +25,6 @@ import org.opensearch.index.query.ConstantScoreQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest.IndexName;
-import org.opensearch.transport.RemoteClusterAware;
 import org.opensearch.transport.client.node.NodeClient;
 
 /**
@@ -73,8 +72,8 @@ public class IndexPruner {
       FieldCapabilitiesResponse probe = indexExpr.probeMatching(filter, timeField);
       String[] candidates = probe.getIndices();
       if (0 < candidates.length && indexExpr.isPrunedBy(candidates.length)) {
-        // Field caps could not check these, so they may match; the search reports what it can't
-        // read.
+        // Field caps couldn't check these, including an unreachable remote; the search reports
+        // them.
         Set<String> keep = new LinkedHashSet<>(Arrays.asList(candidates));
         keep.addAll(probe.getFailures().keySet());
         if (indexExpr.isPrunedBy(keep.size())) {
@@ -94,8 +93,6 @@ public class IndexPruner {
   private static boolean isPrunable(IndexExpression expression, boolean hasTimeRange) {
     return expression.hasWildcard()
         && hasTimeRange
-        // Field caps omits an unreachable remote cluster without error.
-        && !expression.hasRemoteCluster()
         // Last: these resolve the expression. An alias may carry a filter that substituting its
         // concrete indices would drop.
         && !expression.hasAlias()
@@ -133,11 +130,6 @@ public class IndexPruner {
       return Arrays.stream(indexName.getIndexNames()).anyMatch(Regex::isSimpleMatchPattern);
     }
 
-    boolean hasRemoteCluster() {
-      return Arrays.stream(indexName.getIndexNames())
-          .anyMatch(name -> name.indexOf(RemoteClusterAware.REMOTE_CLUSTER_INDEX_SEPARATOR) >= 0);
-    }
-
     boolean hasAlias() {
       return !resolved().getAliases().isEmpty();
     }
@@ -164,9 +156,8 @@ public class IndexPruner {
     @Override
     public String toString() {
       return String.format(
-          "wildcard=%s, remote=%s, alias=%s, dataStream=%s",
+          "wildcard=%s, alias=%s, dataStream=%s",
           hasWildcard(),
-          hasRemoteCluster(),
           // Guarded so neither a log nor a debugger inspection can fire a resolve probe.
           resolved == null ? "n/a" : hasAlias(),
           resolved == null ? "n/a" : hasDataStream());

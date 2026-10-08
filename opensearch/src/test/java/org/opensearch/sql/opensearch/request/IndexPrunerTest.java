@@ -97,11 +97,6 @@ class IndexPrunerTest {
     void shouldNotPruneWhenFilterHasNoTimestampRange() {
       givenIndexExpression("logs-*", queryStringQuery("error")).shouldNotPrune().shouldNotProbe();
     }
-
-    @Test
-    void shouldNotPruneAnExpressionNamingARemoteCluster() {
-      givenIndexExpression("logs-*,remote:logs-*", timeRange()).shouldNotPrune().shouldNotProbe();
-    }
   }
 
   @Nested
@@ -112,6 +107,13 @@ class IndexPrunerTest {
       givenIndexExpression(indices("logs-*", 3), timeRange())
           .whenMatchingWithFailures(new String[] {"logs-a"}, "logs-down")
           .shouldPruneTo("logs-a,logs-down");
+    }
+
+    @Test
+    void shouldKeepAnUnreachableRemoteCluster() {
+      givenIndexExpression(indices("logs-*,cape:logs-*", 3), timeRange())
+          .whenMatchingWithFailures(new String[] {"logs-a"}, "cape:logs-*")
+          .shouldPruneTo("logs-a,cape:logs-*");
     }
 
     @Test
