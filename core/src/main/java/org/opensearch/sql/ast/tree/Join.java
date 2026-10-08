@@ -73,6 +73,15 @@ public class Join extends UnresolvedPlan {
     return this;
   }
 
+  /**
+   * {@inheritDoc} Adds the right branch ({@code getChild()} exposes only the left), which is not a
+   * child.
+   */
+  @Override
+  public List<UnresolvedPlan> getSources() {
+    return this.right == null ? ImmutableList.of() : ImmutableList.of(this.right);
+  }
+
   @Override
   public List<UnresolvedPlan> getChild() {
     return this.left == null ? ImmutableList.of() : ImmutableList.of(this.left);

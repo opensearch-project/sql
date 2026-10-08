@@ -95,6 +95,12 @@ public class GraphLookup extends UnresolvedPlan {
     return this;
   }
 
+  /** {@inheritDoc} Adds the graph-lookup source table, which is not a child. */
+  @Override
+  public List<UnresolvedPlan> getSources() {
+    return this.fromTable == null ? ImmutableList.of() : ImmutableList.of(this.fromTable);
+  }
+
   @Override
   public List<UnresolvedPlan> getChild() {
     return child == null ? ImmutableList.of() : ImmutableList.of(child);

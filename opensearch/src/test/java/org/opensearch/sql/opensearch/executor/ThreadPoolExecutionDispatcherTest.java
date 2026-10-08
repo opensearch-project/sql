@@ -16,6 +16,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_COMPLEX_WORKER_THREAD_POOL_NAME;
 
 import java.util.List;
@@ -366,6 +367,74 @@ class ThreadPoolExecutionDispatcherTest {
     assertNotNull(
         taskDuringExecution.get(), "CancellableTask should be available during execution");
     assertEquals(mockTask, taskDuringExecution.get());
+  }
+
+  @Test
+  void opensAccountingScopeOnComplexPool() {
+    when(settings.<Boolean>getSettingValue(Settings.Key.SQL_COMPLEX_WORKER_POOL_ENABLED))
+        .thenReturn(true);
+    when(settings.<TimeValue>getSettingValue(Settings.Key.PPL_QUERY_TIMEOUT))
+        .thenReturn(new TimeValue(60000));
+    CancellableTask accountingTask =
+        mock(CancellableTask.class, withSettings().extraInterfaces(ThreadResourceAccounting.class));
+    ThreadResourceAccounting.Scope scope = mock(ThreadResourceAccounting.Scope.class);
+    when(((ThreadResourceAccounting) accountingTask).enterThread()).thenReturn(scope);
+    OpenSearchQueryManager.setCancellableTask(accountingTask);
+
+    doAnswer(
+            invocation -> {
+              Object executor = invocation.getArgument(2);
+              if (SQL_COMPLEX_WORKER_THREAD_POOL_NAME.equals(executor)) {
+                OpenSearchQueryManager.clearCancellableTask();
+                invocation.<Runnable>getArgument(0).run();
+              }
+              return mock(ScheduledCancellable.class);
+            })
+        .when(threadPool)
+        .schedule(any(Runnable.class), any(TimeValue.class), any());
+
+    AbstractCalciteIndexScan scan = createMockScanWithScripts();
+    dispatcher.dispatch(scan, context, listener, engine);
+
+    verify((ThreadResourceAccounting) accountingTask).enterThread();
+    verify(scope).close();
+  }
+
+  @Test
+  void accountingScopeClosesOnComplexPoolWhenTaskThrows() {
+    when(settings.<Boolean>getSettingValue(Settings.Key.SQL_COMPLEX_WORKER_POOL_ENABLED))
+        .thenReturn(true);
+    when(settings.<TimeValue>getSettingValue(Settings.Key.PPL_QUERY_TIMEOUT))
+        .thenReturn(new TimeValue(60000));
+    CancellableTask accountingTask =
+        mock(CancellableTask.class, withSettings().extraInterfaces(ThreadResourceAccounting.class));
+    ThreadResourceAccounting.Scope scope = mock(ThreadResourceAccounting.Scope.class);
+    when(((ThreadResourceAccounting) accountingTask).enterThread()).thenReturn(scope);
+    OpenSearchQueryManager.setCancellableTask(accountingTask);
+
+    doAnswer(
+            invocation -> {
+              Object executor = invocation.getArgument(2);
+              if (SQL_COMPLEX_WORKER_THREAD_POOL_NAME.equals(executor)) {
+                invocation.<Runnable>getArgument(0).run();
+              }
+              return mock(ScheduledCancellable.class);
+            })
+        .when(threadPool)
+        .schedule(any(Runnable.class), any(TimeValue.class), any());
+
+    AbstractCalciteIndexScan scan = createMockScanWithScripts();
+    dispatcher.dispatchTask(
+        scan,
+        context,
+        () -> {
+          throw new RuntimeException("boom");
+        });
+
+    // The scope is closed from the finally, so a failing plan still records its usage, and the
+    // null-listener catch keeps the exception from escaping.
+    verify(scope).close();
+    assertNull(OpenSearchQueryManager.getCancellableTask());
   }
 
   private static RelNode createMockNode(RelNode... children) {

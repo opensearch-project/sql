@@ -8,8 +8,12 @@ package org.opensearch.sql.plugin.transport;
 import static org.junit.Assert.*;
 
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
+import org.opensearch.core.action.NotifyOnceListener;
 import org.opensearch.core.tasks.TaskId;
+import org.opensearch.sql.opensearch.executor.ThreadResourceAccounting;
+import org.opensearch.tasks.Task;
 
 public class PPLQueryTaskTest {
 
@@ -61,5 +65,158 @@ public class PPLQueryTaskTest {
     assertFalse(task.isCancelled());
     task.cancel("Test");
     assertTrue(task.isCancelled());
+  }
+
+  private PPLQueryTask newTask() {
+    return new PPLQueryTask(
+        1,
+        "transport",
+        "cluster:admin/opensearch/ppl",
+        "test query",
+        TaskId.EMPTY_TASK_ID,
+        Map.of());
+  }
+
+  @Test
+  public void testAccountingOffByDefault() {
+    PPLQueryTask task = newTask();
+    assertSame(ThreadResourceAccounting.Scope.NOOP, task.enterThread());
+    // Never touches core's tracking, so _tasks resource_stats stays empty.
+    assertFalse(task.supportsResourceTracking());
+    assertTrue(task.getResourceStats().isEmpty());
+  }
+
+  @Test
+  public void testAccountingRecordsUsageWithoutTouchingResourceStats() {
+    PPLQueryTask task = newTask();
+    task.setResourceAccountingEnabled(true);
+    try (ThreadResourceAccounting.Scope ignored = task.enterThread()) {
+      burnCpu();
+    }
+    assertTrue(task.getCpuNanos() > 0);
+    assertTrue(task.getAllocatedBytes() > 0);
+    assertFalse(task.supportsResourceTracking());
+    assertTrue(task.getResourceStats().isEmpty());
+  }
+
+  @Test
+  public void testNestedScopeOnSameThreadIsNotCountedTwice() {
+    PPLQueryTask task = newTask();
+    task.setResourceAccountingEnabled(true);
+    try (ThreadResourceAccounting.Scope outer = task.enterThread()) {
+      assertSame(ThreadResourceAccounting.Scope.NOOP, task.enterThread());
+    }
+  }
+
+  @Test
+  public void testReportWaitsForOpenScopes() {
+    PPLQueryTask task = newTask();
+    task.setResourceAccountingEnabled(true);
+    AtomicInteger fired = new AtomicInteger();
+    assertTrue(
+        task.addResourceTrackingCompletionListener(
+            new NotifyOnceListener<>() {
+              @Override
+              protected void innerOnResponse(Task t) {
+                fired.incrementAndGet();
+              }
+
+              @Override
+              protected void innerOnFailure(Exception e) {}
+            }));
+
+    ThreadResourceAccounting.Scope scope = task.enterThread();
+    // What TaskManager.unregister does once the response is sent.
+    task.decrementResourceTrackingThreads();
+    assertEquals("must not report while a thread is still accounting", 0, fired.get());
+
+    scope.close();
+    assertEquals(1, fired.get());
+  }
+
+  private static void burnCpu() {
+    long x = 0;
+    for (int i = 0; i < 1_000_000; i++) {
+      x += Integer.toString(i).hashCode();
+    }
+    assertNotEquals(42, x);
+  }
+
+  @Test
+  public void testQueryInsightsFailedOffByDefault() {
+    assertFalse(newTask().isQueryInsightsFailed());
+  }
+
+  @Test
+  public void testQueryInsightsFailedFlagIsSettable() {
+    PPLQueryTask task = newTask();
+    task.setQueryInsightsFailed(true);
+    assertTrue(task.isQueryInsightsFailed());
+  }
+
+  @Test
+  public void testInlineExplainIsNotReported() {
+    // "explain source=t | ..." reaches the execute route because isExplainRequest() only looks at
+    // the path, so the sink's flag is what keeps it out of Top N.
+    PPLQueryTask task = newTask();
+    task.setQueryInsightsAnonymizedQuery("explain source=table | fields identifier");
+    task.setQueryInsightsExplain(true);
+    assertFalse(TransportPPLQueryAction.shouldReportToQueryInsights(task));
+  }
+
+  @Test
+  public void testSyntaxErrorIsNotReported() {
+    // A parse failure throws before the sink runs, leaving no query text to report.
+    assertFalse(TransportPPLQueryAction.shouldReportToQueryInsights(newTask()));
+  }
+
+  @Test
+  public void testRuntimeFailureAfterPlanningIsReported() {
+    // Planning succeeded, so the metadata is present; a later execution failure must still report.
+    PPLQueryTask task = newTask();
+    task.setQueryInsightsAnonymizedQuery("source=table | where identifier > ***");
+    task.setQueryInsightsFailed(true);
+    assertTrue(TransportPPLQueryAction.shouldReportToQueryInsights(task));
+  }
+
+  @Test
+  public void testNestedQueryIsNotReported() {
+    // An outer marker was already in the context, so the child searches rolled up into that query.
+    // Reporting here would advertise a marker no child references and double count their cost.
+    PPLQueryTask task = newTask();
+    task.setQueryInsightsAnonymizedQuery("source=table | where identifier > ***");
+    task.setQueryInsightsNested(true);
+    assertFalse(TransportPPLQueryAction.shouldReportToQueryInsights(task));
+  }
+
+  @Test
+  public void testParentMarkerIsAbsentUntilStamped() {
+    // The record sends whatever marker was stamped. A task whose stamp never happened must carry
+    // none, so the record does not advertise a marker no child search references.
+    PPLQueryTask task = newTask();
+    assertNull(task.getQueryInsightsParentMarker());
+    task.setQueryInsightsParentMarker("PPL:node-1:42");
+    assertEquals("PPL:node-1:42", task.getQueryInsightsParentMarker());
+  }
+
+  @Test
+  public void testNonNestedQueryIsReportedByDefault() {
+    // Guards the default: a plain query must not be mistaken for a nested one.
+    PPLQueryTask task = newTask();
+    task.setQueryInsightsAnonymizedQuery("source=table | where identifier > ***");
+    assertFalse("nested must default to false", task.isQueryInsightsNested());
+    assertTrue(TransportPPLQueryAction.shouldReportToQueryInsights(task));
+  }
+
+  @Test
+  public void testQueryInsightsParentHeaderName() {
+    assertEquals("X-Query-Insights-Parent", QueryInsightsMarker.PARENT_HEADER);
+  }
+
+  @Test
+  public void testQueryInsightsParentHeaderValueIsSourcePrefixed() {
+    // Value format is <source>:<nodeId>:<taskId> so QI reads both source and parent id from one
+    // header. SQL will reuse the same helper with source "SQL".
+    assertEquals("PPL:node-1:42", QueryInsightsMarker.value("PPL", "node-1", 42L));
   }
 }
