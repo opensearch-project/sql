@@ -16,6 +16,7 @@ import java.util.regex.Pattern;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.junit.Test;
 import org.opensearch.sql.ast.Node;
+import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.executor.TimeBounds;
 import org.opensearch.sql.ppl.AstPlanningTestBase;
 
@@ -32,6 +33,15 @@ public class AstTimeBoundsTest extends AstPlanningTestBase {
   @Test
   public void shouldNarrowTheSearchedSource() {
     assertEquals(Set.of("logs-*"), narrowedSources("source=logs-*"));
+  }
+
+  @Test
+  public void shouldNarrowEverySourceOfACommaSeparatedList() {
+    Relation relation = relation(ast("source=logs-*,cape:logs-*", BOUNDS));
+
+    assertEquals(
+        new TimeBounds.Decoded("logs-*,cape:logs-*", BOUNDS),
+        TimeBounds.decode(relation.getTableQualifiedName().toString()));
   }
 
   @Test
@@ -86,8 +96,24 @@ public class AstTimeBoundsTest extends AstPlanningTestBase {
   }
 
   private String plan(String query, TimeBounds bounds) {
+    return ast(query, bounds).toString();
+  }
+
+  private Node ast(String query, TimeBounds bounds) {
     ParseTree cst = parser.parse(query);
-    Node plan = cst.accept(new AstBuilder(query, settings, bounds));
-    return plan.toString();
+    return cst.accept(new AstBuilder(query, settings, bounds));
+  }
+
+  private static Relation relation(Node node) {
+    if (node instanceof Relation relation) {
+      return relation;
+    }
+    for (Node child : node.getChild()) {
+      Relation found = relation(child);
+      if (found != null) {
+        return found;
+      }
+    }
+    return null;
   }
 }
