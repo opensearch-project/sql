@@ -32,6 +32,7 @@ public class IndexQueryDetails {
   // table name and mv name are combined.
   private String mvName;
   private String mvQuery;
+  private String filterCondition;
   private FlintIndexType indexType;
 
   private IndexQueryDetails() {}
@@ -76,6 +77,11 @@ public class IndexQueryDetails {
 
     public IndexQueryDetailsBuilder mvQuery(String mvQuery) {
       indexQueryDetails.mvQuery = mvQuery;
+      return this;
+    }
+
+    public IndexQueryDetailsBuilder filterCondition(String filterCondition) {
+      indexQueryDetails.filterCondition = filterCondition;
       return this;
     }
 
