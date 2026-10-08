@@ -14,19 +14,20 @@ import org.json.JSONObject;
 import org.junit.Test;
 
 /**
- * Security tests for the PPL → Query Insights reporting path on an FGAC (security-enabled) cluster.
+ * Runs PPL as a low-privilege user on the FGAC (security-enabled) cluster with the Query Insights
+ * reporting code present.
  *
- * <p>Reporting a completed PPL query is an internal {@code cluster:admin/...} action the end user
- * never invokes; the send is wrapped in {@code stashContext()} so it runs user-less rather than
- * being authorized against the querying user (see {@code QueryInsightsReporter}). These tests pin
- * that contract: a low-privilege user who holds only PPL + index-read permissions — and explicitly
- * NOT the report action's {@code cluster:admin} permission — can still run PPL queries, including
- * the multi-scan (join) path that stamps the parent marker for child sub-query tagging.
+ * <p>Query Insights is not installed in this cluster, so the reporting gate ({@code
+ * search.insights.top_queries.ppl.enabled}) is unregistered and the record is never sent. What
+ * these tests do pin is the non-interference contract on a secured cluster: a user holding only PPL
+ * + index-read permissions, and explicitly not the report action's {@code cluster:admin}
+ * permission, can run PPL queries unchanged.
  *
- * <p>Read-side visibility of the recorded user identity is governed by the Query Insights plugin's
- * own RBAC filter ({@code search.insights.top_queries.filter_by_mode}); that plugin is not
- * installed in the SQL integ-test cluster, so it is covered by Query Insights' own tests rather
- * than here.
+ * <p>The send itself is wrapped in {@code stashContext()} so it runs user-less rather than being
+ * authorized against the querying user (see {@code QueryInsightsReporter}); proving that holds for
+ * a low-privilege user needs Query Insights co-installed and belongs with that plugin's tests, as
+ * does read-side visibility of the recorded identity ({@code
+ * search.insights.top_queries.filter_by_mode}).
  */
 public class QueryInsightsReportingSecurityIT extends SecurityTestBase {
 
@@ -62,8 +63,7 @@ public class QueryInsightsReportingSecurityIT extends SecurityTestBase {
 
   @Test
   public void lowPrivilegeUserCanRunPplQueryWithoutReportPermission() throws IOException {
-    // The report send is stashed to Origin.LOCAL, so lacking the report cluster:admin permission
-    // must not cause the user's own query to fail.
+    // Lacking the report action's cluster:admin permission must not affect the user's own query.
     JSONObject result =
         executeQueryAsUser(
             String.format("source=%s | where age > 30 | fields firstname", TEST_INDEX_BANK),

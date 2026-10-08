@@ -190,6 +190,16 @@ public class PPLQueryTaskTest {
   }
 
   @Test
+  public void testParentMarkerIsAbsentUntilStamped() {
+    // The record sends whatever marker was stamped. A task whose stamp never happened must carry
+    // none, so the record does not advertise a marker no child search references.
+    PPLQueryTask task = newTask();
+    assertNull(task.getQueryInsightsParentMarker());
+    task.setQueryInsightsParentMarker("PPL:node-1:42");
+    assertEquals("PPL:node-1:42", task.getQueryInsightsParentMarker());
+  }
+
+  @Test
   public void testNonNestedQueryIsReportedByDefault() {
     // Guards the default: a plain query must not be mistaken for a nested one.
     PPLQueryTask task = newTask();

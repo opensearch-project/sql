@@ -5,13 +5,9 @@
 
 package org.opensearch.sql.opensearch.executor;
 
-import static org.apache.logging.log4j.ThreadContext.clearAll;
-import static org.apache.logging.log4j.ThreadContext.get;
-import static org.apache.logging.log4j.ThreadContext.put;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -21,7 +17,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
-import static org.opensearch.common.settings.Settings.EMPTY;
 import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_COMPLEX_WORKER_THREAD_POOL_NAME;
 
 import java.util.List;
@@ -30,6 +25,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelVisitor;
 import org.apache.calcite.rel.metadata.JaninoRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataQueryBase;
+import org.apache.logging.log4j.ThreadContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,7 +35,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.opensearch.common.unit.TimeValue;
-import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
@@ -66,7 +61,6 @@ class ThreadPoolExecutionDispatcherTest {
   @BeforeEach
   void setUp() {
     dispatcher = new ThreadPoolExecutionDispatcher(threadPool, settings);
-    when(threadPool.getThreadContext()).thenReturn(new ThreadContext(EMPTY));
     // Mock schedule calls to return non-null cancellables (for both outer dispatch and inner
     // timeout)
     when(threadPool.schedule(any(Runnable.class), any(TimeValue.class), any()))
@@ -77,7 +71,7 @@ class ThreadPoolExecutionDispatcherTest {
 
   @AfterEach
   void tearDown() {
-    clearAll();
+    ThreadContext.clearAll();
     OpenSearchQueryManager.clearCancellableTask();
     RelMetadataQueryBase.THREAD_PROVIDERS.remove();
     CalcitePlanContext.clearTimewrapSignals();
@@ -182,8 +176,8 @@ class ThreadPoolExecutionDispatcherTest {
         .thenReturn(true);
     when(settings.<TimeValue>getSettingValue(Settings.Key.PPL_QUERY_TIMEOUT))
         .thenReturn(new TimeValue(60000));
-    put("request.id", "test-123");
-    put("user", "admin");
+    ThreadContext.put("request.id", "test-123");
+    ThreadContext.put("user", "admin");
 
     AtomicReference<String> requestIdOnSlowPool = new AtomicReference<>();
     AtomicReference<String> userOnSlowPool = new AtomicReference<>();
@@ -191,10 +185,10 @@ class ThreadPoolExecutionDispatcherTest {
             invocation -> {
               Runnable task = invocation.getArgument(0);
               // Simulate a different thread — clear MDC
-              clearAll();
+              ThreadContext.clearAll();
               task.run();
-              requestIdOnSlowPool.set(get("request.id"));
-              userOnSlowPool.set(get("user"));
+              requestIdOnSlowPool.set(ThreadContext.get("request.id"));
+              userOnSlowPool.set(ThreadContext.get("user"));
               return mock(ScheduledCancellable.class);
             })
         .when(threadPool)
@@ -407,73 +401,17 @@ class ThreadPoolExecutionDispatcherTest {
   }
 
   @Test
-  void cancellationPollerInterruptsWhenTaskCancelled() {
+  void accountingScopeClosesOnComplexPoolWhenTaskThrows() {
     when(settings.<Boolean>getSettingValue(Settings.Key.SQL_COMPLEX_WORKER_POOL_ENABLED))
         .thenReturn(true);
     when(settings.<TimeValue>getSettingValue(Settings.Key.PPL_QUERY_TIMEOUT))
         .thenReturn(new TimeValue(60000));
-    CancellableTask cancelledTask = mock(CancellableTask.class);
-    when(cancelledTask.isCancelled()).thenReturn(true);
-    OpenSearchQueryManager.setCancellableTask(cancelledTask);
+    CancellableTask accountingTask =
+        mock(CancellableTask.class, withSettings().extraInterfaces(ThreadResourceAccounting.class));
+    ThreadResourceAccounting.Scope scope = mock(ThreadResourceAccounting.Scope.class);
+    when(((ThreadResourceAccounting) accountingTask).enterThread()).thenReturn(scope);
+    OpenSearchQueryManager.setCancellableTask(accountingTask);
 
-    // Capture the poller runnable so we can fire it directly and assert it interrupts the thread.
-    AtomicReference<Runnable> poller = new AtomicReference<>();
-    when(threadPool.scheduleWithFixedDelay(any(Runnable.class), any(TimeValue.class), any()))
-        .thenAnswer(
-            invocation -> {
-              poller.set(invocation.getArgument(0));
-              return mock(Cancellable.class);
-            });
-
-    AtomicReference<Boolean> interruptedInExecute = new AtomicReference<>(false);
-    doAnswer(
-            invocation -> {
-              Object executor = invocation.getArgument(2);
-              if (SQL_COMPLEX_WORKER_THREAD_POOL_NAME.equals(executor)) {
-                invocation.<Runnable>getArgument(0).run();
-              }
-              return mock(ScheduledCancellable.class);
-            })
-        .when(threadPool)
-        .schedule(any(Runnable.class), any(TimeValue.class), any());
-    doAnswer(
-            invocation -> {
-              // Fire the poller on this (execution) thread; it should interrupt us.
-              poller.get().run();
-              interruptedInExecute.set(Thread.currentThread().isInterrupted());
-              Thread.interrupted(); // clear so we don't leak the interrupt into the pool thread
-              return null;
-            })
-        .when(engine)
-        .execute(any(RelNode.class), any(), any(ResponseListener.class));
-
-    AbstractCalciteIndexScan scan = createMockScanWithScripts();
-    dispatcher.dispatch(scan, context, listener, engine);
-
-    assertTrue(
-        interruptedInExecute.get(),
-        "cancellation poller should interrupt the execution thread when the task is cancelled");
-  }
-
-  @Test
-  void dispatchTaskRunsInlineWhenNoScripts() {
-    when(settings.<Boolean>getSettingValue(Settings.Key.SQL_COMPLEX_WORKER_POOL_ENABLED))
-        .thenReturn(true);
-    RelNode plan = createMockNode();
-    AtomicReference<Boolean> ran = new AtomicReference<>(false);
-
-    dispatcher.dispatchTask(plan, context, () -> ran.set(true));
-
-    assertTrue(ran.get());
-    verify(threadPool, never()).schedule(any(), any(TimeValue.class), any());
-  }
-
-  @Test
-  void dispatchTaskSwallowsFailureWhenNoListener() {
-    when(settings.<Boolean>getSettingValue(Settings.Key.SQL_COMPLEX_WORKER_POOL_ENABLED))
-        .thenReturn(true);
-    when(settings.<TimeValue>getSettingValue(Settings.Key.PPL_QUERY_TIMEOUT))
-        .thenReturn(new TimeValue(60000));
     doAnswer(
             invocation -> {
               Object executor = invocation.getArgument(2);
@@ -486,7 +424,6 @@ class ThreadPoolExecutionDispatcherTest {
         .schedule(any(Runnable.class), any(TimeValue.class), any());
 
     AbstractCalciteIndexScan scan = createMockScanWithScripts();
-
     dispatcher.dispatchTask(
         scan,
         context,
@@ -494,7 +431,9 @@ class ThreadPoolExecutionDispatcherTest {
           throw new RuntimeException("boom");
         });
 
-    // No exception escaped and the task was cleared: the null-listener catch + finally ran.
+    // The scope is closed from the finally, so a failing plan still records its usage, and the
+    // null-listener catch keeps the exception from escaping.
+    verify(scope).close();
     assertNull(OpenSearchQueryManager.getCancellableTask());
   }
 

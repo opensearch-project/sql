@@ -46,6 +46,12 @@ public class PPLQueryTask extends CancellableTask implements ThreadResourceAccou
    */
   private volatile boolean queryInsightsNested = false;
 
+  /**
+   * The {@code <source>:<nodeId>:<taskId>} marker stamped on this query's child searches; null when
+   * it was never stamped, so the record does not advertise a marker no child carries.
+   */
+  private volatile String queryInsightsParentMarker;
+
   /** Whether this query's thread usage is measured; off unless Query Insights will report it. */
   private volatile boolean resourceAccountingEnabled = false;
 
@@ -103,6 +109,14 @@ public class PPLQueryTask extends CancellableTask implements ThreadResourceAccou
 
   public boolean isQueryInsightsNested() {
     return queryInsightsNested;
+  }
+
+  public void setQueryInsightsParentMarker(String parentMarker) {
+    this.queryInsightsParentMarker = parentMarker;
+  }
+
+  public String getQueryInsightsParentMarker() {
+    return queryInsightsParentMarker;
   }
 
   public void setQueryInsightsFailed(boolean failed) {

@@ -58,7 +58,6 @@ class OpenSearchQueryManagerTest {
     Scheduler.ScheduledCancellable mockScheduledTask = mock(Scheduler.ScheduledCancellable.class);
 
     when(nodeClient.threadPool()).thenReturn(threadPool);
-
     when(settings.getSettingValue(Settings.Key.PPL_QUERY_TIMEOUT))
         .thenReturn(TimeValue.timeValueSeconds(60));
 

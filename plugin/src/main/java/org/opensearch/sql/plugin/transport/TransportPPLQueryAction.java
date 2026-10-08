@@ -188,7 +188,12 @@ public class TransportPPLQueryAction
     }
   }
 
-  /** Stamp the parent marker so child DSL searches carry it back to this PPL query. */
+  /**
+   * Stamp the parent marker so child DSL searches carry it back to this PPL query. The marker is
+   * stored on the task only once it is actually in the thread context, and the record later sends
+   * whatever was stored: if stamping fails the record goes out with no marker rather than one that
+   * no child search carries.
+   */
   private void stampQueryInsightsParentHeader(PPLQueryTask pplQueryTask) {
     try {
       ThreadContext threadContext = clientRef.threadPool().getThreadContext();
@@ -201,6 +206,7 @@ public class TransportPPLQueryAction
       // record -- see shouldReportToQueryInsights.
       if (threadContext.getHeader(QueryInsightsMarker.PARENT_HEADER) == null) {
         threadContext.putHeader(QueryInsightsMarker.PARENT_HEADER, value);
+        pplQueryTask.setQueryInsightsParentMarker(value);
       } else {
         pplQueryTask.setQueryInsightsNested(true);
       }
@@ -317,8 +323,9 @@ public class TransportPPLQueryAction
       // and the marker roll-up would then miss them.
       long timestampMillis = pplQueryTask.getStartTime();
 
-      // Same marker stamped on child DSL tasks, so their cpu/memory rolls up into this parent.
-      String parentMarker = QueryInsightsMarker.value("PPL", nodeId, pplQueryTask.getId());
+      // The marker stamped on child DSL tasks, so their cpu/memory rolls up into this parent; null
+      // when stamping failed, which the reporter sends as an empty marker.
+      String parentMarker = pplQueryTask.getQueryInsightsParentMarker();
 
       List<String> indices = pplQueryTask.getQueryInsightsIndices();
       String userInfo = pplQueryTask.getQueryInsightsUserInfo();
@@ -436,14 +443,13 @@ public class TransportPPLQueryAction
         return;
       }
 
-      final PPLQueryTask metadataTarget = pplQueryTask;
       Consumer<QueryInsightsMetadata> queryInsightsSink =
           metadata -> {
             rootSpan.addAttribute("db.query.text", metadata.anonymizedQuery());
-            if (metadataTarget != null) {
-              metadataTarget.setQueryInsightsAnonymizedQuery(metadata.anonymizedQuery());
-              metadataTarget.setQueryInsightsIndices(metadata.indices());
-              metadataTarget.setQueryInsightsExplain(metadata.explain());
+            if (pplQueryTask != null) {
+              pplQueryTask.setQueryInsightsAnonymizedQuery(metadata.anonymizedQuery());
+              pplQueryTask.setQueryInsightsIndices(metadata.indices());
+              pplQueryTask.setQueryInsightsExplain(metadata.explain());
             }
           };
       PPLService pplService = injector.getInstance(PPLService.class);
