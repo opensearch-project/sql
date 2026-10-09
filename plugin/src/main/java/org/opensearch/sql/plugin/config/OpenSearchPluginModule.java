@@ -34,6 +34,7 @@ import org.opensearch.sql.job.SecurityAdapter;
 import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
+import org.opensearch.sql.opensearch.client.RemoteClusterServiceProvider;
 import org.opensearch.sql.opensearch.executor.OpenSearchExecutionEngine;
 import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
 import org.opensearch.sql.opensearch.executor.ThreadPoolExecutionDispatcher;
@@ -71,8 +72,9 @@ public class OpenSearchPluginModule extends AbstractModule {
   protected void configure() {}
 
   @Provides
-  public OpenSearchClient openSearchClient(NodeClient nodeClient) {
-    return new OpenSearchNodeClient(nodeClient);
+  public OpenSearchClient openSearchClient(
+      NodeClient nodeClient, RemoteClusterServiceProvider remoteClusters) {
+    return new OpenSearchNodeClient(nodeClient, remoteClusters);
   }
 
   @Provides
