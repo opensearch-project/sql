@@ -12,11 +12,15 @@ import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTOR
 
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectOutputStream;
 import java.math.BigDecimal;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
+import org.apache.calcite.rel.externalize.RelJson;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.StructKind;
 import org.apache.calcite.rex.RexBuilder;
@@ -25,6 +29,7 @@ import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Sarg;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -409,6 +414,63 @@ public class RelJsonSerializerTest {
 
     // Result should be INTEGER after deserialization
     assertEquals(SqlTypeName.INTEGER, deserialized.getType().getSqlTypeName());
+  }
+
+  @Test
+  void deserialize_rejects_struct_literal_with_list_element_poc() throws Exception {
+    // Reported RCE shape (benign body): a struct-typed literal with a list element — a shape a
+    // legitimate serializer never inlines, and the one that reaches the vulnerable code generator.
+    String maliciousJson =
+        "{\"literal\": [\"harmless-marker\"], \"type\": {\"fields\": [{\"name\": \"f\","
+            + " \"type\": \"ANY\", \"nullable\": false}], \"nullable\": false}}";
+    String encoded = wrapAsScript(maliciousJson);
+    var exception =
+        assertThrows(IllegalStateException.class, () -> serializer.deserialize(encoded));
+    assertTrue(rootCauseMessage(exception).contains("unsafe inlined literal"));
+  }
+
+  @Test
+  void deserialize_rejects_inlined_string_literal() throws Exception {
+    // Inlined character literals are never produced by a legitimately serialized script.
+    RexNode inlinedString = rexBuilder.makeLiteral("evil' payload");
+    String encoded = wrapAsScript(rawSerialize(inlinedString));
+    var exception =
+        assertThrows(IllegalStateException.class, () -> serializer.deserialize(encoded));
+    assertTrue(rootCauseMessage(exception).contains("unsafe inlined literal"));
+  }
+
+  @Test
+  void deserialize_allows_safe_inlined_literal() throws Exception {
+    // Regression guard: safe inlined literal families must still be accepted.
+    RexNode inlinedBool = rexBuilder.makeLiteral(true);
+    RexNode result = serializer.deserialize(wrapAsScript(rawSerialize(inlinedBool)));
+    assertEquals(SqlTypeName.BOOLEAN, result.getType().getSqlTypeName());
+  }
+
+  /**
+   * Serialize a RexNode to its RelJson string WITHOUT standardization, as a forged payload would.
+   */
+  private String rawSerialize(RexNode node) {
+    JsonBuilder jsonBuilder = new JsonBuilder();
+    RelJson relJson = ExtendedRelJson.create(jsonBuilder);
+    return jsonBuilder.toJsonString(relJson.toJson(node));
+  }
+
+  /** Wrap a RelJson string the way {@link RelJsonSerializer#deserialize} expects to read it. */
+  private static String wrapAsScript(String json) throws Exception {
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+    ObjectOutputStream objectOutput = new ObjectOutputStream(output);
+    objectOutput.writeObject(json);
+    objectOutput.flush();
+    return Base64.getEncoder().encodeToString(output.toByteArray());
+  }
+
+  private static String rootCauseMessage(Throwable throwable) {
+    Throwable cause = throwable;
+    while (cause.getCause() != null) {
+      cause = cause.getCause();
+    }
+    return String.valueOf(cause.getMessage());
   }
 
   @Test
