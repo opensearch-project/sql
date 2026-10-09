@@ -108,7 +108,7 @@ jobs:
           if [ "${{ matrix.test-type }}" = "unit" ]; then
             ./gradlew --continue build -x spotlessCheck -x integTest -x tracingIntegTest -x yamlRestTest -x doctest
           elif [ "${{ matrix.test-type }}" = "integration" ]; then
-            ./gradlew --continue integTest tracingIntegTest yamlRestTest
+            ./gradlew --continue integTest tracingIntegTest yamlRestTest mappingConflictIntegTest
           else
             ./gradlew --continue doctest
           fi
@@ -213,7 +213,7 @@ jobs:
           if [ "${{ matrix.test-type }}" = "unit" ]; then
             ./gradlew --continue build -x spotlessCheck -x integTest -x tracingIntegTest -x yamlRestTest -x doctest ${{ matrix.entry.os_build_args }}
           elif [ "${{ matrix.test-type }}" = "integration" ]; then
-            ./gradlew --continue integTest tracingIntegTest yamlRestTest ${{ matrix.entry.os_build_args }}
+            ./gradlew --continue integTest tracingIntegTest yamlRestTest mappingConflictIntegTest ${{ matrix.entry.os_build_args }}
           else
             ./gradlew --continue doctest ${{ matrix.entry.os_build_args }}
           fi

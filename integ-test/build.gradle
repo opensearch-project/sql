@@ -515,6 +515,17 @@ testClusters {
                 'io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter'
         setting 'telemetry.otel.tracer.exporter.delay', '50ms'
     }
+    mappingConflictIntegTest {
+        testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
+        plugin ":opensearch-sql-plugin"
+        setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
+        // Mixed-type bucket keys trip the key-class assert in InternalBucket.compareKey, and the
+        // AssertionError exits the node. Off here only, so the node returns the 500 a production
+        // node returns. Named by the top-level class, because a nested class takes its assertion
+        // status from there. The shared integTest cluster keeps every assert.
+        jvmArgs '-da:org.opensearch.search.aggregations.bucket.composite.InternalComposite'
+    }
     yamlRestTest {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
@@ -954,6 +965,9 @@ integTest {
 
     exclude 'org/opensearch/sql/calcite/tracing/**'
 
+    // Runs in :mappingConflictIntegTest, whose cluster disables the InternalComposite asserts.
+    exclude 'org/opensearch/sql/calcite/remote/CalciteOtel*DataStreamIT.class'
+
     // Explain IT is dependent on internal implementation of old engine so it's not necessary
     // to run these with new engine and not necessary to make this consistent with old engine.
     exclude 'org/opensearch/sql/legacy/ExplainIT.class'
@@ -1060,6 +1074,40 @@ task tracingIntegTest(type: RestIntegTestTask) {
 
     filter {
         includeTestsMatching 'org.opensearch.sql.calcite.tracing.*'
+    }
+}
+
+task mappingConflictIntegTest(type: RestIntegTestTask) {
+    useCluster testClusters.mappingConflictIntegTest
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+
+    systemProperty 'tests.security.manager', 'false'
+    systemProperty 'project.root', project.projectDir.absolutePath
+    systemProperty 'defaultQuerySizeLimit', '10000'
+
+    doFirst {
+        getClusters().forEach { cluster ->
+            String allHttpSocketURI = cluster.nodes.stream().flatMap { node ->
+                node.getAllHttpSocketURI().stream()
+            }.collect(Collectors.joining(","))
+            String allTransportSocketURI = cluster.nodes.stream().flatMap { node ->
+                node.getAllTransportPortURI().stream()
+            }.collect(Collectors.joining(","))
+            systemProperty "tests.rest.${cluster.name}.http_hosts", "${-> allHttpSocketURI}"
+            systemProperty "tests.rest.${cluster.name}.transport_hosts", "${-> allTransportSocketURI}"
+        }
+        systemProperty "https", "false"
+        systemProperty "user", "admin"
+        systemProperty "password", "admin"
+        systemProperty 'cluster.debug', getDebug()
+    }
+
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+
+    filter {
+        includeTestsMatching 'org.opensearch.sql.calcite.remote.CalciteOtel*DataStreamIT'
     }
 }
 
@@ -1633,4 +1681,9 @@ task integTestRemote(type: RestIntegTestTask) {
     // externally provided cluster, so these suites cannot pass here. integTest still covers them.
     exclude 'org/opensearch/sql/datasource/DataSourceAPIsIT.class'
     exclude 'org/opensearch/sql/datasource/DataSourceEnabledIT.class'
+
+    // Suites that list the known 500s of one build on a single node with the InternalComposite
+    // asserts off. An external cluster can add nodes, which redraws the merge winner per request,
+    // and cannot drop the assert, so they run only in :mappingConflictIntegTest.
+    exclude 'org/opensearch/sql/calcite/remote/CalciteOtel*DataStreamIT.class'
 }
