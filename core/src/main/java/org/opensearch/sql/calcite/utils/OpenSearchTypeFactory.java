@@ -459,12 +459,18 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
    * @param types the list of input {@link RelDataType} instances to find the least restrictive
    *     common type for
    * @return the least restrictive {@link RelDataType} preserving the UDT wrapper when all inputs
-   *     share the same UDT, or {@code null} if no common type exists (as determined by {@link
-   *     super#leastRestrictive})
+   *     share the same UDT, or {@code null} if no common type exists (a string type mixed with an
+   *     object or array type and no ANY type, or as determined by {@link super#leastRestrictive})
    */
   @Override
   public @Nullable RelDataType leastRestrictive(List<RelDataType> types) {
     if (types.size() > 1) {
+      // Calcite 1.42 accepts a cast from a string to MAP or ARRAY when it checks types, but no
+      // string value converts at run time. Returning null restores the Calcite 1.41 answer, so a
+      // string type and an object or array type have no common type.
+      if (mixesVarcharWithContainer(types)) {
+        return null;
+      }
       RelDataType first = types.get(0);
       if (first instanceof AbstractExprRelDataType<?> firstUdt) {
         boolean anyNullable = false;
@@ -488,6 +494,25 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       }
     }
     return super.leastRestrictive(types);
+  }
+
+  /**
+   * True when the list holds a VARCHAR or CHAR type and a type {@link #getContainerTypeName} names.
+   * Matches on SQL type name, so the VARCHAR-backed date, time, timestamp and binary UDTs count as
+   * VARCHAR. An ANY type is left to Calcite, which makes ANY the common type.
+   */
+  private static boolean mixesVarcharWithContainer(List<RelDataType> types) {
+    boolean hasVarchar = false;
+    boolean hasContainer = false;
+    for (RelDataType t : types) {
+      SqlTypeName name = t.getSqlTypeName();
+      if (name == SqlTypeName.ANY) {
+        return false;
+      }
+      hasVarchar |= name == SqlTypeName.VARCHAR || name == SqlTypeName.CHAR;
+      hasContainer |= getContainerTypeName(t) != null;
+    }
+    return hasVarchar && hasContainer;
   }
 
   private @Nullable RelDataType leastRestrictiveVarbinaryVarchar(List<RelDataType> types) {
