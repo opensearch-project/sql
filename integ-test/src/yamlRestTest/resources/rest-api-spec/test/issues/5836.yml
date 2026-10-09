@@ -1,0 +1,94 @@
+# Issue: https://github.com/opensearch-project/sql/issues/5836
+# A field sort on an object field fails on the shard with a 400. The Calcite path wraps
+# that SearchPhaseExecutionException under RuntimeException and SQLException, and the REST
+# status was read from the top exception only, so the client saw a 500.
+
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+            plugins.calcite.pushdown.enabled : true
+  - do:
+      indices.create:
+        index: object_sort_5836
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              id:
+                type: integer
+              f:
+                properties:
+                  code:
+                    type: keyword
+  - do:
+      bulk:
+        index: object_sort_5836
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"id": 1, "f": {"code": "USD"}}'
+          - '{"index": {}}'
+          - '{"id": 2, "f": {"code": "EUR"}}'
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: object_sort_5836
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : null
+            plugins.calcite.pushdown.enabled : null
+
+---
+"Sort on an object field returns the shard's 400":
+  - skip:
+      features:
+        - headers
+  # Before the fix: status 500, with the shard's message in details
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=object_sort_5836 | sort f
+  - match: { "$body": "/No\\s+mapping\\s+found\\s+for\\s+\\[f\\]\\s+in\\s+order\\s+to\\s+sort\\s+on/" }
+  - match: { "$body": "/\"status\":\\s+400/" }
+
+---
+"Self join on an object field returns the shard's 400":
+  - skip:
+      features:
+        - headers
+  # The join path has no ErrorReport on top, so before the fix the body said 400 under an HTTP 500
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=object_sort_5836 | join left=l right=r ON l.f = r.f object_sort_5836
+  - match: { "$body": "/No\\s+mapping\\s+found\\s+for\\s+\\[f\\]\\s+in\\s+order\\s+to\\s+sort\\s+on/" }
+  - match: { "$body": "/\"status\":\\s+400/" }
+
+---
+"Sort on a subfield of an object field still returns rows":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=object_sort_5836 | sort f.code | fields id
+  - match: { total: 2 }
+  - match: { datarows: [[2], [1]] }
