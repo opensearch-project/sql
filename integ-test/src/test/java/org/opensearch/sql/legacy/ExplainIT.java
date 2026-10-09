@@ -13,11 +13,13 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_LOCATION;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_TYPE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_PEOPLE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_PHRASE;
+import static org.opensearch.sql.legacy.plugin.RestSqlAction.EXPLAIN_API_ENDPOINT;
 
 import com.google.common.io.Files;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -252,5 +254,26 @@ public class ExplainIT extends SQLIntegTestCase {
     Response response = client().performRequest(request);
 
     assertEquals("application/json; charset=UTF-8", response.getHeader("content-type"));
+  }
+
+  /**
+   * Prior to OpenSearch 3.0, {@code ?format=json} was a valid way to request the explain plan.
+   * "json" was never a real {@code Format} value the query endpoint accepts (only
+   * jdbc/csv/raw/table are), so this depends on the explain endpoint specifically tolerating it.
+   * Regression test for https://github.com/opensearch-project/sql/issues/4373: this used to fail
+   * with "Failed to create executor due to unknown response format: json" before the explain
+   * endpoint reached any query-specific logic at all.
+   */
+  @Test
+  public void testExplainAcceptsJsonFormatForBackwardCompatibility() throws IOException {
+    String query = makeRequest("SELECT firstname FROM opensearch-sql_test_index_account");
+    Request request = new Request("POST", EXPLAIN_API_ENDPOINT + "?format=json");
+    request.setJsonEntity(query);
+
+    Response response = client().performRequest(request);
+
+    assertEquals(200, response.getStatusLine().getStatusCode());
+    JSONObject explanation = new JSONObject(TestUtils.getResponseBody(response));
+    Assert.assertFalse("explain response should not contain an error", explanation.has("error"));
   }
 }
