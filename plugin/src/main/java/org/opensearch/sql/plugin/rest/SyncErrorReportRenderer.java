@@ -6,6 +6,7 @@
 package org.opensearch.sql.plugin.rest;
 
 import java.util.Map;
+import org.opensearch.ExceptionsHelper;
 import org.opensearch.OpenSearchException;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
@@ -27,11 +28,10 @@ import org.opensearch.sql.opensearch.response.error.ErrorMessageFactory;
  *       error payload the sync path would have returned.
  * </ul>
  *
- * <p>The status-mapping logic is intentionally identical to what {@link RestPPLQueryAction} used to
- * carry privately: {@link ErrorReport} unwraps to its cause, {@link OpenSearchException}
- * contributes its own status, a known client-error type maps to 400, everything else maps to 500.
- * Preserving this mapping is required for sync REST behavior to stay byte-identical after the
- * refactor.
+ * <p>The status mapping is checked in this order: {@link ErrorReport} unwraps to its cause, {@link
+ * OpenSearchException} contributes its own status, a known client-error type maps to 400, then the
+ * first {@link OpenSearchException} in the cause chain contributes its status, so a shard failure
+ * wrapped by the execution engine keeps the status OpenSearch gave it. Everything else maps to 500.
  */
 public final class SyncErrorReportRenderer {
 
@@ -50,6 +50,10 @@ public final class SyncErrorReportRenderer {
     }
     if (isClientError(throwable)) {
       return 400;
+    }
+    if (ExceptionsHelper.unwrap(throwable, OpenSearchException.class)
+        instanceof OpenSearchException openSearchCause) {
+      return openSearchCause.status().getStatus();
     }
     return 500;
   }
