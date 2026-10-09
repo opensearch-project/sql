@@ -90,14 +90,26 @@ public class RestSqlAction extends BaseRestHandler {
    */
   private final BiFunction<SQLQueryRequest, RestChannel, Boolean> analyticsRouter;
 
+  /** Runs the SQL execution under a coordinator task so DSL searches link back to the SQL query. */
+  private final SqlCoordinatorTaskDispatcher coordinatorTaskDispatcher;
+
   public RestSqlAction(
       Settings settings,
       Injector injector,
       BiFunction<SQLQueryRequest, RestChannel, Boolean> analyticsRouter) {
+    this(settings, injector, analyticsRouter, SqlCoordinatorTaskDispatcher.PASSTHROUGH);
+  }
+
+  public RestSqlAction(
+      Settings settings,
+      Injector injector,
+      BiFunction<SQLQueryRequest, RestChannel, Boolean> analyticsRouter,
+      SqlCoordinatorTaskDispatcher coordinatorTaskDispatcher) {
     super();
     this.allowExplicitIndex = MULTI_ALLOW_EXPLICIT_INDEX.get(settings);
     this.newSqlQueryHandler = new RestSQLQueryAction(injector);
     this.analyticsRouter = analyticsRouter;
+    this.coordinatorTaskDispatcher = coordinatorTaskDispatcher;
   }
 
   @Override
@@ -156,11 +168,18 @@ public class RestSqlAction extends BaseRestHandler {
       // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices.
       // The router returns true and sends the response directly if it handled the request.
       final SQLQueryRequest finalRequest = newSqlRequest;
-      return channel -> {
-        if (!analyticsRouter.apply(finalRequest, channel)) {
-          delegateToV2Engine(request, client, sqlRequest, finalRequest, format, channel);
-        }
-      };
+      // Run under a coordinator task so every DSL search the SQL engine issues carries a parent
+      // reference back to this SQL query (used by query-insights to correlate and recover source).
+      return channel ->
+          coordinatorTaskDispatcher.dispatch(
+              client,
+              sqlRequest.getSql(),
+              channel,
+              ch -> {
+                if (!analyticsRouter.apply(finalRequest, ch)) {
+                  delegateToV2Engine(request, client, sqlRequest, finalRequest, format, ch);
+                }
+              });
     } catch (Exception e) {
       return channel -> handleException(channel, e);
     }
