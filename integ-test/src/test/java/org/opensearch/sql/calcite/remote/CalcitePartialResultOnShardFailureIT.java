@@ -110,19 +110,21 @@ public class CalcitePartialResultOnShardFailureIT extends PPLIntegTestCase {
 
   @Test
   public void skippedRemoteClusterAttachesWarningNamingTheCounts() throws IOException {
-    // A remote whose only seed refuses connections; skip_unavailable makes the search skip it.
-    updateClusterSettings(
-        new ClusterSetting("persistent", "cluster.remote.offline.seeds", "127.0.0.1:1"));
-    updateClusterSettings(
-        new ClusterSetting("persistent", "cluster.remote.offline.skip_unavailable", "true"));
     try {
+      // A remote whose only seed refuses connections; skip_unavailable makes the search skip it.
+      updateClusterSettings(
+          new ClusterSetting("persistent", "cluster.remote.offline.seeds", "127.0.0.1:1"));
+      updateClusterSettings(
+          new ClusterSetting("persistent", "cluster.remote.offline.skip_unavailable", "true"));
       JSONObject result =
           executeQuery(
               String.format(
                   "source=%s,offline:%s | stats count() as n", HEALTHY_INDEX, HEALTHY_INDEX));
 
       verifyDataRows(result, rows(3));
-      JSONObject warning = result.getJSONArray("warnings").getJSONObject(0);
+      JSONArray warnings = result.getJSONArray("warnings");
+      assertEquals(1, warnings.length());
+      JSONObject warning = warnings.getJSONObject(0);
       assertEquals("PARTIAL_RESULT", warning.getString("type"));
       assertEquals(
           "Results are partial: 1 of 2 clusters was skipped.", warning.getString("message"));
