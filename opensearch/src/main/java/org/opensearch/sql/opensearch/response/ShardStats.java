@@ -18,14 +18,30 @@ import org.opensearch.sql.executor.Warning;
 
 /**
  * Shard-level outcome of one search, so a scan can tell whether its rows cover every shard. A
- * search returns 200 once any shard responds, so three outcomes make a result partial: a shard
- * failed, a shard had no available copy, or the search timed out.
+ * search returns 200 once any shard responds, so four outcomes make a result partial: a shard
+ * failed, a shard had no available copy, the search timed out, or a remote cluster was skipped.
  */
 public record ShardStats(
-    int total, int successful, int skipped, int failed, boolean timedOut, List<String> failures) {
+    int total,
+    int successful,
+    int skipped,
+    int failed,
+    boolean timedOut,
+    List<String> failures,
+    Clusters clusters) {
 
   /** No SearchResponse to read, e.g. a page synthesized from bare hits. */
   public static final ShardStats UNKNOWN = new ShardStats(0, 0, 0, 0, false, List.of());
+
+  /** Cross-cluster counts. A skipped cluster's shards never appear in the shard counts. */
+  public record Clusters(int total, int successful, int skipped) {
+    public static final Clusters NONE = new Clusters(0, 0, 0);
+  }
+
+  public ShardStats(
+      int total, int successful, int skipped, int failed, boolean timedOut, List<String> failures) {
+    this(total, successful, skipped, failed, timedOut, failures, Clusters.NONE);
+  }
 
   /** Reasons to spell out in a warning; the rest are summarized as "N more". */
   static final int MAX_REASONS = 3;
@@ -37,7 +53,14 @@ public record ShardStats(
         searchResponse.getSkippedShards(),
         searchResponse.getFailedShards(),
         searchResponse.isTimedOut(),
-        describeFailures(searchResponse.getShardFailures()));
+        describeFailures(searchResponse.getShardFailures()),
+        clustersOf(searchResponse.getClusters()));
+  }
+
+  private static Clusters clustersOf(SearchResponse.Clusters clusters) {
+    return clusters == null
+        ? Clusters.NONE
+        : new Clusters(clusters.getTotal(), clusters.getSuccessful(), clusters.getSkipped());
   }
 
   /**
@@ -63,7 +86,7 @@ public record ShardStats(
   }
 
   public boolean isComplete() {
-    return !timedOut && failed == 0 && missing() == 0;
+    return !timedOut && failed == 0 && missing() == 0 && clusters.skipped() == 0;
   }
 
   /** The warning to attach, or empty when the search covered every shard. */
@@ -86,6 +109,14 @@ public record ShardStats(
           missing(),
           total);
     }
+    if (clusters.skipped() > 0) {
+      return String.format(
+          Locale.ROOT,
+          "Results are partial: %d of %d clusters %s skipped.",
+          clusters.skipped(),
+          clusters.total(),
+          clusters.skipped() == 1 ? "was" : "were");
+    }
     return "Results are partial: the search timed out before all shards responded.";
   }
 
@@ -102,6 +133,15 @@ public record ShardStats(
                 failed));
     if (timedOut) {
       detail.append("; timed_out: true");
+    }
+    if (clusters.skipped() > 0) {
+      detail.append(
+          String.format(
+              Locale.ROOT,
+              "; _clusters: total %d, successful %d, skipped %d",
+              clusters.total(),
+              clusters.successful(),
+              clusters.skipped()));
     }
     if (!failures.isEmpty()) {
       detail.append("; failures: ").append(formatReasons());
