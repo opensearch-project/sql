@@ -53,6 +53,26 @@ public class SyncErrorReportRendererTest {
   }
 
   @Test
+  public void shardServerErrorReturns500OverFirstShard400() {
+    // SearchPhaseExecutionException#status takes the first shard's status unless a later one is
+    // 5xx.
+    SearchPhaseExecutionException mixedFailure =
+        new SearchPhaseExecutionException(
+            "query",
+            "all shards failed",
+            new ShardSearchFailure[] {
+              new ShardSearchFailure(
+                  new QueryShardException(
+                      new Index("logs", "_na_"),
+                      "No mapping found for [f] in order to sort on",
+                      null)),
+              new ShardSearchFailure(new RuntimeException("shard fault"))
+            });
+
+    assertEquals(500, SyncErrorReportRenderer.statusCodeFor(calciteWrapped(mixedFailure)));
+  }
+
+  @Test
   public void clientErrorAtTopReturns400OverShardServerError() {
     // NonFallbackCalciteException is a QueryEngineException, and the client-error check runs first.
     SearchPhaseExecutionException shardServerError =
