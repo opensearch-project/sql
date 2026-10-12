@@ -36,14 +36,12 @@ class OpenSearchDescribeIndexRequestTest {
   @Mock private IndexMapping mapping2;
 
   /**
-   * Merging must not mutate the per-index mappings it reads. {@code MergeRuleHelper} rewrites the
-   * accumulated type's nested {@code properties} in place, so without copying, the first index's
-   * nested field would be merged into the second's -- and callers of {@link
-   * OpenSearchDescribeIndexRequest#getLastIndexMappings()} (partial-result partitioning) would see
-   * a text/keyword conflict as no conflict at all.
+   * Merging must not mutate the mappings it reads: {@code MergeRuleHelper} rewrites the accumulated
+   * type's nested {@code properties} in place, so without a copy the first index's nested field
+   * would be merged into the second's and a fetched mapping would no longer describe its index.
    */
   @Test
-  void getFieldTypesLeavesRetainedPerIndexMappingsIntact() {
+  void getFieldTypesLeavesFetchedMappingsIntact() {
     Map<String, OpenSearchDataType> keywordSide =
         Map.of("attrs", nestedObject("env", OpenSearchDataType.MappingType.Keyword));
     Map<String, OpenSearchDataType> textSide =
@@ -56,13 +54,10 @@ class OpenSearchDescribeIndexRequestTest {
     OpenSearchDescribeIndexRequest request = new OpenSearchDescribeIndexRequest(client, "idx-*");
     request.getFieldTypes();
 
-    // Each index must still report the type it actually declared.
+    // Each fetched mapping must still declare the type it came with.
     assertEquals(
-        OpenSearchDataType.MappingType.Keyword,
-        nestedFieldType(request.getLastIndexMappings().get("idx-keyword"), "attrs", "env"));
-    assertEquals(
-        OpenSearchDataType.MappingType.Text,
-        nestedFieldType(request.getLastIndexMappings().get("idx-text"), "attrs", "env"));
+        OpenSearchDataType.MappingType.Keyword, nestedFieldType(keywordSide, "attrs", "env"));
+    assertEquals(OpenSearchDataType.MappingType.Text, nestedFieldType(textSide, "attrs", "env"));
   }
 
   private static OpenSearchDataType nestedObject(
@@ -104,8 +99,8 @@ class OpenSearchDescribeIndexRequestTest {
   }
 
   private static OpenSearchDataType.MappingType nestedFieldType(
-      IndexMapping indexMapping, String parent, String child) {
-    return indexMapping.getFieldMappings().get(parent).getProperties().get(child).getMappingType();
+      Map<String, OpenSearchDataType> mappings, String parent, String child) {
+    return mappings.get(parent).getProperties().get(child).getMappingType();
   }
 
   @Test
