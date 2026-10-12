@@ -11,6 +11,7 @@ import static org.mockito.Mockito.doAnswer;
 
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -18,13 +19,19 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.statement.Query;
+import org.opensearch.sql.ast.statement.Statement;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.executor.AnalyzeResponse;
 import org.opensearch.sql.executor.DefaultQueryManager;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.executor.QueryService;
+import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
 import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
@@ -80,6 +87,20 @@ public class PPLServiceTest {
     };
   }
 
+  /**
+   * Tolerant of either outcome: these tests assert on the query-insights sink, which is fed before
+   * the analyze plan is submitted, and the plan itself runs against a mocked query service.
+   */
+  private ResponseListener<AnalyzeResponse> getAnalyzeListener() {
+    return new ResponseListener<AnalyzeResponse>() {
+      @Override
+      public void onResponse(AnalyzeResponse response) {}
+
+      @Override
+      public void onFailure(Exception e) {}
+    };
+  }
+
   private ResponseListener<ExplainResponse> getExplainListener(boolean fail) {
     return new ResponseListener<ExplainResponse>() {
       @Override
@@ -113,6 +134,125 @@ public class PPLServiceTest {
         new PPLQueryRequest("search source=t a=1", null, QUERY),
         getQueryListener(false),
         getExplainListener(false));
+  }
+
+  @Test
+  public void testExecutePassesAnonymizedQueryToSink() {
+    doAnswer(
+            invocation -> {
+              ResponseListener<QueryResponse> listener = invocation.getArgument(4);
+              listener.onResponse(new QueryResponse(schema, Collections.emptyList(), Cursor.None));
+              return null;
+            })
+        .when(queryService)
+        .execute(any(), any(), any(), anyBoolean(), any());
+
+    AtomicReference<QueryInsightsMetadata> metadata = new AtomicReference<>();
+    pplService.execute(
+        new PPLQueryRequest("search source=t a=42", null, QUERY),
+        getQueryListener(false),
+        getExplainListener(false),
+        metadata::set);
+
+    // The sink receives the anonymized query (literal masked, never the raw value) and the source
+    // index resolved from the same AST that executes.
+    Assert.assertNotNull(metadata.get());
+    Assert.assertTrue(metadata.get().anonymizedQuery().contains("***"));
+    Assert.assertFalse(metadata.get().anonymizedQuery().contains("42"));
+    Assert.assertEquals(Collections.singletonList("t"), metadata.get().indices());
+  }
+
+  @Test
+  public void testExplainPassesAnonymizedQueryToSink() {
+    AtomicReference<QueryInsightsMetadata> metadata = new AtomicReference<>();
+    pplService.explain(
+        new PPLQueryRequest("search source=t a=42", null, EXPLAIN),
+        getExplainListener(false),
+        metadata::set);
+
+    Assert.assertNotNull(metadata.get());
+    Assert.assertTrue(metadata.get().anonymizedQuery().contains("***"));
+    Assert.assertFalse(metadata.get().anonymizedQuery().contains("42"));
+    Assert.assertEquals(Collections.singletonList("t"), metadata.get().indices());
+  }
+
+  @Test
+  public void testAnalyzePassesAnonymizedQueryToSink() {
+    AtomicReference<QueryInsightsMetadata> metadata = new AtomicReference<>();
+    pplService.analyze(
+        new PPLQueryRequest("search source=t a=42", null, QUERY),
+        getAnalyzeListener(),
+        metadata::set);
+
+    // analyze builds the AST on its own path rather than sharing execute's, so the sink has to be
+    // fed there too; without this the analyze route would report an empty record.
+    Assert.assertNotNull(metadata.get());
+    Assert.assertTrue(metadata.get().anonymizedQuery().contains("***"));
+    Assert.assertFalse(metadata.get().anonymizedQuery().contains("42"));
+    Assert.assertEquals(Collections.singletonList("t"), metadata.get().indices());
+    Assert.assertFalse(metadata.get().explain());
+  }
+
+  @Test
+  public void testAnalyzeWithoutSinkShouldPass() {
+    // The two-arg overload delegates with the no-op sink; it must not throw.
+    pplService.analyze(
+        new PPLQueryRequest("search source=t a=42", null, QUERY), getAnalyzeListener());
+  }
+
+  @Test
+  public void testAnalyzeWithIllegalQueryShouldBeCaughtByHandler() {
+    AtomicReference<Exception> failure = new AtomicReference<>();
+    AtomicReference<QueryInsightsMetadata> metadata = new AtomicReference<>();
+    pplService.analyze(
+        new PPLQueryRequest("search", null, QUERY),
+        new ResponseListener<AnalyzeResponse>() {
+          @Override
+          public void onResponse(AnalyzeResponse response) {
+            Assert.fail("a query that fails to parse must not produce an analyze response");
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            failure.set(e);
+          }
+        },
+        metadata::set);
+
+    // The parse failure must reach the listener rather than escape analyze(), and the sink must
+    // stay untouched: there is no anonymized query to report for a query that never parsed.
+    Assert.assertNotNull(failure.get());
+    Assert.assertNull(metadata.get());
+  }
+
+  @Test
+  public void testExtractIndexNamesOnNonQueryStatementYieldsEmpty() {
+    // Defensive fallback: the parser only produces Query or Explain, so this cannot happen through
+    // the public API. Pinned so the fallback stays a fallback and does not become a null return.
+    Statement notAQuery = new Statement() {};
+    Assert.assertEquals(Collections.emptyList(), PPLService.extractIndexNames(notAQuery));
+  }
+
+  @Test
+  public void testExtractIndexNamesSwallowsWalkFailure() {
+    // Index extraction is best-effort metadata: a plan that blows up during the walk must yield no
+    // indices rather than failing the query that is about to execute.
+    UnresolvedPlan exploding =
+        new UnresolvedPlan() {
+          @Override
+          public UnresolvedPlan attach(UnresolvedPlan child) {
+            return this;
+          }
+
+          @Override
+          public <R, C> R accept(AbstractNodeVisitor<R, C> visitor, C context) {
+            throw new IllegalStateException("walk blew up");
+          }
+        };
+
+    Assert.assertEquals(
+        Collections.emptyList(),
+        PPLService.extractIndexNames(new Query(exploding, 0, QueryType.PPL)));
   }
 
   @Test

@@ -45,6 +45,12 @@ public class Lookup extends UnresolvedPlan {
     return this;
   }
 
+  /** {@inheritDoc} Adds the lookup table, which is not a child. */
+  @Override
+  public List<UnresolvedPlan> getSources() {
+    return this.lookupRelation == null ? ImmutableList.of() : ImmutableList.of(this.lookupRelation);
+  }
+
   @Override
   public List<? extends Node> getChild() {
     return this.child == null ? ImmutableList.of() : ImmutableList.of(this.child);
