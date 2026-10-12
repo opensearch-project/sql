@@ -36,18 +36,27 @@ public class DeserializationFilterUtilTest {
 
   @Test
   void null_settings_fall_back_to_default_limits() {
-    // depth 21 > DEFAULT_MAX_DEPTH (20); refs 1001 > DEFAULT_MAX_REFS (1000);
-    // bytes 15001 > DEFAULT_MAX_BYTES (15000).
+    // depth 151 > DEFAULT_MAX_DEPTH (150); refs 10001 > DEFAULT_MAX_REFS (10000);
+    // bytes 65537 > DEFAULT_MAX_BYTES (65536).
     ObjectInputFilter filter = DeserializationFilterUtil.createFilter("");
     assertEquals(
         ObjectInputFilter.Status.REJECTED,
-        filter.checkInput(info(/*class*/ null, /*depth*/ 21, /*refs*/ 1, /*bytes*/ 100)));
+        filter.checkInput(info(/*class*/ null, /*depth*/ 151, /*refs*/ 1, /*bytes*/ 100)));
     assertEquals(
         ObjectInputFilter.Status.REJECTED,
-        filter.checkInput(info(/*class*/ null, /*depth*/ 1, /*refs*/ 1001, /*bytes*/ 100)));
+        filter.checkInput(info(/*class*/ null, /*depth*/ 1, /*refs*/ 10001, /*bytes*/ 100)));
     assertEquals(
         ObjectInputFilter.Status.REJECTED,
-        filter.checkInput(info(/*class*/ null, /*depth*/ 1, /*refs*/ 1, /*bytes*/ 15001)));
+        filter.checkInput(info(/*class*/ null, /*depth*/ 1, /*refs*/ 1, /*bytes*/ 65537)));
+  }
+
+  @Test
+  void default_limits_are_inclusive() {
+    // A graph exactly at every default limit is still accepted.
+    ObjectInputFilter filter = DeserializationFilterUtil.createFilter("");
+    assertEquals(
+        ObjectInputFilter.Status.UNDECIDED,
+        filter.checkInput(info(/*class*/ null, /*depth*/ 150, /*refs*/ 10000, /*bytes*/ 65536)));
   }
 
   @Test
