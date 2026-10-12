@@ -1518,6 +1518,36 @@ public class CalcitePPLAggregationIT extends PPLIntegTestCase {
     verifyDataRows(response, rows(121764, 1, "F"), rows(65909, 1, "M"));
   }
 
+  // Narrow-int operands are widened by a CAST before the SUM rewrite (#5823)
+  @Test
+  public void testSumWithLiteralOnNarrowInt() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats sum(age) as s, sum(age + 100) as p, sum(age - 100) as m,"
+                    + " sum(age * 100) as x by gender",
+                TEST_INDEX_BANK));
+    verifySchema(
+        response,
+        schema("s", null, "bigint"),
+        schema("p", null, "bigint"),
+        schema("m", null, "bigint"),
+        schema("x", null, "bigint"),
+        schema("gender", null, "string"));
+    verifyDataRows(response, rows(101, 401, -199, 10100, "F"), rows(137, 537, -263, 13700, "M"));
+  }
+
+  // Null ages are excluded from COUNT, so sum(age + 100) adds 100 per non-null row only
+  @Test
+  public void testSumWithLiteralOnNarrowIntWithNulls() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats sum(age + 100) as p by gender",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifyDataRows(response, rows(262, "F"), rows(537, "M"));
+  }
+
   @Test
   public void testAggByByteNumberWithScript() throws IOException {
     JSONObject response =
