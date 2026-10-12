@@ -19,14 +19,17 @@ import org.opensearch.cluster.block.ClusterBlockException;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.core.index.Index;
 import org.opensearch.core.index.shard.ShardId;
+import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.query.QueryShardException;
 import org.opensearch.sql.common.error.ErrorReport;
+import org.opensearch.sql.common.error.QueryProcessingStage;
 import org.opensearch.sql.exception.NonFallbackCalciteException;
 
 /**
  * Verifies {@link SyncErrorReportRenderer#statusCodeFor(Throwable)} takes the status of an {@link
  * org.opensearch.OpenSearchException} under the wrappers a failed search arrives in, so a shard's
- * 400 is not reported as a 500, and that any other wrapper hides it.
+ * 400 is not reported as a 500, that any other wrapper hides it, and that a script the engine
+ * generated and the shard failed to compile returns 500.
  */
 public class SyncErrorReportRendererTest {
 
@@ -144,11 +147,58 @@ public class SyncErrorReportRendererTest {
   }
 
   @Test
+  public void codegenFailureInErrorReportReturns500OverShard400() {
+    ErrorReport report =
+        ErrorReport.wrap(wrappedInsideExecuteQuery(scriptCompileFailure()))
+            .stage(QueryProcessingStage.EXECUTING)
+            .build();
+
+    assertEquals(500, SyncErrorReportRenderer.statusCodeFor(report));
+  }
+
+  @Test
+  public void codegenFailureWithoutErrorReportReturns500OverShard400() {
+    // A plan run on the complex worker pool, such as a join, reaches the listener without an
+    // ErrorReport.
+    assertEquals(
+        500,
+        SyncErrorReportRenderer.statusCodeFor(wrappedInsideExecuteQuery(scriptCompileFailure())));
+  }
+
+  @Test
+  public void codegenMarkerOutsideSearchReturns404() {
+    // Not a failed search, so a marker in a requested index name keeps its status.
+    ErrorReport report =
+        ErrorReport.wrap(new IndexNotFoundException("Failed to compile inline script"))
+            .stage(QueryProcessingStage.ANALYZING)
+            .build();
+
+    assertEquals(404, SyncErrorReportRenderer.statusCodeFor(report));
+  }
+
+  @Test
   public void cyclicCauseChainReturns500() {
     RuntimeException first = new RuntimeException("first");
     first.initCause(new RuntimeException("second", first));
 
     assertEquals(500, SyncErrorReportRenderer.statusCodeFor(first));
+  }
+
+  /**
+   * The 400 a shard returns when the script the engine pushed fails to compile. The shard's message
+   * carries one of the CODEGEN_MESSAGE_MARKERS in StageErrorHandler.
+   */
+  private static SearchPhaseExecutionException scriptCompileFailure() {
+    return new SearchPhaseExecutionException(
+        "query",
+        "all shards failed",
+        new ShardSearchFailure[] {
+          new ShardSearchFailure(
+              new QueryShardException(
+                  new Index("logs", "_na_"),
+                  "failed to create query: Failed to compile inline script",
+                  null))
+        });
   }
 
   /**
