@@ -104,6 +104,7 @@ import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.plugin.RestSqlAction;
 import org.opensearch.sql.legacy.plugin.RestSqlStatsAction;
 import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
+import org.opensearch.sql.opensearch.client.RemoteClusterServiceProvider;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
 import org.opensearch.sql.opensearch.storage.rest.CoreEndpointsProvider;
@@ -200,6 +201,13 @@ public class SQLPlugin extends Plugin
   private org.opensearch.sql.common.setting.Settings pluginSettings;
 
   private NodeClient client;
+
+  /**
+   * Filled by {@link org.opensearch.sql.plugin.transport.TransportPPLQueryAction}, the first holder
+   * of a {@code TransportService}; returned as a component so it can be injected there.
+   */
+  private final RemoteClusterServiceProvider remoteClusters = new RemoteClusterServiceProvider();
+
   private DataSourceServiceImpl dataSourceService;
   private OpenSearchAsyncQueryScheduler asyncQueryScheduler;
   private Injector injector;
@@ -444,6 +452,7 @@ public class SQLPlugin extends Plugin
           b.bind(org.opensearch.sql.common.setting.Settings.class).toInstance(pluginSettings);
           b.bind(DataSourceService.class).toInstance(dataSourceService);
           b.bind(ClusterService.class).toInstance(clusterService);
+          b.bind(RemoteClusterServiceProvider.class).toInstance(remoteClusters);
         });
     modules.add(new AsyncExecutorServiceModule());
     modules.add(new DirectQueryModule());
@@ -487,7 +496,8 @@ public class SQLPlugin extends Plugin
         directQueryExecutorService,
         extensionsHolder,
         queryJobService,
-        securityAdapter);
+        securityAdapter,
+        remoteClusters);
   }
 
   @Override
@@ -578,7 +588,7 @@ public class SQLPlugin extends Plugin
         new ImmutableSet.Builder<DataSourceFactory>()
             .add(
                 new OpenSearchDataSourceFactory(
-                    new OpenSearchNodeClient(this.client), pluginSettings))
+                    new OpenSearchNodeClient(this.client, remoteClusters), pluginSettings))
             .add(new PrometheusStorageFactory(pluginSettings))
             .add(new GlueDataSourceFactory(pluginSettings))
             .add(new SecurityLakeDataSourceFactory(pluginSettings))
