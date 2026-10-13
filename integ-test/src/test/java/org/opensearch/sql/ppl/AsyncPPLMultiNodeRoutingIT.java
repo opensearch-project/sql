@@ -139,6 +139,7 @@ public class AsyncPPLMultiNodeRoutingIT extends PPLIntegTestCase {
     // Owner's QueryJobNotFoundException must translate to a transport-serializable 404 so
     // forwarding doesn't drop it to 500.
     Assert.assertEquals(404, ex.getResponse().getStatusLine().getStatusCode());
+    assertForwardedErrorIsUnwrapped(ex);
   }
 
   @Test
@@ -165,6 +166,29 @@ public class AsyncPPLMultiNodeRoutingIT extends PPLIntegTestCase {
     ResponseException ex =
         Assert.assertThrows(ResponseException.class, () -> nodeB.performRequest(request));
     Assert.assertEquals(404, ex.getResponse().getStatusLine().getStatusCode());
+    assertForwardedErrorIsUnwrapped(ex);
+  }
+
+  /**
+   * The forwarded error from the owner must unwrap on the entry node. Before the fix the client saw
+   * {@code type=RemoteTransportException} and the owner's hostname/port in {@code details}; after
+   * the fix the client sees the real {@code ResourceNotFoundException} with the id in the message
+   * and no transport-layer leakage.
+   */
+  private static void assertForwardedErrorIsUnwrapped(ResponseException ex) throws IOException {
+    String body = org.opensearch.sql.legacy.TestUtils.getResponseBody(ex.getResponse(), true);
+    JSONObject error = new JSONObject(body).getJSONObject("error");
+    Assert.assertEquals(
+        "forwarded 404 must surface the real cause, not the transport wrapper",
+        "ResourceNotFoundException",
+        error.getString("type"));
+    String details = error.optString("details", "");
+    Assert.assertFalse(
+        "forwarded error details must not leak owner-node transport metadata: " + details,
+        details.contains("cluster:admin/opensearch/ql/async_query"));
+    Assert.assertFalse(
+        "forwarded error details must not leak owner-node address: " + details,
+        details.matches("(?s).*\\d+\\.\\d+\\.\\d+\\.\\d+:\\d+.*"));
   }
 
   @Test

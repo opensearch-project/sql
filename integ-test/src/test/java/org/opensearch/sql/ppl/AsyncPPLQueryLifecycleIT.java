@@ -509,6 +509,12 @@ public class AsyncPPLQueryLifecycleIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void async_getWithAbsentOwnerReturns404() {
+    String absentOwnerId = QueryJobId.create("absent-node").encode();
+    assertNotFound(() -> getAsyncQuery(client(), absentOwnerId));
+  }
+
+  @Test
   public void async_rejectsWaitForCompletionTimeoutExceedingMax() {
     JSONObject body = new JSONObject();
     body.put("query", "source=" + TEST_INDEX_ACCOUNT + " | stats count() as c");

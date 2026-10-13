@@ -22,7 +22,6 @@ import org.opensearch.sql.job.QueryJobId;
 import org.opensearch.sql.job.exceptions.QueryJobForbiddenException;
 import org.opensearch.sql.job.exceptions.QueryJobNotFoundException;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorServiceImpl;
-import org.opensearch.sql.spark.asyncquery.exceptions.AsyncQueryNotFoundException;
 import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
 import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionRequest;
 import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionResponse;
@@ -68,13 +67,7 @@ public class TransportCancelAsyncQueryRequestAction
             NAME,
             request,
             CancelAsyncQueryActionResponse::new,
-            ActionListener.wrap(
-                listener::onResponse,
-                failure ->
-                    listener.onFailure(
-                        failure instanceof AsyncQueryNotFoundException
-                            ? new ResourceNotFoundException(failure.getMessage())
-                            : failure)));
+            listener);
         return;
       }
       String result =
