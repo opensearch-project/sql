@@ -97,6 +97,29 @@ class AsyncQueryOwnerRoutingTest {
   }
 
   @Test
+  void forwardedCauseThatIsNotAnExceptionIsWrappedInRuntimeException() {
+    TransportResponseHandler<GetAsyncQueryResultActionResponse> handler =
+        forwardToPresentOwner(new GetAsyncQueryResultActionRequest(JOB_ID.encode()));
+    // ExceptionsHelper.unwrapCause can return a Throwable that is not an Exception (e.g. an
+    // Error nested inside a wrapper). ActionListener#onFailure takes Exception, so the routing
+    // helper wraps the stray Throwable in a RuntimeException so it still surfaces to the client.
+    AssertionError cause = new AssertionError("non-exception cause");
+    RemoteTransportException wrapper =
+        new RemoteTransportException(
+            "owner-node",
+            new TransportAddress(java.net.InetAddress.getLoopbackAddress(), 9300),
+            ACTION_NAME,
+            cause);
+
+    handler.handleException(wrapper);
+
+    ArgumentCaptor<Exception> captor = ArgumentCaptor.forClass(Exception.class);
+    verify(listener).onFailure(captor.capture());
+    assertEquals(RuntimeException.class, captor.getValue().getClass());
+    assertEquals(cause, captor.getValue().getCause());
+  }
+
+  @Test
   void forwardedRemoteTransportExceptionIsUnwrappedBeforeReturningToListener() {
     TransportResponseHandler<GetAsyncQueryResultActionResponse> handler =
         forwardToPresentOwner(new GetAsyncQueryResultActionRequest(JOB_ID.encode()));
