@@ -1,0 +1,60 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : null
+
+---
+"Empty PPL query returns 400 syntax error":
+  - skip:
+      features:
+        - headers
+  # Before the fix the empty statement built a null AST and failed with a 500 NullPointerException.
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: ""
+  - match: { "$body": "/SyntaxCheckException/" }
+  - match: { "$body": "/Query\\s+is\\s+empty/" }
+
+---
+"Whitespace and comment only PPL query returns 400 syntax error":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "  /* nothing here */  "
+  - match: { "$body": "/SyntaxCheckException/" }
+  - match: { "$body": "/Query\\s+is\\s+empty/" }
+
+---
+"Empty PPL explain returns 400 syntax error":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl.explain:
+        body:
+          query: ""
+  - match: { "$body": "/SyntaxCheckException/" }
+  - match: { "$body": "/Query\\s+is\\s+empty/" }

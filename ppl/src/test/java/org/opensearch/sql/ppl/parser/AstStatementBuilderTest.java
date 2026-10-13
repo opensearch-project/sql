@@ -20,6 +20,7 @@ import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.HighlightConfig;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 
@@ -41,6 +42,41 @@ public class AstStatementBuilderTest {
             PPL));
     assertEqual(
         "search source=t a=1",
+        new Query(project(search(relation("t"), "a:1"), AllFields.of()), 0, PPL));
+  }
+
+  @Test
+  public void emptyQueryThrowsSyntaxCheckException() {
+    exceptionRule.expect(SyntaxCheckException.class);
+    exceptionRule.expectMessage("Query is empty");
+    plan("", false);
+  }
+
+  @Test
+  public void whitespaceOnlyQueryThrowsSyntaxCheckException() {
+    exceptionRule.expect(SyntaxCheckException.class);
+    exceptionRule.expectMessage("Query is empty");
+    plan(" \n\t ", false);
+  }
+
+  @Test
+  public void commentOnlyQueryThrowsSyntaxCheckException() {
+    exceptionRule.expect(SyntaxCheckException.class);
+    exceptionRule.expectMessage("Query is empty");
+    plan("/* block */ // line", false);
+  }
+
+  @Test
+  public void emptyExplainQueryThrowsSyntaxCheckException() {
+    exceptionRule.expect(SyntaxCheckException.class);
+    exceptionRule.expectMessage("Query is empty");
+    plan("", true);
+  }
+
+  @Test
+  public void queryWithSurroundingCommentsStillBuilds() {
+    assertEqual(
+        "/* leading */ search source=t a=1 // trailing",
         new Query(project(search(relation("t"), "a:1"), AllFields.of()), 0, PPL));
   }
 

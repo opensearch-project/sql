@@ -19,6 +19,7 @@ import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.protocol.response.format.Format;
@@ -30,6 +31,19 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
   private final AstBuilder astBuilder;
 
   private final StatementBuilderContext context;
+
+  /**
+   * The grammar's {@code root} rule accepts input with no statement (empty, whitespace or
+   * comment-only queries), which would otherwise build a null {@link Statement}. Reject it as a
+   * syntax error so it surfaces as a client error.
+   */
+  @Override
+  public Statement visitRoot(OpenSearchPPLParser.RootContext ctx) {
+    if (ctx.pplStatement() == null) {
+      throw new SyntaxCheckException("Query is empty");
+    }
+    return super.visitRoot(ctx);
+  }
 
   @Override
   public Statement visitPplStatement(OpenSearchPPLParser.PplStatementContext ctx) {
