@@ -1,0 +1,81 @@
+# Issue: https://github.com/opensearch-project/sql/issues/5840
+# expand correlates the expansion with a column of its input, and the resolved field was cast to a
+# RexInputRef unchecked. A leaf of a map -- what spath's auto-extract mode produces -- reaches the
+# planner as an ITEM call, so the cast failed with "RexCall cannot be cast to RexInputRef" and the
+# client saw an internal error naming Calcite classes.
+
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  - do:
+      indices.create:
+        index: expand_5840
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              id:
+                type: integer
+              body:
+                type: keyword
+              projects:
+                type: nested
+                properties:
+                  name:
+                    type: keyword
+  - do:
+      bulk:
+        index: expand_5840
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"id": 1, "body": "{\"tags\": [\"a\", \"b\"]}", "projects": [{"name": "p1"}, {"name": "p2"}]}'
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: expand_5840
+        ignore_unavailable: true
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : null
+
+---
+# Before the fix: HTTP 500, "class org.apache.calcite.rex.RexCall cannot be cast to class
+# org.apache.calcite.rex.RexInputRef".
+"expand of a map leaf names the field instead of failing as a cast":
+  - skip:
+      features: [headers]
+  - do:
+      catch: bad_request
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=expand_5840 | spath input=body | expand body.tags'
+  # A caught response is only readable as text, so these are finds over the body. A cast failure
+  # carried none of them: its reason was the Calcite class names and its code was UNKNOWN.
+  - match: {"$body": "/Cannot\\s+expand\\s+.body.tags./"}
+  - match: {"$body": "/UNSUPPORTED_OPERATION/"}
+  - match: {"$body": "/expand\\s+takes\\s+a\\s+field\\s+of\\s+the\\s+index/"}
+
+---
+# A field of the index is unaffected: expand still expands it, one row per element. What each row
+# then projects out of a nested element is a separate question and is not asserted here.
+"expand of a field of the index still expands it":
+  - skip:
+      features: [headers]
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: 'source=expand_5840 | expand projects | fields id'
+  - match: {"total": 2}
+  - match: {"datarows": [[1], [1]]}
