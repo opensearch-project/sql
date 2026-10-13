@@ -136,11 +136,12 @@ class OpenSearchDescribeIndexRequestTest {
             hasEntry("TYPE_NAME", stringValue("STRING"))));
   }
 
+  /** The client resolves "cluster:index" itself, so the name reaches it unchanged. */
   @Test
-  void testCrossClusterShouldSearchLocal() {
+  void testCrossClusterNameReachesTheClientUnchanged() {
     when(mapping.getFieldMappings())
         .thenReturn(Map.of("name", OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)));
-    when(client.getIndexMappings("index")).thenReturn(ImmutableMap.of("test", mapping));
+    when(client.getIndexMappings("ccs:index")).thenReturn(ImmutableMap.of("ccs:index", mapping));
 
     final List<ExprValue> results =
         new OpenSearchDescribeIndexRequest(client, "ccs:index").search();

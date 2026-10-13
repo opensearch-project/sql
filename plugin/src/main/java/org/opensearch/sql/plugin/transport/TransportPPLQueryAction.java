@@ -41,6 +41,7 @@ import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.monitor.profile.ProfileScope;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
+import org.opensearch.sql.opensearch.client.RemoteClusterServiceProvider;
 import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
 import org.opensearch.sql.opensearch.executor.tracing.TracingPhaseListener;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
@@ -98,10 +99,13 @@ public class TransportPPLQueryAction
       DataSourceServiceImpl dataSourceService,
       org.opensearch.common.settings.Settings clusterSettings,
       EngineExtensionsHolder extensionsHolder,
-      Tracer tracer) {
+      Tracer tracer,
+      RemoteClusterServiceProvider remoteClusters) {
     super(PPLQueryAction.NAME, transportService, actionFilters, TransportPPLQueryRequest::new);
     this.clientRef = client;
     this.clusterServiceRef = clusterService;
+    // The plugin's components are created before any TransportService exists; fill it here.
+    remoteClusters.set(transportService.getRemoteClusterService());
 
     ModulesBuilder modules = new ModulesBuilder();
     modules.add(new OpenSearchPluginModule(extensionsHolder.engines(), tracer));
@@ -111,6 +115,7 @@ public class TransportPPLQueryAction
     modules.add(
         b -> {
           b.bind(NodeClient.class).toInstance(client);
+          b.bind(RemoteClusterServiceProvider.class).toInstance(remoteClusters);
           b.bind(org.opensearch.sql.common.setting.Settings.class).toInstance(pluginSettings);
           b.bind(DataSourceService.class).toInstance(dataSourceService);
         });
