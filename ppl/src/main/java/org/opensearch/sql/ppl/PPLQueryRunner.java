@@ -7,6 +7,7 @@ package org.opensearch.sql.ppl;
 
 import java.time.Clock;
 import java.util.Objects;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -25,9 +26,9 @@ import org.opensearch.sql.ppl.domain.PPLQueryRequest;
  * manager's worker threads exactly as it does today; this class only bridges the callback-based
  * response into a {@link CompletionStage}.
  *
- * <p>Cancellation is best-effort: {@link PPLService} does not surface an interrupt hook for
- * synchronous execution, so {@link #cancel()} marks the future as cancelled and lets a late
- * response drop on the floor.
+ * <p>Cancellation is cooperative: {@link #cancel()} marks the future as cancelled so a late
+ * response drops on the floor, and invokes the caller-supplied hook so the engine can stop the
+ * in-flight execution at its next cancellation check.
  */
 public final class PPLQueryRunner implements QueryRunner {
 
@@ -35,6 +36,7 @@ public final class PPLQueryRunner implements QueryRunner {
   private final PPLQueryRequest request;
   private final Consumer<String> anonymizedQuerySink;
   private final Clock clock;
+  private final Runnable cancelExecution;
   private final AtomicBoolean started = new AtomicBoolean();
   private final CompletableFuture<QueryResult> future = new CompletableFuture<>();
 
@@ -44,18 +46,23 @@ public final class PPLQueryRunner implements QueryRunner {
    * @param anonymizedQuerySink receives the PII-scrubbed query text; supply {@link
    *     PPLService#NO_ANONYMIZED_QUERY_SINK} when no telemetry is wanted
    * @param clock time source; used to measure {@code tookMillis}
+   * @param cancelExecution stops the engine's in-flight execution; invoked at most once, only when
+   *     {@link #cancel()} wins against completion
    * @throws NullPointerException if any argument is {@code null}
    */
   public PPLQueryRunner(
       PPLService pplService,
       PPLQueryRequest request,
       Consumer<String> anonymizedQuerySink,
-      Clock clock) {
+      Clock clock,
+      Runnable cancelExecution) {
     this.pplService = Objects.requireNonNull(pplService, "pplService must not be null");
     this.request = Objects.requireNonNull(request, "request must not be null");
     this.anonymizedQuerySink =
         Objects.requireNonNull(anonymizedQuerySink, "anonymizedQuerySink must not be null");
     this.clock = Objects.requireNonNull(clock, "clock must not be null");
+    this.cancelExecution =
+        Objects.requireNonNull(cancelExecution, "cancelExecution must not be null");
   }
 
   @Override
@@ -94,6 +101,9 @@ public final class PPLQueryRunner implements QueryRunner {
 
   @Override
   public void cancel() {
-    future.cancel(false);
+    // Unlike cancel(false), this returns true only for the call that performs the transition.
+    if (future.completeExceptionally(new CancellationException("PPL query cancelled"))) {
+      cancelExecution.run();
+    }
   }
 }

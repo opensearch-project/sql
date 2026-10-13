@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.spark.transport;
 
+import org.opensearch.ExceptionsHelper;
+import org.opensearch.ResourceNotFoundException;
 import org.opensearch.action.ActionListenerResponseHandler;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -13,7 +15,6 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.io.stream.Writeable;
 import org.opensearch.sql.job.QueryJobId;
-import org.opensearch.sql.spark.asyncquery.exceptions.AsyncQueryNotFoundException;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.TransportRequestOptions;
 import org.opensearch.transport.TransportService;
@@ -36,6 +37,12 @@ final class AsyncQueryOwnerRouting {
   /**
    * Forwards {@code request} to the node identified by {@code jobId.ownerNodeId()}.
    *
+   * <p>Owner node absent from the current cluster state surfaces as {@link
+   * ResourceNotFoundException} (a transport-serializable 404), so GET and DELETE agree on status
+   * when the owner has left the cluster. Cross-node failures arrive wrapped in {@code
+   * RemoteTransportException}; the listener is wrapped to unwrap the cause before returning, so
+   * the client sees the real exception (and not the owner node's hostname/port).
+   *
    * @param clusterService source of the current cluster state and node roster
    * @param transportService transport client used to issue the cross-node send
    * @param jobId parsed id whose {@code ownerNodeId} names the target node
@@ -57,14 +64,22 @@ final class AsyncQueryOwnerRouting {
     DiscoveryNode ownerNode = clusterService.state().nodes().get(jobId.ownerNodeId());
     if (ownerNode == null) {
       listener.onFailure(
-          new AsyncQueryNotFoundException("QueryId: " + jobId.encode() + " not found"));
+          new ResourceNotFoundException("QueryId: " + jobId.encode() + " not found"));
       return;
     }
+    ActionListener<RespT> unwrapping =
+        ActionListener.wrap(
+            listener::onResponse,
+            failure -> {
+              Throwable cause = ExceptionsHelper.unwrapCause(failure);
+              listener.onFailure(
+                  cause instanceof Exception ? (Exception) cause : new RuntimeException(cause));
+            });
     transportService.sendRequest(
         ownerNode,
         actionName,
         request,
         TransportRequestOptions.EMPTY,
-        new ActionListenerResponseHandler<>(listener, responseReader, ThreadPool.Names.SAME));
+        new ActionListenerResponseHandler<>(unwrapping, responseReader, ThreadPool.Names.SAME));
   }
 }
