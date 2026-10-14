@@ -67,8 +67,9 @@ public class MVAppendCore {
       case SMALLINT -> num.shortValue();
       case INTEGER -> num.intValue();
       case BIGINT -> num.longValue();
-      case FLOAT, REAL -> num.floatValue();
-      case DOUBLE -> num.doubleValue();
+      // Calcite's FLOAT is double precision, and REAL is single precision
+      case DOUBLE, FLOAT -> num.doubleValue();
+      case REAL -> num.floatValue();
       case DECIMAL -> num instanceof BigDecimal ? num : BigDecimal.valueOf(num.doubleValue());
       default -> value;
     };

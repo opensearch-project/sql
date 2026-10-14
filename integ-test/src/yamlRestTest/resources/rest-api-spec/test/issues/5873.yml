@@ -1,0 +1,280 @@
+# Issue: https://github.com/opensearch-project/sql/issues/5873
+# coalesce built its SMALLINT and TINYINT result as an Integer and its Calcite FLOAT result as a
+# Float, mvappend and array built Calcite FLOAT elements as Float, and percentile_approx returned
+# a Double for SMALLINT, TINYINT and Calcite REAL and a Float for Calcite FLOAT. The code Calcite
+# generates, or Avatica's array accessor, then cast them to the declared class, so the query
+# returned 500 with a ClassCastException. Expected coalesce values match ifnull on the same field.
+
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+            plugins.calcite.pushdown.enabled : true
+  - do:
+      indices.create:
+        index: numeric_udf_result_5873
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              host:
+                type: keyword
+              s:
+                type: short
+              b:
+                type: byte
+              f:
+                type: float
+  - do:
+      bulk:
+        index: numeric_udf_result_5873
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"host": "a", "s": 5, "b": 5, "f": 1.5}'
+          - '{"index": {}}'
+          - '{"host": "b"}'
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: numeric_udf_result_5873
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : null
+            plugins.calcite.pushdown.enabled : null
+
+---
+"coalesce on a short field returns smallint":
+  - skip:
+      features:
+        - headers
+  # Before the fix: status 500, Integer cannot be cast to Short
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=numeric_udf_result_5873 | sort host | eval x = coalesce(s) | fields host, x
+  - match: {"schema": [{"name": "host", "type": "string"}, {"name": "x", "type": "smallint"}]}
+  - match: {"datarows": [["a", 5], ["b", null]]}
+
+---
+"coalesce on a byte field returns tinyint":
+  - skip:
+      features:
+        - headers
+  # Before the fix: status 500, Integer cannot be cast to Byte
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=numeric_udf_result_5873 | sort host | eval x = coalesce(b) | fields host, x
+  - match: {"schema": [{"name": "host", "type": "string"}, {"name": "x", "type": "tinyint"}]}
+  - match: {"datarows": [["a", 5], ["b", null]]}
+
+---
+"coalesce on a byte and a short field returns smallint":
+  - skip:
+      features:
+        - headers
+  # Before the fix: status 500, Integer cannot be cast to Short
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=numeric_udf_result_5873 | sort host | eval x = coalesce(b, s) | fields host, x
+  - match: {"schema": [{"name": "host", "type": "string"}, {"name": "x", "type": "smallint"}]}
+  - match: {"datarows": [["a", 5], ["b", null]]}
+
+---
+"coalesce on a short field in a pushed filter matches the row":
+  - skip:
+      features:
+        - headers
+  # Before the fix: status 500, the filter script failed on the shard
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=numeric_udf_result_5873 | where coalesce(s) = 5 | fields host
+  - match: {"datarows": [["a"]]}
+
+---
+"coalesce on a float field and a float literal returns float":
+  - skip:
+      features:
+        - headers
+  # Before the fix: status 500, Float cannot be cast to Double
+  # A float field is Calcite REAL, so the float literal is what makes the result Calcite FLOAT
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=numeric_udf_result_5873 | sort host | eval x = coalesce(f, 2.5F) | fields host, x
+  - match: {"schema": [{"name": "host", "type": "string"}, {"name": "x", "type": "float"}]}
+  - match: {"datarows": [["a", 1.5], ["b", 2.5]]}
+
+---
+"coalesce on a float field returns float":
+  - skip:
+      features:
+        - headers
+  # Control, a float field alone stays Calcite REAL and passed before the fix
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=numeric_udf_result_5873 | sort host | eval x = coalesce(f) | fields host, x
+  - match: {"schema": [{"name": "host", "type": "string"}, {"name": "x", "type": "float"}]}
+  - match: {"datarows": [["a", 1.5], ["b", null]]}
+
+---
+"mvappend on a float field and a float literal returns both values":
+  - skip:
+      features:
+        - headers
+  # Before the fix: status 500, Float cannot be cast to Double
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=numeric_udf_result_5873 | sort host | eval x = mvappend(f, 2.5F) | fields host, x
+  - match: {"schema": [{"name": "host", "type": "string"}, {"name": "x", "type": "array"}]}
+  - match: {"datarows": [["a", [1.5, 2.5]], ["b", [2.5]]]}
+
+---
+"mvappend on an array of a float field and a float literal returns both values":
+  - skip:
+      features:
+        - headers
+  # Before the fix: status 500, Float cannot be cast to Double
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=numeric_udf_result_5873 | sort host | eval x = mvappend(array(f), 2.5F) | fields host, x
+  - match: {"schema": [{"name": "host", "type": "string"}, {"name": "x", "type": "array"}]}
+  - match: {"datarows": [["a", [1.5, 2.5]], ["b", [2.5]]]}
+
+---
+"array on a float field and a float literal returns both values":
+  - skip:
+      features:
+        - headers
+  # Before the fix: status 500, Float cannot be cast to Double
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=numeric_udf_result_5873 | sort host | eval x = array(f, 2.5F) | fields host, x
+  - match: {"schema": [{"name": "host", "type": "string"}, {"name": "x", "type": "array"}]}
+  - match: {"datarows": [["a", [1.5, 2.5]], ["b", [null, 2.5]]]}
+
+---
+"percentile_approx on a short field in memory returns smallint":
+  - skip:
+      features:
+        - headers
+  # Before the fix: status 500, Double cannot be cast to Short
+  # max(lower(host)) cannot be pushed down, so the percentile runs in memory
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=numeric_udf_result_5873 | stats percentile_approx(s, 50) as p, max(lower(host)) as m
+  - match: {"schema": [{"name": "p", "type": "smallint"}, {"name": "m", "type": "string"}]}
+  - match: {"datarows": [[5, "b"]]}
+
+---
+"percentile_approx on a float field in memory returns float":
+  - skip:
+      features:
+        - headers
+  # Before the fix: status 500, Double cannot be cast to Float
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=numeric_udf_result_5873 | stats percentile_approx(f, 50) as p, max(lower(host)) as m
+  - match: {"schema": [{"name": "p", "type": "float"}, {"name": "m", "type": "string"}]}
+  - match: {"datarows": [[1.5, "b"]]}
+
+---
+"percentile_approx on a byte field in memory returns tinyint":
+  - skip:
+      features:
+        - headers
+  # Before the fix: status 500, Double cannot be cast to Byte
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=numeric_udf_result_5873 | stats percentile_approx(b, 50) as p, max(lower(host)) as m
+  - match: {"schema": [{"name": "p", "type": "tinyint"}, {"name": "m", "type": "string"}]}
+  - match: {"datarows": [[5, "b"]]}
+
+---
+"percentile_approx on a float expression with a float literal in memory returns float":
+  - skip:
+      features:
+        - headers
+  # Before the fix: status 500, Float cannot be cast to Double
+  # The float literal makes g a Calcite FLOAT
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=numeric_udf_result_5873 | eval g = f * 2.0F | stats percentile_approx(g, 50) as p, max(lower(host)) as m
+  - match: {"schema": [{"name": "p", "type": "float"}, {"name": "m", "type": "string"}]}
+  - match: {"datarows": [[3.0, "b"]]}
+
+---
+"median on a short field in memory returns smallint":
+  - skip:
+      features:
+        - headers
+  # Before the fix: status 500, Double cannot be cast to Short
+  # median runs through percentile_approx
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=numeric_udf_result_5873 | stats median(s) as p, max(lower(host)) as m
+  - match: {"schema": [{"name": "p", "type": "smallint"}, {"name": "m", "type": "string"}]}
+  - match: {"datarows": [[5, "b"]]}
+
+---
+"coalesce on a short field and an int literal returns int":
+  - skip:
+      features:
+        - headers
+  # Control, the int literal widens the result to int and passed before the fix
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=numeric_udf_result_5873 | sort host | eval x = coalesce(s, 0) | fields host, x
+  - match: {"schema": [{"name": "host", "type": "string"}, {"name": "x", "type": "int"}]}
+  - match: {"datarows": [["a", 5], ["b", 0]]}

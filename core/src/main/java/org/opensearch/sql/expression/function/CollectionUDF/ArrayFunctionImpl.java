@@ -119,16 +119,11 @@ public class ArrayFunctionImpl extends ImplementorUDF {
                     })
                 .collect(Collectors.toList());
         break;
-      case DOUBLE:
+      // Calcite's FLOAT is double precision, and REAL is single precision
+      case DOUBLE, FLOAT:
         result =
             originalList.stream()
                 .map(i -> i == null ? null : (Object) ((Number) i).doubleValue())
-                .collect(Collectors.toList());
-        break;
-      case FLOAT:
-        result =
-            originalList.stream()
-                .map(i -> i == null ? null : (Object) ((Number) i).floatValue())
                 .collect(Collectors.toList());
         break;
       case VARCHAR, CHAR:
