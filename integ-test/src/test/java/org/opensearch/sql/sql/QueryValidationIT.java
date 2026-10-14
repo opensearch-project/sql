@@ -118,8 +118,8 @@ public class QueryValidationIT extends SQLIntegTestCase {
   }
 
   // A query with no statement used to parse successfully and fail later with an internal
-  // NullPointerException. It must be rejected by the v2 parser with a 400 syntax error, without
-  // falling back to the legacy engine.
+  // NullPointerException. It must be rejected as an empty query with a 400, without falling back
+  // to the legacy engine.
   @Test
   public void testQueryWithoutStatementShouldFailWithBadRequest() throws IOException {
     for (String query : new String[] {"", "   ", "/* only a comment */", "-- line", ";"}) {
@@ -130,9 +130,8 @@ public class QueryValidationIT extends SQLIntegTestCase {
             assertThrows(ResponseException.class, () -> client().performRequest(request));
         String context = "explain=" + explain + ", query=[" + query + "]";
         assertEquals(context, 400, e.getResponse().getStatusLine().getStatusCode());
-        assertTrue(context, e.getMessage().contains("SyntaxCheckException"));
-        String offendingToken = query.equals(";") ? "[;]" : "[<EOF>]";
-        assertTrue(context, e.getMessage().contains(offendingToken + " is not a valid term"));
+        assertTrue(context, e.getMessage().contains("IllegalArgumentException"));
+        assertTrue(context, e.getMessage().contains("Query is empty"));
         assertFalse(context, e.getMessage().contains("NullPointerException"));
       }
     }

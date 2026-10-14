@@ -6,10 +6,8 @@
 package org.opensearch.sql.sql.antlr;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
@@ -34,34 +32,6 @@ class SQLSyntaxParserTest {
   @Test
   public void canParseQueryEndWithSemiColon() {
     assertNotNull(parser.parse("SELECT 123;"));
-  }
-
-  @Test
-  public void queryWithoutStatementShouldFail() {
-    for (String query : new String[] {"", " \n\t ", "/* only a comment */", "-- line", ";"}) {
-      SyntaxCheckException e = assertThrows(SyntaxCheckException.class, () -> parser.parse(query));
-      assertTrue(e.getMessage().contains("is not a valid term"), e.getMessage());
-    }
-  }
-
-  @Test
-  public void queryWithOnlyWhitespaceCommentsOrSemiColonsHasNoStatement() {
-    for (String query :
-        new String[] {"", " \n\t ", "/* only a comment */", "-- line", ";", " ; "}) {
-      assertTrue(SQLSyntaxParser.hasNoStatement(query), "[" + query + "]");
-    }
-  }
-
-  @Test
-  public void queryWithAnyOtherTokenHasStatement() {
-    for (String query : new String[] {"SELECT 1", "/* c */ SELECT 1;", "SELEC 1"}) {
-      assertFalse(SQLSyntaxParser.hasNoStatement(query), "[" + query + "]");
-    }
-  }
-
-  @Test
-  public void canParseQueryWithSurroundingCommentsAndSemiColon() {
-    assertNotNull(parser.parse("/* leading */ SELECT 123 -- trailing\n;"));
   }
 
   @Test

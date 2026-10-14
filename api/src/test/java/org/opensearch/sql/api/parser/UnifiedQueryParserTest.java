@@ -84,14 +84,16 @@ public class UnifiedQueryParserTest extends UnifiedQueryTestBase {
   }
 
   @Test
-  public void sqlQueryWithoutStatementThrowsSyntaxError() throws Exception {
+  public void sqlQueryWithoutStatementThrowsEmptyQueryError() throws Exception {
     try (UnifiedQueryContext sql =
         UnifiedQueryContext.builder()
             .language(QueryType.SQL)
             .catalog(DEFAULT_CATALOG, testSchema)
             .build()) {
       for (String query : new String[] {"", "   ", "/* only a comment */", "-- line", ";"}) {
-        assertThrows(SyntaxCheckException.class, () -> sql.getParser().parse(query));
+        IllegalArgumentException e =
+            assertThrows(IllegalArgumentException.class, () -> sql.getParser().parse(query));
+        assertEquals("Query is empty", e.getMessage());
       }
     }
   }

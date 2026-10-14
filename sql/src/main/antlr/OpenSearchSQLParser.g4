@@ -51,7 +51,7 @@ options { tokenVocab = OpenSearchSQLLexer; }
 //    Root rule
 
 root
-   : sqlStatement SEMI? EOF
+   : sqlStatement? SEMI? EOF
    ;
 
 // Only SELECT

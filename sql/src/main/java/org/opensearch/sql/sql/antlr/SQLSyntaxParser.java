@@ -6,7 +6,6 @@
 package org.opensearch.sql.sql.antlr;
 
 import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -30,7 +29,8 @@ public class SQLSyntaxParser implements Parser {
   public ParseTree parse(String query) {
     AnonymizerListener anonymizer = new AnonymizerListener();
 
-    OpenSearchSQLParser parser = new OpenSearchSQLParser(new CommonTokenStream(createLexer(query)));
+    OpenSearchSQLLexer lexer = new OpenSearchSQLLexer(new CaseInsensitiveCharStream(query));
+    OpenSearchSQLParser parser = new OpenSearchSQLParser(new CommonTokenStream(lexer));
     parser.addErrorListener(new SyntaxAnalysisErrorListener());
     parser.addParseListener(anonymizer);
 
@@ -38,24 +38,5 @@ public class SQLSyntaxParser implements Parser {
     LOG.info("New Engine Request Query: {}", anonymizer.getAnonymizedQueryString());
 
     return parseTree;
-  }
-
-  /**
-   * Check if a SQL query has no statement, i.e. the parser sees nothing in it but semicolons.
-   * Whitespace and comments are skipped by the lexer the same way as in {@link #parse(String)}.
-   *
-   * @param query a SQL query
-   * @return true if the query has no statement
-   */
-  public static boolean hasNoStatement(String query) {
-    return createLexer(query).getAllTokens().stream()
-        .allMatch(
-            token ->
-                token.getChannel() != Token.DEFAULT_CHANNEL
-                    || token.getType() == OpenSearchSQLLexer.SEMI);
-  }
-
-  private static OpenSearchSQLLexer createLexer(String query) {
-    return new OpenSearchSQLLexer(new CaseInsensitiveCharStream(query));
   }
 }
