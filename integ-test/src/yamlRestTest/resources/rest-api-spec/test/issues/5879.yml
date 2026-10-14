@@ -4,7 +4,8 @@
         - headers
   # Before the fix the empty statement built a null AST and failed with an internal
   # NullPointerException. catch: bad_request asserts the HTTP status code is exactly 400.
-  # The v2 parser now rejects the query, and it falls back to the legacy engine's syntax error.
+  # The v2 parser now rejects the query with a syntax error, and it does not fall back to the
+  # legacy engine.
   - do:
       catch: bad_request
       headers:
@@ -12,8 +13,8 @@
       sql:
         body:
           query: ""
-  - match: { "$body": "/SQLFeatureNotSupportedException/" }
-  - match: { "$body": "/Query\\s+must\\s+start\\s+with\\s+SELECT/" }
+  - match: { "$body": "/SyntaxCheckException/" }
+  - match: { "$body": "/\\[<EOF>\\]\\s+is\\s+not\\s+a\\s+valid\\s+term/" }
 
 ---
 "Comment and semicolon only SQL query returns 400 syntax error":
@@ -27,8 +28,8 @@
       sql:
         body:
           query: "  /* nothing here */ ;  "
-  - match: { "$body": "/SQLFeatureNotSupportedException/" }
-  - match: { "$body": "/Query\\s+must\\s+start\\s+with\\s+SELECT/" }
+  - match: { "$body": "/SyntaxCheckException/" }
+  - match: { "$body": "/\\[;\\]\\s+is\\s+not\\s+a\\s+valid\\s+term/" }
 
 ---
 "Empty SQL explain returns 400 syntax error":
@@ -42,5 +43,5 @@
       sql.explain:
         body:
           query: ""
-  - match: { "$body": "/SQLFeatureNotSupportedException/" }
-  - match: { "$body": "/Query\\s+must\\s+start\\s+with\\s+SELECT/" }
+  - match: { "$body": "/SyntaxCheckException/" }
+  - match: { "$body": "/\\[<EOF>\\]\\s+is\\s+not\\s+a\\s+valid\\s+term/" }

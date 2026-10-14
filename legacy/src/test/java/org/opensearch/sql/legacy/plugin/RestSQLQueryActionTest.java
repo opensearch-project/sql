@@ -138,6 +138,57 @@ public class RestSQLQueryActionTest extends BaseRestHandler {
   }
 
   @Test
+  public void queryWithoutStatementIsHandledByExecutionErrorHandler() throws Exception {
+    for (String path : new String[] {QUERY_API_ENDPOINT, EXPLAIN_API_ENDPOINT}) {
+      SQLQueryRequest request =
+          new SQLQueryRequest(
+              new JSONObject("{\"query\": \" /* c */ ; \"}"),
+              " /* c */ ; ",
+              path,
+              path.equals(QUERY_API_ENDPOINT) ? "jdbc" : "standard");
+
+      AtomicBoolean executionErrorHandler = new AtomicBoolean(false);
+      RestSQLQueryAction queryAction = new RestSQLQueryAction(injector);
+      queryAction
+          .prepareRequest(
+              request,
+              (channel, exception) -> {
+                fail();
+              },
+              (channel, exception) -> {
+                executionErrorHandler.set(true);
+                assertTrue(exception instanceof SyntaxCheckException);
+              })
+          .accept(restChannel);
+
+      assertTrue(path, executionErrorHandler.get());
+    }
+  }
+
+  @Test
+  public void invalidQueryWithStatementIsHandledByFallbackHandler() throws Exception {
+    SQLQueryRequest request =
+        new SQLQueryRequest(
+            new JSONObject("{\"query\": \"SELEC 1\"}"), "SELEC 1", QUERY_API_ENDPOINT, "jdbc");
+
+    AtomicBoolean fallback = new AtomicBoolean(false);
+    RestSQLQueryAction queryAction = new RestSQLQueryAction(injector);
+    queryAction
+        .prepareRequest(
+            request,
+            (channel, exception) -> {
+              fallback.set(true);
+              assertTrue(exception instanceof SyntaxCheckException);
+            },
+            (channel, exception) -> {
+              fail();
+            })
+        .accept(restChannel);
+
+    assertTrue(fallback.get());
+  }
+
+  @Test
   public void queryExecutionFailedIsHandledByExecutionErrorHandler() throws Exception {
     SQLQueryRequest request =
         new SQLQueryRequest(

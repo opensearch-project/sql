@@ -35,6 +35,7 @@ import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.RawResponseFormatter;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.sql.SQLService;
+import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -99,6 +100,7 @@ public class RestSQLQueryAction extends BaseRestHandler {
               request,
               fallBackListener(
                   channel,
+                  request,
                   createExplainResponseListener(channel, executionErrorHandler),
                   fallbackHandler));
     }
@@ -109,10 +111,12 @@ public class RestSQLQueryAction extends BaseRestHandler {
               request,
               fallBackListener(
                   channel,
+                  request,
                   createQueryResponseListener(channel, request, executionErrorHandler),
                   fallbackHandler),
               fallBackListener(
                   channel,
+                  request,
                   createExplainResponseListener(channel, executionErrorHandler),
                   fallbackHandler));
     }
@@ -120,6 +124,7 @@ public class RestSQLQueryAction extends BaseRestHandler {
 
   private <T> ResponseListener<T> fallBackListener(
       RestChannel channel,
+      SQLQueryRequest request,
       ResponseListener<T> next,
       BiConsumer<RestChannel, Exception> fallBackHandler) {
     return new ResponseListener<T>() {
@@ -131,13 +136,20 @@ public class RestSQLQueryAction extends BaseRestHandler {
 
       @Override
       public void onFailure(Exception e) {
-        if (e instanceof SyntaxCheckException || e instanceof UnsupportedCursorRequestException) {
+        // A query without a statement cannot run on the legacy engine either, so falling back
+        // would only replace the syntax error with a misleading one.
+        if ((e instanceof SyntaxCheckException && !hasNoStatement(request))
+            || e instanceof UnsupportedCursorRequestException) {
           fallBackHandler.accept(channel, e);
         } else {
           next.onFailure(e);
         }
       }
     };
+  }
+
+  private static boolean hasNoStatement(SQLQueryRequest request) {
+    return request.getQuery() != null && SQLSyntaxParser.hasNoStatement(request.getQuery());
   }
 
   private ResponseListener<ExplainResponse> createExplainResponseListener(
