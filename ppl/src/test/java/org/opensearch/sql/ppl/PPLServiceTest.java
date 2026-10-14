@@ -5,16 +5,12 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.doAnswer;
 
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -22,7 +18,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.DefaultQueryManager;
@@ -188,51 +183,5 @@ public class PPLServiceTest {
         new PPLQueryRequest("search", null, QUERY),
         getQueryListener(true),
         getExplainListener(false));
-  }
-
-  @Test
-  public void testExecuteEmptyQueryShouldFailWithSyntaxError() {
-    for (String query : new String[] {"", "   ", " \n\t ", "/* only a comment */"}) {
-      AtomicReference<Exception> failure = new AtomicReference<>();
-      pplService.execute(
-          new PPLQueryRequest(query, null, QUERY),
-          failureCapturingListener(failure),
-          getExplainListener(false));
-      assertEmptyQueryRejected(failure.get());
-    }
-  }
-
-  @Test
-  public void testExplainEmptyQueryShouldFailWithSyntaxError() {
-    AtomicReference<Exception> failure = new AtomicReference<>();
-    pplService.explain(new PPLQueryRequest("", null, EXPLAIN), failureCapturingListener(failure));
-    assertEmptyQueryRejected(failure.get());
-  }
-
-  @Test
-  public void testAnalyzeEmptyQueryShouldFailWithSyntaxError() {
-    AtomicReference<Exception> failure = new AtomicReference<>();
-    pplService.analyze(new PPLQueryRequest("", null, QUERY), failureCapturingListener(failure));
-    assertEmptyQueryRejected(failure.get());
-  }
-
-  private static void assertEmptyQueryRejected(Exception e) {
-    assertThat(e, instanceOf(SyntaxCheckException.class));
-    assertEquals("Query is empty", e.getMessage());
-  }
-
-  private static <T> ResponseListener<T> failureCapturingListener(
-      AtomicReference<Exception> failure) {
-    return new ResponseListener<T>() {
-      @Override
-      public void onResponse(T response) {
-        Assert.fail("Expected empty query to be rejected");
-      }
-
-      @Override
-      public void onFailure(Exception e) {
-        failure.set(e);
-      }
-    };
   }
 }

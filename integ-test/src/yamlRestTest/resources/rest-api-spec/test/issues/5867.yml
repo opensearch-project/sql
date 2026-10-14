@@ -19,6 +19,7 @@ teardown:
       features:
         - headers
   # Before the fix the empty statement built a null AST and failed with a 500 NullPointerException.
+  # catch: bad_request asserts the HTTP status code is exactly 400.
   - do:
       catch: bad_request
       headers:
@@ -27,7 +28,7 @@ teardown:
         body:
           query: ""
   - match: { "$body": "/SyntaxCheckException/" }
-  - match: { "$body": "/Query\\s+is\\s+empty/" }
+  - match: { "$body": "/\\[<EOF>\\]\\s+is\\s+not\\s+a\\s+valid\\s+term/" }
 
 ---
 "Whitespace and comment only PPL query returns 400 syntax error":
@@ -42,7 +43,7 @@ teardown:
         body:
           query: "  /* nothing here */  "
   - match: { "$body": "/SyntaxCheckException/" }
-  - match: { "$body": "/Query\\s+is\\s+empty/" }
+  - match: { "$body": "/\\[<EOF>\\]\\s+is\\s+not\\s+a\\s+valid\\s+term/" }
 
 ---
 "Empty PPL explain returns 400 syntax error":
@@ -57,4 +58,4 @@ teardown:
         body:
           query: ""
   - match: { "$body": "/SyntaxCheckException/" }
-  - match: { "$body": "/Query\\s+is\\s+empty/" }
+  - match: { "$body": "/\\[<EOF>\\]\\s+is\\s+not\\s+a\\s+valid\\s+term/" }

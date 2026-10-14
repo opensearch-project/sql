@@ -96,7 +96,7 @@ public class QueryAnalysisIT extends PPLIntegTestCase {
       assertEquals(400, e.getResponse().getStatusLine().getStatusCode());
       String errorMsg = e.getMessage();
       assertTrue(errorMsg, errorMsg.contains("SyntaxCheckException"));
-      assertTrue(errorMsg, errorMsg.contains("Query is empty"));
+      assertTrue(errorMsg, errorMsg.contains(SYNTAX_EX_MSG_FRAGMENT));
     }
   }
 

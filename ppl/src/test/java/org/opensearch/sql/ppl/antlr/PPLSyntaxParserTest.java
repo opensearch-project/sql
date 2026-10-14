@@ -387,6 +387,20 @@ public class PPLSyntaxParserTest {
   }
 
   @Test
+  public void testQueryWithoutStatementShouldFail() {
+    for (String query : new String[] {"", " \n\t ", "/* block */ // line"}) {
+      SyntaxCheckException e =
+          assertThrows(SyntaxCheckException.class, () -> new PPLSyntaxParser().parse(query));
+      assertTrue(e.getMessage(), e.getMessage().startsWith("[<EOF>] is not a valid term"));
+    }
+  }
+
+  @Test
+  public void testQueryWithSurroundingCommentsShouldPass() {
+    assertNotNull(new PPLSyntaxParser().parse("/* leading */ search source=t a=1 // trailing"));
+  }
+
+  @Test
   public void testRareCommandShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("source=t a=1 | rare a");
     assertNotEquals(null, tree);
@@ -801,9 +815,9 @@ public class PPLSyntaxParserTest {
         new PPLSyntaxParser()
             .parse(
                 """
-                // test is a new line comment \
-                search source=t a=1 b=2 // test is a line comment at the end of ppl command \
-                | fields a,b // this is line comment inner ppl command\
+                // test is a new line comment
+                search source=t a=1 b=2 // test is a line comment at the end of ppl command
+                | fields a,b // this is line comment inner ppl command
                 ////this is a new line comment
                 """));
   }
