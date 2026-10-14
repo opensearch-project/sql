@@ -8,6 +8,8 @@ package org.opensearch.sql.sql;
 import static org.hamcrest.Matchers.is;
 import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
+import static org.opensearch.sql.ppl.PPLIntegTestCase.disableCalcite;
+import static org.opensearch.sql.ppl.PPLIntegTestCase.enableCalcite;
 import static org.opensearch.sql.util.Capability.QUERY_ERROR_MESSAGE;
 import static org.opensearch.sql.util.MatcherUtils.featureValueOf;
 
@@ -115,6 +117,35 @@ public class QueryValidationIT extends SQLIntegTestCase {
         .containsMessage("Failed to parse request payload");
 
     whenExecuteMalformedPayload();
+  }
+
+  // A query with no statement used to parse successfully and fail later with an internal
+  // NullPointerException. It must be rejected as a syntax error with a 400.
+  @Test
+  public void testQueryWithoutStatementShouldFailWithBadRequest() throws IOException {
+    try {
+      for (boolean calcite : new boolean[] {false, true}) {
+        if (calcite) {
+          enableCalcite();
+        } else {
+          disableCalcite();
+        }
+        for (String query : new String[] {"", "   ", "/* only a comment */", "-- line", ";"}) {
+          for (boolean explain : new boolean[] {false, true}) {
+            Request request =
+                getSqlRequest(String.format(Locale.ROOT, "{\"query\": \"%s\"}", query), explain);
+            ResponseException e =
+                assertThrows(ResponseException.class, () -> client().performRequest(request));
+            String context =
+                "calcite=" + calcite + ", explain=" + explain + ", query=[" + query + "]";
+            assertEquals(context, 400, e.getResponse().getStatusLine().getStatusCode());
+            assertFalse(context, e.getMessage().contains("NullPointerException"));
+          }
+        }
+      }
+    } finally {
+      disableCalcite();
+    }
   }
 
   private static void whenExecuteMalformedPayload() throws IOException {

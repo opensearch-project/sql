@@ -84,6 +84,19 @@ public class UnifiedQueryParserTest extends UnifiedQueryTestBase {
   }
 
   @Test
+  public void sqlQueryWithoutStatementThrowsSyntaxError() throws Exception {
+    try (UnifiedQueryContext sql =
+        UnifiedQueryContext.builder()
+            .language(QueryType.SQL)
+            .catalog(DEFAULT_CATALOG, testSchema)
+            .build()) {
+      for (String query : new String[] {"", "   ", "/* only a comment */", "-- line", ";"}) {
+        assertThrows(SyntaxCheckException.class, () -> sql.getParser().parse(query));
+      }
+    }
+  }
+
+  @Test
   public void deeplyNestedExpressionShouldBeRejected() throws Exception {
     String key = Settings.Key.MAX_EXPRESSION_DEPTH.getKeyValue();
     try (UnifiedQueryContext ppl =

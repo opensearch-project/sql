@@ -1,0 +1,62 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : null
+
+---
+"Empty SQL query returns 400 syntax error":
+  - skip:
+      features:
+        - headers
+  # Before the fix the empty statement built a null AST and failed with an internal
+  # NullPointerException. catch: bad_request asserts the HTTP status code is exactly 400.
+  # The v2 parser now rejects the query, and it falls back to the legacy engine's syntax error.
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      sql:
+        body:
+          query: ""
+  - match: { "$body": "/SQLFeatureNotSupportedException/" }
+  - match: { "$body": "/Query\\s+must\\s+start\\s+with\\s+SELECT/" }
+
+---
+"Comment and semicolon only SQL query returns 400 syntax error":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      sql:
+        body:
+          query: "  /* nothing here */ ;  "
+  - match: { "$body": "/SQLFeatureNotSupportedException/" }
+  - match: { "$body": "/Query\\s+must\\s+start\\s+with\\s+SELECT/" }
+
+---
+"Empty SQL explain returns 400 syntax error":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      sql.explain:
+        body:
+          query: ""
+  - match: { "$body": "/SQLFeatureNotSupportedException/" }
+  - match: { "$body": "/Query\\s+must\\s+start\\s+with\\s+SELECT/" }
