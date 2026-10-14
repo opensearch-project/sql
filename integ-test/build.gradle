@@ -536,8 +536,6 @@ testClusters {
         setting 'plugins.ppl.rest.allowed_endpoints', '/_cluster/health'
     }
     // Long-lived local dev cluster with the security (FGAC) plugin, for `runWithSecurity`.
-    // Mirrors integTest's plugin set; security itself is added by configureSecurityPlugin()
-    // on the RunTask below (same download + certs + demo settings + admin:admin as the ITs).
     runWithSecurity {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
@@ -871,22 +869,13 @@ task integTestWithSecurity(type: RestIntegTestTask) {
     }
 }
 
-// Long-lived local dev cluster WITH the security (FGAC) plugin, analogous to the
-// plugin project's `run` task but secured. Reuses the exact integ-test machinery:
-// configureSecurityPlugin() downloads the security snapshot + demo certs, applies the
-// demo SSL/security settings, and creates the admin:admin superuser -- the same path
-// integTestWithSecurity uses, so there is no second copy of the download/config logic.
-// Serves plain HTTP on :9200 (plugins.security.ssl.http.enabled=false) and runs no tests.
+// analogous to the plugin project's `run` task but with a demo config for testing roles.
 task runWithSecurity(type: org.opensearch.gradle.testclusters.RunTask) {
     useCluster testClusters.runWithSecurity
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
     description = 'Run a local dev cluster with the opensearch-security (FGAC) plugin installed.'
     group = 'verification'
 }
-// Apply the security plugin + certs + demo settings + admin:admin at configuration
-// time, exactly as configureSecurityPlugin(testClusters.analyticsEngineSecurityIT)
-// does elsewhere. isSecurityTask() gates the download on a 'Security'-named task, so
-// this only fetches when runWithSecurity is actually invoked.
 configureSecurityPlugin(testClusters.runWithSecurity)
 
 yamlRestTest {
