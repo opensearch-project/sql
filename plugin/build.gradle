@@ -364,3 +364,75 @@ testClusters.integTest {
 run {
     useCluster testClusters.integTest
 }
+
+def getSecurityPlugin() {
+    provider(new Callable<RegularFile>() {
+        @Override
+        RegularFile call() throws Exception {
+            return new RegularFile() {
+                @Override
+                File getAsFile() { return project.file("$projectDir/bin/opensearch-security-snapshot.zip") }
+            }
+        }
+    })
+}
+
+testClusters.register('runWithSecurity') {
+    plugin(getJobSchedulerPlugin())
+    plugin(project.tasks.bundlePlugin.archiveFile)
+    testDistribution = "ARCHIVE"
+
+    // Same datasources keystore as the plain dev cluster.
+    keystore 'plugins.query.federation.datasources.config', new File("$projectDir/src/test/resources/", 'datasources.json')
+
+    if (System.getProperty("debugJVM") != null) {
+        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005'
+    }
+
+    // security plugin + demo certs
+    ['esnode.pem', 'esnode-key.pem', 'root-ca.pem'].forEach { certFile ->
+        extraConfigFile certFile, file("$projectDir/bin/${certFile}")
+    }
+
+    // Demo security settings (copied from integ-test/build.gradle configureSecurityPlugin).
+    [
+        'plugins.security.ssl.transport.pemcert_filepath'            : 'esnode.pem',
+        'plugins.security.ssl.transport.pemkey_filepath'             : 'esnode-key.pem',
+        'plugins.security.ssl.transport.pemtrustedcas_filepath'      : 'root-ca.pem',
+        'plugins.security.ssl.transport.enforce_hostname_verification': 'false',
+        'plugins.security.ssl.http.enabled'                          : 'false',
+        'plugins.security.ssl.http.pemcert_filepath'                 : 'esnode.pem',
+        'plugins.security.ssl.http.pemkey_filepath'                  : 'esnode-key.pem',
+        'plugins.security.ssl.http.pemtrustedcas_filepath'           : 'root-ca.pem',
+        'plugins.security.allow_unsafe_democertificates'             : 'true',
+        'plugins.security.allow_default_init_securityindex'          : 'true',
+        'plugins.security.authcz.admin_dn'                           : 'CN=kirk,OU=client,O=client,L=test,C=de',
+        'plugins.security.audit.type'                                : 'internal_opensearch',
+        'plugins.security.enable_snapshot_restore_privilege'         : 'true',
+        'plugins.security.check_snapshot_restore_write_privileges'   : 'true',
+        'plugins.security.restapi.roles_enabled'                     : '["all_access", "security_rest_api_access"]',
+        'plugins.security.system_indices.enabled'                    : 'true'
+    ].forEach { name, value ->
+        setting name, value
+    }
+
+    // Create the admin/admin superuser on the node.
+    getNodes().forEach { node ->
+        var creds = node.getCredentials()
+        if (creds.isEmpty()) {
+            creds.add(Map.of('useradd', 'admin', '-p', 'admin'))
+        } else {
+            creds.get(0).putAll(Map.of('useradd', 'admin', '-p', 'admin'))
+        }
+    }
+
+    plugin(getSecurityPlugin())
+}
+
+tasks.register('runWithSecurity', org.opensearch.gradle.testclusters.RunTask) {
+    useCluster testClusters.runWithSecurity
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+    description = 'Run a local dev cluster with the opensearch-security (FGAC) plugin installed.'
+    group = 'verification'
+}
+
