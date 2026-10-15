@@ -60,11 +60,12 @@ teardown:
       ppl:
         body:
           query: 'source=expand_5840 | spath input=body | expand body.tags'
-  # A caught response is only readable as text, so these are finds over the body. A cast failure
-  # carried none of them: its reason was the Calcite class names and its code was UNKNOWN.
-  - match: {"$body": "/Cannot\\s+expand\\s+.body.tags./"}
+  # Expected error: "Cannot expand [body.tags]", code UNSUPPORTED_OPERATION. A PPL error response
+  # is text/plain, so it can only be matched as a regex over $body; the regex is compiled with
+  # COMMENTS, so a space is written as \s+. The cast failure matched neither: its reason was the
+  # Calcite class names and its code was UNKNOWN.
+  - match: {"$body": "/Cannot\\s+expand\\s+\\[body\\.tags\\]/"}
   - match: {"$body": "/UNSUPPORTED_OPERATION/"}
-  - match: {"$body": "/expand\\s+takes\\s+a\\s+field\\s+of\\s+the\\s+index/"}
 
 ---
 # A field of the index is unaffected: expand still expands it, one row per element. What each row

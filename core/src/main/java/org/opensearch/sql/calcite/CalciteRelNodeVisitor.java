@@ -4458,7 +4458,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // 2. Get the field to expand and an optional alias.
     Field arrayField = expand.getField();
     RexNode resolved = rexVisitor.analyze(arrayField, context);
-    if (!(resolved instanceof RexInputRef arrayFieldRex)) {
+    if (!(resolved instanceof RexInputRef)) {
       // Anything that is not a column of the input -- a leaf of an object or a flat_object field,
       // an expression -- has no column to correlate the expansion with. Raised the way the
       // mvexpand check below does, rather than as the ClassCastException the cast used to throw.
@@ -4475,6 +4475,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                   + " itself, or project the value first.")
           .build();
     }
+    RexInputRef arrayFieldRex = (RexInputRef) resolved;
     String alias = expand.getAlias();
 
     buildExpandRelNode(arrayFieldRex, arrayField.getField().toString(), alias, null, context);
