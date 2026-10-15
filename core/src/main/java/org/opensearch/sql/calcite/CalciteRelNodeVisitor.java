@@ -353,7 +353,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitAppendPipe(AppendPipe node, CalcitePlanContext context) {
-    visitChildren(node, context);
     UnresolvedPlan subqueryPlan = node.getSubQuery();
     UnresolvedPlan childNode = subqueryPlan;
     while (childNode.getChild() != null
@@ -366,11 +365,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
     childNode.attach(node.getChild().getFirst());
 
-    subqueryPlan.accept(this, context);
-
-    RelNode subPipelineNode = context.relBuilder.build();
-    RelNode mainNode = context.relBuilder.build();
-    return mergeTableAndResolveColumnConflict(mainNode, subPipelineNode, context);
+    List<RelNode> inputs =
+        visitInputsWithOwnMetaFields(
+            List.of(() -> visitChildren(node, context), () -> subqueryPlan.accept(this, context)),
+            context);
+    return mergeTableAndResolveColumnConflict(inputs.get(0), inputs.get(1), context);
   }
 
   @Override
@@ -740,6 +739,46 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         context.relBuilder.projectExcept(metaFieldsRef);
       }
     }
+  }
+
+  /**
+   * Visit the inputs of a command that combines several of them (append, appendpipe, appendcol,
+   * union) and pop each one off the RelBuilder stack, deciding the metadata fields per input.
+   *
+   * <p>{@link CalcitePlanContext#isProjectVisited()} is a single flag for the whole statement, and
+   * the final project keeps every metadata field once it is set. So each input is visited with the
+   * flag cleared, and if some inputs selected their fields with an explicit project but others did
+   * not, the metadata fields of the others are removed here; otherwise a {@code fields} in one
+   * input would expose the metadata fields of another. If no input has a project, the metadata
+   * fields are left to the final project as usual, so a later {@code fields} can still select them.
+   *
+   * @param inputVisitors visits one input each, leaving it on top of the RelBuilder stack
+   * @param context CalcitePlanContext
+   * @return the visited inputs, in the order of {@code inputVisitors}
+   */
+  private static List<RelNode> visitInputsWithOwnMetaFields(
+      List<Runnable> inputVisitors, CalcitePlanContext context) {
+    boolean projectVisited = context.isProjectVisited();
+    List<RelNode> inputs = new ArrayList<>();
+    BitSet inputsWithProject = new BitSet();
+    for (Runnable inputVisitor : inputVisitors) {
+      context.setProjectVisited(false);
+      inputVisitor.run();
+      inputsWithProject.set(inputs.size(), context.isProjectVisited());
+      inputs.add(context.relBuilder.build());
+    }
+    if (!inputsWithProject.isEmpty()) {
+      context.setProjectVisited(false);
+      for (int i = 0; i < inputs.size(); i++) {
+        if (!inputsWithProject.get(i)) {
+          context.relBuilder.push(inputs.get(i));
+          tryToRemoveMetaFields(context, false);
+          inputs.set(i, context.relBuilder.build());
+        }
+      }
+    }
+    context.setProjectVisited(projectVisited || !inputsWithProject.isEmpty());
+    return inputs;
   }
 
   @Override
@@ -2977,42 +3016,43 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return orderKeys;
   }
 
+  /** Add a row_number() column, ordered by the current node's collation, to the current node. */
+  private static void projectPlusRowNumber(CalcitePlanContext context, String alias) {
+    RexNode rowNumber =
+        PlanUtils.makeOver(
+            context,
+            BuiltinFunctionName.ROW_NUMBER,
+            null,
+            List.of(),
+            List.of(),
+            deriveCollationOrderKeys(context),
+            WindowFrame.toCurrentRow());
+    context.relBuilder.projectPlus(context.relBuilder.alias(rowNumber, alias));
+  }
+
   @Override
   public RelNode visitAppendCol(AppendCol node, CalcitePlanContext context) {
-    // 1. resolve main plan
-    visitChildren(node, context);
-    // 2. add row_number() column to main, ordered by its collation so the zip is deterministic
-    List<RexNode> mainOrderKeys = deriveCollationOrderKeys(context);
-    RexNode mainRowNumber =
-        PlanUtils.makeOver(
-            context,
-            BuiltinFunctionName.ROW_NUMBER,
-            null,
-            List.of(),
-            List.of(),
-            mainOrderKeys,
-            WindowFrame.toCurrentRow());
-    context.relBuilder.projectPlus(
-        context.relBuilder.alias(mainRowNumber, ROW_NUMBER_COLUMN_FOR_MAIN));
-
-    // 3. build subsearch tree (attach relation to subsearch)
-    UnresolvedPlan relation = getRelation(node);
-    transformPlanToAttachChild(node.getSubSearch(), relation);
-    // 4. resolve subsearch plan
-    node.getSubSearch().accept(this, context);
-    // 5. add row_number() column to subsearch, ordered by its collation
-    List<RexNode> subsearchOrderKeys = deriveCollationOrderKeys(context);
-    RexNode subsearchRowNumber =
-        PlanUtils.makeOver(
-            context,
-            BuiltinFunctionName.ROW_NUMBER,
-            null,
-            List.of(),
-            List.of(),
-            subsearchOrderKeys,
-            WindowFrame.toCurrentRow());
-    context.relBuilder.projectPlus(
-        context.relBuilder.alias(subsearchRowNumber, ROW_NUMBER_COLUMN_FOR_SUBSEARCH));
+    List<RelNode> inputs =
+        visitInputsWithOwnMetaFields(
+            List.of(
+                () -> {
+                  // 1. resolve main plan
+                  visitChildren(node, context);
+                  // 2. add row_number() column to main, ordered by its collation so the zip is
+                  // deterministic
+                  projectPlusRowNumber(context, ROW_NUMBER_COLUMN_FOR_MAIN);
+                },
+                () -> {
+                  // 3. build subsearch tree (attach relation to subsearch)
+                  UnresolvedPlan relation = getRelation(node);
+                  transformPlanToAttachChild(node.getSubSearch(), relation);
+                  // 4. resolve subsearch plan
+                  node.getSubSearch().accept(this, context);
+                  // 5. add row_number() column to subsearch, ordered by its collation
+                  projectPlusRowNumber(context, ROW_NUMBER_COLUMN_FOR_SUBSEARCH);
+                }),
+            context);
+    inputs.forEach(context.relBuilder::push);
 
     List<String> subsearchFields = context.relBuilder.peek().getRowType().getFieldNames();
     List<String> mainFields = context.relBuilder.peek(1).getRowType().getFieldNames();
@@ -3097,18 +3137,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitAppend(Append node, CalcitePlanContext context) {
-    // 1. Resolve main plan
-    visitChildren(node, context);
-
-    // 2. Resolve subsearch plan
     UnresolvedPlan prunedSubSearch =
         node.getSubSearch().accept(new EmptySourcePropagateVisitor(), null);
-    prunedSubSearch.accept(this, context);
+    // 1. Resolve main plan and 2. subsearch plan
+    List<RelNode> inputs =
+        visitInputsWithOwnMetaFields(
+            List.of(
+                () -> visitChildren(node, context), () -> prunedSubSearch.accept(this, context)),
+            context);
 
     // 3. Merge two query schemas using shared logic
-    RelNode subsearchNode = context.relBuilder.build();
-    RelNode mainNode = context.relBuilder.build();
-    return mergeTableAndResolveColumnConflict(mainNode, subsearchNode, context);
+    return mergeTableAndResolveColumnConflict(inputs.get(0), inputs.get(1), context);
   }
 
   private RelNode mergeTableAndResolveColumnConflict(
@@ -3176,13 +3215,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitUnion(Union node, CalcitePlanContext context) {
-    List<RelNode> inputNodes = new ArrayList<>();
-
+    List<Runnable> inputVisitors = new ArrayList<>();
     for (UnresolvedPlan dataset : node.getDatasets()) {
       UnresolvedPlan prunedDataset = dataset.accept(new EmptySourcePropagateVisitor(), null);
-      prunedDataset.accept(this, context);
-      inputNodes.add(context.relBuilder.build());
+      inputVisitors.add(() -> prunedDataset.accept(this, context));
     }
+    List<RelNode> inputNodes = visitInputsWithOwnMetaFields(inputVisitors, context);
 
     if (inputNodes.size() < 2) {
       throw new IllegalArgumentException(
