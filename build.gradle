@@ -300,6 +300,53 @@ jacocoTestCoverageVerification {
 }
 check.dependsOn jacocoTestCoverageVerification
 
+// Each module's jacocoTestReport credits a class only with the tests of its own module, but many
+// classes are mostly tested from other modules (for example core's CalciteRelNodeVisitor is tested
+// by ppl's CalcitePPL*Test). This report merges the unit test execution data of every module that
+// applies jacoco and reports it against the classes of the modules below, with the same excludes as
+// their own jacocoTestReport. CI uploads it to Codecov. The per-module
+// jacocoTestCoverageVerification rules still measure each module's own tests only.
+def aggregatedCoverageModules = [
+        ':api',
+        ':async-query',
+        ':async-query-core',
+        ':core',
+        ':datasources',
+        ':direct-query',
+        ':direct-query-core',
+        ':opensearch',
+        ':ppl',
+        ':prometheus',
+        ':protocol',
+        ':sql',
+]
+def jacocoAggregatedReport = tasks.register('jacocoAggregatedReport', JacocoReport) {
+    group = 'verification'
+    description = 'Generates a code coverage report of all modules from the unit tests of all modules.'
+    reports {
+        html.required = true
+        xml.required = true
+        csv.required = false
+    }
+}
+// The module reports set their excludes in afterEvaluate, so read them once every project is evaluated.
+gradle.projectsEvaluated {
+    jacocoAggregatedReport.configure {
+        subprojects.findAll { it.plugins.hasPlugin('jacoco') }.each { p ->
+            // 'junit4' is the JUnit 4 test task of async-query, direct-query and direct-query-core.
+            p.tasks.withType(Test).matching { it.name in ['test', 'junit4'] }.each { testTask ->
+                dependsOn testTask
+                executionData testTask
+            }
+        }
+        aggregatedCoverageModules.each { path ->
+            def moduleReport = project(path).tasks.named('jacocoTestReport', JacocoReport).get()
+            classDirectories.from(moduleReport.classDirectories)
+            sourceDirectories.from(moduleReport.sourceDirectories)
+        }
+    }
+}
+
 
 configurations.all {
     resolutionStrategy.force 'junit:junit:4.13.2'
