@@ -22,8 +22,10 @@ import org.opensearch.sql.exception.NonFallbackCalciteException;
 import org.opensearch.sql.monitor.profile.ProfileContext;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
+import org.opensearch.tasks.CancellableTask;
 
 /**
  * Utility class for asynchronously scanning an index. This lets us send background requests to the
@@ -72,11 +74,23 @@ public class BackgroundSearchScanner {
   private final int maxResultWindow;
   private final int queryBucketSize;
 
+  /**
+   * The query's cancellable task, captured on the worker thread at construction time. The
+   * background search executes on {@link
+   * org.opensearch.sql.opensearch.executor.OpenSearchQueryManager#SQL_BACKGROUND_THREAD_POOL_NAME},
+   * which does not inherit the worker thread's {@code cancellableTask} ThreadLocal. We capture it
+   * here (where the ThreadLocal is valid) and restore it inside each async lambda so the search
+   * request gets the ppl task set as its parent -- enabling OpenSearch's parent/child cancellation
+   * cascade to reach the search task (issue #5647).
+   */
+  @Nullable private final CancellableTask cancellableTask;
+
   public BackgroundSearchScanner(
       OpenSearchClient client, int maxResultWindow, int queryBucketSize) {
     this.client = client;
     this.maxResultWindow = maxResultWindow;
     this.queryBucketSize = queryBucketSize;
+    this.cancellableTask = OpenSearchQueryManager.getCancellableTask();
     // We can only actually do the background operation if we have the ability to access the thread
     // pool. Otherwise, fallback to synchronous fetch.
     if (client.getNodeClient().isPresent()) {
@@ -108,9 +122,27 @@ public class BackgroundSearchScanner {
     if (isAsync()) {
       ProfileContext ctx = QueryProfiling.current();
       nextBatchFuture =
-          CompletableFuture.supplyAsync(
-              () -> QueryProfiling.withCurrentContext(ctx, () -> client.search(request)),
-              backgroundExecutor);
+          CompletableFuture.supplyAsync(() -> backgroundSearch(ctx, request), backgroundExecutor);
+    }
+  }
+
+  /**
+   * Executes a search on the background thread with the worker thread's context restored. Restores
+   * both the profiling context and the cancellable task so the request is tagged with the ppl task
+   * as its parent (see {@link #cancellableTask}).
+   */
+  private OpenSearchResponse backgroundSearch(ProfileContext ctx, OpenSearchRequest request) {
+    boolean restored = false;
+    if (cancellableTask != null) {
+      OpenSearchQueryManager.setCancellableTask(cancellableTask);
+      restored = true;
+    }
+    try {
+      return QueryProfiling.withCurrentContext(ctx, () -> client.search(request));
+    } finally {
+      if (restored) {
+        OpenSearchQueryManager.clearCancellableTask();
+      }
     }
   }
 
@@ -180,8 +212,9 @@ public class BackgroundSearchScanner {
 
       // Pre-fetch next batch if needed
       if (!stopIteration && isAsync()) {
+        ProfileContext ctx = QueryProfiling.current();
         nextBatchFuture =
-            CompletableFuture.supplyAsync(() -> client.search(request), backgroundExecutor);
+            CompletableFuture.supplyAsync(() -> backgroundSearch(ctx, request), backgroundExecutor);
       }
     } else {
       iterator = Collections.emptyIterator();
