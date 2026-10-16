@@ -283,6 +283,7 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
     Map<String, String> propertiesMap = dataSourceMetadata.getProperties();
     handleBasicAuthPropertiesEncryptionDecryption(propertiesMap, isEncryption);
     handleSigV4PropertiesEncryptionDecryption(propertiesMap, isEncryption);
+    handleOAuth2PropertiesEncryptionDecryption(propertiesMap, isEncryption);
     return dataSourceMetadata;
   }
 
@@ -322,6 +323,31 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
         .filter(s -> s.endsWith("auth.secret_key"))
         .findFirst()
         .ifPresent(list::add);
+    encryptOrDecrypt(propertiesMap, isEncryption, list);
+  }
+
+  /**
+   * Handles encryption/decryption of OAuth2 authentication properties.
+   *
+   * <p>Encrypts OAuth2 client secrets so they are never stored as plain text. Every matching key is
+   * collected, not just the first, because a Prometheus data source can carry both a {@code
+   * prometheus.oauth2.clientSecret} and an {@code alertmanager.oauth2.clientSecret}.
+   *
+   * <p>Decryption failures are deliberately allowed to propagate. Treating an undecryptable value
+   * as plain text would hand the raw ciphertext to the token interceptor as the client secret,
+   * turning a key-rotation or corruption problem into an opaque 401 from the IdP.
+   *
+   * @param propertiesMap the properties map containing OAuth2 configuration
+   * @param isEncryption true for encryption, false for decryption
+   */
+  private void handleOAuth2PropertiesEncryptionDecryption(
+      Map<String, String> propertiesMap, Boolean isEncryption) {
+    ArrayList<String> list = new ArrayList<>();
+
+    propertiesMap.keySet().stream()
+        .filter(s -> s.endsWith("oauth2.clientSecret"))
+        .forEach(list::add);
+
     encryptOrDecrypt(propertiesMap, isEncryption, list);
   }
 

@@ -10,7 +10,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -66,8 +65,7 @@ public class PrometheusClientImplTest {
     doAnswer(invocation -> mockCall).when(spyClient).newCall(any(Request.class));
 
     return new PrometheusClientImpl(
-        spyClient,
-        URI.create(String.format("http://%s:%s", "localhost", mockWebServer.getPort())));
+        spyClient, URI.create(String.format("http://%s:%s", "localhost", mockWebServer.getPort())));
   }
 
   @BeforeEach
@@ -443,9 +441,7 @@ public class PrometheusClientImplTest {
     mockWebServer.enqueue(new MockResponse().setResponseCode(500).setBody("Internal error"));
 
     PrometheusClientException exception =
-        assertThrows(
-            PrometheusClientException.class,
-            () -> client.getRules(new HashMap<>()));
+        assertThrows(PrometheusClientException.class, () -> client.getRules(new HashMap<>()));
     assertTrue(exception.getMessage().contains("500"));
   }
 
@@ -642,7 +638,9 @@ public class PrometheusClientImplTest {
   @Test
   public void testCreateAlertmanagerSilencesSuccess() throws IOException {
     // Setup
-    String silenceJson = "{\"matchers\":[{\"name\":\"alertname\",\"value\":\"HighCPU\",\"isRegex\":false}],\"startsAt\":\"2023-01-01T00:00:00Z\",\"endsAt\":\"2023-01-02T00:00:00Z\",\"comment\":\"Planned maintenance\",\"createdBy\":\"admin\"}";
+    String silenceJson =
+        "{\"matchers\":[{\"name\":\"alertname\",\"value\":\"HighCPU\",\"isRegex\":false}],\"startsAt\":\"2023-01-01T00:00:00Z\",\"endsAt\":\"2023-01-02T00:00:00Z\",\"comment\":\"Planned"
+            + " maintenance\",\"createdBy\":\"admin\"}";
     String expectedResponse = "{\"silenceID\":\"silence-12345\"}";
     mockWebServer.enqueue(new MockResponse().setBody(expectedResponse).setResponseCode(200));
 
@@ -657,14 +655,16 @@ public class PrometheusClientImplTest {
   @Test
   public void testCreateAlertmanagerSilencesHttpError() {
     // Setup
-    String silenceJson = "{\"matchers\":[{\"name\":\"alertname\",\"value\":\"HighCPU\",\"isRegex\":false}],\"startsAt\":\"2023-01-01T00:00:00Z\",\"endsAt\":\"2023-01-02T00:00:00Z\",\"comment\":\"Planned maintenance\",\"createdBy\":\"admin\"}";
-    mockWebServer.enqueue(new MockResponse().setResponseCode(400).setBody("Bad Request: Invalid silence format"));
+    String silenceJson =
+        "{\"matchers\":[{\"name\":\"alertname\",\"value\":\"HighCPU\",\"isRegex\":false}],\"startsAt\":\"2023-01-01T00:00:00Z\",\"endsAt\":\"2023-01-02T00:00:00Z\",\"comment\":\"Planned"
+            + " maintenance\",\"createdBy\":\"admin\"}";
+    mockWebServer.enqueue(
+        new MockResponse().setResponseCode(400).setBody("Bad Request: Invalid silence format"));
 
     // Test & Verify
     PrometheusClientException exception =
         assertThrows(
-            PrometheusClientException.class,
-            () -> client.createAlertmanagerSilences(silenceJson));
+            PrometheusClientException.class, () -> client.createAlertmanagerSilences(silenceJson));
     assertTrue(exception.getMessage().contains("Alertmanager request failed with code: 400"));
     assertTrue(exception.getMessage().contains("Bad Request: Invalid silence format"));
   }
@@ -697,7 +697,8 @@ public class PrometheusClientImplTest {
             URI.create(
                 String.format("http://%s:%s/alertmanager", "localhost", mockWebServer.getPort())));
 
-    String silenceJson = "{\"matchers\":[{\"name\":\"alertname\",\"value\":\"HighCPU\",\"isRegex\":false}]}";
+    String silenceJson =
+        "{\"matchers\":[{\"name\":\"alertname\",\"value\":\"HighCPU\",\"isRegex\":false}]}";
 
     // Test & Verify
     PrometheusClientException exception =
@@ -821,8 +822,7 @@ public class PrometheusClientImplTest {
 
   @Test
   public void testGetRulesByNamespaceHttpError() {
-    mockWebServer.enqueue(
-        new MockResponse().setResponseCode(404).setBody("Namespace not found"));
+    mockWebServer.enqueue(new MockResponse().setResponseCode(404).setBody("Namespace not found"));
 
     PrometheusClientException exception =
         assertThrows(
@@ -847,7 +847,10 @@ public class PrometheusClientImplTest {
     mockWebServer.enqueue(new MockResponse().setResponseCode(202).setBody(""));
 
     String yamlBody =
-        "name: example_group\nrules:\n  - record: job:requests:rate5m\n    expr: sum(rate(requests_total[5m])) by (job)\n";
+        "name: example_group\n"
+            + "rules:\n"
+            + "  - record: job:requests:rate5m\n"
+            + "    expr: sum(rate(requests_total[5m])) by (job)\n";
     String result = client.createOrUpdateRuleGroup("test_namespace", yamlBody);
 
     assertNotNull(result);
@@ -889,13 +892,11 @@ public class PrometheusClientImplTest {
 
   @Test
   public void testDeleteRuleNamespaceHttpError() {
-    mockWebServer.enqueue(
-        new MockResponse().setResponseCode(404).setBody("Namespace not found"));
+    mockWebServer.enqueue(new MockResponse().setResponseCode(404).setBody("Namespace not found"));
 
     PrometheusClientException exception =
         assertThrows(
-            PrometheusClientException.class,
-            () -> client.deleteRuleNamespace("missing_ns"));
+            PrometheusClientException.class, () -> client.deleteRuleNamespace("missing_ns"));
     assertTrue(exception.getMessage().contains("Ruler request failed with code: 404"));
   }
 
@@ -921,8 +922,7 @@ public class PrometheusClientImplTest {
 
   @Test
   public void testDeleteRuleGroupHttpError() {
-    mockWebServer.enqueue(
-        new MockResponse().setResponseCode(404).setBody("Group not found"));
+    mockWebServer.enqueue(new MockResponse().setResponseCode(404).setBody("Group not found"));
 
     PrometheusClientException exception =
         assertThrows(
@@ -957,8 +957,7 @@ public class PrometheusClientImplTest {
 
     PrometheusClientException exception =
         assertThrows(
-            PrometheusClientException.class,
-            () -> nullBodyClient.deleteRuleNamespace("test_ns"));
+            PrometheusClientException.class, () -> nullBodyClient.deleteRuleNamespace("test_ns"));
     assertTrue(exception.getMessage().contains("No response body"));
   }
 
@@ -993,7 +992,8 @@ public class PrometheusClientImplTest {
 
     RecordedRequest recorded = mockWebServer.takeRequest();
     String path = recorded.getPath();
-    assertTrue(path.contains("my+namespace%2Fspecial") || path.contains("my%20namespace%2Fspecial"));
+    assertTrue(
+        path.contains("my+namespace%2Fspecial") || path.contains("my%20namespace%2Fspecial"));
   }
 
   @Test
@@ -1025,8 +1025,7 @@ public class PrometheusClientImplTest {
 
     PrometheusClientException exception =
         assertThrows(
-            PrometheusClientException.class,
-            () -> client.deleteAlertmanagerSilence("silence-bad"));
+            PrometheusClientException.class, () -> client.deleteAlertmanagerSilence("silence-bad"));
     assertTrue(exception.getMessage().contains("404"));
   }
 
@@ -1053,8 +1052,7 @@ public class PrometheusClientImplTest {
             URI.create(String.format("http://%s:%s", "localhost", mockWebServer.getPort())),
             spyClient,
             URI.create(
-                String.format(
-                    "http://%s:%s/alertmanager", "localhost", mockWebServer.getPort())));
+                String.format("http://%s:%s/alertmanager", "localhost", mockWebServer.getPort())));
 
     PrometheusClientException exception =
         assertThrows(
@@ -1066,7 +1064,8 @@ public class PrometheusClientImplTest {
   @Test
   public void testGetAlertmanagerStatusSuccess() throws IOException {
     String statusResponse =
-        "{\"cluster\":{\"status\":\"ready\"},\"versionInfo\":{\"version\":\"0.27.0\"},\"config\":{\"original\":\"route:\\n  receiver: default\"}}";
+        "{\"cluster\":{\"status\":\"ready\"},\"versionInfo\":{\"version\":\"0.27.0\"},\"config\":{\"original\":\"route:\\n"
+            + "  receiver: default\"}}";
     mockWebServer.enqueue(new MockResponse().setBody(statusResponse));
 
     JSONObject result = client.getAlertmanagerStatus();
@@ -1079,12 +1078,10 @@ public class PrometheusClientImplTest {
 
   @Test
   public void testGetAlertmanagerStatusHttpError() {
-    mockWebServer.enqueue(
-        new MockResponse().setResponseCode(500).setBody("Internal server error"));
+    mockWebServer.enqueue(new MockResponse().setResponseCode(500).setBody("Internal server error"));
 
     PrometheusClientException exception =
-        assertThrows(
-            PrometheusClientException.class, () -> client.getAlertmanagerStatus());
+        assertThrows(PrometheusClientException.class, () -> client.getAlertmanagerStatus());
     assertTrue(exception.getMessage().contains("500"));
   }
 
@@ -1111,13 +1108,56 @@ public class PrometheusClientImplTest {
             URI.create(String.format("http://%s:%s", "localhost", mockWebServer.getPort())),
             spyClient,
             URI.create(
-                String.format(
-                    "http://%s:%s/alertmanager", "localhost", mockWebServer.getPort())));
+                String.format("http://%s:%s/alertmanager", "localhost", mockWebServer.getPort())));
 
     PrometheusClientException exception =
-        assertThrows(
-            PrometheusClientException.class, () -> nullBodyClient.getAlertmanagerStatus());
+        assertThrows(PrometheusClientException.class, () -> nullBodyClient.getAlertmanagerStatus());
     assertTrue(exception.getMessage().contains("No response body"));
+  }
+
+  @Test
+  void closeShutsDownBothClientsWhenTheyAreDistinct() {
+    OkHttpClient prometheusClient = new OkHttpClient();
+    OkHttpClient alertmanagerClient = new OkHttpClient();
+    PrometheusClientImpl client =
+        new PrometheusClientImpl(
+            prometheusClient,
+            URI.create("http://localhost:9090"),
+            alertmanagerClient,
+            URI.create("http://localhost:9093"));
+
+    client.close();
+
+    assertTrue(prometheusClient.dispatcher().executorService().isShutdown());
+    assertTrue(alertmanagerClient.dispatcher().executorService().isShutdown());
+  }
+
+  @Test
+  void closeIsSafeWhenOneClientServesBothRoles() {
+    // The two-argument constructor reuses the Prometheus client for Alertmanager, so close()
+    // must not treat it as a second client to shut down.
+    OkHttpClient shared = new OkHttpClient();
+    PrometheusClientImpl client =
+        new PrometheusClientImpl(shared, URI.create("http://localhost:9090"));
+
+    client.close();
+
+    assertTrue(shared.dispatcher().executorService().isShutdown());
+  }
+
+  @Test
+  void closeToleratesAMissingAlertmanagerClient() {
+    OkHttpClient prometheusClient = new OkHttpClient();
+    PrometheusClientImpl client =
+        new PrometheusClientImpl(
+            prometheusClient,
+            URI.create("http://localhost:9090"),
+            null,
+            URI.create("http://localhost:9093"));
+
+    client.close();
+
+    assertTrue(prometheusClient.dispatcher().executorService().isShutdown());
   }
 
   // Prometheus-compatible backends (e.g. Cortex) may return {"status":"success"} with no
