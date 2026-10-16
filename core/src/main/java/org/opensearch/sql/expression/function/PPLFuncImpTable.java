@@ -812,17 +812,19 @@ public class PPLFuncImpTable {
      */
     protected void registerOperator(BuiltinFunctionName functionName, SqlOperator... operators) {
       for (SqlOperator operator : operators) {
-        SqlOperandTypeChecker typeChecker;
-        if (operator instanceof SqlUserDefinedFunction udfOperator) {
-          typeChecker = extractTypeCheckerFromUDF(udfOperator);
-        } else {
-          typeChecker = operator.getOperandTypeChecker();
-        }
-        PPLTypeChecker pplTypeChecker =
-            wrapSqlOperandTypeChecker(
-                typeChecker, operator.getName(), operator instanceof SqlUserDefinedFunction);
-        registerOperator(functionName, operator, pplTypeChecker);
+        registerOperator(functionName, operator, deriveTypeChecker(operator));
       }
+    }
+
+    private static PPLTypeChecker deriveTypeChecker(SqlOperator operator) {
+      SqlOperandTypeChecker typeChecker;
+      if (operator instanceof SqlUserDefinedFunction udfOperator) {
+        typeChecker = extractTypeCheckerFromUDF(udfOperator);
+      } else {
+        typeChecker = operator.getOperandTypeChecker();
+      }
+      return wrapSqlOperandTypeChecker(
+          typeChecker, operator.getName(), operator instanceof SqlUserDefinedFunction);
     }
 
     /**
@@ -839,6 +841,60 @@ public class PPLFuncImpTable {
           functionName,
           (RexBuilder builder, RexNode... args) -> builder.makeCall(operator, args),
           typeChecker);
+    }
+
+    /**
+     * Register an operator whose runtime implementation takes a Java {@code int} at {@code
+     * intArgPositions}, deriving the type checker from the operator. See {@link #narrowIntArgs}.
+     */
+    protected void registerIntArgOperator(
+        BuiltinFunctionName functionName, SqlOperator operator, int... intArgPositions) {
+      registerIntArgOperator(functionName, operator, deriveTypeChecker(operator), intArgPositions);
+    }
+
+    /** Same as above but with an explicit {@link PPLTypeChecker}. */
+    protected void registerIntArgOperator(
+        BuiltinFunctionName functionName,
+        SqlOperator operator,
+        PPLTypeChecker typeChecker,
+        int... intArgPositions) {
+      register(
+          functionName,
+          narrowIntArgs(
+              (RexBuilder builder, RexNode... args) -> builder.makeCall(operator, args),
+              intArgPositions),
+          typeChecker);
+    }
+
+    /**
+     * Wraps {@code functionImp} so that BIGINT arguments at {@code intArgPositions} are cast to
+     * INTEGER before the call is built.
+     *
+     * <p>PPL widens integer arithmetic to BIGINT for overflow safety (#5603), so {@code 1 + 1} is
+     * BIGINT. The operand type checkers still accept it ({@code SqlTypeFamily.INTEGER} contains
+     * BIGINT), but some runtime methods ({@code SqlFunctions.arrayItemOptional}, {@code left},
+     * {@code sround}, ...) take a Java {@code int}, and code generation cannot narrow {@code long}
+     * to {@code int}. The positions are declared per registration rather than inferred from type
+     * families, because a validation family does not say what Java type the runtime needs. Only
+     * list a position after checking that the runtime method of that overload takes an {@code int}
+     * there.
+     */
+    protected static FunctionImp narrowIntArgs(FunctionImp functionImp, int... intArgPositions) {
+      return (RexBuilder builder, RexNode... args) -> {
+        RexNode[] narrowed = args;
+        for (int pos : intArgPositions) {
+          if (pos >= args.length || args[pos].getType().getSqlTypeName() != SqlTypeName.BIGINT) {
+            continue;
+          }
+          if (narrowed == args) {
+            narrowed = args.clone();
+          }
+          RelDataType intType =
+              TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER, args[pos].getType().isNullable());
+          narrowed[pos] = builder.makeCast(intType, args[pos]);
+        }
+        return functionImp.resolve(builder, narrowed);
+      };
     }
 
     protected void registerDivideFunction(BuiltinFunctionName functionName) {
@@ -971,7 +1027,15 @@ public class PPLFuncImpTable {
           PPLTypeChecker.family(SqlTypeFamily.DATETIME, SqlTypeFamily.DATETIME));
       registerWideningIntegerOperator(MULTIPLY, SqlStdOperatorTable.MULTIPLY);
       registerWideningIntegerOperator(MULTIPLYFUNCTION, SqlStdOperatorTable.MULTIPLY);
-      registerOperator(TRUNCATE, SqlStdOperatorTable.TRUNCATE);
+      registerIntArgOperator(
+          TRUNCATE,
+          SqlStdOperatorTable.TRUNCATE,
+          PPLTypeChecker.wrapComposite(
+              (CompositeOperandTypeChecker)
+                  OperandTypes.NUMERIC.or(
+                      OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.INTEGER)),
+              false),
+          1);
       registerOperator(ASCII, SqlStdOperatorTable.ASCII);
       registerOperator(LENGTH, SqlStdOperatorTable.CHAR_LENGTH);
       registerOperator(LOWER, SqlStdOperatorTable.LOWER);
@@ -1069,16 +1133,24 @@ public class PPLFuncImpTable {
       registerOperator(POW, SqlStdOperatorTable.POWER);
       registerOperator(POWER, SqlStdOperatorTable.POWER);
       registerOperator(RADIANS, SqlStdOperatorTable.RADIANS);
-      registerOperator(RAND, SqlStdOperatorTable.RAND);
+      registerIntArgOperator(
+          RAND,
+          SqlStdOperatorTable.RAND,
+          PPLTypeChecker.wrapComposite(
+              (CompositeOperandTypeChecker)
+                  OperandTypes.NILADIC.or(OperandTypes.family(SqlTypeFamily.INTEGER)),
+              false),
+          0);
       // TODO, workaround to support sequence CompositeOperandTypeChecker.
-      registerOperator(
+      registerIntArgOperator(
           ROUND,
           SqlStdOperatorTable.ROUND,
           PPLTypeChecker.wrapComposite(
               (CompositeOperandTypeChecker)
                   OperandTypes.NUMERIC.or(
                       OperandTypes.family(SqlTypeFamily.NUMERIC, SqlTypeFamily.INTEGER)),
-              false));
+              false),
+          1);
       registerOperator(SIGN, SqlStdOperatorTable.SIGN);
       registerOperator(SIGNUM, SqlStdOperatorTable.SIGN);
       registerOperator(SIN, SqlStdOperatorTable.SIN);
@@ -1097,14 +1169,14 @@ public class PPLFuncImpTable {
       registerOperator(CONCAT_WS, SqlLibraryOperators.CONCAT_WS);
       registerOperator(CONCAT_WS, SqlLibraryOperators.CONCAT_WS);
       registerOperator(REVERSE, SqlLibraryOperators.REVERSE);
-      registerOperator(RIGHT, SqlLibraryOperators.RIGHT);
-      registerOperator(LEFT, SqlLibraryOperators.LEFT);
+      registerIntArgOperator(RIGHT, SqlLibraryOperators.RIGHT, 1);
+      registerIntArgOperator(LEFT, SqlLibraryOperators.LEFT, 1);
       registerOperator(LOG2, SqlLibraryOperators.LOG2);
       registerOperator(MD5, SqlLibraryOperators.MD5);
       registerOperator(SHA1, SqlLibraryOperators.SHA1);
       registerOperator(CRC32, SqlLibraryOperators.CRC32);
       registerOperator(INTERNAL_REGEXP_REPLACE_PG_4, SqlLibraryOperators.REGEXP_REPLACE_PG_4);
-      registerOperator(INTERNAL_REGEXP_REPLACE_5, SqlLibraryOperators.REGEXP_REPLACE_5);
+      registerIntArgOperator(INTERNAL_REGEXP_REPLACE_5, SqlLibraryOperators.REGEXP_REPLACE_5, 3, 4);
       registerOperator(INTERNAL_TRANSLATE3, SqlLibraryOperators.TRANSLATE3);
 
       // Register eval functions for PPL scalar max() and min() calls
@@ -1122,13 +1194,14 @@ public class PPLFuncImpTable {
       registerOperator(MINSPAN_BUCKET, PPLBuiltinOperators.MINSPAN_BUCKET);
       registerOperator(RANGE_BUCKET, PPLBuiltinOperators.RANGE_BUCKET);
       registerOperator(E, PPLBuiltinOperators.E);
-      registerOperator(CONV, PPLBuiltinOperators.CONV);
+      // Only the bases are int; the number is converted via toString and may be BIGINT.
+      registerIntArgOperator(CONV, PPLBuiltinOperators.CONV, 1, 2);
       registerOperator(MOD, PPLBuiltinOperators.MOD);
       registerOperator(MODULUS, PPLBuiltinOperators.MOD);
       registerOperator(MODULUSFUNCTION, PPLBuiltinOperators.MOD);
       registerDivideFunction(DIVIDE);
       registerDivideFunction(DIVIDEFUNCTION);
-      registerOperator(SHA2, PPLBuiltinOperators.SHA2);
+      registerIntArgOperator(SHA2, PPLBuiltinOperators.SHA2, 1);
       registerOperator(CIDRMATCH, PPLBuiltinOperators.CIDRMATCH);
       registerOperator(INTERNAL_GROK, PPLBuiltinOperators.GROK);
       registerOperator(INTERNAL_PARSE, PPLBuiltinOperators.PARSE);
@@ -1148,8 +1221,8 @@ public class PPLFuncImpTable {
       registerOperator(MATCHPHRASEQUERY, PPLBuiltinOperators.MATCH_PHRASE);
       registerOperator(MULTIMATCH, PPLBuiltinOperators.MULTI_MATCH);
       registerOperator(MULTIMATCHQUERY, PPLBuiltinOperators.MULTI_MATCH);
-      registerOperator(REX_EXTRACT, PPLBuiltinOperators.REX_EXTRACT);
-      registerOperator(REX_EXTRACT_MULTI, PPLBuiltinOperators.REX_EXTRACT_MULTI);
+      registerIntArgOperator(REX_EXTRACT, PPLBuiltinOperators.REX_EXTRACT, 2);
+      registerIntArgOperator(REX_EXTRACT_MULTI, PPLBuiltinOperators.REX_EXTRACT_MULTI, 2, 3);
       registerOperator(REX_OFFSET, PPLBuiltinOperators.REX_OFFSET);
 
       // Register PPL Datetime UDF operator
@@ -1217,16 +1290,16 @@ public class PPLFuncImpTable {
       registerOperator(PERIOD_DIFF, PPLBuiltinOperators.PERIOD_DIFF);
       registerOperator(SEC_TO_TIME, PPLBuiltinOperators.SEC_TO_TIME);
       registerOperator(STR_TO_DATE, PPLBuiltinOperators.STR_TO_DATE);
-      registerOperator(SYSDATE, PPLBuiltinOperators.SYSDATE);
+      registerIntArgOperator(SYSDATE, PPLBuiltinOperators.SYSDATE, 0);
       registerOperator(TIME_TO_SEC, PPLBuiltinOperators.TIME_TO_SEC);
       registerOperator(TIMEDIFF, PPLBuiltinOperators.TIMEDIFF);
       registerOperator(TIMESTAMPADD, PPLBuiltinOperators.TIMESTAMPADD);
-      registerOperator(WEEK, PPLBuiltinOperators.WEEK);
-      registerOperator(WEEK_OF_YEAR, PPLBuiltinOperators.WEEK);
-      registerOperator(WEEKOFYEAR, PPLBuiltinOperators.WEEK);
+      registerIntArgOperator(WEEK, PPLBuiltinOperators.WEEK, 1);
+      registerIntArgOperator(WEEK_OF_YEAR, PPLBuiltinOperators.WEEK, 1);
+      registerIntArgOperator(WEEKOFYEAR, PPLBuiltinOperators.WEEK, 1);
 
       registerOperator(INTERNAL_PATTERN_PARSER, PPLBuiltinOperators.PATTERN_PARSER);
-      registerOperator(TONUMBER, PPLBuiltinOperators.TONUMBER);
+      registerIntArgOperator(TONUMBER, PPLBuiltinOperators.TONUMBER, 1);
       registerOperator(TOSTRING, PPLBuiltinOperators.TOSTRING);
 
       // Register PPL Convert command functions
@@ -1300,7 +1373,12 @@ public class PPLFuncImpTable {
       registerOperator(MAP_CONCAT, SqlLibraryOperators.MAP_CONCAT);
       registerOperator(MAP_REMOVE, PPLBuiltinOperators.MAP_REMOVE);
       registerOperator(ARRAY_LENGTH, SqlLibraryOperators.ARRAY_LENGTH);
-      registerOperator(ARRAY_SLICE, SqlLibraryOperators.ARRAY_SLICE);
+      registerIntArgOperator(
+          ARRAY_SLICE,
+          SqlLibraryOperators.ARRAY_SLICE,
+          PPLTypeChecker.family(SqlTypeFamily.ARRAY, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER),
+          1,
+          2);
       registerOperator(ARRAY_COMPACT, SqlLibraryOperators.ARRAY_COMPACT);
       registerOperator(FORALL, PPLBuiltinOperators.FORALL);
       registerOperator(EXISTS, PPLBuiltinOperators.EXISTS);
@@ -1358,14 +1436,17 @@ public class PPLFuncImpTable {
       // SqlStdOperatorTable.ITEM.getOperandTypeChecker() checks only the first
       // operand instead
       // of all operands.
+      // The array and map shapes are registered separately so that only the array index (a Java
+      // int in SqlFunctions.arrayItem) is narrowed; map keys keep their type.
+      registerIntArgOperator(
+          INTERNAL_ITEM,
+          SqlStdOperatorTable.ITEM,
+          PPLTypeChecker.family(SqlTypeFamily.ARRAY, SqlTypeFamily.INTEGER),
+          1);
       registerOperator(
           INTERNAL_ITEM,
           SqlStdOperatorTable.ITEM,
-          PPLTypeChecker.wrapComposite(
-              (CompositeOperandTypeChecker)
-                  OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.INTEGER)
-                      .or(OperandTypes.family(SqlTypeFamily.MAP, SqlTypeFamily.ANY)),
-              false));
+          PPLTypeChecker.family(SqlTypeFamily.MAP, SqlTypeFamily.ANY));
       // A `nested` mapping is exposed as ARRAY<ROW<...>>, so `events.name` becomes
       // ITEM(<array-of-rows>, 'name'). By default, Calcite types this as the whole ROW because it
       // never looks at the field name — so a later `events.count > 4` fails with
@@ -1472,8 +1553,11 @@ public class PPLFuncImpTable {
       // checker for it.
       register(
           SUBSTRING,
-          (RexBuilder builder, RexNode... args) ->
-              builder.makeCall(SqlStdOperatorTable.SUBSTRING, args),
+          narrowIntArgs(
+              (RexBuilder builder, RexNode... args) ->
+                  builder.makeCall(SqlStdOperatorTable.SUBSTRING, args),
+              1,
+              2),
           PPLTypeChecker.wrapComposite(
               (CompositeOperandTypeChecker)
                   OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER)
@@ -1485,8 +1569,11 @@ public class PPLFuncImpTable {
               false));
       register(
           SUBSTR,
-          (RexBuilder builder, RexNode... args) ->
-              builder.makeCall(SqlStdOperatorTable.SUBSTRING, args),
+          narrowIntArgs(
+              (RexBuilder builder, RexNode... args) ->
+                  builder.makeCall(SqlStdOperatorTable.SUBSTRING, args),
+              1,
+              2),
           PPLTypeChecker.wrapComposite(
               (CompositeOperandTypeChecker)
                   OperandTypes.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.INTEGER)
