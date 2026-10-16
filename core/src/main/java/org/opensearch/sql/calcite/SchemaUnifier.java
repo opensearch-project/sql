@@ -7,14 +7,17 @@ package org.opensearch.sql.calcite;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 
 /**
  * Utility class for unifying schemas across multiple RelNodes. Supports two strategies:
@@ -24,6 +27,10 @@ import org.apache.calcite.sql.type.SqlTypeName;
  *   <li>Type coercion (union): widens compatible types (e.g. INTEGER→BIGINT), falls back to VARCHAR
  *       for incompatible types, fills missing fields with NULL
  * </ul>
+ *
+ * <p>Vector columns ({@link org.opensearch.sql.calcite.type.ExprVectorType}) are never coerced:
+ * every branch must have the same dimension and data type, otherwise both strategies fail with
+ * <i>mixed vector types</i>.
  */
 public class SchemaUnifier {
 
@@ -84,6 +91,8 @@ public class SchemaUnifier {
           // New field - add to schema
           schema.add(new SchemaField(fieldName, fieldType));
           seenFields.put(fieldName, fieldType);
+        } else if (isVectorField(existingType, fieldType)) {
+          requireCombinableVectors(existingType, fieldType);
         } else if (!areTypesCompatible(existingType, fieldType)) {
           // Same field name but different type - throw exception
           throw new IllegalArgumentException(
@@ -100,6 +109,19 @@ public class SchemaUnifier {
 
   private static boolean areTypesCompatible(RelDataType type1, RelDataType type2) {
     return type1.getSqlTypeName() != null && type1.getSqlTypeName().equals(type2.getSqlTypeName());
+  }
+
+  private static boolean isVectorField(RelDataType type1, RelDataType type2) {
+    return OpenSearchTypeFactory.isVectorType(type1) || OpenSearchTypeFactory.isVectorType(type2);
+  }
+
+  /**
+   * Fails with <i>mixed vector types</i> unless both types are vectors of the same dimension and
+   * data type. The vector-aware {@link OpenSearchTypeFactory#leastRestrictive(List)} does the
+   * check; a cast cannot turn one vector type into another.
+   */
+  private static void requireCombinableVectors(RelDataType type1, RelDataType type2) {
+    OpenSearchTypeFactory.TYPE_FACTORY.leastRestrictive(List.of(type1, type2));
   }
 
   /**
@@ -216,7 +238,12 @@ public class SchemaUnifier {
 
       if (nodeField != null) {
         RexNode fieldRef = context.rexBuilder.makeInputRef(node, nodeField.getIndex());
-        if (!nodeField.getType().equals(schemaField.getType())) {
+        if (isVectorField(nodeField.getType(), schemaField.getType())) {
+          // Differences left after the check are nullability or space type only; the union's row
+          // type, derived through leastRestrictive, merges them.
+          requireCombinableVectors(schemaField.getType(), nodeField.getType());
+          projection.add(fieldRef);
+        } else if (!nodeField.getType().equals(schemaField.getType())) {
           projection.add(context.rexBuilder.makeCast(schemaField.getType(), fieldRef));
         } else {
           projection.add(fieldRef);
@@ -231,15 +258,21 @@ public class SchemaUnifier {
   /** Casts fields to their common supertypes across all inputs when types differ. */
   private static List<RelNode> coerceUnionTypes(List<RelNode> inputs, CalcitePlanContext context) {
     Map<String, List<SqlTypeName>> fieldTypeMap = new HashMap<>();
+    Set<String> vectorFields = new HashSet<>();
     for (RelNode input : inputs) {
       for (RelDataTypeField field : input.getRowType().getFieldList()) {
         String fieldName = field.getName();
         SqlTypeName typeName = field.getType().getSqlTypeName();
+        if (OpenSearchTypeFactory.isVectorType(field.getType())) {
+          vectorFields.add(fieldName);
+        }
         if (typeName != null) {
           fieldTypeMap.computeIfAbsent(fieldName, k -> new ArrayList<>()).add(typeName);
         }
       }
     }
+    // A vector column is never coerced (e.g. to VARCHAR); buildProjectionForUnion checks it.
+    vectorFields.forEach(fieldTypeMap::remove);
 
     Map<String, SqlTypeName> targetTypeMap = new HashMap<>();
     for (Map.Entry<String, List<SqlTypeName>> entry : fieldTypeMap.entrySet()) {

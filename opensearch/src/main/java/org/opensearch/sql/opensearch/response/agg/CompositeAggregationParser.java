@@ -54,4 +54,9 @@ public class CompositeAggregationParser implements OpenSearchAggregationResponse
     throw new UnsupportedOperationException(
         "CompositeAggregationParser doesn't support parse(SearchHits)");
   }
+
+  @Override
+  public boolean readsDocuments() {
+    return metricsParser.readsDocuments();
+  }
 }

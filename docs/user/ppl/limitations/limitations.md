@@ -11,7 +11,6 @@ PPL does not support all [OpenSearch data types](https://docs.opensearch.org/lat
   
 | OpenSearch Data Type | PPL |
 | --- | --- |
-| knn_vector | Ignored |
 | Range field types | Ignored |
 | Object - flat_object | Ignored |
 | Object - join | Ignored |
@@ -26,6 +25,8 @@ PPL does not support all [OpenSearch data types](https://docs.opensearch.org/lat
 | Star-tree | Ignored |
 | derived | Ignored |
 | Percolator | Ignored |
+
+`knn_vector` fields are read as the `vector` type, see [Vector Data Type](../general/datatypes.md#vector-data-type).
   
 ## Field Parameters  
 

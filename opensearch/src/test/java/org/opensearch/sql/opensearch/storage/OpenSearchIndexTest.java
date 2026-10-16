@@ -11,6 +11,7 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
@@ -32,6 +33,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -182,6 +184,31 @@ class OpenSearchIndexTest {
     assertThat(
         index.getFieldOpenSearchTypes(),
         allOf(aMapWithSize(1), hasEntry("name", OpenSearchDataType.of(STRING))));
+  }
+
+  /**
+   * The knn_vector fields, also inside an object, but not an alias to one; computed once, as a scan
+   * asks for them at every projection and aggregation pushdown.
+   */
+  @Test
+  void getKnnVectorFields() {
+    when(mapping.getFieldMappings())
+        .thenReturn(
+            OpenSearchDataType.parseMapping(
+                Map.of(
+                    "v", Map.of("type", "knn_vector", "dimension", 2),
+                    "va", Map.of("type", "alias", "path", "v"),
+                    "name", Map.of("type", "keyword"),
+                    "obj",
+                        Map.of(
+                            "properties",
+                            Map.of("vec", Map.of("type", "knn_vector", "dimension", 2))))));
+    when(client.getIndexMappings("test")).thenReturn(ImmutableMap.of("test", mapping));
+
+    OpenSearchIndex index = new OpenSearchIndex(client, settings, "test");
+    Set<String> fields = index.getKnnVectorFields();
+    assertEquals(Set.of("v", "obj.vec"), fields);
+    assertSame(fields, index.getKnnVectorFields());
   }
 
   @Test

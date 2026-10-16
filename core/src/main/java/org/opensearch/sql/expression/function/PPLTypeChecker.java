@@ -599,6 +599,9 @@ public interface PPLTypeChecker {
           };
       // ip and binary both land as VARBINARY.
       case EXPR_IP, EXPR_BINARY -> SqlTypeName.BINARY_TYPES.contains(plain.getSqlTypeName());
+      // Not reached through AbstractExprRelDataType (ExprVectorType is an ArraySqlType); a vector's
+      // plain spelling is an ARRAY.
+      case EXPR_VECTOR -> plain.getSqlTypeName() == SqlTypeName.ARRAY;
     };
   }
 

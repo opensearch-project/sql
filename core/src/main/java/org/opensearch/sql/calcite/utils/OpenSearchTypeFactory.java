@@ -27,6 +27,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.data.type.ExprCoreType.UNDEFINED;
 import static org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
+import static org.opensearch.sql.data.type.ExprCoreType.VECTOR;
 import static org.opensearch.sql.executor.QueryType.PPL;
 import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 
@@ -38,11 +39,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import lombok.Getter;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.sql.SqlCollation;
+import org.apache.calcite.sql.type.SqlTypeMappingRule;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -56,10 +59,13 @@ import org.opensearch.sql.calcite.type.ExprDateType;
 import org.opensearch.sql.calcite.type.ExprIPType;
 import org.opensearch.sql.calcite.type.ExprTimeStampType;
 import org.opensearch.sql.calcite.type.ExprTimeType;
+import org.opensearch.sql.calcite.type.ExprVectorType;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.data.type.VectorDataType;
+import org.opensearch.sql.data.type.VectorFieldType;
 import org.opensearch.sql.executor.OpenSearchTypeSystem;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.storage.Table;
@@ -79,7 +85,12 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     EXPR_TIME(TIME),
     EXPR_TIMESTAMP(TIMESTAMP),
     EXPR_BINARY(BINARY),
-    EXPR_IP(IP);
+    EXPR_IP(IP),
+    /**
+     * Dense vector. Unlike the other UDTs it is not an {@link AbstractExprRelDataType}: it is
+     * implemented by {@link ExprVectorType}, an {@code ArraySqlType} subclass.
+     */
+    EXPR_VECTOR(VECTOR);
 
     // Associated `ExprCoreType`
     private final ExprCoreType exprCoreType;
@@ -94,7 +105,24 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     if (type instanceof AbstractExprRelDataType<?> udt) {
       return udt.createWithNullability(this, nullable);
     }
+    if (type instanceof ExprVectorType vector) {
+      // Calcite's default would rebuild a plain ArraySqlType and drop the vector attributes.
+      return vector.isNullable() == nullable ? vector : canonize(vector.withNullability(nullable));
+    }
     return super.createTypeWithNullability(type, nullable);
+  }
+
+  /**
+   * Keeps {@link ExprVectorType} like {@link #createTypeWithNullability}. Calcite's implementation
+   * copies any {@code ArraySqlType} into a plain one, which would drop the vector attributes, e.g.
+   * for a field access on a nullable row ({@code RexBuilder.makeFieldAccess}).
+   */
+  @Override
+  public RelDataType enforceTypeWithNullability(RelDataType type, boolean nullable) {
+    if (type instanceof ExprVectorType) {
+      return createTypeWithNullability(type, nullable);
+    }
+    return super.enforceTypeWithNullability(type, nullable);
   }
 
   @Override
@@ -136,12 +164,75 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
             yield new ExprBinaryType(this);
           case EXPR_IP:
             yield new ExprIPType(this);
+          case EXPR_VECTOR:
+            // A vector of unknown dimension; use createVectorType to give the attributes.
+            yield createVectorType(
+                ExprVectorType.UNKNOWN_DIMENSION, VectorDataType.DEFAULT, null, false);
         };
     return canonize(SqlTypeUtil.addCharsetAndCollation(udt, this));
   }
 
   public RelDataType createUDT(ExprUDT typeName, boolean nullable) {
     return this.createTypeWithNullability(createUDT(typeName), nullable);
+  }
+
+  /**
+   * Create the Calcite type of a vector column.
+   *
+   * @param dimension the dimension as declared in the mapping (bits for {@link
+   *     VectorDataType#BINARY}), or {@link ExprVectorType#UNKNOWN_DIMENSION}
+   * @param dataType the element encoding; decides the element type, {@code REAL} or {@code TINYINT}
+   * @param spaceType the declared space type, or {@code null} if not declared
+   * @param nullable whether the column is nullable
+   * @return the canonical {@link ExprVectorType}
+   */
+  public ExprVectorType createVectorType(
+      int dimension, VectorDataType dataType, @Nullable String spaceType, boolean nullable) {
+    RelDataType elementType =
+        createSqlType(dataType.hasByteElements() ? SqlTypeName.TINYINT : SqlTypeName.REAL, true);
+    return (ExprVectorType)
+        canonize(new ExprVectorType(elementType, nullable, dimension, dataType, spaceType));
+  }
+
+  /**
+   * Create the Calcite type of a vector field from its storage type, including what it knows of the
+   * indices of a multi-index query: whether their mappings mismatch, and which of them store byte
+   * elements when they disagree on it.
+   */
+  public ExprVectorType createVectorType(VectorFieldType fieldType, boolean nullable) {
+    VectorDataType dataType = fieldType.getDataType();
+    RelDataType elementType =
+        createSqlType(dataType.hasByteElements() ? SqlTypeName.TINYINT : SqlTypeName.REAL, true);
+    List<String> indices = fieldType.getMappingMismatchIndices();
+    List<String> byteElementIndices =
+        fieldType.getStoredDataType(null) != null
+            ? List.of()
+            : indices.stream()
+                .filter(
+                    index -> {
+                      VectorDataType stored = fieldType.getStoredDataType(index);
+                      return stored != null && stored.hasByteElements();
+                    })
+                .toList();
+    return (ExprVectorType)
+        canonize(
+            new ExprVectorType(
+                elementType,
+                nullable,
+                fieldType.getDimension(),
+                dataType,
+                fieldType.getSpaceType(),
+                new ExprVectorType.IndexMappings(
+                    fieldType.hasMappingMismatch(), indices, byteElementIndices)));
+  }
+
+  /**
+   * Whether a Calcite type is a vector column type ({@link ExprVectorType}). A vector is also an
+   * {@code ARRAY} by {@link RelDataType#getSqlTypeName()}; this tells it apart from {@code nested}
+   * fields and from {@code array(...)} results.
+   */
+  public static boolean isVectorType(@Nullable RelDataType type) {
+    return type instanceof ExprVectorType;
   }
 
   public static RelDataType convertExprTypeToRelDataType(ExprType field) {
@@ -183,6 +274,9 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         case ARRAY:
           return TYPE_FACTORY.createArrayType(
               TYPE_FACTORY.createSqlType(SqlTypeName.ANY, nullable), -1);
+        case VECTOR:
+          return TYPE_FACTORY.createVectorType(
+              ExprVectorType.UNKNOWN_DIMENSION, VectorDataType.DEFAULT, null, nullable);
         case STRUCT:
           final RelDataType relKey = TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR);
           // TODO: should we provide more precise type here?
@@ -193,6 +287,8 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
           throw new IllegalArgumentException(
               "Unsupported conversion for OpenSearch Data type: " + fieldType.typeName());
       }
+    } else if (fieldType instanceof VectorFieldType vectorFieldType) {
+      return TYPE_FACTORY.createVectorType(vectorFieldType, nullable);
     } else {
       if (fieldType.legacyTypeName().equalsIgnoreCase("binary")) {
         return TYPE_FACTORY.createUDT(ExprUDT.EXPR_BINARY, nullable);
@@ -293,6 +389,9 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
 
   /** Converts a Calcite data type to OpenSearch ExprCoreType. */
   public static ExprType convertRelDataTypeToExprType(RelDataType type) {
+    if (type instanceof ExprVectorType vector) {
+      return vector.getExprType();
+    }
     if (isUserDefinedType(type)) {
       AbstractExprRelDataType<?> udt = (AbstractExprRelDataType<?>) type;
       return udt.getExprType();
@@ -368,6 +467,7 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       case IP:
         return ExprValueUtils.ipValue((String) value);
       case ARRAY:
+      case VECTOR:
         return ExprValueUtils.collectionValue((List<Object>) value);
       case STRUCT:
         return ExprValueUtils.tupleValue((Map<String, Object>) value);
@@ -461,9 +561,15 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
    * @return the least restrictive {@link RelDataType} preserving the UDT wrapper when all inputs
    *     share the same UDT, or {@code null} if no common type exists (as determined by {@link
    *     super#leastRestrictive})
+   * @throws org.opensearch.sql.exception.SemanticCheckException <i>mixed vector types</i>, see
+   *     {@link #leastRestrictive(List, SqlTypeMappingRule)}
    */
   @Override
   public @Nullable RelDataType leastRestrictive(List<RelDataType> types) {
+    RelDataType vectorResult = leastRestrictiveVector(types);
+    if (vectorResult != null) {
+      return vectorResult;
+    }
     if (types.size() > 1) {
       RelDataType first = types.get(0);
       if (first instanceof AbstractExprRelDataType<?> firstUdt) {
@@ -488,6 +594,67 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       }
     }
     return super.leastRestrictive(types);
+  }
+
+  /**
+   * Keeps {@link ExprVectorType} through set operations and other type unification, and otherwise
+   * delegates to Calcite. Calcite's own rule for arrays would unify the element types and return a
+   * plain {@code ARRAY}, dropping the dimension, so any {@code VECTOR(768)} and {@code VECTOR(384)}
+   * would silently combine.
+   *
+   * @throws org.opensearch.sql.exception.SemanticCheckException <i>mixed vector types</i> if a
+   *     vector is combined with a vector of another dimension or data type, or with a non-vector
+   *     type other than {@code NULL}
+   */
+  @Override
+  public @Nullable RelDataType leastRestrictive(
+      List<RelDataType> types, SqlTypeMappingRule mappingRule) {
+    RelDataType vectorResult = leastRestrictiveVector(types);
+    if (vectorResult != null) {
+      return vectorResult;
+    }
+    return super.leastRestrictive(types, mappingRule);
+  }
+
+  /**
+   * The least restrictive type of a list that contains a vector: the vector type, nullable if any
+   * input is nullable or {@code NULL}. Inputs must have the same dimension and data type; if their
+   * space types differ, the result's space type is unknown ({@code null}). The result knows what
+   * all inputs know of their indices (see {@link ExprVectorType.IndexMappings#union}).
+   *
+   * @return {@code null} if no input is a vector
+   */
+  private @Nullable RelDataType leastRestrictiveVector(List<RelDataType> types) {
+    ExprVectorType first = null;
+    for (RelDataType type : types) {
+      if (type instanceof ExprVectorType vector) {
+        first = vector;
+        break;
+      }
+    }
+    if (first == null) {
+      return null;
+    }
+    boolean anyNullable = false;
+    boolean sameSpaceType = true;
+    // What the inputs know of their indices, combined so that the order does not matter.
+    ExprVectorType.IndexMappings indexMappings = first.getIndexMappings();
+    for (RelDataType type : types) {
+      if (type.getSqlTypeName() == SqlTypeName.NULL) {
+        anyNullable = true;
+      } else if (type instanceof ExprVectorType vector && vector.isCombinableWith(first)) {
+        anyNullable |= vector.isNullable();
+        sameSpaceType &= Objects.equals(vector.getSpaceType(), first.getSpaceType());
+        indexMappings = indexMappings.union(vector.getIndexMappings());
+      } else {
+        throw VectorErrors.mixedVectorTypes(first, type);
+      }
+    }
+    ExprVectorType result = sameSpaceType ? first : first.withSpaceType(null);
+    if (!indexMappings.equals(first.getIndexMappings())) {
+      result = result.withIndexMappings(indexMappings);
+    }
+    return createTypeWithNullability(result == first ? first : canonize(result), anyNullable);
   }
 
   private @Nullable RelDataType leastRestrictiveVarbinaryVarchar(List<RelDataType> types) {

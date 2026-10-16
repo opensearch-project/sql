@@ -62,6 +62,9 @@ public final class AggSpec {
   private final Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser>
       baseBuilderAndParser;
   private final Map<String, OpenSearchDataType> extendedTypeMapping;
+  // The types of output columns that do not read the index field of their name (see
+  // OpenSearchExprValueFactory#putColumnTypes)
+  private final Map<String, OpenSearchDataType> columnTypes;
   private final List<String> initialBucketNames;
   // Cost model uses the script count of the base logical aggregation. Supported rewrites keep the
   // same scripted sources/metrics semantically, while replay-time builders are request-scoped and
@@ -76,6 +79,7 @@ public final class AggSpec {
   private AggSpec(
       Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> baseBuilderAndParser,
       Map<String, OpenSearchDataType> extendedTypeMapping,
+      Map<String, OpenSearchDataType> columnTypes,
       List<String> initialBucketNames,
       long scriptCount,
       AggKind kind,
@@ -84,6 +88,7 @@ public final class AggSpec {
       @Nullable Integer bucketSize) {
     this.baseBuilderAndParser = baseBuilderAndParser;
     this.extendedTypeMapping = Map.copyOf(extendedTypeMapping);
+    this.columnTypes = Map.copyOf(columnTypes);
     this.initialBucketNames = List.copyOf(initialBucketNames);
     this.scriptCount = scriptCount;
     this.kind = kind;
@@ -96,12 +101,25 @@ public final class AggSpec {
       Map<String, OpenSearchDataType> extendedTypeMapping,
       List<String> bucketNames,
       Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> builderAndParser) {
+    return create(extendedTypeMapping, Map.of(), bucketNames, builderAndParser);
+  }
+
+  /**
+   * @param columnTypes the types of output columns that do not read the index field of their name
+   *     (see {@code OpenSearchExprValueFactory#putColumnTypes})
+   */
+  public static AggSpec create(
+      Map<String, OpenSearchDataType> extendedTypeMapping,
+      Map<String, OpenSearchDataType> columnTypes,
+      List<String> bucketNames,
+      Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> builderAndParser) {
     AggregationBuilder rootBuilder =
         builderAndParser.getLeft().isEmpty() ? null : builderAndParser.getLeft().getFirst();
     AggKind kind = inferKind(rootBuilder);
     return new AggSpec(
         builderAndParser,
         extendedTypeMapping,
+        columnTypes,
         bucketNames,
         builderAndParser.getLeft().stream().mapToInt(AggPushDownAction::getScriptCount).sum(),
         kind,
@@ -142,6 +160,7 @@ public final class AggSpec {
     return new AggSpec(
         baseBuilderAndParser,
         extendedTypeMapping,
+        columnTypes,
         initialBucketNames,
         scriptCount,
         kind,
@@ -160,6 +179,7 @@ public final class AggSpec {
     return new AggSpec(
         baseBuilderAndParser,
         extendedTypeMapping,
+        columnTypes,
         initialBucketNames,
         scriptCount,
         kind,
@@ -182,6 +202,7 @@ public final class AggSpec {
     return new AggSpec(
         baseBuilderAndParser,
         extendedTypeMapping,
+        columnTypes,
         initialBucketNames,
         scriptCount,
         rewriteTarget,
@@ -200,6 +221,7 @@ public final class AggSpec {
     return new AggSpec(
         baseBuilderAndParser,
         extendedTypeMapping,
+        columnTypes,
         initialBucketNames,
         scriptCount,
         AggKind.RARE_TOP,
@@ -225,6 +247,7 @@ public final class AggSpec {
     return new AggSpec(
         baseBuilderAndParser,
         extendedTypeMapping,
+        columnTypes,
         initialBucketNames,
         scriptCount,
         kind,
@@ -239,7 +262,10 @@ public final class AggSpec {
   public AggPushDownAction buildAction() {
     AggPushDownAction action =
         new AggPushDownAction(
-            baseBuilderAndParser, extendedTypeMapping, new ArrayList<>(initialBucketNames));
+            baseBuilderAndParser,
+            extendedTypeMapping,
+            columnTypes,
+            new ArrayList<>(initialBucketNames));
     operationsForAgg.forEach(operation -> ((BuildAction) operation.action()).apply(action));
     return action;
   }

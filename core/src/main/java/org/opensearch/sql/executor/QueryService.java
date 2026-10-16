@@ -45,6 +45,7 @@ import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.calcite.OpenSearchSchema;
 import org.opensearch.sql.calcite.SysLimit;
+import org.opensearch.sql.calcite.knn.KnnAst;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.utils.CalciteClassLoaderHelper;
@@ -59,6 +60,7 @@ import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.NonFallbackCalciteException;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.executor.analyze.AnalyzeRecommendationBuilder;
 import org.opensearch.sql.monitor.profile.MetricName;
 import org.opensearch.sql.monitor.profile.ProfileMetric;
@@ -256,7 +258,7 @@ public class QueryService {
                 },
                 QueryService.class);
           } catch (Throwable t) {
-            if (isCalciteFallbackAllowed(t) && !(t instanceof NonFallbackCalciteException)) {
+            if (isCalciteFallbackAllowed(t, plan) && !(t instanceof NonFallbackCalciteException)) {
               log.warn("Fallback to V2 query engine since got exception", t);
               executeWithLegacy(plan, queryType, listener, Optional.of(t));
             } else {
@@ -337,7 +339,7 @@ public class QueryService {
                 },
                 QueryService.class);
           } catch (Throwable t) {
-            if (isCalciteFallbackAllowed(t)) {
+            if (isCalciteFallbackAllowed(t, plan)) {
               log.warn("Fallback to V2 query engine since got exception", t);
               explainWithLegacy(plan, queryType, listener, mode, Optional.of(t));
             } else {
@@ -590,8 +592,9 @@ public class QueryService {
     }
   }
 
+  /** Lower the plan of a whole PPL statement to a Calcite logical plan. */
   public RelNode analyze(UnresolvedPlan plan, CalcitePlanContext context) {
-    return getRelNodeVisitor().analyze(plan, context);
+    return getRelNodeVisitor().analyzeStatement(plan, context);
   }
 
   /** Analyze {@link UnresolvedPlan}. */
@@ -613,7 +616,22 @@ public class QueryService {
     };
   }
 
+  private boolean isCalciteFallbackAllowed(@Nullable Throwable t, UnresolvedPlan plan) {
+    // The V2 engine cannot run a k-NN step, so trying it for a statement with one is pointless: it
+    // would fail, and executeWithLegacy / explainWithLegacy would report the Calcite error anyway
+    // (opensearch-project/sql#5060). Skip the attempt.
+    if (KnnAst.containsKnnStep(plan)) {
+      return false;
+    }
+    return isCalciteFallbackAllowed(t);
+  }
+
   private boolean isCalciteFallbackAllowed(@Nullable Throwable t) {
+    // Errors of Calcite-only features (k-NN, vector columns) are reported as they are: the V2
+    // engine cannot answer those queries. No other error is marked this way.
+    if (t != null && SemanticCheckException.preventsCalciteFallback(t)) {
+      return false;
+    }
     // We always allow fallback the query failed with CalciteUnsupportedException.
     // This is for avoiding breaking changes when enable Calcite by default.
     if (isCalciteUnsupportedError(t)) {

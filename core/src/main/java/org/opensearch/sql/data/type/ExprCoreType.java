@@ -57,7 +57,14 @@ public enum ExprCoreType implements ExprType {
   STRUCT(UNDEFINED),
 
   /** Array. */
-  ARRAY(UNDEFINED);
+  ARRAY(UNDEFINED),
+
+  /**
+   * Dense vector, e.g. an OpenSearch {@code knn_vector} field. A sequence of numbers with a fixed
+   * dimension; it has no order or equality semantics, so it cannot be compared, sorted or grouped.
+   * Storage types that carry the dimension and element encoding implement {@link VectorFieldType}.
+   */
+  VECTOR(UNDEFINED);
 
   /** Parents (wider/compatible types) of current base type. */
   private final List<ExprType> parents = new ArrayList<>();
@@ -67,6 +74,8 @@ public enum ExprCoreType implements ExprType {
       new ImmutableMap.Builder<ExprCoreType, String>()
           .put(STRUCT, "OBJECT")
           .put(ARRAY, "NESTED")
+          // SQL and JDBC-format clients keep the name a knn_vector column had as ARRAY.
+          .put(VECTOR, "NESTED")
           .put(STRING, "KEYWORD")
           .build();
 
@@ -105,11 +114,27 @@ public enum ExprCoreType implements ExprType {
     return LEGACY_TYPE_NAME_MAPPING.getOrDefault(this, this.name());
   }
 
-  /** Return all the valid ExprCoreType. */
+  /**
+   * Return all the valid ExprCoreType of the V2 engine, which registers its functions over this
+   * list. {@link #VECTOR} is not in it: it exists for the Calcite engine only, and the V2 engine
+   * types a knn_vector field as {@link #ARRAY}, as it did before VECTOR was added. Keeping VECTOR
+   * out keeps V2 signatures, and the signature lists in its error messages, unchanged.
+   */
   public static List<ExprCoreType> coreTypes() {
-    return Arrays.stream(ExprCoreType.values())
+    return v2Types().stream()
         .filter(type -> type != UNKNOWN)
         .filter(type -> type != UNDEFINED)
+        .collect(Collectors.toList());
+  }
+
+  /**
+   * All values the V2 engine knows, {@link #UNKNOWN} and {@link #UNDEFINED} included: {@link
+   * #values()} without the Calcite-only {@link #VECTOR}. Use it instead of {@code values()} to
+   * register V2 functions over every type.
+   */
+  public static List<ExprCoreType> v2Types() {
+    return Arrays.stream(ExprCoreType.values())
+        .filter(type -> type != VECTOR)
         .collect(Collectors.toList());
   }
 

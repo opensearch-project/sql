@@ -16,6 +16,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.setting.Settings;
@@ -282,6 +283,25 @@ public class PPLQueryDataAnonymizerTest {
   @Test
   public void testHeadCommandWithNumber() {
     assertEquals("source=table | head 3", anonymize("source=t | head 3"));
+  }
+
+  @Test
+  public void testKnnCommand() {
+    assertEquals(
+        "source=table | where identifier = *** | knn field=identifier vector=*** k=***"
+            + " ef_search=*** | head 10",
+        anonymize(
+            AstDSL.head(
+                AstDSL.knn(
+                    AstDSL.filter(
+                        relation("t"),
+                        AstDSL.compare("=", field("category"), AstDSL.stringLiteral("shoes"))),
+                    field("embedding"),
+                    AstDSL.vectorLiteral(0.1, 0.2, 0.3),
+                    AstDSL.argument("k", AstDSL.intLiteral(50)),
+                    AstDSL.argument("ef_search", AstDSL.intLiteral(100))),
+                10,
+                0)));
   }
 
   @Test

@@ -40,12 +40,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
@@ -88,8 +90,10 @@ import org.opensearch.sql.calcite.utils.PPLHintUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.data.type.VectorFieldType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+import org.opensearch.sql.opensearch.data.type.OpenSearchAliasType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
@@ -149,6 +153,19 @@ public class AggregateAnalyzer {
     final RelOptCluster cluster;
     final boolean bucketNullable;
     final int queryBucketSize;
+
+    /**
+     * The types of all the index's fields, not only those of the scan's current schema, which
+     * {@link #fieldTypes} has; {@code null} for those. The fields inside an object or nested column
+     * are not columns of a schema that a projection cut to the object.
+     */
+    @Nullable Map<String, ExprType> indexFieldTypes;
+
+    /** Give the types of all the index's fields (see {@link #indexFieldTypes}). */
+    public AggregateBuilderHelper withIndexFieldTypes(Map<String, ExprType> indexFieldTypes) {
+      this.indexFieldTypes = indexFieldTypes;
+      return this;
+    }
 
     <T extends ValuesSourceAggregationBuilder<T>> T build(RexNode node, T aggBuilder) {
       return build(node, aggBuilder::field, aggBuilder::script);
@@ -560,14 +577,20 @@ public class AggregateAnalyzer {
         TopHitsAggregationBuilder maxBuilder =
             createTopHitsBuilder(
                 aggCall, args, aggName, helper, 1, true, true, sortField, SortOrder.DESC);
-        yield Pair.of(maxBuilder, new ArgMaxMinParser(aggName));
+        yield Pair.of(
+            maxBuilder,
+            new ArgMaxMinParser(
+                aggName, sourcePathOf(args, helper), readsMixedEncodingVector(args, helper, true)));
       }
       case ARG_MIN -> {
         String sortField = helper.inferNamedField(args.get(1).getKey()).getReferenceForTermQuery();
         TopHitsAggregationBuilder minBuilder =
             createTopHitsBuilder(
                 aggCall, args, aggName, helper, 1, true, true, sortField, SortOrder.ASC);
-        yield Pair.of(minBuilder, new ArgMaxMinParser(aggName));
+        yield Pair.of(
+            minBuilder,
+            new ArgMaxMinParser(
+                aggName, sourcePathOf(args, helper), readsMixedEncodingVector(args, helper, true)));
       }
       case OTHER_FUNCTION -> {
         BuiltinFunctionName functionName =
@@ -582,13 +605,29 @@ public class AggregateAnalyzer {
           case FIRST -> {
             TopHitsAggregationBuilder firstBuilder =
                 createTopHitsBuilder(aggCall, args, aggName, helper, 1, true, false, null, null);
-            yield Pair.of(firstBuilder, new TopHitsParser(aggName, true, false));
+            yield Pair.of(
+                firstBuilder,
+                new TopHitsParser(
+                    aggName,
+                    true,
+                    false,
+                    null,
+                    readsMixedEncodingVector(args, helper, true),
+                    sourcePathOf(args, helper)));
           }
           case LAST -> {
             TopHitsAggregationBuilder lastBuilder =
                 createTopHitsBuilder(
                     aggCall, args, aggName, helper, 1, true, true, "_doc", SortOrder.DESC);
-            yield Pair.of(lastBuilder, new TopHitsParser(aggName, true, false));
+            yield Pair.of(
+                lastBuilder,
+                new TopHitsParser(
+                    aggName,
+                    true,
+                    false,
+                    null,
+                    readsMixedEncodingVector(args, helper, true),
+                    sourcePathOf(args, helper)));
           }
           case PERCENTILE_APPROX -> {
             PercentilesAggregationBuilder aggBuilder =
@@ -643,26 +682,16 @@ public class AggregateAnalyzer {
         // row-type uses the renamed output name. A single original field may map to multiple
         // output names when both a rename and an eval column-ref resolve to the same source
         // field (issue #5197), so the value is a List rather than a single String.
-        Map<String, List<String>> fieldNameMapping = new HashMap<>();
-        for (Pair<RexNode, String> arg : args) {
-          if (arg.getKey() instanceof RexInputRef) {
-            NamedFieldExpression namedField = helper.inferNamedField(arg.getKey());
-            if (namedField == null) {
-              continue;
-            }
-            String originalName = namedField.getRootName();
-            String outputName = arg.getValue();
-            if (!originalName.equals(outputName)) {
-              fieldNameMapping
-                  .computeIfAbsent(originalName, k -> new ArrayList<>())
-                  .add(outputName);
-            }
-          }
-        }
+        Map<String, List<String>> fieldNameMapping = dedupFieldNameMapping(args, helper);
         yield Pair.of(
             topHitsAggregationBuilder,
             new TopHitsParser(
-                aggName, false, false, fieldNameMapping.isEmpty() ? null : fieldNameMapping));
+                    aggName,
+                    false,
+                    false,
+                    fieldNameMapping.isEmpty() ? null : fieldNameMapping,
+                    readsMixedEncodingVector(args, helper, false))
+                .withScriptFields(dedupScriptFields(args, helper)));
       }
       default ->
           throw new AggregateAnalyzer.AggregateAnalyzerException(
@@ -679,6 +708,156 @@ public class AggregateAnalyzer {
     return Pair.of(
         helper.build(args.getFirst().getKey(), AggregationBuilders.sum(aggName)),
         new CheckedLongSumParser(aggName));
+  }
+
+  /**
+   * The mapping from the field name a dedup's top_hits returns a value under to the output columns
+   * that take it (see {@link TopHitsParser}): a renamed column, an eval copy, or an alias, which
+   * the plan reads as a reference to its target, take the value of their field.
+   */
+  static Map<String, List<String>> dedupFieldNameMapping(
+      List<Pair<RexNode, String>> args, AggregateBuilderHelper helper) {
+    Map<String, List<String>> fieldNameMapping = new HashMap<>();
+    Set<String> keptNames = new HashSet<>();
+    for (Pair<RexNode, String> arg : args) {
+      if (arg.getKey() instanceof RexInputRef) {
+        NamedFieldExpression namedField = helper.inferNamedField(arg.getKey());
+        if (namedField == null) {
+          continue;
+        }
+        // An alias to a knn_vector is read from _source, under its target's key.
+        String originalName =
+            namedField.isKnnVectorField() && namedField.isAliasField()
+                ? namedField.getExprType().getOriginalPath().orElseThrow()
+                : namedField.getRootName();
+        String outputName = arg.getValue();
+        if (!originalName.equals(outputName)) {
+          fieldNameMapping.computeIfAbsent(originalName, k -> new ArrayList<>()).add(outputName);
+        } else {
+          keptNames.add(originalName);
+        }
+      }
+    }
+    // A column that keeps its field's name keeps its value when another output column reads
+    // the same field (an alias, a rename or an eval copy of it): the mapping removes the
+    // original key unless it is one of the output names.
+    keptNames.stream()
+        .filter(fieldNameMapping::containsKey)
+        .forEach(name -> fieldNameMapping.get(name).add(name));
+    return fieldNameMapping;
+  }
+
+  /** Appended to a script column's name when a fetched field has that name. */
+  static final String SCRIPT_FIELD_SUFFIX = "#script";
+
+  /**
+   * The names a top_hits returns its script columns under in a hit's {@code fields}, by column: the
+   * column's own, unless a field the top_hits fetches or an earlier script has it, as in {@code
+   * rename k as j | eval k = 1}, where two would share one key and one would be lost. A new name
+   * appends {@link #SCRIPT_FIELD_SUFFIX}, and a number if that is taken too by a fetched field, an
+   * output column or another script.
+   */
+  static Map<String, String> scriptFieldNames(
+      List<Pair<RexNode, String>> args, AggregateBuilderHelper helper) {
+    Set<String> fetched =
+        args.stream()
+            .filter(arg -> arg.getKey() instanceof RexInputRef)
+            .map(arg -> helper.inferNamedField(arg.getKey()))
+            .filter(Objects::nonNull)
+            .map(NamedFieldExpression::getRootName)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+    Set<String> columns = args.stream().map(Pair::getValue).collect(Collectors.toSet());
+    Set<String> used = new HashSet<>();
+    Map<String, String> names = new LinkedHashMap<>();
+    args.stream()
+        .filter(arg -> arg.getKey() instanceof RexCall || arg.getKey() instanceof RexLiteral)
+        .map(Pair::getValue)
+        .forEach(
+            column -> {
+              String name = column;
+              int n = 0;
+              // The column's own name is one of the columns; a new name must be none of them.
+              while (fetched.contains(name)
+                  || used.contains(name)
+                  || (n > 0 && columns.contains(name))) {
+                n++;
+                name = column + SCRIPT_FIELD_SUFFIX + (n == 1 ? "" : n);
+              }
+              used.add(name);
+              names.put(column, name);
+            });
+    return names;
+  }
+
+  /**
+   * The output columns of a dedup that its top_hits computes as script fields, by the name the hit
+   * returns each under (see {@link #scriptFieldNames}).
+   */
+  static Map<String, String> dedupScriptFields(
+      List<Pair<RexNode, String>> args, AggregateBuilderHelper helper) {
+    Map<String, String> scripts = new LinkedHashMap<>();
+    scriptFieldNames(args, helper).forEach((column, name) -> scripts.put(name, column));
+    return scripts;
+  }
+
+  /**
+   * The path a single-value top_hits (first, last, arg_min, arg_max) reads its first argument from
+   * in {@code _source}: a knn_vector field, or the target of an alias to one, which {@link
+   * #createTopHitsBuilder} fetches from {@code _source} alone. {@code null} for other fields, read
+   * as before.
+   */
+  private static @Nullable String sourcePathOf(
+      List<Pair<RexNode, String>> args, AggregateBuilderHelper helper) {
+    if (args.isEmpty() || !(args.getFirst().getKey() instanceof RexInputRef)) {
+      return null;
+    }
+    NamedFieldExpression field = helper.inferNamedField(args.getFirst().getKey());
+    if (field.isKnnVectorField()) {
+      return field.isAliasField()
+          ? field.getExprType().getOriginalPath().orElseThrow()
+          : field.getRootName();
+    }
+    return null;
+  }
+
+  /**
+   * Whether a top_hits reads a knn_vector field whose indices disagree on whether elements are
+   * bytes, directly or inside an object or nested field, so that its rows must record the index of
+   * their hit (see {@link TopHitsParser#HIT_INDEX_KEY}).
+   *
+   * @param firstOnly whether only the first argument is read
+   */
+  static boolean readsMixedEncodingVector(
+      List<Pair<RexNode, String>> args, AggregateBuilderHelper helper, boolean firstOnly) {
+    return (firstOnly ? args.stream().limit(1) : args.stream())
+        .filter(arg -> arg.getKey() instanceof RexInputRef)
+        .map(arg -> helper.inferNamedField(arg.getKey()))
+        .filter(Objects::nonNull)
+        .anyMatch(
+            field ->
+                isMixedEncodingVector(field.getExprType())
+                    || containsMixedEncodingVector(
+                        field.getRootName(),
+                        helper.indexFieldTypes != null
+                            ? helper.indexFieldTypes
+                            : helper.fieldTypes));
+  }
+
+  private static boolean isMixedEncodingVector(@Nullable ExprType type) {
+    ExprType target = type instanceof OpenSearchAliasType alias ? alias.getOriginalType() : type;
+    return target instanceof VectorFieldType vector && vector.getStoredDataType(null) == null;
+  }
+
+  /** Whether a field below {@code path} in the flattened mapping is such a vector. */
+  private static boolean containsMixedEncodingVector(
+      @Nullable String path, Map<String, ExprType> fieldTypes) {
+    if (path == null) {
+      return false;
+    }
+    String prefix = path + ".";
+    return fieldTypes.entrySet().stream()
+        .anyMatch(e -> e.getKey().startsWith(prefix) && isMixedEncodingVector(e.getValue()));
   }
 
   private static boolean supportsMaxMinAggregation(ExprType fieldType) {
@@ -872,7 +1051,7 @@ public class AggregateAnalyzer {
    * @param sortField the specific sort field, could be null
    * @param sortOrder the specific sort order, could be null
    */
-  private static TopHitsAggregationBuilder createTopHitsBuilder(
+  static TopHitsAggregationBuilder createTopHitsBuilder(
       AggregateCall aggCall,
       List<Pair<RexNode, String>> args,
       String aggName,
@@ -889,15 +1068,42 @@ public class AggregateAnalyzer {
       builder.sort(sortField, sortOrder);
     }
     List<String> sourceSpecific = new ArrayList<>();
+    // knn_vector fields, read from _source: see NamedFieldExpression.isKnnVectorField.
+    List<String> vectorSources = new ArrayList<>();
     List<String> fields = new ArrayList<>();
     List<SearchSourceBuilder.ScriptField> scripts = new ArrayList<>();
+    Map<String, String> scriptNames = scriptFieldNames(args, helper);
     (useSingleColumn ? args.stream().findFirst().stream() : args.stream())
         .forEach(
             rex -> {
               if (rex.getKey() instanceof RexInputRef) {
                 NamedFieldExpression fieldExpression = helper.inferNamedField(rex.getKey());
                 String name = fieldExpression.getRootName();
-                if (fieldExpression.isAliasField()) {
+                if (fieldExpression.isKnnVectorField()) {
+                  if (!fieldExpression.isAliasField()) {
+                    vectorSources.add(name);
+                  } else if (useSingleColumn) {
+                    // The single value is read from _source by the target's path.
+                    vectorSources.add(
+                        fieldExpression.getExprType().getOriginalPath().orElseThrow());
+                  } else if (!fieldExpression
+                      .getExprType()
+                      .getOriginalPath()
+                      .orElseThrow()
+                      .contains(".")) {
+                    // Read from _source under the target's key, as dedupFieldNameMapping maps it.
+                    vectorSources.add(
+                        fieldExpression.getExprType().getOriginalPath().orElseThrow());
+                  } else {
+                    // A dedup row maps a top-level _source key to the alias column (see the
+                    // LITERAL_AGG case); a target inside an object has no such key.
+                    throw new AggregateAnalyzer.AggregateAnalyzerException(
+                        String.format(
+                            "Cannot push down %s of alias field [%s] to a knn_vector field"
+                                + " inside an object",
+                            aggCall.getAggregation(), name));
+                  }
+                } else if (fieldExpression.isAliasField()) {
                   // alias type cannot use fetchSource and must use alias name
                   fields.add(name);
                 } else if (fieldExpression.isStructField()) {
@@ -915,7 +1121,9 @@ public class AggregateAnalyzer {
                 }
               } else if (rex.getKey() instanceof RexCall || rex.getKey() instanceof RexLiteral) {
                 Script script = helper.inferScript(rex.getKey()).getScript();
-                scripts.add(new SearchSourceBuilder.ScriptField(rex.getValue(), script, false));
+                scripts.add(
+                    new SearchSourceBuilder.ScriptField(
+                        scriptNames.get(rex.getValue()), script, false));
                 if (sortNeeded && sortField == null) {
                   ScriptSortBuilder.ScriptSortType sortType =
                       getScriptSortType(rex.getKey().getType());
@@ -929,9 +1137,24 @@ public class AggregateAnalyzer {
               }
             });
     if (useSingleColumn && sourceSpecific.isEmpty()) {
-      // disable _source when use single column in TopHits and no specific source
-      builder.fetchSource(false);
+      if (vectorSources.isEmpty()) {
+        // disable _source when use single column in TopHits and no specific source
+        builder.fetchSource(false);
+      } else {
+        builder.fetchSource(vectorSources.toArray(new String[0]), null);
+      }
+    } else if (!useSingleColumn
+        && !scripts.isEmpty()
+        && (!sourceSpecific.isEmpty()
+            || !vectorSources.isEmpty()
+            || fields.stream().anyMatch(f -> f.contains(".")))) {
+      // With script fields, a hit has no _source unless it is asked for (FetchPhase). The object
+      // and vector fields, and the fields inside objects, are read from it, as the fields API
+      // gives their values otherwise. The whole _source is asked for, as without script fields:
+      // k-NN derived source rebuilds a vector inside an object only for an include of its own path.
+      builder.fetchSource(true);
     }
+    // Otherwise the whole _source is fetched, which holds the vectors as they were indexed.
     fields.stream().distinct().forEach(builder::fetchField);
     if (!scripts.isEmpty()) {
       builder.scriptFields(scripts);

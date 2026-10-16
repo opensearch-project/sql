@@ -29,9 +29,12 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.OpenSearchException;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprTupleValue;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.VectorDataType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchKnnVectorType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.protocol.response.QueryResult;
 
@@ -87,6 +90,43 @@ class JdbcResponseFormatterTest {
             + "[{\"name\":\"Amazon\"},"
             + "{\"name\":\"AWS\"}],"
             + "20]],"
+            + "\"total\":1,"
+            + "\"size\":1,"
+            + "\"status\":200}",
+        formatter.format(response));
+  }
+
+  /** SQL / JDBC clients keep the type name a knn_vector column had before: nested. */
+  @Test
+  void format_response_with_vector_columns() {
+    QueryResult response =
+        new QueryResult(
+            new Schema(
+                ImmutableList.of(
+                    new Column("embedding", "embedding", ExprCoreType.VECTOR),
+                    new Column(
+                        "code",
+                        "code",
+                        OpenSearchKnnVectorType.of(2, VectorDataType.BYTE, "l2", "faiss", "hnsw")),
+                    new Column("employer", "employer", ARRAY))),
+            ImmutableList.of(
+                tupleValue(
+                    ImmutableMap.<String, Object>of(
+                        "embedding",
+                        ImmutableList.of(0.5f, 1.25f),
+                        "code",
+                        ImmutableList.of((byte) -1, (byte) 7),
+                        "employer",
+                        ImmutableList.of("Amazon")))));
+
+    assertJsonEquals(
+        "{"
+            + "\"schema\":["
+            + "{\"name\":\"embedding\",\"alias\":\"embedding\",\"type\":\"nested\"},"
+            + "{\"name\":\"code\",\"alias\":\"code\",\"type\":\"nested\"},"
+            + "{\"name\":\"employer\",\"alias\":\"employer\",\"type\":\"nested\"}"
+            + "],"
+            + "\"datarows\":[[[0.5,1.25],[-1,7],[\"Amazon\"]]],"
             + "\"total\":1,"
             + "\"size\":1,"
             + "\"status\":200}",

@@ -20,6 +20,8 @@ import org.opensearch.sql.common.error.QueryProcessingStage;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.lang.LangSpec;
 
 /** The extension of ExprType in OpenSearch. */
 @EqualsAndHashCode
@@ -50,7 +52,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
     Double("double", ExprCoreType.DOUBLE),
     Boolean("boolean", ExprCoreType.BOOLEAN),
     Alias("alias", ExprCoreType.UNKNOWN),
-    KnnVector("knn_vector", ExprCoreType.ARRAY);
+    KnnVector("knn_vector", ExprCoreType.VECTOR);
     // TODO: ranges, geo shape, point, shape
 
     private final String name;
@@ -173,6 +175,8 @@ public class OpenSearchDataType implements ExprType, Serializable {
         return OpenSearchBinaryType.of();
       case FlatObject:
         return OpenSearchFlatObjectType.of();
+      case KnnVector:
+        return OpenSearchKnnVectorType.of(innerMap);
       case Date:
       case DateNanos:
         // Default date formatter is used when "" is passed as the second parameter
@@ -253,6 +257,29 @@ public class OpenSearchDataType implements ExprType, Serializable {
       return exprCoreType.typeName();
     }
     return mappingType.toString().toUpperCase();
+  }
+
+  /**
+   * The type name {@code describe} reports for a field of this type: in PPL the PPL name of {@link
+   * #getExprType()}, in SQL the {@link #legacyTypeName()}. Upper case; callers lower-case it.
+   *
+   * @param langSpec the language of the {@code describe} request
+   * @param calciteEngine whether the Calcite engine is enabled for the request; types whose name
+   *     differs between the engines (knn_vector) use it
+   */
+  public String describeTypeName(LangSpec langSpec, boolean calciteEngine) {
+    return langSpec.language() == QueryType.PPL
+        ? langSpec.typeName(getExprType())
+        : legacyTypeName();
+  }
+
+  /**
+   * The type an alias field to a field of this type delegates its names, parent, compatibility and
+   * cast decisions to. This type itself by default; a type whose V2-facing behaviour differs from
+   * what an alias to it reported before (knn_vector) returns that earlier type.
+   */
+  public OpenSearchDataType asAliasTarget() {
+    return this;
   }
 
   /**

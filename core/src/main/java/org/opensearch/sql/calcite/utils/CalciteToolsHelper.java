@@ -29,14 +29,18 @@ package org.opensearch.sql.calcite.utils;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.Instant;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
@@ -99,6 +103,8 @@ import org.apache.calcite.tools.RelBuilderFactory;
 import org.apache.calcite.tools.RelRunner;
 import org.apache.calcite.util.Holder;
 import org.apache.calcite.util.Util;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.plan.Scannable;
@@ -107,6 +113,7 @@ import org.opensearch.sql.calcite.plan.rule.PPLSimplifyDedupRule;
 import org.opensearch.sql.calcite.profile.PlanProfileBuilder;
 import org.opensearch.sql.common.error.ErrorCode;
 import org.opensearch.sql.common.error.ErrorReport;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.monitor.profile.MetricName;
 import org.opensearch.sql.monitor.profile.ProfileContext;
@@ -461,6 +468,8 @@ public class CalciteToolsHelper {
   }
 
   public static class OpenSearchRelRunners {
+    private static final Logger LOG = LogManager.getLogger(OpenSearchRelRunners.class);
+
     // Duplicated in the response layer, since neither module depends on the other.
     private static final String PLAN_PREPARATION_PREFIX = "Error while preparing plan [";
 
@@ -488,6 +497,31 @@ public class CalciteToolsHelper {
         rc = rootCauseMessage(e.getSuppressed()[i]);
       }
       return rc != null ? rc : e.getMessage();
+    }
+
+    /**
+     * The first {@link SemanticCheckException} among the causes and suppressed exceptions of {@code
+     * e}; Calcite records an implementor's exception as suppressed by its own.
+     */
+    @VisibleForTesting
+    static @Nullable SemanticCheckException findSemanticError(Throwable e) {
+      return findSemanticError(e, Collections.newSetFromMap(new IdentityHashMap<>()));
+    }
+
+    private static @Nullable SemanticCheckException findSemanticError(
+        @Nullable Throwable e, Set<Throwable> visited) {
+      // A cause or suppressed chain may loop back on itself.
+      if (e == null || !visited.add(e)) {
+        return null;
+      }
+      if (e instanceof SemanticCheckException semantic) {
+        return semantic;
+      }
+      SemanticCheckException found = findSemanticError(e.getCause(), visited);
+      for (int i = 0; found == null && i < e.getSuppressed().length; i++) {
+        found = findSemanticError(e.getSuppressed()[i], visited);
+      }
+      return found;
     }
 
     private static void enrichErrorsForSpecialCases(ErrorReport.Builder report, SQLException e) {
@@ -546,6 +580,15 @@ public class CalciteToolsHelper {
           final RelRunner runner = connection.unwrap(RelRunner.class);
           return runner.prepareStatement(rel);
         } catch (SQLException e) {
+          // A user error raised while implementing the plan, such as KNN_SCORE that only runs
+          // when pushed down, is reported as itself (HTTP 400) rather than as a planning failure.
+          SemanticCheckException userError = findSemanticError(e);
+          if (userError != null) {
+            LOG.debug("User error while preparing the query plan", e);
+            throw ErrorReport.wrap(userError)
+                .location("while compiling the optimized query plan for physical execution")
+                .build();
+          }
           // Detect if error is due to window functions in unsupported context (bins on time fields)
           ErrorReport.Builder report =
               ErrorReport.wrap(e)

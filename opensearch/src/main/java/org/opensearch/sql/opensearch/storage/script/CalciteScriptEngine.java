@@ -78,9 +78,12 @@ import org.opensearch.script.ScriptContext;
 import org.opensearch.script.ScriptEngine;
 import org.opensearch.script.StringSortScript;
 import org.opensearch.search.lookup.SourceLookup;
+import org.opensearch.sql.calcite.type.ExprVectorType;
 import org.opensearch.sql.calcite.utils.CalciteClassLoaderHelper;
+import org.opensearch.sql.calcite.utils.VectorErrors;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprTimestampValue;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.opensearch.data.value.FlatObjectValues;
 import org.opensearch.sql.opensearch.storage.script.aggregation.CalciteAggregationScriptFactory;
 import org.opensearch.sql.opensearch.storage.script.field.CalciteFieldScriptFactory;
@@ -224,8 +227,14 @@ public class CalciteScriptEngine implements ScriptEngine {
           case DOC_VALUE -> getFromDocValue((String) digests.get(index));
           case SOURCE -> getFromSource((String) digests.get(index));
           case FLAT_OBJECT_SOURCE -> getFlatObjectFromSource((String) digests.get(index));
+          case FLOAT_VECTOR_SOURCE -> getVectorFromSource((String) digests.get(index), false);
+          case BYTE_VECTOR_SOURCE -> getVectorFromSource((String) digests.get(index), true);
+          case MIXED_VECTOR_SOURCE -> getMixedVectorFromSource((String) digests.get(index));
           case LITERAL -> digests.get(index);
         };
+      } catch (SemanticCheckException e) {
+        // A value that cannot be read, e.g. an undecodable vector: its message says why.
+        throw e;
       } catch (Exception e) {
         throw new IllegalStateException("Failed to get value for parameter " + name);
       }
@@ -256,6 +265,38 @@ public class CalciteScriptEngine implements ScriptEngine {
       return FlatObjectValues.flattenToText(this.sourceLookup.extractValue(name, null));
     }
 
+    /**
+     * A knn_vector as the engine presents it: {@code List<Float>} or {@code List<Byte>}, the Java
+     * values of its {@code ARRAY<REAL>} / {@code ARRAY<TINYINT>} type. _source holds the vector as
+     * it was indexed: JSON numbers, which parse as Double or Integer and are converted to the
+     * element type, or a base64 string or a single number, which are decoded.
+     */
+    public Object getVectorFromSource(String name, boolean byteElements) {
+      return vectorFromSource(this.sourceLookup.extractValue(name, null), byteElements);
+    }
+
+    /**
+     * A knn_vector whose indices disagree on whether elements are bytes, read with Float elements,
+     * the merged data type's. A base64 value cannot be decoded here, since the script does not know
+     * which index the document is of: it fails rather than give wrong numbers.
+     */
+    public Object getMixedVectorFromSource(String name) {
+      Object value = this.sourceLookup.extractValue(name, null);
+      if (value instanceof String) {
+        throw VectorErrors.undecodableVector(name, null);
+      }
+      return vectorFromSource(value, false);
+    }
+
+    /**
+     * Convert a vector value read from _source to its runtime representation, as {@link
+     * ExprVectorType#toRuntimeValue(Object, boolean)} does for the scan: an array of numbers is
+     * converted, a base64 string and a single number are decoded, and anything else is null.
+     */
+    static @Nullable List<?> vectorFromSource(@Nullable Object value, boolean byteElements) {
+      return ExprVectorType.toRuntimeValue(value, byteElements);
+    }
+
     public Object getFromSource(String name) {
       // Resolve the field through the source path, not a flat map lookup: object subfields are
       // addressed as dotted paths (e.g. "log.user_agent") while _source stores them nested.
@@ -271,7 +312,16 @@ public class CalciteScriptEngine implements ScriptEngine {
     SOURCE(1),
     LITERAL(2),
     /** _source, flattened the way the engine presents a flat_object. */
-    FLAT_OBJECT_SOURCE(3);
+    FLAT_OBJECT_SOURCE(3),
+    /** _source, a knn_vector with float elements (data_type float or half_float). */
+    FLOAT_VECTOR_SOURCE(4),
+    /** _source, a knn_vector with byte elements (data_type byte or binary). */
+    BYTE_VECTOR_SOURCE(5),
+    /**
+     * _source, a knn_vector whose indices map it with float and byte data types, read with float
+     * elements; a base64 value fails, as its encoding depends on the document's index.
+     */
+    MIXED_VECTOR_SOURCE(6);
 
     private final int value;
 

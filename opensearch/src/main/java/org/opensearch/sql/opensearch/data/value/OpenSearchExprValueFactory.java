@@ -58,10 +58,12 @@ import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.data.type.VectorFieldType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchFlatObjectType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchKnnVectorType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.utils.Content;
 import org.opensearch.sql.opensearch.data.utils.ObjectContent;
@@ -97,6 +99,18 @@ public class OpenSearchExprValueFactory {
             this.typeMapping.put(groupKey, extendedType);
           }
         });
+  }
+
+  /**
+   * Set the types of output columns that do not read the index field of their name: a column that
+   * reads another field under this name, or a computed one. Unlike {@link #extendTypeMapping},
+   * which keeps the type of the index field of the name when the core types agree, this replaces
+   * it, date formats included, so each column reads with the type of what it reads.
+   *
+   * @param columnTypes the types, by column name
+   */
+  public void putColumnTypes(Map<String, OpenSearchDataType> columnTypes) {
+    this.typeMapping.putAll(columnTypes);
   }
 
   @Getter @Setter private OpenSearchAggregationResponseParser parser;
@@ -152,7 +166,22 @@ public class OpenSearchExprValueFactory {
       Map<String, OpenSearchDataType> typeMapping, boolean fieldTypeTolerance) {
     this.typeMapping = OpenSearchDataType.traverseAndFlatten(typeMapping);
     this.fieldTypeTolerance = fieldTypeTolerance;
+    this.mixedEncodingVectorPaths =
+        this.typeMapping.entrySet().stream()
+            .filter(
+                e ->
+                    e.getValue() instanceof OpenSearchKnnVectorType vector
+                        && vector.getStoredDataType(null) == null)
+            .map(e -> List.of(e.getKey().split("\\.")))
+            .toList();
   }
+
+  /**
+   * The paths of the knn_vector fields whose indices disagree on whether elements are bytes. A
+   * base64 value of such a field is decoded with the data type of the index of its hit, which is
+   * recorded on it by {@link #recordHitIndex}.
+   */
+  private final List<List<String>> mixedEncodingVectorPaths;
 
   /**
    *
@@ -181,6 +210,37 @@ public class OpenSearchExprValueFactory {
   }
 
   /**
+   * Record the index of a search hit on the base64 vectors of its {@code _source} value whose
+   * decoding depends on it: those of knn_vector fields whose indices disagree on whether elements
+   * are bytes. Other values are left as they are.
+   *
+   * @param source the value {@link #construct(String, boolean)} gave for the hit's {@code _source}
+   * @param index the index of the hit, named as in the index mappings
+   */
+  public void recordHitIndex(ExprValue source, String index) {
+    for (List<String> path : mixedEncodingVectorPaths) {
+      recordIndex(source, path, index);
+    }
+  }
+
+  /** Record {@code index} on the encoded vectors at {@code path}, through objects and arrays. */
+  private static void recordIndex(ExprValue value, List<String> path, String index) {
+    if (value instanceof OpenSearchExprEncodedVectorValue encoded) {
+      if (path.isEmpty()) {
+        encoded.setIndex(index);
+      }
+    } else if (value instanceof ExprCollectionValue collection && !path.isEmpty()) {
+      // A nested field, an array of objects; at the end of the path it is the vector itself.
+      collection.collectionValue().forEach(element -> recordIndex(element, path, index));
+    } else if (value instanceof ExprTupleValue tuple && !path.isEmpty()) {
+      ExprValue child = tuple.tupleValue().get(path.getFirst());
+      if (child != null) {
+        recordIndex(child, path.subList(1, path.size()), index);
+      }
+    }
+  }
+
+  /**
    * Construct ExprValue from field and its value object. Throw exception if trying to construct
    * from field of unsupported type.<br>
    * Todo, add IP, GeoPoint support after we have function implementation around it.
@@ -191,6 +251,18 @@ public class OpenSearchExprValueFactory {
    */
   public ExprValue construct(String field, Object value, boolean supportArrays) {
     return parse(new ObjectContent(value), field, type(field), supportArrays);
+  }
+
+  /**
+   * Construct the value of a field of a document from map content, as {@link #construct(String,
+   * boolean)} constructs it from a search hit: a field of several values gives them all only with
+   * field type tolerance, else its first.
+   *
+   * @param field the field name
+   * @param value the value as the document's {@code _source} has it
+   */
+  public ExprValue constructDocumentValue(String field, Object value) {
+    return parse(new ObjectContent(value), field, type(field), fieldTypeTolerance);
   }
 
   private ExprValue parse(
@@ -223,6 +295,18 @@ public class OpenSearchExprValueFactory {
       // flat_object and folds its elements into the same terms, so flatten handles it rather than
       // parseArray, which would leave the elements unflattened.
       return FlatObjectValues.flatten(content);
+    } else if (isVectorType(type)) {
+      if (!content.isArray() && (content.isString() || content.isNumber())) {
+        // A base64 string or a single number. From a hit it reads as the empty array it read as
+        // when knn_vector mapped to ARRAY; Calcite decodes it. The map content of an aggregation
+        // response, e.g. the _source of a top_hits hit, used to fail here with a
+        // ClassCastException in parseArray and now reads the same way.
+        return new OpenSearchExprEncodedVectorValue(
+            content.isString() ? content.stringValue() : content.doubleValue());
+      }
+      // A knn_vector is parsed exactly as it was when it mapped to ARRAY, so SQL and the V2
+      // engine return the same values; the Calcite scan converts the elements to its row type.
+      return parseArray(content, field, type, supportArrays);
     } else if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Nested))
         || content.isArray()) {
       return parseArray(content, field, type, supportArrays);
@@ -250,6 +334,13 @@ public class OpenSearchExprValueFactory {
           String.format(
               "Unsupported type: %s for value: %s.", type.typeName(), content.objectValue()));
     }
+  }
+
+  /** A knn_vector field type, or the bare vector core type. */
+  private static boolean isVectorType(ExprType type) {
+    return VectorFieldType.isVector(type)
+        || (type instanceof OpenSearchDataType openSearchType
+            && openSearchType.getExprCoreType() == ExprCoreType.VECTOR);
   }
 
   /**
@@ -528,6 +619,7 @@ public class OpenSearchExprValueFactory {
       // non-object type arrays are only supported when parsing inner_hits of OS response.
     } else if (!(type instanceof OpenSearchDataType
             && ((OpenSearchDataType) type).getExprType().equals(ARRAY))
+        && !isVectorType(type)
         && !supportArrays) {
       return parseInnerArrayValue(content.array().next(), prefix, type, supportArrays);
     } else {

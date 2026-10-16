@@ -7,9 +7,11 @@ package org.opensearch.sql.opensearch.storage.scan;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import lombok.Getter;
@@ -34,7 +36,11 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.commons.lang3.tuple.Pair;
@@ -45,6 +51,7 @@ import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.calcite.plan.HighlightPushDown;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLHintUtils;
+import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -296,11 +303,13 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
       // For aggregate, we do nothing on query builder but only change the schema of the scan.
       action = (OSRequestBuilderAction) requestBuilder -> {};
     } else {
+      List<String> includes =
+          withVectorPaths(newSchema.getFieldNames(), osIndex.getKnnVectorFields());
       action =
           (OSRequestBuilderAction)
               requestBuilder ->
                   requestBuilder.pushDownProjectStream(
-                      newSchema.getFieldNames().stream()
+                      includes.stream()
                           .filter(f -> !HighlightExpression.HIGHLIGHT_FIELD.equals(f)));
     }
     newScan.pushDownContext.add(
@@ -308,6 +317,70 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
         new ProjectDigest(newSchema.getFieldNames(), selectedColumns),
         action);
     return newScan;
+  }
+
+  /**
+   * The {@code _source} includes of a projection: the projected paths, and the path of each
+   * knn_vector field inside a projected object or nested field. On an index with k-NN derived
+   * source, the k-NN plugin injects a vector only if an include pattern matches the vector's own
+   * path, so {@code includes=["obj"]} would return {@code obj.vec} as the placeholder stored in its
+   * place.
+   */
+  static List<String> withVectorPaths(List<String> projected, Set<String> knnVectorFields) {
+    List<String> includes = new ArrayList<>(projected);
+    for (String path : projected) {
+      String prefix = path + ".";
+      knnVectorFields.stream()
+          .filter(field -> field.startsWith(prefix) && !includes.contains(field))
+          .sorted()
+          .forEach(includes::add);
+    }
+    return includes;
+  }
+
+  /**
+   * The types of a dedup's output columns that do not read the index field of their name: a dedup
+   * row is read by column name, so without them a column would be read with the type of the index
+   * field of its name, or untyped. A column that reads a field under another name, e.g. {@code n}
+   * in {@code eval n = k} or {@code t2} in {@code rename ts as t2}, takes the type of the field it
+   * reads, date formats included; a script column named like an index field, e.g. {@code k} in
+   * {@code rename k as j | eval k = 1}, takes its own. A group key is left out: its value is the
+   * bucket key, e.g. epoch milliseconds for a date, which the type of the field it reads may not
+   * parse.
+   */
+  private Map<String, OpenSearchDataType> dedupColumnTypes(
+      Aggregate aggregate, @Nullable Project project) {
+    if (project == null
+        || aggregate.getAggCallList().stream()
+            .noneMatch(call -> PlanUtils.getObjectFromLiteralAgg(call) != null)) {
+      return Map.of();
+    }
+    Map<String, OpenSearchDataType> indexFields =
+        OpenSearchDataType.traverseAndFlatten(osIndex.getFieldOpenSearchTypes());
+    List<String> inputFields = project.getInput().getRowType().getFieldNames();
+    var columns = project.getNamedProjects();
+    Map<String, OpenSearchDataType> types = new HashMap<>();
+    for (int i = 0; i < columns.size(); i++) {
+      if (aggregate.getGroupSet().get(i)) {
+        continue;
+      }
+      RexNode expr = columns.get(i).getKey();
+      String column = columns.get(i).getValue();
+      if (expr instanceof RexInputRef ref) {
+        String field = inputFields.get(ref.getIndex());
+        if (!field.equals(column) && indexFields.containsKey(field)) {
+          types.put(column, indexFields.get(field));
+        }
+      } else if ((expr instanceof RexCall || expr instanceof RexLiteral)
+          && !expr.isA(SqlKind.ROW_NUMBER)
+          && indexFields.containsKey(column)) {
+        types.put(
+            column,
+            OpenSearchDataType.of(
+                OpenSearchTypeFactory.convertRelDataTypeToExprType(expr.getType())));
+      }
+    }
+    return types;
   }
 
   private RelTraitSet reIndexCollations(List<Integer> selectedColumns) {
@@ -403,7 +476,8 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
       boolean bucketNullable = !PPLHintUtils.ignoreNullBucket(aggregate);
       AggregateAnalyzer.AggregateBuilderHelper helper =
           new AggregateAnalyzer.AggregateBuilderHelper(
-              getRowType(), fieldTypes, getCluster(), bucketNullable, queryBucketSize);
+                  getRowType(), fieldTypes, getCluster(), bucketNullable, queryBucketSize)
+              .withIndexFieldTypes(osIndex.getAllFieldTypes());
       final Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> builderAndParser =
           AggregateAnalyzer.analyze(aggregate, project, outputFields, helper);
       Map<String, OpenSearchDataType> extendedTypeMapping =
@@ -415,7 +489,12 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
                           OpenSearchDataType.of(
                               OpenSearchTypeFactory.convertRelDataTypeToExprType(
                                   field.getType()))));
-      AggSpec aggSpec = AggSpec.create(extendedTypeMapping, bucketNames, builderAndParser);
+      AggSpec aggSpec =
+          AggSpec.create(
+              extendedTypeMapping,
+              dedupColumnTypes(aggregate, project),
+              bucketNames,
+              builderAndParser);
       // AggPushDownAction is lazily materialized by AggSpec.buildAction() and then this action
       // will materialize agg request builder.
       // The AGGREGATION pushdown operation in PushDownContext remains a no-op marker here.

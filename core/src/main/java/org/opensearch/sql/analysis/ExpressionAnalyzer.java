@@ -23,6 +23,7 @@ import lombok.Getter;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.KnnStep;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.And;
@@ -55,6 +56,7 @@ import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.ast.expression.subquery.ExistsSubquery;
 import org.opensearch.sql.ast.expression.subquery.InSubquery;
 import org.opensearch.sql.ast.expression.subquery.ScalarSubquery;
+import org.opensearch.sql.calcite.knn.KnnErrors;
 import org.opensearch.sql.calcite.utils.CalciteUtils;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -193,6 +195,9 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
 
   @Override
   public Expression visitFunction(Function node, AnalysisContext context) {
+    if (KnnStep.NAME.equalsIgnoreCase(node.getFuncName())) {
+      throw KnnErrors.calciteEngineRequired();
+    }
     FunctionName functionName = FunctionName.of(node.getFuncName());
     validateCalciteOnlyFunction(functionName);
     List<Expression> arguments =

@@ -27,6 +27,7 @@ import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.HighlightConfig;
+import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelBuilder;
 import org.opensearch.sql.common.setting.Settings;
@@ -95,6 +96,32 @@ public class CalcitePlanContext {
    * excluded.
    */
   @Getter @Setter private boolean includeMetadata = false;
+
+  /**
+   * Whether the query branch being lowered contains a k-NN step. Its {@code _score} is then the
+   * k-NN score, a regular column: visible by default and not stripped at join inputs or subsearch
+   * boundaries (see {@link #isHiddenMetadataField}). A branch is a whole statement, one input of a
+   * join, lookup, append, multisearch or union, or a subsearch; {@code
+   * CalciteRelNodeVisitor.analyzeBranch} scopes the flag to it.
+   */
+  @Getter @Setter private boolean knnBranch = false;
+
+  /**
+   * Whether the rows of the query branch being lowered end up in a result with a k-NN score: the
+   * branch has a k-NN step, or its rows are combined with those of an input that has one (an input
+   * of a join, lookup, append, appendcol, appendpipe, multisearch or union). Such a branch must not
+   * get a column that Calcite named after a second {@code _score}, such as {@code _score0}; {@code
+   * CalciteRelNodeVisitor.analyzeBranch} scopes the flag to the branch.
+   */
+  @Getter @Setter private boolean knnResultBranch = false;
+
+  /**
+   * The command that combines the rows of the branch being lowered, an input without a k-NN step,
+   * with those of a k-NN input, or null if it is no such input. The metadata strip at the input's
+   * boundary then refuses a {@code _score} the query made, naming the command, before it drops the
+   * scan's as for any input; {@code CalciteRelNodeVisitor.analyzeBranch} scopes it to the branch.
+   */
+  @Getter @Setter private @Nullable String combinedWithKnnBy = null;
 
   private final Stack<RexCorrelVariable> correlVar = new Stack<>();
   private final Stack<List<RexNode>> windowPartitions = new Stack<>();
@@ -166,6 +193,9 @@ public class CalcitePlanContext {
     this.functionProperties = parent.functionProperties;
     this.highlightConfig = parent.highlightConfig;
     this.includeMetadata = parent.includeMetadata; // Preserve parent's metadata setting
+    this.knnBranch = parent.knnBranch;
+    this.knnResultBranch = parent.knnResultBranch;
+    this.combinedWithKnnBy = parent.combinedWithKnnBy;
     this.rexLambdaRefMap = new HashMap<>(); // New map for lambda variables
     this.capturedVariables = new ArrayList<>(); // New list for captured variables
     this.inLambdaContext = true; // Mark that we're inside a lambda
@@ -175,6 +205,18 @@ public class CalcitePlanContext {
     this.foreachIdentifierBindings = new HashMap<>(parent.foreachIdentifierBindings);
     this.foreachIdentifierBindings.putAll(parent.stagedForeachIdentifierBindings);
     this.foreachComputedBindings = new HashMap<>(parent.foreachComputedBindings);
+  }
+
+  /**
+   * Whether a column is a metadata column that PPL hides unless named, and strips at join inputs
+   * and subsearches. In a branch with a k-NN step ({@link #isKnnBranch()}) {@code _score} is the
+   * k-NN score, a regular column, so it is not; other metadata columns are.
+   *
+   * @param fieldName a column name
+   */
+  public boolean isHiddenMetadataField(String fieldName) {
+    return OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(fieldName)
+        && !(knnBranch && OpenSearchConstants.METADATA_FIELD_SCORE.equals(fieldName));
   }
 
   public RexNode resolveJoinCondition(

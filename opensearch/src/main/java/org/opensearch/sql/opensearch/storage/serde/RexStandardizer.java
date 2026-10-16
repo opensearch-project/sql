@@ -39,6 +39,7 @@ import org.apache.calcite.util.Pair;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.data.type.VectorFieldType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchFlatObjectType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
@@ -111,6 +112,8 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
     String docFieldName =
         exprType == ExprCoreType.STRUCT
                 || exprType == ExprCoreType.ARRAY
+                // knn_vector doc values hold the k-NN plugin's binary encoding, not the elements.
+                || VectorFieldType.isVector(exprType)
                 // A binary field has no doc values, so it has to be read from _source too, and
                 // neither does a flat_object: each leaf is one folded path=value term.
                 || exprType instanceof OpenSearchBinaryType
@@ -123,14 +126,31 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
       helper.sources.add(Source.DOC_VALUE.getValue());
     } else {
       helper.digests.add(field.getName());
-      // A flat_object has no doc values -- each leaf is one folded path=value term -- so it is read
-      // from _source, and has to be flattened on the way in, as the engine's own read does.
-      helper.sources.add(
-          exprType instanceof OpenSearchFlatObjectType
-              ? Source.FLAT_OBJECT_SOURCE.getValue()
-              : Source.SOURCE.getValue());
+      helper.sources.add(sourceKind(exprType).getValue());
     }
     return new RexDynamicParam(widenType(field.getType(), helper.stack.peek()), newIndex);
+  }
+
+  /** How a field without usable doc values is read from _source. */
+  private static Source sourceKind(ExprType exprType) {
+    // A flat_object has no doc values -- each leaf is one folded path=value term -- so it is read
+    // from _source, and has to be flattened on the way in, as the engine's own read does.
+    if (exprType instanceof OpenSearchFlatObjectType) {
+      return Source.FLAT_OBJECT_SOURCE;
+    }
+    // A vector's _source elements are JSON numbers; the script needs Float or Byte elements.
+    if (VectorFieldType.isVector(exprType)) {
+      if (!(exprType.getOriginalExprType() instanceof VectorFieldType vector)) {
+        return Source.FLOAT_VECTOR_SOURCE;
+      }
+      if (vector.getStoredDataType(null) == null) {
+        return Source.MIXED_VECTOR_SOURCE;
+      }
+      return vector.getDataType().hasByteElements()
+          ? Source.BYTE_VECTOR_SOURCE
+          : Source.FLOAT_VECTOR_SOURCE;
+    }
+    return Source.SOURCE;
   }
 
   @Override

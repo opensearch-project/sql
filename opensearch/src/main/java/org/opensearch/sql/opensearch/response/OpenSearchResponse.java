@@ -39,6 +39,7 @@ import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
+import org.opensearch.transport.RemoteClusterAware;
 
 /** OpenSearch search response. */
 @EqualsAndHashCode
@@ -194,12 +195,13 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
    */
   private void addParsedHitsToBuilder(
       ImmutableMap.Builder<String, ExprValue> builder, SearchHit hit) {
-    builder.putAll(
-        exprValueFactory
-            .construct(
-                hit.getSourceAsString(),
-                !(hit.getInnerHits() == null || hit.getInnerHits().isEmpty()))
-            .tupleValue());
+    ExprValue source =
+        exprValueFactory.construct(
+            hit.getSourceAsString(), !(hit.getInnerHits() == null || hit.getInnerHits().isEmpty()));
+    // Named as the index mappings are, a remote index with its cluster alias.
+    exprValueFactory.recordHitIndex(
+        source, RemoteClusterAware.buildRemoteIndexName(hit.getClusterAlias(), hit.getIndex()));
+    builder.putAll(source.tupleValue());
   }
 
   /**
@@ -273,6 +275,8 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
         isCountAgg
             ? exprValueFactory.getParser().parse(hits)
             : exprValueFactory.getParser().parse(aggregations);
+    // The rows of a dedup hold documents' values, read as a search hit's are.
+    boolean documents = exprValueFactory.getParser().readsDocuments();
     return res.stream()
         .map(
             entry -> {
@@ -280,7 +284,9 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
               for (Map.Entry<String, Object> value : entry.entrySet()) {
                 builder.put(
                     value.getKey(),
-                    exprValueFactory.construct(value.getKey(), value.getValue(), true));
+                    documents
+                        ? exprValueFactory.constructDocumentValue(value.getKey(), value.getValue())
+                        : exprValueFactory.construct(value.getKey(), value.getValue(), true));
               }
               return (ExprValue) ExprTupleValue.fromExprValueMap(builder.build());
             })

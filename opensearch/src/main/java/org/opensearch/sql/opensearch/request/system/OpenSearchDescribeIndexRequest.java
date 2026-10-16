@@ -17,10 +17,10 @@ import java.util.Map;
 import lombok.extern.log4j.Log4j2;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.lang.LangSpec;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchKnnVectorType;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.util.MergeRules.MergeRuleHelper;
@@ -45,6 +45,9 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
 
   private final LangSpec langSpec;
 
+  /** Whether the Calcite engine is enabled, which decides the type name of some field types. */
+  private final boolean calciteEngine;
+
   public OpenSearchDescribeIndexRequest(OpenSearchClient client, String indexName) {
     this(client, new OpenSearchRequest.IndexName(indexName));
   }
@@ -61,9 +64,27 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
 
   public OpenSearchDescribeIndexRequest(
       OpenSearchClient client, OpenSearchRequest.IndexName indexName, LangSpec langSpec) {
+    this(client, indexName, langSpec, false);
+  }
+
+  /**
+   * @param calciteEngine whether the Calcite engine is enabled; PPL names a knn_vector field {@code
+   *     vector} only then
+   */
+  public OpenSearchDescribeIndexRequest(
+      OpenSearchClient client, String indexName, LangSpec langSpec, boolean calciteEngine) {
+    this(client, new OpenSearchRequest.IndexName(indexName), langSpec, calciteEngine);
+  }
+
+  public OpenSearchDescribeIndexRequest(
+      OpenSearchClient client,
+      OpenSearchRequest.IndexName indexName,
+      LangSpec langSpec,
+      boolean calciteEngine) {
     this.client = client;
     this.indexName = indexName;
     this.langSpec = langSpec;
+    this.calciteEngine = calciteEngine;
   }
 
   /**
@@ -81,10 +102,7 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
       results.add(
           row(
               entry.getKey(),
-              (langSpec.language() == QueryType.PPL
-                      ? langSpec.typeName(entry.getValue().getExprType())
-                      : entry.getValue().legacyTypeName())
-                  .toLowerCase(Locale.ROOT),
+              entry.getValue().describeTypeName(langSpec, calciteEngine).toLowerCase(Locale.ROOT),
               pos++,
               clusterName(meta)));
     }
@@ -107,11 +125,26 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
     } else {
       // Merge deep copies: MergeRuleHelper mutates the field mappings in place, and a fetched
       // mapping must not be altered by being merged.
-      for (IndexMapping indexMapping : indexMappings.values()) {
-        MergeRuleHelper.merge(fieldTypes, deepCopy(indexMapping.getFieldMappings()));
+      for (Map.Entry<String, IndexMapping> indexMapping : indexMappings.entrySet()) {
+        Map<String, OpenSearchDataType> copy = deepCopy(indexMapping.getValue().getFieldMappings());
+        inIndex(copy, indexMapping.getKey());
+        MergeRuleHelper.merge(fieldTypes, copy);
       }
     }
     return fieldTypes;
+  }
+
+  /**
+   * Record the index on each knn_vector type of a copied mapping, so that the merged type keeps
+   * every index's own vector mapping (see {@link OpenSearchKnnVectorType#inIndex}).
+   */
+  private static void inIndex(Map<String, OpenSearchDataType> mappings, String index) {
+    for (Map.Entry<String, OpenSearchDataType> entry : mappings.entrySet()) {
+      if (entry.getValue() instanceof OpenSearchKnnVectorType vector) {
+        entry.setValue(vector.inIndex(index));
+      }
+      inIndex(entry.getValue().getProperties(), index);
+    }
   }
 
   /** Copy a field-mapping map so an in-place merge cannot mutate the source types. */

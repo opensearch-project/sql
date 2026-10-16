@@ -45,6 +45,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -90,6 +91,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.EmptySourcePropagateVisitor;
+import org.opensearch.sql.ast.KnnStep;
+import org.opensearch.sql.ast.KnnStep.ResolvedK;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AggregateFunction;
@@ -138,6 +141,7 @@ import org.opensearch.sql.ast.tree.GraphLookup.Direction;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
+import org.opensearch.sql.ast.tree.Knn;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Lookup.OutputStrategy;
@@ -173,6 +177,12 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.ast.tree.Xyseries;
+import org.opensearch.sql.calcite.knn.KnnArguments;
+import org.opensearch.sql.calcite.knn.KnnAst;
+import org.opensearch.sql.calcite.knn.KnnErrors;
+import org.opensearch.sql.calcite.knn.KnnLimitResolver;
+import org.opensearch.sql.calcite.knn.KnnPlanBuilder;
+import org.opensearch.sql.calcite.knn.KnnPlanBuilder.KnnRequest;
 import org.opensearch.sql.calcite.plan.AbstractOpenSearchTable;
 import org.opensearch.sql.calcite.plan.AliasFieldsWrappable;
 import org.opensearch.sql.calcite.plan.HighlightPushDown;
@@ -187,6 +197,7 @@ import org.opensearch.sql.calcite.utils.PPLHintUtils;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.TimewrapUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.calcite.utils.VectorErrors;
 import org.opensearch.sql.calcite.utils.WildcardUtils;
 import org.opensearch.sql.common.error.ErrorCode;
 import org.opensearch.sql.common.error.ErrorReport;
@@ -239,9 +250,286 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return unresolved.accept(this, context);
   }
 
+  /**
+   * Lower the plan of a whole query statement. This is the entry point for a statement; {@link
+   * #analyze} is also used for parts of one. It first runs the statement-level AST pass {@link
+   * KnnLimitResolver}, which fixes k for every k-NN step, so that the recursive {@code analyze}
+   * calls on sub-plans do not run it again.
+   *
+   * @param statement the plan of a query statement
+   * @param context the planning context, also used as the statement's main query branch
+   * @return the logical plan
+   */
+  public RelNode analyzeStatement(UnresolvedPlan statement, CalcitePlanContext context) {
+    KnnLimitResolver.resolve(statement);
+    context.setKnnBranch(false);
+    context.setKnnResultBranch(KnnAst.producesKnnScore(statement));
+    RelNode plan = analyze(statement, context);
+    requireKnnScoreKept(statement, context);
+    // A step that was not lowered, e.g. in a subsearch with an empty source, still has its error.
+    for (KnnStep step : KnnAst.steps(statement)) {
+      if (step.getUnresolvedK() != null) {
+        throw step.getUnresolvedK();
+      }
+    }
+    return plan;
+  }
+
+  /**
+   * Lower {@code plan} as a separate query branch whose rows do not become rows of the current
+   * branch, such as a subsearch in an expression. The branch starts without a k-NN step of its own
+   * ({@link CalcitePlanContext#isKnnBranch()}), and the current branch's flags are restored
+   * afterwards.
+   *
+   * @return whether the branch contains a k-NN step, so its output has the k-NN {@code _score}
+   */
+  public boolean analyzeBranch(UnresolvedPlan plan, CalcitePlanContext context) {
+    return analyzeBranch(plan, context, false, null, () -> {});
+  }
+
+  /**
+   * {@link #analyzeBranch(UnresolvedPlan, CalcitePlanContext)} for an input whose rows a command
+   * combines with the current branch's (join, lookup, append, appendcol, appendpipe, multisearch,
+   * union): when the current branch's result has a k-NN score, so has the input's ({@link
+   * CalcitePlanContext#isKnnResultBranch()}).
+   *
+   * @param command the combining command
+   * @param otherInputHasKnn whether another input of the command has a k-NN step ({@link
+   *     CalcitePlanContext#getCombinedWithKnnBy()})
+   */
+  private boolean analyzeCombinedInput(
+      UnresolvedPlan plan, CalcitePlanContext context, String command, boolean otherInputHasKnn) {
+    return analyzeBranch(plan, context, true, otherInputHasKnn ? command : null, () -> {});
+  }
+
+  /**
+   * Lower {@code plan} as a branch, then run {@code inBranch} while the branch's own flags are
+   * still in effect, e.g. to strip its metadata columns.
+   *
+   * @param combined whether the branch's rows are combined with the current branch's
+   * @param knnCombiner the command combining this input with another one that has a k-NN step, or
+   *     null if no other input has one
+   */
+  private boolean analyzeBranch(
+      UnresolvedPlan plan,
+      CalcitePlanContext context,
+      boolean combined,
+      @Nullable String knnCombiner,
+      Runnable inBranch) {
+    boolean outer = context.isKnnBranch();
+    boolean outerResult = context.isKnnResultBranch();
+    String outerCombiner = context.getCombinedWithKnnBy();
+    boolean knn = KnnAst.producesKnnScore(plan);
+    context.setKnnBranch(false);
+    context.setKnnResultBranch((combined && outerResult) || knn);
+    context.setCombinedWithKnnBy(combined && !knn ? knnCombiner : null);
+    try {
+      plan.accept(this, context);
+      requireKnnScoreKept(plan, context);
+      inBranch.run();
+      return context.isKnnBranch();
+    } finally {
+      context.setKnnBranch(outer);
+      context.setKnnResultBranch(outerResult);
+      context.setCombinedWithKnnBy(outerCombiner);
+    }
+  }
+
+  /**
+   * Lower the inputs of a join as branches. When one of them has a k-NN step, the scan's hidden
+   * {@code _score} of every other input is dropped, so that the join's {@code _score} is always the
+   * k-NN score; the join's output then has a k-NN score.
+   */
+  private void analyzeJoinInputs(List<UnresolvedPlan> inputs, CalcitePlanContext context) {
+    // Decided before lowering: an input already on the stack cannot be changed without losing its
+    // table alias, which the join condition resolves against.
+    boolean anyKnn = inputs.stream().anyMatch(KnnAst::producesKnnScore);
+    boolean knnInput = false;
+    for (UnresolvedPlan input : inputs) {
+      boolean knn = analyzeCombinedInput(input, context, "join", anyKnn);
+      if (anyKnn && !knn) {
+        dropMetadataScore(context, "join");
+      }
+      knnInput |= knn;
+    }
+    markKnnInput(knnInput, context);
+  }
+
+  /**
+   * For inputs that a union combines (append, appendpipe, multisearch, union): when one has a k-NN
+   * step, the scan's hidden {@code _score} of every other input must not fill the combined {@code
+   * _score} column.
+   *
+   * <p>If a k-NN input still has its {@code _score} column, the others' becomes a typed null, so
+   * the combined {@code _score} is the k-NN score for that input's rows and null for the other
+   * rows; column positions are kept, so a union without schema unification still lines up. If no
+   * k-NN input has one any more (e.g. after {@code fields - _score}), the others' is dropped, so
+   * the output has no {@code _score} at all.
+   *
+   * @param inputs the lowered inputs
+   * @param hasKnn for each input, whether it has a k-NN step
+   * @param command the combining command, for error messages
+   * @return the inputs, with the metadata {@code _score} of non-k-NN inputs nulled or dropped
+   */
+  private static List<RelNode> withoutOtherInputsScore(
+      List<RelNode> inputs, List<Boolean> hasKnn, String command, CalcitePlanContext context) {
+    if (!hasKnn.contains(true)) {
+      return inputs;
+    }
+    boolean knnScoreKept = false;
+    for (int i = 0; i < inputs.size(); i++) {
+      knnScoreKept |= hasKnn.get(i) && hasScoreColumn(inputs.get(i));
+    }
+    List<RelNode> result = new ArrayList<>(inputs.size());
+    for (int i = 0; i < inputs.size(); i++) {
+      RelNode input = inputs.get(i);
+      if (hasKnn.get(i)) {
+        result.add(input);
+      } else if (knnScoreKept) {
+        result.add(nullMetadataScore(input, command, context));
+      } else {
+        context.relBuilder.push(input);
+        dropMetadataScore(context, command);
+        result.add(context.relBuilder.build());
+      }
+    }
+    return result;
+  }
+
+  private static boolean hasScoreColumn(RelNode input) {
+    return input.getRowType().getFieldNames().contains(OpenSearchConstants.METADATA_FIELD_SCORE);
+  }
+
+  /**
+   * Drop the scan's hidden {@code _score} column from the top of the builder, if it has one.
+   *
+   * @param command the command combining this input with a k-NN one, for the errors when the
+   *     input's {@code _score} is not the scan's ({@link #requireScanScore}) or is the input's only
+   *     column and cannot be dropped
+   */
+  private static void dropMetadataScore(CalcitePlanContext context, String command) {
+    List<String> names = context.relBuilder.peek().getRowType().getFieldNames();
+    if (!names.contains(OpenSearchConstants.METADATA_FIELD_SCORE)) {
+      return;
+    }
+    requireScanScore(context.relBuilder.peek(), command);
+    if (names.size() == 1) {
+      throw KnnErrors.onlyMetadataScore(command);
+    }
+    context.relBuilder.projectExcept(
+        context.relBuilder.field(OpenSearchConstants.METADATA_FIELD_SCORE));
+  }
+
+  /**
+   * {@code input} with its hidden {@code _score} column, if any, replaced by a typed null.
+   *
+   * @param command the command combining this input with a k-NN one, for the error when the input's
+   *     {@code _score} is not the scan's ({@link #requireScanScore})
+   */
+  private static RelNode nullMetadataScore(
+      RelNode input, String command, CalcitePlanContext context) {
+    if (!hasScoreColumn(input)) {
+      return input;
+    }
+    requireScanScore(input, command);
+    List<RelDataTypeField> fields = input.getRowType().getFieldList();
+    RelBuilder b = context.relBuilder.push(input);
+    List<RexNode> projects = new ArrayList<>(fields.size());
+    for (RelDataTypeField field : fields) {
+      projects.add(
+          OpenSearchConstants.METADATA_FIELD_SCORE.equals(field.getName())
+              ? b.getRexBuilder().makeNullLiteral(field.getType())
+              : b.field(field.getIndex()));
+    }
+    b.project(projects, input.getRowType().getFieldNames(), true);
+    return b.build();
+  }
+
+  /**
+   * The {@code _score} of an input without a k-NN step, which is nulled or dropped when the input
+   * is combined with a k-NN one, must be the scan's own (or null): a {@code _score} the query made
+   * itself, say with {@code expand ... as _score} or {@code trendline ... as _score}, would be lost
+   * without a word.
+   *
+   * @param command the combining command, for the error
+   */
+  private static void requireScanScore(RelNode input, String command) {
+    for (RelDataTypeField field : input.getRowType().getFieldList()) {
+      if (OpenSearchConstants.METADATA_FIELD_SCORE.equals(field.getName())
+          && !KnnPlanBuilder.isScanColumnOrNull(input, field.getIndex())) {
+        throw KnnErrors.inputScore(command);
+      }
+    }
+  }
+
+  /** The current branch has a k-NN {@code _score} if one of its combined inputs has one. */
+  private static void markKnnInput(boolean inputHasKnn, CalcitePlanContext context) {
+    if (inputHasKnn) {
+      context.setKnnBranch(true);
+    }
+  }
+
+  /**
+   * The invariant of the {@code _score} column, checked after every command, so that the first
+   * command to break it is the one named in the error:
+   *
+   * <ul>
+   *   <li>in a k-NN branch, every column named {@code _score} is the k-NN score (see {@link
+   *       KnnPlanBuilder#isKnnScoreColumn}), so no command, say a rename, bin or fillnull, can
+   *       replace it;
+   *   <li>in a branch whose rows end up in a result with a k-NN score ({@link
+   *       CalcitePlanContext#isKnnResultBranch()}), no column has the name Calcite gives a second
+   *       {@code _score} column ({@code _score0}, {@code _score1}, ...), unless it is a scan column
+   *       of that name passed through unchanged ({@link KnnPlanBuilder#isScanColumn}), and no
+   *       second column named {@code _score}: a command that adds a column named {@code _score}
+   *       next to an existing one, say expand, flatten or addtotals, would otherwise rename it
+   *       silently.
+   * </ul>
+   */
+  private static void requireKnnScoreKept(UnresolvedPlan command, CalcitePlanContext context) {
+    if (context.relBuilder.size() == 0) {
+      return;
+    }
+    RelNode top = context.relBuilder.peek();
+    List<RelDataTypeField> fields = top.getRowType().getFieldList();
+    if (context.isKnnBranch()) {
+      for (RelDataTypeField field : fields) {
+        if (OpenSearchConstants.METADATA_FIELD_SCORE.equals(field.getName())
+            && !KnnPlanBuilder.isKnnScoreColumn(top, field.getIndex())) {
+          throw KnnErrors.scoreReplaced(KnnAst.commandName(command));
+        }
+      }
+    }
+    if (context.isKnnBranch() || context.isKnnResultBranch()) {
+      boolean scoreSeen = false;
+      for (RelDataTypeField field : fields) {
+        boolean second =
+            OpenSearchConstants.METADATA_FIELD_SCORE.equals(field.getName()) && scoreSeen;
+        scoreSeen |= OpenSearchConstants.METADATA_FIELD_SCORE.equals(field.getName());
+        // A node such as a graphlookup may even keep the name, until the next projection
+        // renames it.
+        if (second
+            || (RENAMED_SCORE.matcher(field.getName()).matches()
+                && !KnnPlanBuilder.isScanColumn(top, field.getIndex()))) {
+          throw KnnErrors.scoreRenamed(KnnAst.commandName(command), field.getName());
+        }
+      }
+    }
+  }
+
+  /** A name Calcite gives a column named {@code _score} when the row already has one. */
+  private static final Pattern RENAMED_SCORE =
+      Pattern.compile(Pattern.quote(OpenSearchConstants.METADATA_FIELD_SCORE) + "[0-9]+");
+
   @Override
   public RelNode visitChildren(Node node, CalcitePlanContext context) {
-    RelNode result = super.visitChildren(node, context);
+    RelNode result = null;
+    for (Node child : node.getChild()) {
+      result = child.accept(this, context);
+      if (child instanceof UnresolvedPlan command) {
+        requireKnnScoreKept(command, context);
+      }
+    }
     if (node instanceof UnresolvedPlan plan) {
       mapPathMaterializer.materializePaths(plan, context);
     }
@@ -334,20 +622,64 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
   @Override
   public RelNode visitFilter(Filter node, CalcitePlanContext context) {
+    Optional<Function> knn = KnnAst.topLevelKnn(node.getCondition());
     visitChildren(node, context);
-    boolean containsSubqueryExpression = containsSubqueryExpression(node.getCondition());
+    if (knn.isPresent()) {
+      // Form A: the other conjuncts are the pre-filter, below the k-NN step.
+      KnnAst.withoutConjunct(node.getCondition(), knn.get())
+          .ifPresent(preFilter -> applyFilter(preFilter, context));
+      return lowerKnnStep(KnnAst.knnStep(knn.get()), KnnArguments.of(knn.get()), context);
+    }
+    applyFilter(node.getCondition(), context);
+    return context.relBuilder.peek();
+  }
+
+  private void applyFilter(UnresolvedExpression filterCondition, CalcitePlanContext context) {
+    boolean containsSubqueryExpression = containsSubqueryExpression(filterCondition);
     final Holder<@Nullable RexCorrelVariable> v = Holder.empty();
     if (containsSubqueryExpression) {
       context.relBuilder.variable(v::set);
       context.pushCorrelVar(v.get());
     }
-    RexNode condition = rexVisitor.analyze(node.getCondition(), context);
+    RexNode condition = rexVisitor.analyze(filterCondition, context);
     if (containsSubqueryExpression) {
       context.relBuilder.filter(ImmutableList.of(v.get().id), condition);
       context.popCorrelVar();
     } else {
       context.relBuilder.filter(condition);
     }
+  }
+
+  /** Form B, the {@code knn} command: earlier {@code where}s are already its pre-filter. */
+  @Override
+  public RelNode visitKnn(Knn node, CalcitePlanContext context) {
+    visitChildren(node, context);
+    return lowerKnnStep(node, KnnArguments.of(node), context);
+  }
+
+  /**
+   * Lower a k-NN step, whose input (with any pre-filter) is on top of the builder, to the canonical
+   * plan of {@link KnnPlanBuilder}, and mark the branch as a k-NN branch.
+   */
+  private RelNode lowerKnnStep(KnnStep step, KnnArguments arguments, CalcitePlanContext context) {
+    if (context.isKnnBranch()) {
+      throw KnnErrors.moreThanOneKnn();
+    }
+    // The input's checks first: a misplaced step reports its placement, not a k it cannot have.
+    KnnPlanBuilder.checkInput(context.relBuilder.peek(), arguments.fieldName());
+    if (step.getUnresolvedK() != null) {
+      throw step.getUnresolvedK();
+    }
+    ResolvedK k = step.getResolvedK();
+    if (k == null) {
+      throw new IllegalStateException(
+          "k of a knn step is not resolved; lower statements with analyzeStatement");
+    }
+    KnnPlanBuilder.build(
+        context.relBuilder,
+        new KnnRequest(
+            arguments.fieldName(), arguments.vectorElements(), arguments.parsedOptions(), k));
+    context.setKnnBranch(true);
     return context.relBuilder.peek();
   }
 
@@ -366,11 +698,19 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
     childNode.attach(node.getChild().getFirst());
 
-    subqueryPlan.accept(this, context);
+    boolean mainKnn = context.isKnnBranch();
+    boolean subPipelineKnn = analyzeCombinedInput(subqueryPlan, context, "appendpipe", mainKnn);
+    markKnnInput(subPipelineKnn, context);
 
     RelNode subPipelineNode = context.relBuilder.build();
     RelNode mainNode = context.relBuilder.build();
-    return mergeTableAndResolveColumnConflict(mainNode, subPipelineNode, context);
+    List<RelNode> inputs =
+        withoutOtherInputsScore(
+            List.of(mainNode, subPipelineNode),
+            List.of(mainKnn, subPipelineKnn),
+            "appendpipe",
+            context);
+    return mergeTableAndResolveColumnConflict(inputs.get(0), inputs.get(1), context);
   }
 
   @Override
@@ -512,7 +852,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
 
     if (node.isExcluded()) {
-      validateExclusion(expandedFields, currentFields);
+      validateExclusion(expandedFields, currentFields, context);
       context.relBuilder.projectExcept(expandedFields);
     } else {
       if (!context.isResolvingSubquery()) {
@@ -576,7 +916,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           if (WildcardUtils.containsWildcard(fieldName)) {
             List<String> matchingFields =
                 WildcardUtils.expandWildcardPattern(fieldName, currentFields).stream()
-                    .filter(f -> !isMetadataField(f))
+                    .filter(f -> !context.isHiddenMetadataField(f))
                     .filter(addedFields::add)
                     .toList();
             if (matchingFields.isEmpty()) {
@@ -598,7 +938,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         }
         case AllFields ignored -> {
           currentFields.stream()
-              .filter(field -> !isMetadataField(field))
+              .filter(field -> !context.isHiddenMetadataField(field))
               .filter(addedFields::add)
               .forEach(field -> expandedFields.add(context.relBuilder.field(field)));
         }
@@ -629,9 +969,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return expandedFields;
   }
 
-  private void validateExclusion(List<RexNode> fieldsToExclude, List<String> currentFields) {
+  private void validateExclusion(
+      List<RexNode> fieldsToExclude, List<String> currentFields, CalcitePlanContext context) {
     Set<String> nonMetaFields =
-        currentFields.stream().filter(field -> !isMetadataField(field)).collect(Collectors.toSet());
+        currentFields.stream()
+            .filter(field -> !context.isHiddenMetadataField(field))
+            .collect(Collectors.toSet());
 
     if (fieldsToExclude.size() >= nonMetaFields.size()) {
       throw new IllegalArgumentException(
@@ -655,10 +998,6 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       throw new IllegalArgumentException(
           String.format("wildcard pattern [%s] matches no fields", firstWildcardPattern));
     }
-  }
-
-  private boolean isMetadataField(String fieldName) {
-    return OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(fieldName);
   }
 
   /** See logic in {@link org.opensearch.sql.analysis.symbol.SymbolTable#lookupAllFields} */
@@ -719,6 +1058,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
    * <p>Unless the request asked for metadata via {@code include_metadata}, in which case only the
    * forced exclusion of case 1 still applies.
    *
+   * <p>In a k-NN branch {@code _score} is a regular column and is kept (see {@link
+   * CalcitePlanContext#isHiddenMetadataField}).
+   *
    * @param context CalcitePlanContext
    * @param excludeByForce whether exclude metadata fields by force
    */
@@ -732,11 +1074,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       List<String> originalFields = context.relBuilder.peek().getRowType().getFieldNames();
       List<RexNode> metaFieldsRef =
           originalFields.stream()
-              .filter(OpenSearchConstants.METADATAFIELD_TYPE_MAP::containsKey)
+              .filter(context::isHiddenMetadataField)
               .map(metaField -> (RexNode) context.relBuilder.field(metaField))
               .toList();
       // Remove metadata fields if there is and ensure there are other fields.
       if (!metaFieldsRef.isEmpty() && metaFieldsRef.size() != originalFields.size()) {
+        // Of an input combined with a k-NN one, only the scan's _score may go: one the query
+        // made would be lost. Checked here, inside the input, as its table alias applies later.
+        if (context.getCombinedWithKnnBy() != null
+            && originalFields.contains(OpenSearchConstants.METADATA_FIELD_SCORE)) {
+          requireScanScore(context.relBuilder.peek(), context.getCombinedWithKnnBy());
+        }
         context.relBuilder.projectExcept(metaFieldsRef);
       }
     }
@@ -766,7 +1114,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       List<String> matchingFields = WildcardRenameUtils.matchFieldNames(sourcePattern, newNames);
       // Exclude metadata fields from wildcard rename (issue #5099)
       if (WildcardRenameUtils.isWildcardPattern(sourcePattern)) {
-        matchingFields.removeIf(this::isMetadataField);
+        matchingFields.removeIf(context::isHiddenMetadataField);
       }
 
       for (String fieldName : matchingFields) {
@@ -805,6 +1153,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .map(
                 expr -> {
                   RexNode sortField = rexVisitor.analyze(expr, context);
+                  VectorErrors.requireComparable(sortField.getType());
                   SortOption sortOption = analyzeSortOption(expr.getFieldArgs());
                   // Default is ASC
                   if (sortOption.getSortOrder() == DESC) {
@@ -972,9 +1321,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             .orElseThrow(() -> new IllegalArgumentException("maxRows must be positive"));
 
     String columnName = node.getColumnName();
+    if (columnName != null && isKnnScoreOfBranch(columnName, context)) {
+      // Transposed rows have a column of that name; next to the k-NN score, Calcite fails on it.
+      throw KnnErrors.scoreReplaced("transpose");
+    }
     List<String> fieldNames =
         context.relBuilder.peek().getRowType().getFieldNames().stream()
-            .filter(fieldName -> !isMetadataField(fieldName))
+            .filter(fieldName -> !context.isHiddenMetadataField(fieldName))
             .toList();
 
     RelBuilder b = context.relBuilder;
@@ -1149,6 +1502,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             node.getPartitionByList().stream()
                 .map(expr -> rexVisitor.analyze(expr, context))
                 .toList());
+        // patterns ... by <vector>
+        VectorErrors.requireComparable(groupByList);
         context.relBuilder.aggregate(context.relBuilder.groupKey(groupByList), aggCalls);
 
         if (showNumberedToken) {
@@ -1234,6 +1589,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             node.getPartitionByList().stream()
                 .map(expr -> rexVisitor.analyze(expr, context))
                 .toList();
+        // patterns ... by <vector>
+        VectorErrors.requireComparable(groupByList);
         context.relBuilder.aggregate(context.relBuilder.groupKey(groupByList), aggCall);
         buildExpandRelNode(
             context.relBuilder.field(node.getAlias()),
@@ -1468,11 +1825,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
   }
 
-  /** An OpenSearch object parent surfaces as MAP in the row schema, a nested parent as ARRAY. */
+  /**
+   * An OpenSearch object parent surfaces as MAP in the row schema, a nested parent as ARRAY. A
+   * vector is also an ARRAY but has no sub-fields.
+   */
   private static boolean isContainerType(RelDataType type) {
     return type.isStruct()
         || type.getSqlTypeName() == SqlTypeName.MAP
-        || type.getSqlTypeName() == SqlTypeName.ARRAY;
+        || (type.getSqlTypeName() == SqlTypeName.ARRAY
+            && !OpenSearchTypeFactory.isVectorType(type));
   }
 
   /**
@@ -1560,6 +1921,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         resolveAttributesForAggregation(groupExprList, aggExprList, context);
     List<RexNode> resolvedGroupByList = resolved.getLeft();
     List<AggCall> resolvedAggCallList = resolved.getRight();
+    // stats / top / rare / chart ... by <vector>
+    VectorErrors.requireComparable(resolvedGroupByList);
 
     // `doc_count` optimization required a filter `isNotNull(RexInputRef)` for the
     // `count(FIELD)` aggregation which only can be applied to single FIELD without grouping:
@@ -1700,7 +2063,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             root -> {
               RelDataTypeField field =
                   rowType.getField(root, /* caseSensitive= */ true, /* elideRecord= */ false);
-              return field != null && field.getType().getSqlTypeName() == SqlTypeName.ARRAY;
+              return field != null
+                  && field.getType().getSqlTypeName() == SqlTypeName.ARRAY
+                  // A vector field is an ARRAY too, but not a nested field.
+                  && !OpenSearchTypeFactory.isVectorType(field.getType());
             });
   }
 
@@ -1946,7 +2312,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitJoin(Join node, CalcitePlanContext context) {
     List<UnresolvedPlan> children = node.getChildren();
-    children.forEach(c -> analyze(c, context));
+    analyzeJoinInputs(children, context);
     // Trigger manually since Join bypass visitChildren and getChild
     mapPathMaterializer.materializePaths(node, context);
 
@@ -1964,6 +2330,26 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 .reduce(context.rexBuilder::and)
                 .orElse(context.relBuilder.literal(true));
       } else {
+        // Without keys, every column both sides share is a key, so a shared vector would be
+        // compared. Naming a vector as a key fails in buildJoinConditionByFieldName.
+        duplicatedFieldNames.stream()
+            .filter(name -> isVectorOnEitherSide(context, name))
+            .findFirst()
+            .ifPresent(
+                name -> {
+                  throw VectorErrors.vectorNotComparable(
+                      StringUtils.format(
+                          "[%s] is in both inputs of a join without keys, which would make it a"
+                              + " join key. Remove it from one input with `fields - %s`, or"
+                              + " name the join keys",
+                          name, name));
+                });
+        // A k-NN _score survives as a regular column only in a k-NN input; when both inputs have
+        // one, it is shared and would make the join match rows on equal scores.
+        if (duplicatedFieldNames.contains(OpenSearchConstants.METADATA_FIELD_SCORE)
+            && children.stream().anyMatch(KnnAst::producesKnnScore)) {
+          throw KnnErrors.keylessJoinOnScore();
+        }
         joinCondition =
             duplicatedFieldNames.stream()
                 .map(fieldName -> buildJoinConditionByFieldName(context, fieldName))
@@ -2127,7 +2513,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       CalcitePlanContext context, String fieldName) {
     RexNode lookupKey = JoinAndLookupUtils.analyzeFieldsForLookUp(fieldName, false, context);
     RexNode sourceKey = JoinAndLookupUtils.analyzeFieldsForLookUp(fieldName, true, context);
+    VectorErrors.requireComparable(List.of(sourceKey, lookupKey));
     return context.rexBuilder.equals(sourceKey, lookupKey);
+  }
+
+  /** Whether the column of this name is a vector on the left or the right input of a join. */
+  private static boolean isVectorOnEitherSide(CalcitePlanContext context, String fieldName) {
+    return OpenSearchTypeFactory.isVectorType(
+            JoinAndLookupUtils.analyzeFieldsForLookUp(fieldName, true, context).getType())
+        || OpenSearchTypeFactory.isVectorType(
+            JoinAndLookupUtils.analyzeFieldsForLookUp(fieldName, false, context).getType());
   }
 
   @Override
@@ -2152,8 +2547,22 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // get sourceOutputFields from top of stack which is used to build final output
     List<String> sourceFieldsNames = context.relBuilder.peek().getRowType().getFieldNames();
 
-    // 2. resolve lookup table
-    analyze(node.getLookupRelation(), context);
+    // 2. resolve lookup table; a k-NN source keeps its _score over the table's hidden one
+    boolean sourceKnn = context.isKnnBranch();
+    boolean lookupKnn =
+        analyzeCombinedInput(node.getLookupRelation(), context, "lookup", sourceKnn);
+    if (sourceKnn && !lookupKnn) {
+      // The table's _score is dropped, and no lookup field may replace the k-NN score either.
+      if (node.getMappingAliasMap().containsKey(OpenSearchConstants.METADATA_FIELD_SCORE)
+          || node.getOutputAliasMap().containsKey(OpenSearchConstants.METADATA_FIELD_SCORE)) {
+        throw KnnErrors.lookupTableScore();
+      }
+      if (node.getOutputAliasMap().containsValue(OpenSearchConstants.METADATA_FIELD_SCORE)) {
+        throw KnnErrors.scoreReplaced("lookup");
+      }
+      dropMetadataScore(context, "lookup");
+    }
+    markKnnInput(lookupKnn, context);
 
     // 3. Add projection for lookup table if needed
     JoinAndLookupUtils.addProjectionIfNecessary(node, context);
@@ -2259,6 +2668,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Columns to deduplicate
     List<RexNode> dedupeFields =
         node.getFields().stream().map(f -> rexVisitor.analyze(f, context)).toList();
+    VectorErrors.requireComparable(dedupeFields);
     RelCollation inputCollation = stripInputSort(context.relBuilder);
     if (keepEmpty) {
       buildDedupOrNull(context.relBuilder, dedupeFields, allowedDuplication, inputCollation);
@@ -2330,6 +2740,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     List<UnresolvedExpression> groupList = node.getGroupList();
     boolean hasGroup = groupList != null && !groupList.isEmpty();
+    if (hasGroup) {
+      // streamstats ... by <vector>, on every plan shape below (reset, global window, default)
+      VectorErrors.requireComparable(
+          groupList.stream().map(expr -> rexVisitor.analyze(expr, context)).toList());
+    }
     boolean hasWindow = node.getWindow() > 0;
     boolean hasReset = node.getResetBefore() != null || node.getResetAfter() != null;
 
@@ -2918,6 +3333,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
       // Validate all fields are compatible with the replacement value
       for (RelDataTypeField field : fieldsList) {
+        if (isProtectedScore(field.getName(), context)) {
+          continue;
+        }
         RexNode fieldRef = context.rexBuilder.makeInputRef(field.getType(), field.getIndex());
         validateFillNullTypeCompatibility(replacement, fieldRef, field.getName());
       }
@@ -2940,7 +3358,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           break;
         }
       }
-      if (!toReplace && node.getReplacementForAll().isEmpty()) {
+      if (!toReplace
+          && (node.getReplacementForAll().isEmpty()
+              || isProtectedScore(field.getName(), context))) {
+        // Filling every field leaves the k-NN score alone; 'in _score' names it and is refused.
         projects.add(fieldRef);
       } else if (node.getReplacementForAll().isPresent()) {
         RexNode replacement = rexVisitor.analyze(node.getReplacementForAll().get(), context);
@@ -2951,6 +3372,22 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
     context.relBuilder.project(projects);
     return context.relBuilder.peek();
+  }
+
+  /** Whether {@code fieldName} is the k-NN {@code _score} of the current branch. */
+  private static boolean isKnnScoreOfBranch(String fieldName, CalcitePlanContext context) {
+    return context.isKnnBranch() && OpenSearchConstants.METADATA_FIELD_SCORE.equals(fieldName);
+  }
+
+  /**
+   * Whether {@code fieldName} is a {@code _score} that commands over all fields leave alone: the
+   * k-NN score of a k-NN branch, or the scan's {@code _score} of a branch whose rows are combined
+   * with a k-NN input, which is nulled or dropped there and must stay the scan's ({@link
+   * #requireScanScore}).
+   */
+  static boolean isProtectedScore(String fieldName, CalcitePlanContext context) {
+    return (context.isKnnBranch() || context.isKnnResultBranch())
+        && OpenSearchConstants.METADATA_FIELD_SCORE.equals(fieldName);
   }
 
   /** Window {@code ORDER BY} keys from the current node's collation, or empty if it has none. */
@@ -2981,6 +3418,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitAppendCol(AppendCol node, CalcitePlanContext context) {
     // 1. resolve main plan
     visitChildren(node, context);
+    boolean mainKnn = context.isKnnBranch();
     // 2. add row_number() column to main, ordered by its collation so the zip is deterministic
     List<RexNode> mainOrderKeys = deriveCollationOrderKeys(context);
     RexNode mainRowNumber =
@@ -2994,12 +3432,18 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             WindowFrame.toCurrentRow());
     context.relBuilder.projectPlus(
         context.relBuilder.alias(mainRowNumber, ROW_NUMBER_COLUMN_FOR_MAIN));
+    // when only the subsearch has a k-NN step, its _score wins; dropped after the row number is
+    // added, so that a main search of only the scan's _score still has a column
+    if (!mainKnn && KnnAst.producesKnnScore(node.getSubSearch())) {
+      dropMetadataScore(context, "appendcol");
+    }
 
     // 3. build subsearch tree (attach relation to subsearch)
     UnresolvedPlan relation = getRelation(node);
     transformPlanToAttachChild(node.getSubSearch(), relation);
     // 4. resolve subsearch plan
-    node.getSubSearch().accept(this, context);
+    boolean subsearchKnn = analyzeCombinedInput(node.getSubSearch(), context, "appendcol", mainKnn);
+    markKnnInput(subsearchKnn, context);
     // 5. add row_number() column to subsearch, ordered by its collation
     List<RexNode> subsearchOrderKeys = deriveCollationOrderKeys(context);
     RexNode subsearchRowNumber =
@@ -3013,6 +3457,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             WindowFrame.toCurrentRow());
     context.relBuilder.projectPlus(
         context.relBuilder.alias(subsearchRowNumber, ROW_NUMBER_COLUMN_FOR_SUBSEARCH));
+    // when only the main plan has a k-NN step, its _score wins (dropped after the row number, as
+    // in the main plan)
+    if (mainKnn && !subsearchKnn) {
+      dropMetadataScore(context, "appendcol");
+    }
 
     List<String> subsearchFields = context.relBuilder.peek().getRowType().getFieldNames();
     List<String> mainFields = context.relBuilder.peek(1).getRowType().getFieldNames();
@@ -3099,16 +3548,21 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   public RelNode visitAppend(Append node, CalcitePlanContext context) {
     // 1. Resolve main plan
     visitChildren(node, context);
+    boolean mainKnn = context.isKnnBranch();
 
     // 2. Resolve subsearch plan
     UnresolvedPlan prunedSubSearch =
         node.getSubSearch().accept(new EmptySourcePropagateVisitor(), null);
-    prunedSubSearch.accept(this, context);
+    boolean subsearchKnn = analyzeCombinedInput(prunedSubSearch, context, "append", mainKnn);
+    markKnnInput(subsearchKnn, context);
 
     // 3. Merge two query schemas using shared logic
     RelNode subsearchNode = context.relBuilder.build();
     RelNode mainNode = context.relBuilder.build();
-    return mergeTableAndResolveColumnConflict(mainNode, subsearchNode, context);
+    List<RelNode> inputs =
+        withoutOtherInputsScore(
+            List.of(mainNode, subsearchNode), List.of(mainKnn, subsearchKnn), "append", context);
+    return mergeTableAndResolveColumnConflict(inputs.get(0), inputs.get(1), context);
   }
 
   private RelNode mergeTableAndResolveColumnConflict(
@@ -3129,11 +3583,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitMultisearch(Multisearch node, CalcitePlanContext context) {
     List<RelNode> subsearchNodes = new ArrayList<>();
+    List<Boolean> subsearchKnn = new ArrayList<>();
+    boolean anyKnn = node.getSubsearches().stream().anyMatch(KnnAst::producesKnnScore);
     for (UnresolvedPlan subsearch : node.getSubsearches()) {
       UnresolvedPlan prunedSubSearch = subsearch.accept(new EmptySourcePropagateVisitor(), null);
-      prunedSubSearch.accept(this, context);
+      subsearchKnn.add(analyzeCombinedInput(prunedSubSearch, context, "multisearch", anyKnn));
       subsearchNodes.add(context.relBuilder.build());
     }
+    markKnnInput(subsearchKnn.contains(true), context);
+    subsearchNodes = withoutOtherInputsScore(subsearchNodes, subsearchKnn, "multisearch", context);
 
     // Use shared schema merging logic that handles type conflicts via field renaming
     List<RelNode> alignedNodes =
@@ -3177,12 +3635,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
   @Override
   public RelNode visitUnion(Union node, CalcitePlanContext context) {
     List<RelNode> inputNodes = new ArrayList<>();
+    List<Boolean> datasetKnn = new ArrayList<>();
+    boolean anyKnn = node.getDatasets().stream().anyMatch(KnnAst::producesKnnScore);
 
     for (UnresolvedPlan dataset : node.getDatasets()) {
       UnresolvedPlan prunedDataset = dataset.accept(new EmptySourcePropagateVisitor(), null);
-      prunedDataset.accept(this, context);
+      datasetKnn.add(analyzeCombinedInput(prunedDataset, context, "union", anyKnn));
       inputNodes.add(context.relBuilder.build());
     }
+    markKnnInput(datasetKnn.contains(true), context);
+    inputNodes = withoutOtherInputsScore(inputNodes, datasetKnn, "union", context);
 
     if (inputNodes.size() < 2) {
       throw new IllegalArgumentException(
@@ -3548,8 +4010,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     boolean usePIT = node.isUsePIT();
 
     // 3. Visit and materialize lookup table
-    analyze(node.getFromTable(), context);
-    tryToRemoveMetaFields(context, true);
+    // The table is its own branch: strip its metadata, _score included, under its own flag.
+    analyzeBranch(
+        node.getFromTable(), context, false, null, () -> tryToRemoveMetaFields(context, true));
 
     // 4. Convert filter expression to RexNode against lookup table schema
     RexNode filterRex = null;
@@ -3558,6 +4021,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
 
     RelNode lookupTable = builder.build();
+
+    // graphlookup matches the start values and connect-from values against the connect-to field
+    // (as a terms query), so none of them can be a vector.
+    requireComparableField(sourceTable, startFieldName);
+    requireComparableField(lookupTable, fromFieldName);
+    requireComparableField(lookupTable, toFieldName);
 
     // 5. Create LogicalGraphLookup RelNode
     // The conversion rule will extract the OpenSearchIndex from the lookup table
@@ -3580,6 +4049,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     builder.push(graphLookup);
     return builder.peek();
+  }
+
+  /** Fail with <i>vector not comparable</i> if the named field of {@code rel} is a vector. */
+  private static void requireComparableField(RelNode rel, @Nullable String fieldName) {
+    if (fieldName == null) {
+      return;
+    }
+    RelDataTypeField field = rel.getRowType().getField(fieldName, true, false);
+    if (field != null) {
+      VectorErrors.requireComparable(field.getType());
+    }
   }
 
   /**
@@ -3624,7 +4104,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RelDataType labelVarcharType =
         context.relBuilder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
 
-    // If no specific fields specified, use all numeric fields
+    // If no specific fields specified, use all numeric fields but a protected _score, such as the
+    // k-NN score: its total is no score, so the totals row has null there.
+    boolean allFields = fieldsToAggregate.isEmpty();
     if (fieldsToAggregate.isEmpty()) {
       fieldsToAggregate = getAllNumericFields(originalData, context);
     }
@@ -3635,7 +4117,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     for (RelDataTypeField fieldDataType : fieldList) {
       RexNode fieldRef = context.relBuilder.field(fieldDataType.getName());
       boolean columnAddedToNewProject = false;
-      if (shouldAggregateField(fieldDataType.getName(), fieldsToAggregate)) {
+      if (shouldAggregateField(fieldDataType.getName(), fieldsToAggregate)
+          && !(allFields && isProtectedScore(fieldDataType.getName(), context))) {
 
         if (isNumericField(fieldRef, context)) {
           fieldsToSum.add(fieldRef);
@@ -3972,7 +4455,9 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RexBuilder rx = context.rexBuilder;
 
     List<String> fieldNames =
-        b.peek().getRowType().getFieldNames().stream().filter(f -> !isMetadataField(f)).toList();
+        b.peek().getRowType().getFieldNames().stream()
+            .filter(f -> !context.isHiddenMetadataField(f))
+            .toList();
     String tsFieldName = fieldNames.get(0);
     List<String> valueFieldNames = fieldNames.subList(1, fieldNames.size());
 
@@ -4204,6 +4689,10 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<String> yDataFieldNames =
         node.getYDataFields().stream().map(this::resolveFieldName).collect(Collectors.toList());
 
+    // xyseries groups and sorts by the x-field and takes MAX of each y-data field.
+    VectorErrors.requireComparable(b.field(xFieldName).getType());
+    yDataFieldNames.forEach(name -> VectorErrors.requireComparable(b.field(name).getType()));
+
     List<String> pivotValues = node.getPivotValues() != null ? node.getPivotValues() : List.of();
     String separator = node.getSeparator();
     String format = node.getFormat();
@@ -4211,6 +4700,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // Build the pivot axis - cast to VARCHAR if needed for string comparison
     RexNode yNameRef = b.field(yNameFieldName);
     RelDataType yNameType = yNameRef.getType();
+    // The y-name values are matched against the pivot values.
+    VectorErrors.requireComparable(yNameType);
     RexNode axis;
     if (!SqlTypeUtil.isCharacter(yNameRef.getType())) {
       if (!SqlTypeUtil.isAtomic(yNameType)) {
@@ -4323,6 +4814,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             sortField -> {
               SortOption sortOption = analyzeSortOption(sortField.getFieldArgs());
               RexNode field = rexVisitor.analyze(sortField, context);
+              VectorErrors.requireComparable(field.getType());
               if (sortOption == DEFAULT_DESC) {
                 context.relBuilder.sort(context.relBuilder.desc(field));
               } else {
@@ -4512,14 +5004,22 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     // 3) Group by all non-target fields, skipping meta fields unless explicitly projected.
     final List<RexNode> groupExprs =
         buildGroupExpressionsExcludingTarget(
-            targetIndex, inputFieldNames, relBuilder, includeMetaFields);
+            targetIndex, inputFieldNames, relBuilder, includeMetaFields, context);
 
     // 4) Aggregate target values using ARRAY_AGG, filtering out NULLs.
+    // mvcombine groups by every other column, so a vector column among them is a group key.
+    VectorErrors.requireComparable(groupExprs);
     performArrayAggAggregation(relBuilder, targetIndex, targetName, groupExprs);
 
     // 5) Restore original output column order (ARRAY_AGG already returns ARRAY<T>).
     restoreColumnOrderAfterArrayAgg(
-        relBuilder, inputFieldNames, inputFieldTypes, targetIndex, groupExprs, includeMetaFields);
+        relBuilder,
+        inputFieldNames,
+        inputFieldTypes,
+        targetIndex,
+        groupExprs,
+        includeMetaFields,
+        context);
 
     return relBuilder.peek();
   }
@@ -4562,14 +5062,15 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       int targetIndex,
       List<String> inputFieldNames,
       RelBuilder relBuilder,
-      boolean includeMetaFields) {
+      boolean includeMetaFields,
+      CalcitePlanContext context) {
 
     final List<RexNode> groupExprs = new ArrayList<>(Math.max(0, inputFieldNames.size() - 1));
     for (int i = 0; i < inputFieldNames.size(); i++) {
       if (i == targetIndex) {
         continue;
       }
-      if (isMetadataField(inputFieldNames.get(i)) && !includeMetaFields) {
+      if (context.isHiddenMetadataField(inputFieldNames.get(i)) && !includeMetaFields) {
         continue;
       }
       groupExprs.add(relBuilder.field(i));
@@ -4603,7 +5104,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       List<RelDataType> inputFieldTypes,
       int targetIndex,
       List<RexNode> groupExprs,
-      boolean includeMetaFields) {
+      boolean includeMetaFields,
+      CalcitePlanContext context) {
 
     final int aggregatedTargetPos = groupExprs.size();
 
@@ -4618,7 +5120,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       if (i == targetIndex) {
         // aggregated target is always the last field in the aggregate output
         projections.add(relBuilder.field(aggregatedTargetPos));
-      } else if (isMetadataField(fieldName) && !includeMetaFields) {
+      } else if (context.isHiddenMetadataField(fieldName) && !includeMetaFields) {
         // meta fields were skipped from grouping => not present in aggregate output => keep schema
         // stable
         projections.add(relBuilder.getRexBuilder().makeNullLiteral(inputFieldTypes.get(i)));

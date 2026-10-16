@@ -16,9 +16,11 @@ import javax.annotation.Nullable;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.opensearch.common.document.DocumentField;
+import org.opensearch.common.xcontent.support.XContentMapValues;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.aggregations.Aggregation;
 import org.opensearch.search.aggregations.metrics.TopHits;
+import org.opensearch.transport.RemoteClusterAware;
 
 /** {@link TopHits} metric parser. */
 @EqualsAndHashCode
@@ -38,6 +40,36 @@ public class TopHitsParser implements MetricParser {
    */
   @Nullable private final Map<String, List<String>> fieldNameMapping;
 
+  /**
+   * The key under which a row holds the index of the hit its values come from, when {@link
+   * #recordsHitIndex}: a single value under this prefix and the value's name, a dedup row under the
+   * prefix alone. The Calcite scan decodes a base64 knn_vector with that index's data type when the
+   * indices of the query disagree on whether elements are bytes.
+   */
+  public static final String HIT_INDEX_KEY = "_hit_index#";
+
+  /**
+   * Whether rows record the index of their hit, for a top_hits that reads a knn_vector field whose
+   * indices disagree on whether elements are bytes.
+   */
+  private final boolean recordsHitIndex;
+
+  /**
+   * For a single value, the path of the field to read from {@code _source} by name, or {@code
+   * null}. Set for a knn_vector field, which the top_hits fetches from {@code _source} alone; the
+   * value is then read from there only, as a hit's {@code fields} can hold meta fields such as
+   * {@code _routing}. Without it, the single value is the first leaf of the first field in {@code
+   * _source}, or the first field in {@code fields}.
+   */
+  @Nullable private final String sourcePath;
+
+  /**
+   * The output columns of a dedup that the top_hits computes as script fields, by the name a hit
+   * returns each under in {@code fields}. They are kept apart from the field values the mapping
+   * reads: a script column can be named like a field that a renamed column reads.
+   */
+  private final Map<String, String> scriptFields;
+
   public TopHitsParser(String name, boolean returnSingleValue, boolean returnMergeValue) {
     this(name, returnSingleValue, returnMergeValue, null);
   }
@@ -47,10 +79,73 @@ public class TopHitsParser implements MetricParser {
       boolean returnSingleValue,
       boolean returnMergeValue,
       @Nullable Map<String, List<String>> fieldNameMapping) {
+    this(name, returnSingleValue, returnMergeValue, fieldNameMapping, false);
+  }
+
+  /**
+   * @param recordsHitIndex whether rows record the index of their hit (see {@link #HIT_INDEX_KEY})
+   */
+  public TopHitsParser(
+      String name,
+      boolean returnSingleValue,
+      boolean returnMergeValue,
+      @Nullable Map<String, List<String>> fieldNameMapping,
+      boolean recordsHitIndex) {
+    this(name, returnSingleValue, returnMergeValue, fieldNameMapping, recordsHitIndex, null);
+  }
+
+  /**
+   * @param sourcePath for a single value, the path of the field to read from {@code _source} (see
+   *     {@link #sourcePath})
+   */
+  public TopHitsParser(
+      String name,
+      boolean returnSingleValue,
+      boolean returnMergeValue,
+      @Nullable Map<String, List<String>> fieldNameMapping,
+      boolean recordsHitIndex,
+      @Nullable String sourcePath) {
+    this(
+        name,
+        returnSingleValue,
+        returnMergeValue,
+        fieldNameMapping,
+        recordsHitIndex,
+        sourcePath,
+        Map.of());
+  }
+
+  private TopHitsParser(
+      String name,
+      boolean returnSingleValue,
+      boolean returnMergeValue,
+      @Nullable Map<String, List<String>> fieldNameMapping,
+      boolean recordsHitIndex,
+      @Nullable String sourcePath,
+      Map<String, String> scriptFields) {
     this.name = name;
     this.returnSingleValue = returnSingleValue;
     this.returnMergeValue = returnMergeValue;
     this.fieldNameMapping = fieldNameMapping;
+    this.recordsHitIndex = recordsHitIndex;
+    this.sourcePath = sourcePath;
+    this.scriptFields = Map.copyOf(scriptFields);
+  }
+
+  /**
+   * This parser, for a dedup whose top_hits computes output columns as scripts.
+   *
+   * @param scriptFields the output columns, by the name a hit returns each under
+   */
+  public TopHitsParser withScriptFields(Map<String, String> scriptFields) {
+    return new TopHitsParser(
+        name,
+        returnSingleValue,
+        returnMergeValue,
+        fieldNameMapping,
+        recordsHitIndex,
+        sourcePath,
+        scriptFields);
   }
 
   @Override
@@ -65,16 +160,23 @@ public class TopHitsParser implements MetricParser {
 
     if (returnSingleValue) {
       Object value = null;
-      if (!isSourceEmpty(hits)) {
-        // Extract the single value from the first (and only) hit from source (fetchSource)
-        value = getLeafValue(hits[0].getSourceAsMap().values().iterator().next());
+      if (sourcePath != null) {
+        value = sourceValue(hits[0], sourcePath);
+      } else {
+        if (!isSourceEmpty(hits)) {
+          // Extract the single value from the first (and only) hit from source (fetchSource)
+          value = getLeafValue(hits[0].getSourceAsMap().values().iterator().next());
+        }
+        if (!isFieldsEmpty(hits)) {
+          // Extract the single value from the first (and only) hit from fields (fetchField)
+          value = hits[0].getFields().values().iterator().next().getValue();
+        }
       }
-      if (!isFieldsEmpty(hits)) {
-        // Extract the single value from the first (and only) hit from fields (fetchField)
-        value = hits[0].getFields().values().iterator().next().getValue();
+      Map<String, Object> row = new HashMap<>(Collections.singletonMap(agg.getName(), value));
+      if (recordsHitIndex && value != null) {
+        row.put(HIT_INDEX_KEY + agg.getName(), indexOf(hits[0]));
       }
-      return Collections.singletonList(
-          new HashMap<>(Collections.singletonMap(agg.getName(), value)));
+      return Collections.singletonList(row);
     } else if (returnMergeValue) {
       if (isEmptyHits(hits)) {
         return Collections.singletonList(
@@ -140,50 +242,127 @@ public class TopHitsParser implements MetricParser {
       //   LinkedHashMap["name" -> "B", "category" -> "Z"],
       //   LinkedHashMap["name" -> "A", "category" -> "A", "state" -> "N"]
       // ]
-      return Arrays.stream(hits)
-          .map(
-              hit -> {
-                Map<String, Object> source = hit.getSourceAsMap();
-                Map<String, Object> map =
-                    source == null
-                        ? new LinkedHashMap<>()
-                        : new LinkedHashMap<>(hit.getSourceAsMap());
-                hit.getFields().values().forEach(f -> map.put(f.getName(), f.getValue()));
-                applyFieldNameMapping(map);
-                return map;
-              })
-          .toList();
+      return Arrays.stream(hits).map(this::dedupRow).toList();
     }
   }
 
   /**
-   * Applies {@link #fieldNameMapping} to a parsed hit map in-place.
-   *
-   * <p>For each {@code (originalName → [outputName1, outputName2, ...])} entry: the value stored
-   * under {@code originalName} is copied to every output name, and {@code originalName} is removed
-   * unless it is itself one of the expected output names. This handles both the single-rename case
-   * (issue #5150) and the many-to-one collision case where two aliases resolve to the same source
-   * field (issue #5197).
+   * Whether this parser gives rows of a document's values (a dedup), which the response reads as it
+   * reads a search hit (see {@code OpenSearchExprValueFactory#constructDocumentValue}): a field of
+   * several values gives them all only with field type tolerance, as without pushdown.
    */
-  private void applyFieldNameMapping(Map<String, Object> map) {
+  public boolean readsDocuments() {
+    return !returnSingleValue && !returnMergeValue;
+  }
+
+  /**
+   * The row of a dedup hit, with each field's value as a search hit's row reads it from {@code
+   * _source}, given to the output columns by {@link #applyFieldNameMapping}. A field of {@code
+   * _source} keeps its value as it is, and a field inside an object takes the value at its path
+   * (see {@link #pathValue}); only a field that {@code _source} does not have, such as an alias,
+   * takes its value from {@code fields}. The fields API gives a field of one value in an array as
+   * that value, keeps only the first of several values in {@code DocumentField.getValue()}, and
+   * gives a field inside an array of objects the values of every object. The script fields are put
+   * under their columns' names after the mapping.
+   */
+  private Map<String, Object> dedupRow(SearchHit hit) {
+    Map<String, Object> source = hit.getSourceAsMap();
+    Map<String, Object> values =
+        source == null ? new LinkedHashMap<>() : new LinkedHashMap<>(source);
+    Map<String, Object> scripts = new LinkedHashMap<>();
+    hit.getFields()
+        .values()
+        .forEach(
+            f -> {
+              String column = scriptFields.get(f.getName());
+              Object value = f.getValues().size() > 1 ? f.getValues() : f.getValue();
+              if (column != null) {
+                scripts.put(column, value);
+                return;
+              }
+              Object fromSource = source == null ? MISSING : pathValue(source, f.getName());
+              values.put(f.getName(), fromSource == MISSING ? value : fromSource);
+            });
+    Map<String, Object> row = applyFieldNameMapping(values);
+    row.putAll(scripts);
+    if (recordsHitIndex) {
+      row.put(HIT_INDEX_KEY, indexOf(hit));
+    }
+    return row;
+  }
+
+  /** Stands for a path that {@code _source} does not have. */
+  private static final Object MISSING = new Object();
+
+  /**
+   * The value of the field at {@code path} in a hit's {@code _source}, as the row of a search hit
+   * resolves it ({@code ExprValueUtils.resolveRefPaths}): by a dotted key, else through objects,
+   * taking the first object of an array; {@link #MISSING} if there is none.
+   */
+  private static Object pathValue(Map<String, Object> source, String path) {
+    return pathValue(source, List.of(path.split("\\.")));
+  }
+
+  private static Object pathValue(Object value, List<String> path) {
+    if (value instanceof List<?> list) {
+      value = list.isEmpty() ? null : list.getFirst();
+    }
+    if (!(value instanceof Map<?, ?> map)) {
+      return MISSING;
+    }
+    String wholePath = String.join(".", path);
+    if (map.containsKey(wholePath)) {
+      return map.get(wholePath);
+    }
+    if (path.size() == 1 || !map.containsKey(path.getFirst())) {
+      return MISSING;
+    }
+    return pathValue(map.get(path.getFirst()), path.subList(1, path.size()));
+  }
+
+  /**
+   * Gives each output column of {@link #fieldNameMapping} the value of its field, read from the
+   * hit's values as they are, whatever the other columns of the mapping do: a field that only
+   * mapped columns read is dropped, every mapped column takes its field's value or none, and a
+   * column that keeps its field's name is one of the field's columns. This handles the
+   * single-rename case (issue #5150), several columns of one field (issue #5197), a column that
+   * keeps its field beside a copy or an alias of it, and columns that swap their fields.
+   *
+   * @param values the hit's field values, which are not changed
+   * @return the row
+   */
+  private Map<String, Object> applyFieldNameMapping(Map<String, Object> values) {
     if (fieldNameMapping == null || fieldNameMapping.isEmpty()) {
-      return;
+      return new LinkedHashMap<>(values);
     }
-    for (Map.Entry<String, List<String>> entry : fieldNameMapping.entrySet()) {
-      String originalName = entry.getKey();
-      Object value = map.get(originalName);
-      if (value == null && !map.containsKey(originalName)) {
-        continue;
-      }
-      List<String> outputNames = entry.getValue();
-      for (String outputName : outputNames) {
-        map.put(outputName, value);
-      }
-      // Remove the original key only when it is not itself one of the expected output names.
-      if (!outputNames.contains(originalName)) {
-        map.remove(originalName);
-      }
-    }
+    Map<String, Object> row = new LinkedHashMap<>(values);
+    fieldNameMapping.forEach(
+        (originalName, outputNames) -> {
+          row.remove(originalName);
+          outputNames.forEach(row::remove);
+        });
+    fieldNameMapping.forEach(
+        (originalName, outputNames) -> {
+          if (values.containsKey(originalName)) {
+            Object value = values.get(originalName);
+            outputNames.forEach(outputName -> row.put(outputName, value));
+          }
+        });
+    return row;
+  }
+
+  /**
+   * The value of the field at {@code path} in a hit's {@code _source}, found by name through nested
+   * objects or a dotted key, or {@code null}.
+   */
+  static @Nullable Object sourceValue(SearchHit hit, String path) {
+    Map<String, Object> source = hit.getSourceAsMap();
+    return source == null ? null : XContentMapValues.extractValue(path, source);
+  }
+
+  /** The index of a hit, named as the index mappings are: a remote one with its cluster alias. */
+  static String indexOf(SearchHit hit) {
+    return RemoteClusterAware.buildRemoteIndexName(hit.getClusterAlias(), hit.getIndex());
   }
 
   private boolean isEmptyHits(SearchHit[] hits) {

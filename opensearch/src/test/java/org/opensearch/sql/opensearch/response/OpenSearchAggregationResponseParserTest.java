@@ -9,13 +9,16 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.opensearch.response.AggregationResponseUtils.fromJson;
 import static org.opensearch.sql.opensearch.response.agg.Utils.handleNanInfValue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -658,6 +661,157 @@ class OpenSearchAggregationResponseParserTest {
     assertEquals(50000, hitRow.get("pay"));
     assertEquals(50000, hitRow.get("pay2"));
     assertNull(hitRow.get("salary"), "original field name must be removed after mapping");
+  }
+
+  /** A dedup response of one bucket g=x whose hit has the given _source and fields. */
+  private static String dedupResponse(String source, String fields) {
+    return "{\"composite#composite_buckets\":{\"buckets\":[{\"key\":{\"g\":\"x\"},"
+        + "\"doc_count\":1,\"top_hits#dedup\":{\"hits\":{\"total\":{\"value\":1,"
+        + "\"relation\":\"eq\"},\"hits\":[{\"_index\":\"idx\",\"_id\":\"1\","
+        + "\"_source\":"
+        + source
+        + ",\"fields\":"
+        + fields
+        + "}]}}}]}}";
+  }
+
+  /**
+   * A mapping that the parser applies in this order, as the analyzer builds one in the order of the
+   * columns: a mapping that changed the row as it read from it would fail only in some orders.
+   */
+  private static Map<String, List<String>> ordered(
+      String field1, List<String> columns1, String field2, List<String> columns2) {
+    Map<String, List<String>> mapping = new LinkedHashMap<>();
+    mapping.put(field1, columns1);
+    mapping.put(field2, columns2);
+    return mapping;
+  }
+
+  private Map<String, Object> dedupRow(
+      Map<String, List<String>> mapping, String source, String fields) {
+    return dedupRow(new TopHitsParser("dedup", false, false, mapping), source, fields);
+  }
+
+  private Map<String, Object> dedupRow(TopHitsParser topHits, String source, String fields) {
+    return parse(new CompositeAggregationParser(topHits), dedupResponse(source, fields)).get(1);
+  }
+
+  /**
+   * Columns that swap their fields, {@code rename a as t, b as a, t as b}, take each other's value:
+   * every value is read from the hit as it is, not from a row the mapping already changed.
+   */
+  @Test
+  void top_hits_field_name_mapping_swap_reads_the_hit_as_it_is() {
+    assertEquals(
+        Map.of("g", "x", "a", "B", "b", "A"),
+        dedupRow(
+            ordered("a", List.of("b"), "b", List.of("a")),
+            "{\"g\":\"x\",\"a\":\"A\",\"b\":\"B\"}",
+            "{\"g\":[\"x\"],\"a\":[\"A\"],\"b\":[\"B\"]}"));
+  }
+
+  /**
+   * {@code eval c = b, b = a}: a keeps its value beside its copy b, and c reads the b of the hit,
+   * not the copy of a.
+   */
+  @Test
+  void top_hits_field_name_mapping_copy_keeps_the_field_and_reads_the_hit() {
+    assertEquals(
+        Map.of("g", "x", "a", "A", "b", "A", "c", "B"),
+        dedupRow(
+            ordered("a", List.of("b", "a"), "b", List.of("c")),
+            "{\"g\":\"x\",\"a\":\"A\",\"b\":\"B\"}",
+            "{\"g\":[\"x\"],\"a\":[\"A\"],\"b\":[\"B\"]}"));
+  }
+
+  /**
+   * {@code rename k as j | eval k = 1}: the script column k, which the hit returns under another
+   * name, does not replace the field k that j reads.
+   */
+  @Test
+  void top_hits_script_field_does_not_replace_the_field_a_column_reads() {
+    assertEquals(
+        Map.of("g", "x", "j", "K", "k", 1),
+        dedupRow(
+            new TopHitsParser("dedup", false, false, Map.of("k", List.of("j")))
+                .withScriptFields(Map.of("k#script", "k")),
+            "{\"g\":\"x\",\"k\":\"K\"}",
+            "{\"g\":[\"x\"],\"k\":[\"K\"],\"k#script\":[1]}"));
+  }
+
+  /** A field of several values keeps them all, as _source has them. */
+  @Test
+  void top_hits_dedup_keeps_every_value_of_a_field() {
+    assertEquals(
+        Map.of("g", "x", "tags", List.of("t1", "t2")),
+        dedupRow(
+            Map.of(),
+            "{\"g\":\"x\",\"tags\":[\"t1\",\"t2\"]}",
+            "{\"g\":[\"x\"],\"tags\":[\"t1\",\"t2\"]}"));
+  }
+
+  /**
+   * A dedup row takes a field's value from _source as it is, where the fields API would give a
+   * one-element array as its element: the response reads the row as a search hit.
+   */
+  @Test
+  void top_hits_dedup_takes_values_from_source_as_they_are() {
+    assertEquals(
+        Map.of("g", "x", "one", List.of("u1")),
+        dedupRow(Map.of(), "{\"g\":\"x\",\"one\":[\"u1\"]}", "{\"g\":[\"x\"],\"one\":[\"u1\"]}"));
+  }
+
+  /**
+   * A field inside an object takes the value at its path in _source, of the first object of an
+   * array, as a search hit's row resolves it; the fields API gives the values of every object.
+   */
+  @Test
+  void top_hits_dedup_reads_a_field_inside_objects_by_its_path() {
+    assertEquals(
+        Map.of(
+            "g",
+            "x",
+            "objs",
+            List.of(Map.of("a", "A1"), Map.of("a", "A2")),
+            "objs.a",
+            "A1",
+            "obj.b",
+            List.of("B1", "B2")),
+        dedupRow(
+                Map.of(),
+                "{\"g\":\"x\",\"objs\":[{\"a\":\"A1\"},{\"a\":\"A2\"}],"
+                    + "\"obj\":{\"b\":[\"B1\",\"B2\"]}}",
+                "{\"g\":[\"x\"],\"objs.a\":[\"A1\",\"A2\"],\"obj.b\":[\"B1\",\"B2\"]}")
+            .entrySet()
+            .stream()
+            .filter(e -> !e.getKey().equals("obj"))
+            .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+  }
+
+  /** A field that _source does not have, such as an alias, takes its value from the fields API. */
+  @Test
+  void top_hits_dedup_reads_a_field_missing_from_source_from_the_fields_api() {
+    assertEquals(
+        Map.of("g", "x", "k", "K", "ka", "K", "tags2", List.of("t1", "t2")),
+        dedupRow(
+            Map.of(),
+            "{\"g\":\"x\",\"k\":\"K\"}",
+            "{\"g\":[\"x\"],\"k\":[\"K\"],\"ka\":[\"K\"],\"tags2\":[\"t1\",\"t2\"]}"));
+  }
+
+  /** The parsers of a dedup say that their rows hold documents' values; others do not. */
+  @Test
+  void dedup_parsers_read_documents() {
+    assertTrue(
+        new CompositeAggregationParser(new TopHitsParser("dedup", false, false)).readsDocuments());
+    assertTrue(
+        new BucketAggregationParser(List.of(new TopHitsParser("dedup", false, false)), List.of())
+            .readsDocuments());
+    assertFalse(
+        new CompositeAggregationParser(new TopHitsParser("first", true, false)).readsDocuments());
+    assertFalse(
+        new CompositeAggregationParser(new TopHitsParser("take", false, true)).readsDocuments());
+    assertFalse(new NoBucketAggregationParser(new SingleValueParser("max")).readsDocuments());
   }
 
   public List<Map<String, Object>> parse(OpenSearchAggregationResponseParser parser, String json) {

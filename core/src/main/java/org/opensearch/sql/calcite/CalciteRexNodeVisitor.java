@@ -84,11 +84,14 @@ import org.opensearch.sql.ast.tree.Sort.SortOrder;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext.ForeachBinding;
 import org.opensearch.sql.calcite.CalcitePlanContext.ForeachBindingType;
+import org.opensearch.sql.calcite.knn.KnnAst;
+import org.opensearch.sql.calcite.knn.KnnErrors;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit.SystemLimitType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.SubsearchUtils;
+import org.opensearch.sql.calcite.utils.VectorErrors;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -240,6 +243,8 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     final RexNode field = analyze(node.getField(), context);
     final List<RexNode> valueList =
         node.getValueList().stream().map(value -> analyze(value, context)).toList();
+    VectorErrors.requireComparable(field.getType());
+    VectorErrors.requireComparable(valueList);
     // When the field is a temporal type, do NOT use leastRestrictive + rexBuilder.makeIn. For a
     // temporal field tested against string/date literals, leastRestrictive collapses the common
     // type to VARCHAR (the EXPR_DATE / EXPR_TIMESTAMP UDTs are VARCHAR-backed), so makeIn casts the
@@ -279,6 +284,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   public RexNode visitCompare(Compare node, CalcitePlanContext context) {
     RexNode left = analyze(node.getLeft(), context);
     RexNode right = analyze(node.getRight(), context);
+    VectorErrors.requireComparable(List.of(left, right));
     String op = node.getOperator();
     // Handle boolean_field != literal -> IS_NOT_TRUE/IS_NOT_FALSE
     if ("!=".equals(op) || "<>".equals(op)) {
@@ -314,6 +320,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     RexNode value = analyze(node.getValue(), context);
     RexNode lowerBound = analyze(node.getLowerBound(), context);
     RexNode upperBound = analyze(node.getUpperBound(), context);
+    VectorErrors.requireComparable(List.of(value, lowerBound, upperBound));
     RelDataType commonType = context.rexBuilder.commonType(value, lowerBound, upperBound);
     if (commonType != null) {
       lowerBound = context.rexBuilder.makeCast(commonType, lowerBound);
@@ -346,6 +353,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   public RexNode visitEqualTo(EqualTo node, CalcitePlanContext context) {
     final RexNode left = analyze(node.getLeft(), context);
     final RexNode right = analyze(node.getRight(), context);
+    VectorErrors.requireComparable(List.of(left, right));
     return context.rexBuilder.equals(left, right);
   }
 
@@ -664,6 +672,11 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
 
   @Override
   public RexNode visitFunction(Function node, CalcitePlanContext context) {
+    if (KnnAst.isKnnCall(node)) {
+      // visitFilter lowers a knn() conjunct of where itself (and rejects one under OR or NOT), so
+      // this one is in eval, stats, sort, a join condition or the like.
+      throw KnnErrors.knnPlacement();
+    }
     // Resolve a group-by expression to its group-key output index.
     Integer groupKeyIndex = context.getGroupKeyOutputIndex().get(node);
     if (groupKeyIndex != null) {
@@ -762,10 +775,15 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
             .map(this::extractRexNodeFromAlias)
             .toList();
     List<RexNode> orderKeys = translateOrderKeys(node.getSortList(), context);
+    // eventstats / streamstats ... by <vector>, and window ORDER BY <vector>
+    VectorErrors.requireComparable(partitions);
+    VectorErrors.requireComparable(orderKeys);
     return BuiltinFunctionName.ofWindowFunction(funcName)
         .map(
             functionName -> {
               RexNode field = arguments.isEmpty() ? null : arguments.getFirst();
+              // eventstats / streamstats min(<vector>), dc(<vector>), ...
+              VectorErrors.requireComparableAggregate(functionName, isDistinct, field);
               List<RexNode> args =
                   (arguments.isEmpty() || arguments.size() == 1)
                       ? Collections.emptyList()
@@ -845,8 +863,13 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
   @Override
   public RexNode visitInSubquery(InSubquery node, CalcitePlanContext context) {
     List<RexNode> nodes = node.getChild().stream().map(child -> analyze(child, context)).toList();
+    VectorErrors.requireComparable(nodes);
     UnresolvedPlan subquery = node.getQuery();
     RelNode subqueryRel = resolveSubqueryPlan(subquery, node, context);
+    subqueryRel
+        .getRowType()
+        .getFieldList()
+        .forEach(field -> VectorErrors.requireComparable(field.getType()));
     if (subqueryRel.getRowType().getFieldCount() != nodes.size()) {
       throw new SemanticCheckException(
           "The number of columns in the left hand side of an IN subquery does not match the number"
@@ -892,7 +915,7 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
     if (isResolvingJoinConditionOuter) {
       context.setResolvingJoinCondition(false);
     }
-    subquery.accept(planVisitor, context);
+    planVisitor.analyzeBranch(subquery, context);
     // add subsearch.maxout limit to exists-in subsearch, 0 and negative means unlimited
     if (context.sysLimit.subsearchLimit() > 0 && !(subqueryExpression instanceof ScalarSubquery)) {
       // Cannot add system limit to the top of subquery simply.

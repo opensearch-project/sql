@@ -8,6 +8,7 @@ package org.opensearch.sql.api;
 import static org.opensearch.sql.monitor.profile.MetricName.ANALYZE;
 
 import java.util.List;
+import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
@@ -41,8 +42,14 @@ public class UnifiedQueryPlanner {
 
   private static final Logger LOG = LogManager.getLogger(UnifiedQueryPlanner.class);
 
+  /** The statement check of a planner that has none. */
+  private static final Consumer<UnresolvedPlan> NO_CHECK = statement -> {};
+
   /** Planning strategy selected at construction time based on query type. */
   private final PlanningStrategy strategy;
+
+  /** Called with the AST of each statement before it is lowered. */
+  private final Consumer<UnresolvedPlan> statementCheck;
 
   /** Unified query context for profiling support. */
   private final UnifiedQueryContext context;
@@ -53,8 +60,26 @@ public class UnifiedQueryPlanner {
    * @param context the unified query context containing CalcitePlanContext
    */
   public UnifiedQueryPlanner(UnifiedQueryContext context) {
+    this(context, NO_CHECK);
+  }
+
+  /**
+   * Constructs a UnifiedQueryPlanner that also checks every parsed statement before lowering it,
+   * e.g. to reject what the target engine cannot run. The check runs inside {@link #plan(String)},
+   * so its errors are translated and profiled like planning errors, and it runs whatever the
+   * planning strategy.
+   *
+   * @param context the unified query context containing CalcitePlanContext
+   * @param statementCheck called with the AST of each statement; throws to reject it
+   */
+  public UnifiedQueryPlanner(UnifiedQueryContext context, Consumer<UnresolvedPlan> statementCheck) {
     this.context = context;
+    this.statementCheck = statementCheck;
     this.strategy = new CustomVisitorStrategy(context);
+    if (statementCheck != NO_CHECK && !strategy.appliesStatementChecks()) {
+      throw new IllegalArgumentException(
+          "This planning strategy has no plugin AST to apply a statement check to");
+    }
   }
 
   /**
@@ -69,7 +94,7 @@ public class UnifiedQueryPlanner {
       return context.measure(
           ANALYZE,
           () -> {
-            RelNode plan = strategy.plan(query);
+            RelNode plan = strategy.plan(query, statementCheck);
             for (var shuttle : context.getLangSpec().postAnalysisRules()) {
               plan = plan.accept(shuttle);
             }
@@ -104,7 +129,14 @@ public class UnifiedQueryPlanner {
 
   /** Strategy interface for language-specific planning logic. */
   private interface PlanningStrategy {
-    RelNode plan(String query) throws Exception;
+    /**
+     * Plan {@code query}; if {@link #appliesStatementChecks()}, {@code statementCheck} sees the
+     * statement's AST before it is lowered.
+     */
+    RelNode plan(String query, Consumer<UnresolvedPlan> statementCheck) throws Exception;
+
+    /** Whether the strategy plans from the plugin's AST, so it can apply a statement check. */
+    boolean appliesStatementChecks();
   }
 
   /** ANSI SQL planning using Calcite's native SqlParser → SqlValidator → SqlToRelConverter. */
@@ -112,8 +144,18 @@ public class UnifiedQueryPlanner {
   private static class CalciteNativeStrategy implements PlanningStrategy {
     private final UnifiedQueryContext context;
 
+    /**
+     * No: Calcite parses the query with its own SQL parser, so there is no plugin AST, and the
+     * planner refuses a statement check with this strategy. Nothing a check rejects today slips
+     * through: {@code knn} is not a Calcite SQL function, so a k-NN query fails validation here.
+     */
     @Override
-    public RelNode plan(String query) throws Exception {
+    public boolean appliesStatementChecks() {
+      return false;
+    }
+
+    @Override
+    public RelNode plan(String query, Consumer<UnresolvedPlan> statementCheck) throws Exception {
       try (Planner planner = Frameworks.getPlanner(context.getPlanContext().config)) {
         SqlNode parsed = planner.parse(query);
         if (!parsed.isA(SqlKind.QUERY)) {
@@ -148,9 +190,15 @@ public class UnifiedQueryPlanner {
     }
 
     @Override
-    public RelNode plan(String query) {
+    public boolean appliesStatementChecks() {
+      return true;
+    }
+
+    @Override
+    public RelNode plan(String query, Consumer<UnresolvedPlan> statementCheck) {
       UnresolvedPlan ast = parser.parse(query);
-      RelNode logical = relNodeVisitor.analyze(ast, context.getPlanContext());
+      statementCheck.accept(ast);
+      RelNode logical = relNodeVisitor.analyzeStatement(ast, context.getPlanContext());
       return preserveCollation(logical);
     }
 

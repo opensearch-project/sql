@@ -65,7 +65,10 @@ public class OpenSearchStorageEngine implements StorageEngine {
     if (isRestSource(tableName)) {
       return restTable(tableName);
     } else if (isSystemIndex(tableName)) {
-      return new OpenSearchCatalogTable(new SystemIndexCatalogSource(client, tableName), settings);
+      boolean calciteEngine =
+          Boolean.TRUE.equals(settings.getSettingValue(Settings.Key.CALCITE_ENGINE_ENABLED));
+      return new OpenSearchCatalogTable(
+          new SystemIndexCatalogSource(client, tableName, calciteEngine), settings);
     } else {
       return new OpenSearchIndex(client, settings, prune(tableName, decoded.bounds()));
     }

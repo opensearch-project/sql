@@ -74,6 +74,7 @@ import org.opensearch.sql.expression.function.udf.AutoConvertFunction;
 import org.opensearch.sql.expression.function.udf.CTimeConvertFunction;
 import org.opensearch.sql.expression.function.udf.CryptographicFunction;
 import org.opensearch.sql.expression.function.udf.Dur2SecConvertFunction;
+import org.opensearch.sql.expression.function.udf.KnnScoreFunction;
 import org.opensearch.sql.expression.function.udf.MemkConvertFunction;
 import org.opensearch.sql.expression.function.udf.MkTimeConvertFunction;
 import org.opensearch.sql.expression.function.udf.MsTimeConvertFunction;
@@ -448,6 +449,14 @@ public class PPLBuiltinOperators extends ReflectiveSqlOperatorTable {
   public static final SqlOperator QUERY = RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("query");
   public static final SqlOperator WILDCARD_QUERY =
       RELEVANCE_QUERY_FUNCTION_INSTANCE.toUDF("wildcard_query");
+
+  /**
+   * The k-NN score of a vector column, the {@code _score} of the canonical k-NN plan. Created only
+   * by {@code KnnPlanBuilder}: there is deliberately no {@code PPLFuncImpTable} registration, so a
+   * query cannot call it by name.
+   */
+  public static final SqlOperator KNN_SCORE = new KnnScoreFunction().toUDF(KnnScoreFunction.NAME);
+
   public static final SqlOperator NUMBER_TO_STRING =
       new NumberToStringFunction().toUDF("NUMBER_TO_STRING");
   public static final SqlOperator TONUMBER = new ToNumberFunction().toUDF("TONUMBER");

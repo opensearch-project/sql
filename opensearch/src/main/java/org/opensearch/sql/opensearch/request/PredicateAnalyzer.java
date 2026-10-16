@@ -2113,6 +2113,20 @@ public class PredicateAnalyzer {
       return type != null && type instanceof OpenSearchAliasType;
     }
 
+    /**
+     * Whether the field is a k-NN {@code knn_vector} field or an alias to one. The fields API
+     * flattens such a field's value to its elements, and {@code DocumentField.getValue()} keeps
+     * only the first; the k-NN plugin's fetcher also returns nothing for a vector indexed as a
+     * base64 string. So a {@code top_hits} reads the value from {@code _source}.
+     */
+    boolean isKnnVectorField() {
+      OpenSearchDataType target =
+          type instanceof OpenSearchAliasType alias
+              ? alias.getOriginalType()
+              : type instanceof OpenSearchDataType dataType ? dataType : null;
+      return target != null && target.getMappingType() == OpenSearchDataType.MappingType.KnnVector;
+    }
+
     String getReference() {
       rejectBinaryField(name, type);
       return getRootName();
@@ -2285,7 +2299,9 @@ public class PredicateAnalyzer {
     boolean conditionContainsNestedField =
         call.getOperands().stream()
             .map(RexNode::getType)
-            // Nested fields are of type ArraySqlType
+            // Nested fields are of type ArraySqlType. So are vector fields (ExprVectorType), which
+            // stay unpushed on purpose: an exists query finds a vector excluded from _source,
+            // while the in-memory read of that field is null.
             .anyMatch(type -> type instanceof ArraySqlType);
     if (conditionContainsNestedField) {
       throw new PredicateAnalyzerException(

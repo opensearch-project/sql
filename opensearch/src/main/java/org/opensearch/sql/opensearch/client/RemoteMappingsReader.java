@@ -31,6 +31,8 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.IndexSettings;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchKnnVectorType;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.transport.RemoteClusterAware;
 import org.opensearch.transport.RemoteClusterService;
@@ -97,6 +99,27 @@ class RemoteMappingsReader {
     }
   }
 
+  /**
+   * The index setting of k-NN 2.x that gives the space type of a knn_vector mapping declaring none;
+   * removed in k-NN 3.0, so only a 2.x remote index has it.
+   */
+  static final String LEGACY_KNN_SPACE_TYPE = "index.knn.space_type";
+
+  /** The mapping of an index whose knn_vector fields take their space type from its settings. */
+  private static IndexMapping withKnnSpaceType(IndexMapping mapping, String spaceType) {
+    withKnnSpaceType(mapping.getFieldMappings(), spaceType);
+    return mapping;
+  }
+
+  private static void withKnnSpaceType(Map<String, OpenSearchDataType> fields, String spaceType) {
+    for (Map.Entry<String, OpenSearchDataType> entry : fields.entrySet()) {
+      if (entry.getValue() instanceof OpenSearchKnnVectorType vector) {
+        entry.setValue(vector.withIndexSpaceType(spaceType));
+      }
+      withKnnSpaceType(entry.getValue().getProperties(), spaceType);
+    }
+  }
+
   private RemoteMetadata fetch(Map<String, String[]> indicesByCluster) {
     String indexNames = String.join(",", qualifiedNames(indicesByCluster));
     Map<String, IndexMapping> mappings = new LinkedHashMap<>();
@@ -118,13 +141,20 @@ class RemoteMappingsReader {
                     .getSettings(
                         new GetSettingsRequest().indices(indices).local(true).includeDefaults(true))
                     .actionGet(timeout);
+            Map<String, Settings> indexSettings = settingsResponse.getIndexToSettings();
             mappingsResponse
                 .mappings()
                 .forEach(
-                    (index, mapping) ->
-                        mappings.put(
-                            RemoteClusterAware.buildRemoteIndexName(clusterAlias, index),
-                            parsed.computeIfAbsent(mapping, IndexMapping::new)));
+                    (index, mapping) -> {
+                      Settings settings = indexSettings.get(index);
+                      String knnSpaceType =
+                          settings == null ? null : settings.get(LEGACY_KNN_SPACE_TYPE);
+                      mappings.put(
+                          RemoteClusterAware.buildRemoteIndexName(clusterAlias, index),
+                          knnSpaceType == null
+                              ? parsed.computeIfAbsent(mapping, IndexMapping::new)
+                              : withKnnSpaceType(new IndexMapping(mapping), knnSpaceType));
+                    });
             settingsResponse
                 .getIndexToSettings()
                 .forEach(

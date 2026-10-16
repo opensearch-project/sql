@@ -40,6 +40,8 @@ import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.knn.KnnAst;
+import org.opensearch.sql.calcite.knn.KnnErrors;
 import org.opensearch.sql.calcite.plan.rel.LogicalSystemLimit;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.common.response.ResponseListener;
@@ -229,7 +231,7 @@ public class RestUnifiedQueryAction {
                   ActionListener<TransportPPLQueryResponse> closingListener =
                       wrapWithContextClose(context, listener);
                   try {
-                    UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
+                    UnifiedQueryPlanner planner = newPlanner(context);
                     RelNode plan = planner.plan(query);
                     CalcitePlanContext planContext = context.getPlanContext();
                     // PPL fetch_size caps the response to N rows (no cursor) — the V2 path attaches
@@ -304,7 +306,7 @@ public class RestUnifiedQueryAction {
                   QueryRequestContext queryCtx =
                       withParentTask(contextProvider.getContext(), parentTask);
                   try (UnifiedQueryContext context = buildContext(queryType, false, queryCtx)) {
-                    UnifiedQueryPlanner planner = new UnifiedQueryPlanner(context);
+                    UnifiedQueryPlanner planner = newPlanner(context);
                     RelNode plan = planner.plan(query);
                     CalcitePlanContext planContext = context.getPlanContext();
                     plan = addQuerySizeLimit(plan, planContext);
@@ -323,6 +325,29 @@ public class RestUnifiedQueryAction {
   }
 
   /**
+   * The planner for a query on this route. It rejects a k-NN step on the AST it parses, before
+   * lowering: the analytics engine's schema has no {@code knn_vector} columns, so lowering would
+   * otherwise fail first with a misleading "column not found".
+   */
+  private static UnifiedQueryPlanner newPlanner(UnifiedQueryContext context) {
+    return new UnifiedQueryPlanner(context, RestUnifiedQueryAction::rejectKnnSteps);
+  }
+
+  /**
+   * Fail with <i>analytics engine not supported</i> if the plan has a k-NN step: a {@code knn}
+   * command or a {@code knn(...)} call, in any branch or subsearch.
+   *
+   * @param plan the parsed query
+   * @throws org.opensearch.sql.exception.SemanticCheckException (HTTP 400) if it has one
+   */
+  @VisibleForTesting
+  static void rejectKnnSteps(UnresolvedPlan plan) {
+    if (KnnAst.containsKnnStep(plan)) {
+      throw KnnErrors.analyticsEngineNotSupported();
+    }
+  }
+
+  /**
    * Build a lightweight context for parsing only (index name extraction). Does not require cluster
    * state or catalog schema.
    */
@@ -330,7 +355,8 @@ public class RestUnifiedQueryAction {
     return applyClusterOverrides(UnifiedQueryContext.builder().language(queryType)).build();
   }
 
-  private UnifiedQueryContext buildContext(
+  @VisibleForTesting
+  UnifiedQueryContext buildContext(
       QueryType queryType, boolean profiling, QueryRequestContext queryCtx) {
     return applyClusterOverrides(
             UnifiedQueryContext.builder()

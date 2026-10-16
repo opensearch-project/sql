@@ -68,6 +68,7 @@ import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
+import org.opensearch.sql.ast.tree.Knn;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
@@ -398,6 +399,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitKmeans(Kmeans node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitKnn(Knn node, C context) {
     return visitChildren(node, context);
   }
 

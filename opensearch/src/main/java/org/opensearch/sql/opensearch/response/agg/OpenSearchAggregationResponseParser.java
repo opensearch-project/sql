@@ -22,4 +22,12 @@ public interface OpenSearchAggregationResponseParser {
   List<Map<String, Object>> parse(Aggregations aggregations);
 
   List<Map<String, Object>> parse(SearchHits hit);
+
+  /**
+   * Whether the rows hold the values of documents, e.g. of a dedup, which are read as a search
+   * hit's are rather than as aggregation results.
+   */
+  default boolean readsDocuments() {
+    return false;
+  }
 }

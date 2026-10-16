@@ -25,10 +25,14 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.VectorDataType;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.Warning;
 import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.lang.LangSpec;
+import org.opensearch.sql.lang.PPLLangSpec;
+import org.opensearch.sql.opensearch.data.type.OpenSearchKnnVectorType;
 
 class QueryResultTest {
 
@@ -152,6 +156,31 @@ class QueryResultTest {
     Map<String, String> colNameTypes = response.columnNameTypes();
     assertEquals("array", colNameTypes.get("_highlight"));
     assertEquals(3, colNameTypes.size());
+  }
+
+  @Test
+  void columnNameTypesReportsVector() {
+    ExecutionEngine.Schema schemaWithVector =
+        new ExecutionEngine.Schema(
+            ImmutableList.of(
+                new ExecutionEngine.Schema.Column("embedding", null, ExprCoreType.VECTOR),
+                new ExecutionEngine.Schema.Column("tags", null, ARRAY),
+                // The V2 engine types a knn_vector column with the mapping type, named as ARRAY.
+                new ExecutionEngine.Schema.Column(
+                    "v2_embedding",
+                    null,
+                    OpenSearchKnnVectorType.of(2, VectorDataType.FLOAT, null, null, null))));
+    QueryResult response =
+        new QueryResult(
+            schemaWithVector, Collections.emptyList(), Cursor.None, PPLLangSpec.PPL_SPEC, null);
+    assertEquals(
+        ImmutableMap.of("embedding", "vector", "tags", "array", "v2_embedding", "array"),
+        response.columnNameTypes());
+    QueryResult sqlResponse =
+        new QueryResult(
+            schemaWithVector, Collections.emptyList(), Cursor.None, LangSpec.SQL_SPEC, null);
+    // SQL runs on the V2 engine, which only produces the mapping type: named as before.
+    assertEquals("array", sqlResponse.columnNameTypes().get("v2_embedding"));
   }
 
   @Test
