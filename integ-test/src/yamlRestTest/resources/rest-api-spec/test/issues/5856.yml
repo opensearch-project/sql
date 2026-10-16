@@ -47,6 +47,10 @@ teardown:
       indices.delete:
         index: object_field_string_operand_5856
         ignore_unavailable: true
+  - do:
+      indices.delete:
+        index: coalesce_all_missing_5856
+        ignore_unavailable: true
 
 ---
 "in with a string list on an object field is rejected while analyzing":
@@ -159,6 +163,52 @@ teardown:
   - match: {"total": 2}
   - match: {"schema": [{"name": "x", "type": "string"}]}
   - match: {"datarows": [["{a=x}"], ["z"]]}
+
+---
+"isnull on coalesce of an object field and a string or number field keeps the null row":
+  - skip:
+      features:
+        - headers
+  # Document 2 has no fields. A NOT NULL VARCHAR fallback type let Calcite fold isnull(x) to false.
+  - do:
+      indices.create:
+        index: coalesce_all_missing_5856
+        body:
+          mappings:
+            properties:
+              host:
+                type: keyword
+              n:
+                type: integer
+              obj:
+                properties:
+                  a:
+                    type: keyword
+  - do:
+      bulk:
+        index: coalesce_all_missing_5856
+        refresh: true
+        body:
+          - '{"index": {"_id": "1"}}'
+          - '{"host": "a", "n": 1, "obj": {"a": "x"}}'
+          - '{"index": {"_id": "2"}}'
+          - '{}'
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=coalesce_all_missing_5856 | eval x = coalesce(obj, host) | where isnull(x) | fields x"
+  - match: {"total": 1}
+  - match: {"datarows": [[null]]}
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=coalesce_all_missing_5856 | eval x = coalesce(obj, n) | where isnull(x) | fields x"
+  - match: {"total": 1}
+  - match: {"datarows": [[null]]}
 
 ---
 "in with a string list on a keyword field still matches":
