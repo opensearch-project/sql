@@ -110,6 +110,7 @@ public interface JoinAndLookupUtils {
                 entry -> {
                   RexNode lookupKey = analyzeFieldsForLookUp(entry.getKey(), false, context);
                   RexNode sourceKey = analyzeFieldsForLookUp(entry.getValue(), true, context);
+                  VectorErrors.requireComparable(List.of(sourceKey, lookupKey));
                   return context.rexBuilder.equals(sourceKey, lookupKey);
                 })
             .reduce(context.rexBuilder::and)

@@ -51,6 +51,8 @@ import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseP
 public class AggPushDownAction implements OSRequestBuilderAction {
   private Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> builderAndParser;
   private final Map<String, OpenSearchDataType> extendedTypeMapping;
+  // The types of output columns that do not read the index field of their name, e.g. of a dedup
+  private final Map<String, OpenSearchDataType> columnTypes;
   // Record the output field names of all buckets as the sequence of buckets
   private List<String> bucketNames;
 
@@ -58,8 +60,17 @@ public class AggPushDownAction implements OSRequestBuilderAction {
       Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> builderAndParser,
       Map<String, OpenSearchDataType> extendedTypeMapping,
       List<String> bucketNames) {
+    this(builderAndParser, extendedTypeMapping, Map.of(), bucketNames);
+  }
+
+  public AggPushDownAction(
+      Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> builderAndParser,
+      Map<String, OpenSearchDataType> extendedTypeMapping,
+      Map<String, OpenSearchDataType> columnTypes,
+      List<String> bucketNames) {
     this.builderAndParser = builderAndParser;
     this.extendedTypeMapping = extendedTypeMapping;
+    this.columnTypes = columnTypes;
     this.bucketNames = bucketNames;
   }
 
@@ -107,6 +118,9 @@ public class AggPushDownAction implements OSRequestBuilderAction {
   public void apply(OpenSearchRequestBuilder requestBuilder) {
     requestBuilder.pushDownAggregation(builderAndParser);
     requestBuilder.pushTypeMapping(extendedTypeMapping);
+    if (!columnTypes.isEmpty()) {
+      requestBuilder.pushColumnTypes(columnTypes);
+    }
   }
 
   /** Convert a {@link CompositeAggregationParser} to {@link BucketAggregationParser} */

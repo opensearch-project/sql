@@ -25,6 +25,7 @@ The PPL support the following data types.
 | binary |
 | struct |
 | array |
+| vector |
   
 ### Data Types Mapping  
 
@@ -50,6 +51,7 @@ The table below list the mapping between OpenSearch Data Type, PPL Data Type and
 | binary | binary | VARBINARY |
 | object | struct | STRUCT |
 | nested | array | STRUCT |
+| knn_vector | vector | ARRAY |
   
 Notes: Not all the PPL Type has correspond OpenSearch Type. e.g. data and time. To use function which required such data type, user should explicit convert the data type.
 ## Numeric Data Types  
@@ -110,6 +112,20 @@ Basically the date and time types except interval can be converted to each other
 ## String Data Types  
 
 A string is a sequence of characters enclosed in either single or double quotes. For example, both 'text' and "text" will be treated as string literal.
+## Vector Data Type  
+
+A `knn_vector` field of the [k-NN plugin](https://docs.opensearch.org/latest/field-types/supported-field-types/knn-vector/) is read as the `vector` type on the Calcite engine. There, PPL responses report its type as `vector`, and so does the `describe` command while the Calcite engine is enabled (also if a query falls back to the V2 engine). With the Calcite engine disabled, PPL reports `array`, as before. SQL keeps its previous names: `nested` in responses and `knn_vector` in `DESCRIBE TABLES`. An `alias` field to a `knn_vector` field is a `vector` on the Calcite engine and keeps its previous names elsewhere (`knn_vector` in PPL `describe` with the Calcite engine disabled). The type keeps the mapping's `dimension`, `data_type` and `space_type`; a model-based field without a `dimension` is still readable. When the indices of a query map the field differently, the type keeps only what the mappings share: the dimension is unknown if they disagree on it or on the data type, except that `float` and `half_float` read their elements the same way and keep a shared dimension; the data type is the shared one, else `byte` if every index has byte elements (`byte` or `binary`), else `float`; the space type is the one the k-NN plugin uses in every index (a mapping that declares none uses the k-NN default, `l2`, or `hamming` for `binary`; on a k-NN 2.x remote cluster of a cross-cluster query, the index setting `index.knn.space_type` when the index has one, which k-NN 2.17 and 2.18 ignored for a mapping without a `method`), else unknown.
+
+A value is an array of numbers. On the Calcite engine the elements are 32-bit floats for the `float` (default) and `half_float` data types, and signed bytes for the `byte` and `binary` data types; a `binary` vector holds `dimension / 8` bytes, since its mapping dimension counts bits. Elements are therefore returned with float precision, e.g. `-0.0069292835` for a stored `-0.006929283495992422`. This holds for a vector inside an object or `nested` field too. SQL and PPL with the Calcite engine disabled return the elements as stored, as before.
+
+Values are read from `_source`, also by `first`, `last`, `earliest`, `latest` and `dedup` when the Calcite engine pushes them down to OpenSearch, so they return the whole vector. On an index with k-NN derived source, the k-NN plugin rebuilds each vector when it is fetched, so a vector costs a read per returned row; the Calcite engine names each vector of a projected object or `nested` field in the request, as the k-NN plugin rebuilds a vector only for a request that names its path. Use `fields - <vector field>` when the vector itself is not needed. A field excluded from `_source` reads as `null`. Without derived source, `_source` keeps a vector as it was indexed; besides an array, the k-NN plugin (3.8 and later) accepts a base64 string (little-endian 32-bit floats for `float` and `half_float` vectors, one byte per element for `byte` and `binary` vectors). The Calcite engine decodes it to the vector the k-NN plugin indexed, also inside an object or `nested` field; SQL and PPL with the Calcite engine disabled read it as an empty array, as before. When the indices of a query disagree on whether the field's elements are bytes (for example `float` in one index and `byte` in another), the elements are 32-bit floats and a base64 value is decoded with the data type of the index it comes from, also in the results of `first`, `last`, `earliest`, `latest` and `dedup`. A known limitation: a script that the Calcite engine pushes down to OpenSearch, such as a filter on `mvindex(<field>, 0)`, does not know the index of a document, so such a value fails there with `cannot decode the base64 vector of [<field>]` (HTTP 500, with the message in the shard failure) rather than be decoded with the wrong data type.
+
+A vector column can be projected, renamed, tested with `isnull` / `isnotnull`, read with array functions such as `mvindex`, counted with `count`, and passed through `join`, `lookup`, `append`, `multisearch` and `union`. Vector values cannot be compared, sorted or grouped. A vector fails with `VECTOR values cannot be compared, sorted or grouped` when it is used in a comparison (including `in`, `between`, join conditions, join keys and `lookup` keys), as a `sort` or `trendline sort` key, in a `by` clause (`stats`, `top`, `rare`, `chart`, `eventstats`, `streamstats`, and `patterns` in the modes that group), as a `dedup` field, as a column that `mvcombine` groups by, as an `xyseries` field, as a `graphlookup` start, connect-from or connect-to field, or as the argument of `min`, `max`, `dc` / `distinct_count` or `values`. These errors never fall back to the V2 engine, even when `plugins.calcite.fallback.allowed` is true.
+
+A `join` without keys uses every column both inputs share as a key, so it fails when the inputs share a vector column; remove the vector from one input with `fields - <vector field>`, or name the join keys. With named keys, a vector column both inputs have follows the `overwrite` option like any other shared column: by default (`overwrite=true`) the right input's value is kept, which is `null` for an unmatched row of a left join; with `overwrite=false` the left input's value is kept.
+
+Commands that combine branches into one column (`append`, `multisearch`, `union`) require the same dimension and data type in every branch, otherwise they fail with `cannot combine VECTOR(d1, …) and VECTOR(d2, …)`.
+
 ## Query Struct Data Types  
 
 In PPL, the Struct Data Types corresponding to the [Object field type in OpenSearch](https://opensearch.org/docs/latest/field-types/supported-field-types/object/). The "." is used as the path selector when access the inner attribute of the struct data.

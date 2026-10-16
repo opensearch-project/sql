@@ -29,7 +29,16 @@ public class SystemIndexCatalogSource implements CatalogSource {
   private final Pair<OpenSearchSystemIndexSchema, OpenSearchSystemRequest> bundle;
 
   public SystemIndexCatalogSource(OpenSearchClient client, String indexName) {
-    this.bundle = buildBundle(client, indexName);
+    this(client, indexName, false);
+  }
+
+  /**
+   * @param calciteEngine whether the Calcite engine is enabled, which decides the name DESCRIBE
+   *     reports for some field types (a knn_vector is {@code vector} in PPL only then)
+   */
+  public SystemIndexCatalogSource(
+      OpenSearchClient client, String indexName, boolean calciteEngine) {
+    this.bundle = buildBundle(client, indexName, calciteEngine);
   }
 
   @Override
@@ -55,7 +64,7 @@ public class SystemIndexCatalogSource implements CatalogSource {
   }
 
   private static Pair<OpenSearchSystemIndexSchema, OpenSearchSystemRequest> buildBundle(
-      OpenSearchClient client, String indexName) {
+      OpenSearchClient client, String indexName, boolean calciteEngine) {
     SystemIndexUtils.SystemTable systemTable = systemTable(indexName);
     if (systemTable.isSystemInfoTable()) {
       return Pair.of(
@@ -64,7 +73,7 @@ public class SystemIndexCatalogSource implements CatalogSource {
       return Pair.of(
           OpenSearchSystemIndexSchema.SYS_TABLE_MAPPINGS,
           new OpenSearchDescribeIndexRequest(
-              client, systemTable.getTableName(), systemTable.getLangSpec()));
+              client, systemTable.getTableName(), systemTable.getLangSpec(), calciteEngine));
     }
   }
 }

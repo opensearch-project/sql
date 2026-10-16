@@ -207,6 +207,11 @@ configurations {
     zipArchive
 }
 
+// -Pknn.integ=true installs the k-NN plugin on the integTest cluster, so the ITs over knn_vector
+// fields (VectorSearch*IT, CalcitePPLVectorTypeIT) run instead of skipping themselves. Off by
+// default, which leaves CI unchanged.
+ext.knnIntegEnabled = project.findProperty('knn.integ') == 'true'
+
 dependencies {
     testImplementation group: 'org.opensearch.test', name: 'framework', version: "${opensearch_version}"
     testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
@@ -238,6 +243,10 @@ dependencies {
     // For GeoIP PPL functions
     zipArchive group: 'org.opensearch.plugin', name:'geospatial', version: "${opensearch_build}"
 
+    // Opt-in k-NN plugin for the knn_vector ITs, see knnIntegEnabled
+    if (knnIntegEnabled) {
+        zipArchive group: 'org.opensearch.plugin', name:'opensearch-knn', version: "${opensearch_build}"
+    }
 }
 
 java {
@@ -269,6 +278,14 @@ def getJobSchedulerPlugin() {
     provider { (RegularFile) (() ->
         configurations.zipArchive.asFileTree.matching {
             include '**/opensearch-job-scheduler*'
+        }.singleFile )
+    }
+}
+
+def getKnnPlugin() {
+    provider { (RegularFile) (() ->
+        configurations.zipArchive.asFileTree.matching {
+            include '**/opensearch-knn*'
         }.singleFile )
     }
 }
@@ -486,6 +503,9 @@ testClusters {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
         plugin(getGeoSpatialPlugin())
+        if (knnIntegEnabled) {
+            plugin(getKnnPlugin())
+        }
         plugin ":opensearch-sql-plugin"
         setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
         // Only /_cluster/health is registered; pin the allow-list to it for the rest ITs.

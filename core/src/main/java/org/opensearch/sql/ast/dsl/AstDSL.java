@@ -7,6 +7,7 @@ package org.opensearch.sql.ast.dsl;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -29,6 +30,7 @@ import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Interval;
+import org.opensearch.sql.ast.expression.KnnFunction;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
@@ -63,6 +65,7 @@ import org.opensearch.sql.ast.tree.FillNull;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
+import org.opensearch.sql.ast.tree.Knn;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.MvCombine;
@@ -295,6 +298,47 @@ public class AstDSL {
 
   public static Function function(String funcName, UnresolvedExpression... funcArgs) {
     return new Function(funcName, Arrays.asList(funcArgs));
+  }
+
+  /**
+   * The {@code knn(field, vector, options...)} predicate, form A of k-NN search; use it as a
+   * top-level conjunct of a {@link #filter} condition.
+   */
+  public static KnnFunction knnFunction(
+      Field field, UnresolvedExpression vector, UnresolvedArgument... options) {
+    List<UnresolvedExpression> args = new ArrayList<>();
+    args.add(field);
+    args.add(vector);
+    args.addAll(Arrays.asList(options));
+    return new KnnFunction(args);
+  }
+
+  /** The {@code knn field=... vector=... options...} command, form B of k-NN search. */
+  public static Knn knn(
+      UnresolvedPlan input, Field field, UnresolvedExpression vector, Argument... options) {
+    return new Knn(field, vector, Arrays.asList(options)).attach(input);
+  }
+
+  /**
+   * A query vector literal, {@code [e1, e2, ...]}, which both PPL forms parse into {@code array(e1,
+   * e2, ...)}.
+   *
+   * @param elements Integer, Long, Float, Double or BigDecimal values
+   */
+  public static Function vectorLiteral(Number... elements) {
+    return new Function(
+        "array", Arrays.stream(elements).map(AstDSL::numericLiteral).collect(Collectors.toList()));
+  }
+
+  private static UnresolvedExpression numericLiteral(Number value) {
+    return switch (value) {
+      case Integer i -> intLiteral(i);
+      case Long l -> longLiteral(l);
+      case Float f -> floatLiteral(f);
+      case Double d -> doubleLiteral(d);
+      case BigDecimal b -> decimalLiteral(b);
+      default -> throw new IllegalArgumentException("Unsupported vector element " + value);
+    };
   }
 
   /**

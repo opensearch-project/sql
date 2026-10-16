@@ -17,6 +17,7 @@ import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.calcite.utils.PlanUtils;
+import org.opensearch.sql.calcite.utils.VectorErrors;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
 public class CalciteAggCallVisitor extends AbstractNodeVisitor<AggCall, CalcitePlanContext> {
@@ -47,8 +48,12 @@ public class CalciteAggCallVisitor extends AbstractNodeVisitor<AggCall, CalciteP
     }
     return BuiltinFunctionName.ofAggregation(node.getFuncName())
         .map(
-            functionName ->
-                PlanUtils.makeAggCall(context, functionName, node.getDistinct(), field, argList))
+            functionName -> {
+              VectorErrors.requireComparableAggregate(
+                  functionName, Boolean.TRUE.equals(node.getDistinct()), field);
+              return PlanUtils.makeAggCall(
+                  context, functionName, node.getDistinct(), field, argList);
+            })
         // Apply the optional FILTER(WHERE ...) predicate; IS TRUE treats NULL as non-matching.
         .map(
             aggCall ->
@@ -76,7 +81,11 @@ public class CalciteAggCallVisitor extends AbstractNodeVisitor<AggCall, CalciteP
       argList.add(rexNodeVisitor.analyze(node.getFuncArgs().get(i), context));
     }
     return BuiltinFunctionName.ofAggregation(node.getFuncName())
-        .map(functionName -> PlanUtils.makeAggCall(context, functionName, false, field, argList))
+        .map(
+            functionName -> {
+              VectorErrors.requireComparableAggregate(functionName, false, field);
+              return PlanUtils.makeAggCall(context, functionName, false, field, argList);
+            })
         .orElseThrow(
             () ->
                 new UnsupportedOperationException("Unexpected aggregation: " + node.getFuncName()));

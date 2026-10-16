@@ -47,6 +47,7 @@ import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 
@@ -311,6 +312,39 @@ class OpenSearchResponseTest {
       }
       i++;
     }
+  }
+
+  /**
+   * The rows of a dedup are read as a search hit's: without field type tolerance a field of several
+   * values reads its first, where the rows of other aggregations keep every value.
+   */
+  @Test
+  void aggregation_iterator_reads_document_rows_as_search_hits() {
+    OpenSearchExprValueFactory withoutTolerance =
+        new OpenSearchExprValueFactory(
+            OpenSearchDataType.parseMapping(Map.of("tags", Map.of("type", "keyword"))), false);
+    withoutTolerance.setParser(parser);
+    when(parser.parse((Aggregations) any()))
+        .thenReturn(List.of(Map.of("tags", List.of("t1", "t2"))));
+    when(searchResponse.getAggregations()).thenReturn(aggregations);
+
+    when(parser.readsDocuments()).thenReturn(true);
+    assertEquals(
+        new ExprStringValue("t1"),
+        OpenSearchResponse.of(searchResponse, withoutTolerance, includes)
+            .iterator()
+            .next()
+            .tupleValue()
+            .get("tags"));
+
+    when(parser.readsDocuments()).thenReturn(false);
+    assertEquals(
+        ExprValueUtils.collectionValue(List.of("t1", "t2")),
+        OpenSearchResponse.of(searchResponse, withoutTolerance, includes)
+            .iterator()
+            .next()
+            .tupleValue()
+            .get("tags"));
   }
 
   @Test

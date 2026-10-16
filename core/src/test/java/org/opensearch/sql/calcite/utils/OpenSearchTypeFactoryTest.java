@@ -10,18 +10,26 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
 import java.util.List;
+import java.util.Map;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.junit.jupiter.api.Test;
 import org.opensearch.analytics.schema.BinaryType;
 import org.opensearch.analytics.schema.IpType;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
+import org.opensearch.sql.calcite.type.ExprVectorType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.data.type.VectorDataType;
+import org.opensearch.sql.data.type.VectorFieldType;
+import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.storage.Table;
 
 public class OpenSearchTypeFactoryTest {
 
@@ -335,5 +343,84 @@ public class OpenSearchTypeFactoryTest {
           OpenSearchTypeFactory.convertAnalyticsEngineRelDataTypeToExprType(t),
           "Analytics-engine variant must agree with the general variant for " + t.getSqlTypeName());
     }
+  }
+
+  /** A storage vector field type, as the OpenSearch module's knn_vector type implements it. */
+  private record TestVectorField(int getDimension, VectorDataType getDataType, String getSpaceType)
+      implements VectorFieldType {
+    @Override
+    public String typeName() {
+      return "VECTOR";
+    }
+  }
+
+  @Test
+  public void testConvertVectorFieldTypeToVectorRelDataType() {
+    RelDataType type =
+        OpenSearchTypeFactory.convertExprTypeToRelDataType(
+            new TestVectorField(768, VectorDataType.HALF_FLOAT, "cosinesimil"));
+    assertInstanceOf(ExprVectorType.class, type);
+    ExprVectorType vector = (ExprVectorType) type;
+    assertEquals(768, vector.getDimension());
+    assertEquals(VectorDataType.HALF_FLOAT, vector.getDataType());
+    assertEquals("cosinesimil", vector.getSpaceType());
+    assertEquals(SqlTypeName.REAL, vector.getComponentType().getSqlTypeName());
+    assertTrue(vector.isNullable());
+    assertFalse(
+        OpenSearchTypeFactory.convertExprTypeToRelDataType(
+                new TestVectorField(16, VectorDataType.BINARY, null), false)
+            .isNullable());
+  }
+
+  @Test
+  public void testConvertCoreVectorToVectorOfUnknownDimension() {
+    RelDataType type = OpenSearchTypeFactory.convertExprTypeToRelDataType(ExprCoreType.VECTOR);
+    assertInstanceOf(ExprVectorType.class, type);
+    assertEquals(ExprVectorType.UNKNOWN_DIMENSION, ((ExprVectorType) type).getDimension());
+    assertEquals(VectorDataType.FLOAT, ((ExprVectorType) type).getDataType());
+  }
+
+  @Test
+  public void testConvertVectorRelDataTypeToExprType() {
+    RelDataType vector = TYPE_FACTORY.createVectorType(8, VectorDataType.BYTE, "l2", true);
+    assertEquals(ExprCoreType.VECTOR, OpenSearchTypeFactory.convertRelDataTypeToExprType(vector));
+    assertEquals(
+        ExprCoreType.VECTOR,
+        OpenSearchTypeFactory.convertAnalyticsEngineRelDataTypeToExprType(vector));
+    // A plain array (nested field, array(...) result) stays ARRAY.
+    RelDataType array =
+        TYPE_FACTORY.createArrayType(TYPE_FACTORY.createSqlType(SqlTypeName.REAL), -1);
+    assertEquals(ExprCoreType.ARRAY, OpenSearchTypeFactory.convertRelDataTypeToExprType(array));
+  }
+
+  @Test
+  public void testVectorTypeNameInResponses() {
+    RelDataType vector = TYPE_FACTORY.createVectorType(8, VectorDataType.FLOAT, null, true);
+    assertEquals("VECTOR", OpenSearchTypeFactory.getLegacyTypeName(vector, QueryType.PPL));
+    assertEquals("NESTED", OpenSearchTypeFactory.getLegacyTypeName(vector, QueryType.SQL));
+    RelDataType array =
+        TYPE_FACTORY.createArrayType(TYPE_FACTORY.createSqlType(SqlTypeName.REAL), -1);
+    assertEquals("NESTED", OpenSearchTypeFactory.getLegacyTypeName(array, QueryType.SQL));
+    assertEquals("ARRAY", OpenSearchTypeFactory.getLegacyTypeName(array, QueryType.PPL));
+  }
+
+  @Test
+  public void testVectorValueByExprType() {
+    assertEquals(
+        List.of(1.0f, 2.0f),
+        OpenSearchTypeFactory.getExprValueByExprType(ExprCoreType.VECTOR, List.of(1.0f, 2.0f))
+            .value());
+  }
+
+  @Test
+  public void testConvertSchemaKeepsVectorAttributes() {
+    Table table = mock(Table.class);
+    when(table.getFieldTypes())
+        .thenReturn(Map.of("embedding", new TestVectorField(4, VectorDataType.FLOAT, "l2")));
+    when(table.getReservedFieldTypes()).thenReturn(Map.of());
+    RelDataType row = OpenSearchTypeFactory.convertSchema(table);
+    RelDataType field = row.getField("embedding", true, false).getType();
+    assertTrue(OpenSearchTypeFactory.isVectorType(field));
+    assertEquals("VECTOR(4, FLOAT)", field.toString());
   }
 }

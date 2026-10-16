@@ -45,6 +45,10 @@ public class ScriptParameterHelper {
    * <p>1 stand for SOURCE
    *
    * <p>2 stands for LITERAL
+   *
+   * <p>3 to 6 stand for _source reads converted on the way in: FLAT_OBJECT_SOURCE,
+   * FLOAT_VECTOR_SOURCE, BYTE_VECTOR_SOURCE and MIXED_VECTOR_SOURCE (see {@code
+   * CalciteScriptEngine.Source})
    */
   List<Integer> sources;
 

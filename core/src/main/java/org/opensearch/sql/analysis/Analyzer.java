@@ -79,6 +79,7 @@ import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Kmeans;
+import org.opensearch.sql.ast.tree.Knn;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
@@ -113,6 +114,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.ast.tree.Window;
 import org.opensearch.sql.ast.tree.Xyseries;
+import org.opensearch.sql.calcite.knn.KnnErrors;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -683,6 +685,12 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
               .collect(Collectors.toList()));
     }
     return new LogicalValues(valueExprs);
+  }
+
+  /** The knn command needs the Calcite engine: <i>Calcite engine required</i>. */
+  @Override
+  public LogicalPlan visitKnn(Knn node, AnalysisContext context) {
+    throw KnnErrors.calciteEngineRequired();
   }
 
   /** Build {@link LogicalMLCommons} for Kmeans command. */

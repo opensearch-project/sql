@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.client;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -30,6 +31,8 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.sql.common.error.ErrorCode;
 import org.opensearch.sql.common.error.ErrorReport;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchKnnVectorType;
 import org.opensearch.transport.RemoteClusterService;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
@@ -108,6 +111,56 @@ class RemoteMappingsReaderTest {
     read("alice", "a:logs-*");
 
     verify(client, times(1)).getRemoteClusterClient("a");
+  }
+
+  /**
+   * A k-NN 2.x remote index can declare the space type of its knn_vector fields in the index
+   * setting index.knn.space_type; a mapping that declares none uses it, a declared one is kept.
+   */
+  @Test
+  void knnSpaceTypeOfA2xIndexSettingIsTheUndeclaredSpaceType() {
+    Map<String, Object> properties =
+        Map.of(
+            "plain",
+            Map.of("type", "knn_vector", "dimension", 3),
+            "declared",
+            Map.of(
+                "type",
+                "knn_vector",
+                "dimension",
+                3,
+                "method",
+                Map.of("name", "hnsw", "space_type", "l2")),
+            "obj",
+            Map.of("properties", Map.of("vec", Map.of("type", "knn_vector", "dimension", 3))));
+    Map<String, MappingMetadata> mappings = new LinkedHashMap<>();
+    mappings.put("legacy", new MappingMetadata("_doc", Map.of("properties", properties)));
+    mappings.put("current", new MappingMetadata("_doc", Map.of("properties", properties)));
+    Map<String, Settings> settings = new LinkedHashMap<>();
+    settings.put("legacy", Settings.builder().put("index.knn.space_type", "cosinesimil").build());
+    settings.put("current", Settings.EMPTY);
+    Client remote = remoteClient("a");
+    when(remote
+            .admin()
+            .indices()
+            .prepareGetMappings(any(String[].class))
+            .setLocal(true)
+            .get(TIMEOUT))
+        .thenReturn(new GetMappingsResponse(mappings));
+    when(remote.admin().indices().getSettings(any()).actionGet(TIMEOUT))
+        .thenReturn(new GetSettingsResponse(settings, Map.of()));
+
+    RemoteMappingsReader.RemoteMetadata metadata = read("alice", "a:legacy", "a:current");
+
+    Map<String, OpenSearchDataType> legacy = metadata.mappings().get("a:legacy").getFieldMappings();
+    assertEquals("cosinesimil", ((OpenSearchKnnVectorType) legacy.get("plain")).getSpaceType());
+    assertEquals("l2", ((OpenSearchKnnVectorType) legacy.get("declared")).getSpaceType());
+    assertEquals(
+        "cosinesimil",
+        ((OpenSearchKnnVectorType) legacy.get("obj").getProperties().get("vec")).getSpaceType());
+    Map<String, OpenSearchDataType> current =
+        metadata.mappings().get("a:current").getFieldMappings();
+    assertNull(((OpenSearchKnnVectorType) current.get("plain")).getSpaceType());
   }
 
   @Test

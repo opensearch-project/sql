@@ -36,4 +36,9 @@ public class NoBucketAggregationParser implements OpenSearchAggregationResponseP
     throw new UnsupportedOperationException(
         "NoBucketAggregationParser doesn't support parse(SearchHits)");
   }
+
+  @Override
+  public boolean readsDocuments() {
+    return metricsParser.readsDocuments();
+  }
 }

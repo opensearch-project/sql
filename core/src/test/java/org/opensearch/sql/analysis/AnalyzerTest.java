@@ -1975,6 +1975,37 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
+  public void knn_command_requires_calcite_engine() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    AstDSL.knn(
+                        relation("schema"),
+                        field("integer_value"),
+                        AstDSL.vectorLiteral(1, 2, 3),
+                        AstDSL.argument("k", intLiteral(10)))));
+    assertEquals("knn requires the Calcite engine", exception.getMessage());
+  }
+
+  @Test
+  public void knn_function_requires_calcite_engine() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    AstDSL.filter(
+                        relation("schema"),
+                        AstDSL.knnFunction(
+                            field("integer_value"),
+                            AstDSL.vectorLiteral(1, 2, 3),
+                            AstDSL.unresolvedArg("k", intLiteral(10))))));
+    assertEquals("knn requires the Calcite engine", exception.getMessage());
+  }
+
+  @Test
   public void stats_non_bucket_nullable_test() {
     assertAnalyzeEqual(
         LogicalPlanDSL.aggregation(

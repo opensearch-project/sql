@@ -82,6 +82,7 @@ import org.opensearch.sql.ast.tree.Foreach;
 import org.opensearch.sql.ast.tree.GraphLookup;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Join;
+import org.opensearch.sql.ast.tree.Knn;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.MinSpanBin;
 import org.opensearch.sql.ast.tree.Multisearch;
@@ -668,6 +669,19 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     String child = node.getChild().get(0).accept(this, context);
     Integer size = node.getSize();
     return StringUtils.format("%s | head %d", child, size);
+  }
+
+  /** The field and the query vector are masked; option names are kept, their values masked. */
+  @Override
+  public String visitKnn(Knn node, String context) {
+    String child = node.getChild().getFirst().accept(this, context);
+    StringBuilder command = new StringBuilder();
+    command.append(" | knn field=").append(MASK_COLUMN).append(" vector=").append(MASK_LITERAL);
+    node.getOptions()
+        .forEach(
+            option ->
+                command.append(' ').append(option.getArgName()).append('=').append(MASK_LITERAL));
+    return StringUtils.format("%s%s", child, command);
   }
 
   @Override

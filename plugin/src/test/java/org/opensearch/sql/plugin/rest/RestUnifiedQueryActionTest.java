@@ -8,6 +8,7 @@ package org.opensearch.sql.plugin.rest;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -15,6 +16,7 @@ import static org.opensearch.sql.plugin.rest.RestUnifiedQueryAction.FORWARDED_CL
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.calcite.rel.RelNode;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,7 +30,13 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.index.IndexSettings;
 import org.opensearch.indices.IndicesService;
 import org.opensearch.sql.api.UnifiedQueryContext;
+import org.opensearch.sql.ast.dsl.AstDSL;
+import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.tree.Join;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.setting.Settings.Key;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -65,6 +73,104 @@ public class RestUnifiedQueryActionTest {
             mock(EngineContextProvider.class),
             pluginSettings,
             new org.opensearch.sql.executor.DirectExecutionDispatcher());
+  }
+
+  @Test
+  public void knnCommandIsRejectedOnTheAnalyticsRoute() {
+    UnresolvedPlan plan =
+        AstDSL.head(
+            AstDSL.knn(
+                AstDSL.relation("parquet_logs"),
+                AstDSL.field("embedding"),
+                AstDSL.vectorLiteral(1, 2, 3)),
+            10,
+            0);
+    SemanticCheckException e =
+        assertThrows(
+            SemanticCheckException.class, () -> RestUnifiedQueryAction.rejectKnnSteps(plan));
+    assertEquals("knn is not supported on the analytics engine yet", e.getMessage());
+  }
+
+  @Test
+  public void knnFunctionIsRejectedOnTheAnalyticsRouteInAnyBranch() {
+    UnresolvedPlan knnWhere =
+        AstDSL.filter(
+            AstDSL.relation("vectors"),
+            AstDSL.knnFunction(
+                AstDSL.field("embedding"),
+                AstDSL.vectorLiteral(1, 2, 3),
+                AstDSL.unresolvedArg("k", AstDSL.intLiteral(5))));
+    UnresolvedPlan joined =
+        AstDSL.join(knnWhere, Join.JoinType.INNER, Optional.empty())
+            .attach(AstDSL.relation("parquet_logs"));
+    UnresolvedPlan inSubsearch =
+        AstDSL.filter(
+            AstDSL.relation("parquet_logs"),
+            AstDSL.inSubquery(
+                AstDSL.project(knnWhere, AstDSL.field("doc_id")), AstDSL.field("doc_id")));
+    for (UnresolvedPlan plan : List.of(knnWhere, joined, inSubsearch)) {
+      SemanticCheckException e =
+          assertThrows(
+              SemanticCheckException.class, () -> RestUnifiedQueryAction.rejectKnnSteps(plan));
+      assertEquals("knn is not supported on the analytics engine yet", e.getMessage());
+    }
+  }
+
+  /**
+   * knn() in a sort key, an aggregation, a join condition, the value list of an in, or the source
+   * of parse is found too.
+   */
+  @Test
+  public void knnFunctionIsRejectedOnTheAnalyticsRouteInAnyExpression() {
+    UnresolvedPlan sorted =
+        AstDSL.sort(
+            AstDSL.relation("parquet_logs"),
+            AstDSL.field(knnCall(), AstDSL.argument("asc", AstDSL.booleanLiteral(false))));
+    UnresolvedPlan stats =
+        AstDSL.agg(
+            AstDSL.relation("parquet_logs"),
+            List.of(AstDSL.alias("m", AstDSL.aggregate("max", knnCall()))),
+            List.of(),
+            List.of(),
+            AstDSL.defaultStatsArgs());
+    UnresolvedPlan joined =
+        AstDSL.join(
+                AstDSL.relation("docs"),
+                Join.JoinType.INNER,
+                Optional.of(AstDSL.compare(">", knnCall(), AstDSL.intLiteral(0))))
+            .attach(AstDSL.relation("parquet_logs"));
+    UnresolvedPlan inList =
+        AstDSL.filter(
+            AstDSL.relation("parquet_logs"),
+            AstDSL.in(AstDSL.field("a"), AstDSL.intLiteral(1), knnCall()));
+    UnresolvedPlan parsed =
+        AstDSL.parse(
+            AstDSL.relation("parquet_logs"),
+            ParseMethod.REGEX,
+            knnCall(),
+            AstDSL.stringLiteral("(?<x>.*)"),
+            Map.of());
+    for (UnresolvedPlan plan : List.of(sorted, stats, joined, inList, parsed)) {
+      SemanticCheckException e =
+          assertThrows(
+              SemanticCheckException.class, () -> RestUnifiedQueryAction.rejectKnnSteps(plan));
+      assertEquals("knn is not supported on the analytics engine yet", e.getMessage());
+    }
+  }
+
+  private static UnresolvedExpression knnCall() {
+    return AstDSL.knnFunction(AstDSL.field("embedding"), AstDSL.vectorLiteral(1, 2, 3));
+  }
+
+  @Test
+  public void queriesWithoutKnnPassTheAnalyticsRouteCheck() {
+    RestUnifiedQueryAction.rejectKnnSteps(
+        AstDSL.head(
+            AstDSL.filter(
+                AstDSL.relation("parquet_logs"),
+                AstDSL.compare("=", AstDSL.field("knn"), AstDSL.intLiteral(1))),
+            10,
+            0));
   }
 
   @Test

@@ -148,4 +148,9 @@ public class BucketAggregationParser implements OpenSearchAggregationResponsePar
     }
     return Optional.ofNullable(extracted);
   }
+
+  @Override
+  public boolean readsDocuments() {
+    return metricsParser.readsDocuments();
+  }
 }

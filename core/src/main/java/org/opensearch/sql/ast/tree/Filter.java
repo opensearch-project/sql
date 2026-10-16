@@ -18,10 +18,20 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @EqualsAndHashCode(callSuper = false)
 @Getter
 public class Filter extends UnresolvedPlan {
-  private final UnresolvedExpression condition;
+  private UnresolvedExpression condition;
   private UnresolvedPlan child;
 
   public Filter(UnresolvedExpression condition) {
+    this.condition = condition;
+  }
+
+  /**
+   * Replace the condition. For AST passes that normalise a condition in place before lowering, such
+   * as {@code KnnLimitResolver} turning a plain {@code knn(...)} call into a {@code KnnFunction}.
+   *
+   * @param condition the new condition
+   */
+  public void setCondition(UnresolvedExpression condition) {
     this.condition = condition;
   }
 

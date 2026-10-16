@@ -368,6 +368,14 @@ public class OpenSearchRequestBuilder {
     exprValueFactory.extendTypeMapping(typeMapping);
   }
 
+  /**
+   * Push the types of output columns that do not read the index field of their name (see {@link
+   * OpenSearchExprValueFactory#putColumnTypes}).
+   */
+  public void pushColumnTypes(Map<String, OpenSearchDataType> columnTypes) {
+    exprValueFactory.putColumnTypes(columnTypes);
+  }
+
   public void pushDownCollapse(String field) {
     sourceBuilder.collapse(new CollapseBuilder(field));
   }

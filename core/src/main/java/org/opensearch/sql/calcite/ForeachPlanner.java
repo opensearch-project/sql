@@ -100,7 +100,16 @@ class ForeachPlanner {
     List<String> currentFields = context.relBuilder.peek().getRowType().getFieldNames();
     Set<String> matchingFields = new LinkedHashSet<>();
     for (String pattern : node.getFieldPatterns()) {
-      matchingFields.addAll(WildcardUtils.expandWildcardPattern(pattern, currentFields));
+      List<String> matches = WildcardUtils.expandWildcardPattern(pattern, currentFields);
+      if (WildcardUtils.containsWildcard(pattern)) {
+        // A wildcard leaves a protected _score, such as the k-NN score, alone, as fillnull over
+        // all fields does; naming _score is refused, as no command may replace the k-NN score.
+        matches =
+            matches.stream()
+                .filter(name -> !CalciteRelNodeVisitor.isProtectedScore(name, context))
+                .toList();
+      }
+      matchingFields.addAll(matches);
     }
 
     for (String fieldName : matchingFields) {

@@ -5,7 +5,9 @@
 
 package org.opensearch.sql.opensearch.storage.scan;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.PhysType;
@@ -24,11 +26,13 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.hint.RelHint;
 import org.apache.calcite.rel.rules.CoreRules;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.plan.Scannable;
 import org.opensearch.sql.calcite.plan.rule.OpenSearchRules;
+import org.opensearch.sql.data.type.VectorFieldType;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
@@ -108,6 +112,21 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
     return implementor.result(physType, Blocks.toBlock(Expressions.call(scanOperator, "scan")));
   }
 
+  /** The knn_vector fields of the index by path, which the enumerator converts for Calcite. */
+  private Map<String, VectorFieldType> vectorFields() {
+    Map<String, VectorFieldType> vectors = new HashMap<>();
+    osIndex
+        .getFieldTypes()
+        .forEach(
+            (path, type) -> {
+              // An alias is not a field of the document, so its target is converted instead.
+              if (type.getOriginalPath().isEmpty() && type instanceof VectorFieldType vector) {
+                vectors.put(path, vector);
+              }
+            });
+    return vectors;
+  }
+
   /**
    * This Enumerator may be iterated for multiple times, so we need to create opensearch request for
    * each time to avoid reusing source builder. That's because the source builder has stats like PIT
@@ -122,6 +141,8 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
         return new OpenSearchIndexEnumerator(
             osIndex.getClient(),
             getRowType().getFieldNames(),
+            getRowType().getFieldList().stream().map(RelDataTypeField::getType).toList(),
+            vectorFields(),
             requestBuilder.getMaxResponseSize(),
             requestBuilder.getMaxResultWindow(),
             osIndex.getQueryBucketSize(),

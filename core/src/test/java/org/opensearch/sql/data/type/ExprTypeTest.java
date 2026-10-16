@@ -78,6 +78,25 @@ class ExprTypeTest {
     assertEquals("NESTED", ARRAY.legacyTypeName());
     assertEquals("OBJECT", STRUCT.legacyTypeName());
     assertEquals("integer", INTEGER.legacyTypeName().toLowerCase());
+    // SQL / JDBC clients keep the name a knn_vector column had as ARRAY; PPL says VECTOR.
+    assertEquals("NESTED", ExprCoreType.VECTOR.legacyTypeName());
+    assertEquals("VECTOR", ExprCoreType.VECTOR.typeName());
+  }
+
+  @Test
+  void vectorIsCompatibleOnlyWithItselfAndUndefined() {
+    assertTrue(ExprCoreType.VECTOR.isCompatible(ExprCoreType.VECTOR));
+    assertTrue(ExprCoreType.VECTOR.isCompatible(UNDEFINED));
+    assertFalse(ExprCoreType.VECTOR.isCompatible(ARRAY));
+    assertFalse(ARRAY.isCompatible(ExprCoreType.VECTOR));
+    assertFalse(ExprCoreType.VECTOR.isCompatible(FLOAT));
+  }
+
+  @Test
+  void isVector() {
+    assertTrue(VectorFieldType.isVector(ExprCoreType.VECTOR));
+    assertFalse(VectorFieldType.isVector(ARRAY));
+    assertFalse(VectorFieldType.isVector(null));
   }
 
   // for test coverage.

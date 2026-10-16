@@ -10,6 +10,8 @@ import java.util.Map;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.dialect.SparkSqlDialect;
+import org.opensearch.sql.calcite.knn.KnnErrors;
+import org.opensearch.sql.expression.function.udf.KnnScoreFunction;
 
 /**
  * Custom Spark SQL dialect that extends Calcite's SparkSqlDialect to handle OpenSearch-specific
@@ -37,6 +39,11 @@ public class OpenSearchSparkSqlDialect extends SparkSqlDialect {
   @Override
   public void unparseCall(SqlWriter writer, SqlCall call, int leftPrec, int rightPrec) {
     String operatorName = call.getOperator().getName();
+
+    // Spark has no approximate nearest-neighbour search to translate the k-NN score to.
+    if (KnnScoreFunction.NAME.equals(operatorName)) {
+      throw KnnErrors.notTranspilable();
+    }
 
     // Replace Calcite specific functions with their Spark SQL equivalents
     if (CALCITE_TO_SPARK_MAPPING.containsKey(operatorName)) {

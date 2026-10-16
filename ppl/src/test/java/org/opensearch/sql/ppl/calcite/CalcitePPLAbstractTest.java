@@ -103,7 +103,7 @@ public class CalcitePPLAbstractTest {
   public RelNode getRelNode(String ppl) {
     CalcitePlanContext context = createBuilderContext();
     Query query = (Query) plan(pplParser, ppl);
-    planTransformer.analyze(query.getPlan(), context);
+    planTransformer.analyzeStatement(query.getPlan(), context);
     RelNode root = context.relBuilder.build();
     root = mergeAdjacentFilters(root);
     System.out.println(root.explain());
@@ -118,7 +118,7 @@ public class CalcitePPLAbstractTest {
   public RelNode getRelNodeRaw(String ppl) {
     CalcitePlanContext context = createBuilderContext();
     Query query = (Query) plan(pplParser, ppl);
-    planTransformer.analyze(query.getPlan(), context);
+    planTransformer.analyzeStatement(query.getPlan(), context);
     RelNode root = context.relBuilder.build();
     System.out.println(root.explain());
     return root;

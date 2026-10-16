@@ -13,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.Getter;
@@ -26,6 +27,7 @@ import org.opensearch.sql.calcite.plan.AbstractOpenSearchTable;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.data.type.VectorFieldType;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
@@ -88,6 +90,9 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
   /** The cached ExprType of fields. */
   private Map<String, ExprType> cachedFieldTypes = null;
 
+  /** The cached paths of the index's knn_vector fields. */
+  private Set<String> cachedKnnVectorFields = null;
+
   /** The cached mapping of alias type field to its original path. */
   private Map<String, String> aliasMapping = null;
 
@@ -147,6 +152,24 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
                   Map::putAll);
     }
     return cachedFieldTypes;
+  }
+
+  /**
+   * The paths of the index's k-NN {@code knn_vector} fields, also inside an object or nested field;
+   * an alias to one is not one. Computed once, as a scan asks for them at every projection.
+   */
+  public Set<String> getKnnVectorFields() {
+    if (cachedKnnVectorFields == null) {
+      cachedKnnVectorFields =
+          getFieldTypes().entrySet().stream()
+              .filter(
+                  e ->
+                      e.getValue().getOriginalPath().isEmpty()
+                          && e.getValue() instanceof VectorFieldType)
+              .map(Map.Entry::getKey)
+              .collect(Collectors.toUnmodifiableSet());
+    }
+    return cachedKnnVectorFields;
   }
 
   @Override

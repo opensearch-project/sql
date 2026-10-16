@@ -10,6 +10,8 @@ import java.util.Optional;
 import java.util.Set;
 import lombok.Getter;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.lang.LangSpec;
 
 /**
  * The type of alias. See <a
@@ -59,26 +61,40 @@ public class OpenSearchAliasType extends OpenSearchDataType {
 
   @Override
   public boolean isCompatible(ExprType other) {
-    return originalType.isCompatible(other);
+    return originalType.asAliasTarget().isCompatible(other);
   }
 
   @Override
   public List<ExprType> getParent() {
-    return originalType.getParent();
+    return originalType.asAliasTarget().getParent();
   }
 
   @Override
   public String typeName() {
-    return originalType.typeName();
+    return originalType.asAliasTarget().typeName();
   }
 
   @Override
   public String legacyTypeName() {
-    return originalType.legacyTypeName();
+    return originalType.asAliasTarget().legacyTypeName();
   }
 
   @Override
   public boolean shouldCast(ExprType other) {
-    return originalType.shouldCast(other);
+    return originalType.asAliasTarget().shouldCast(other);
+  }
+
+  /**
+   * As before for every type, except that PPL describe with the Calcite engine enabled names an
+   * alias to a knn_vector field as it names the field: {@code vector}.
+   */
+  @Override
+  public String describeTypeName(LangSpec langSpec, boolean calciteEngine) {
+    if (calciteEngine
+        && langSpec.language() == QueryType.PPL
+        && originalType instanceof OpenSearchKnnVectorType) {
+      return originalType.describeTypeName(langSpec, true);
+    }
+    return super.describeTypeName(langSpec, calciteEngine);
   }
 }

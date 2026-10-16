@@ -10,7 +10,6 @@ import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
@@ -86,7 +85,7 @@ public class UnaryPredicateOperators {
   private static DefaultFunctionResolver isNull(BuiltinFunctionName funcName) {
     return FunctionDSL.define(
         funcName.getName(),
-        Arrays.stream(ExprCoreType.values())
+        ExprCoreType.v2Types().stream()
             .map(type -> FunctionDSL.impl((v) -> ExprBooleanValue.of(v.isNull()), BOOLEAN, type))
             .collect(Collectors.toList()));
   }
@@ -94,7 +93,7 @@ public class UnaryPredicateOperators {
   private static DefaultFunctionResolver isNotNull() {
     return FunctionDSL.define(
         BuiltinFunctionName.IS_NOT_NULL.getName(),
-        Arrays.stream(ExprCoreType.values())
+        ExprCoreType.v2Types().stream()
             .map(type -> FunctionDSL.impl((v) -> ExprBooleanValue.of(!v.isNull()), BOOLEAN, type))
             .collect(Collectors.toList()));
   }

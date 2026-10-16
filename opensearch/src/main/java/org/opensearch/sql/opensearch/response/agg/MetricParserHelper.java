@@ -72,4 +72,10 @@ public class MetricParserHelper {
     }
     return resultMapList;
   }
+
+  /** Whether a metric parser gives rows of a document's values (see {@link TopHitsParser}). */
+  public boolean readsDocuments() {
+    return metricParserMap.values().stream()
+        .anyMatch(parser -> parser instanceof TopHitsParser topHits && topHits.readsDocuments());
+  }
 }

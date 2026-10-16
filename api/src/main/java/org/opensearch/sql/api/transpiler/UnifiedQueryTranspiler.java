@@ -10,6 +10,8 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.rel2sql.RelToSqlConverter;
 import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlNode;
+import org.opensearch.sql.calcite.knn.KnnErrors;
+import org.opensearch.sql.calcite.knn.KnnPlanBuilder;
 
 /**
  * Transpiles Calcite logical plans ({@link RelNode}) into SQL strings for various target databases.
@@ -27,8 +29,13 @@ public class UnifiedQueryTranspiler {
    *
    * @param plan the logical plan to convert (must not be null)
    * @return the generated SQL string
+   * @throws org.opensearch.sql.exception.SemanticCheckException if the plan has a k-NN step: no SQL
+   *     dialect has the k-NN plugin's approximate nearest-neighbour search
    */
   public String toSql(RelNode plan) {
+    if (KnnPlanBuilder.containsKnnScore(plan)) {
+      throw KnnErrors.notTranspilable();
+    }
     try {
       RelToSqlConverter converter = new RelToSqlConverter(dialect);
       SqlNode sqlNode = converter.visitRoot(plan).asStatement();
