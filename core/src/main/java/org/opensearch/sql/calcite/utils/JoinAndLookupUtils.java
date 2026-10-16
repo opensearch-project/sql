@@ -88,7 +88,10 @@ public interface JoinAndLookupUtils {
    * For lookup table, if the output fields are specified, try to add a project list for it.
    * Otherwise, remove its metadata fields that are not mapping fields, as the output fields would
    * not have included them either; the final metadata strip is skipped once the source side has an
-   * explicit project. Note, join will fail if the mapping fields are excluded.
+   * explicit project. This also applies with {@code include_metadata}: both sides name their
+   * metadata fields alike, so keeping the lookup table's would replace the source rows' own, with
+   * null where no row matches. They can still be requested by name in the output fields. Note, join
+   * will fail if the mapping fields are excluded.
    */
   static void addProjectionIfNecessary(Lookup node, CalcitePlanContext context) {
     List<String> mappingField = node.getMappingAliasMap().keySet().stream().toList();

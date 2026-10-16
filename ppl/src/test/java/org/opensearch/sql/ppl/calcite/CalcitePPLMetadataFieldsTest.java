@@ -67,6 +67,11 @@ public class CalcitePPLMetadataFieldsTest extends CalcitePPLAbstractTest {
             ImmutableList.of(
                 new Object[] {1, "a", "id-1", "logs", 1.0f},
                 new Object[] {2, "b", "id-2", "logs", 1.0f})));
+    // A lookup table with other metadata values; only id 1 has a match.
+    schema.add(
+        "DEPTS",
+        new TableWithMetadataFields(
+            ImmutableList.<Object[]>of(new Object[] {1, "x", "dept-1", "depts", 2.0f})));
     return Frameworks.newConfigBuilder()
         .parserConfig(SqlParser.Config.DEFAULT)
         .defaultSchema(schema)
@@ -188,6 +193,38 @@ public class CalcitePPLMetadataFieldsTest extends CalcitePPLAbstractTest {
   @Test
   public void testLookupByMetadataField() {
     verifyOutputFields("source=LOGS | fields msg, _id | lookup LOGS _id", "_id", "id", "msg");
+  }
+
+  @Test
+  public void testLookupKeepsSourceMetadataForLaterFields() {
+    // The lookup table's _id must not replace the source rows' own, which a later fields selects.
+    RelNode root = getRelNode("source=LOGS | lookup DEPTS id | fields id, _id");
+    verifyResult(root, "id=1; _id=id-1\nid=2; _id=id-2\n");
+  }
+
+  @Test
+  public void testIncludeMetadataWithLookupKeepsSourceMetadata() {
+    // Both tables name their metadata fields alike, so one set is kept: the source rows' own,
+    // also for the row without a match.
+    RelNode root = getRelNodeIncludingMetadata("source=LOGS | lookup DEPTS id");
+    assertEquals(
+        List.of("id", "_id", "_index", "_score", "msg"), root.getRowType().getFieldNames());
+    verifyResult(
+        root,
+        "id=1; _id=id-1; _index=logs; _score=1.0; msg=x\n"
+            + "id=2; _id=id-2; _index=logs; _score=1.0; msg=null\n");
+  }
+
+  @Test
+  public void testIncludeMetadataWithLookupOutputsLookupMetadataByName() {
+    RelNode root =
+        getRelNodeIncludingMetadata(
+            "source=LOGS | lookup DEPTS id OUTPUT _id AS dept_doc_id, _index AS dept_index");
+    verifyResult(
+        root,
+        "id=1; msg=a; _id=id-1; _index=logs; _score=1.0; dept_index=depts; dept_doc_id=dept-1\n"
+            + "id=2; msg=b; _id=id-2; _index=logs; _score=1.0; dept_index=null;"
+            + " dept_doc_id=null\n");
   }
 
   @Test
