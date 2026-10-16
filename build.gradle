@@ -322,7 +322,8 @@ def aggregatedCoverageModules = [
 ]
 def jacocoAggregatedReport = tasks.register('jacocoAggregatedReport', JacocoReport) {
     group = 'verification'
-    description = 'Generates a code coverage report of all modules from the unit tests of all modules.'
+    description = 'Generates a code coverage report of all modules from the unit tests of all modules. ' +
+            'Does not run the tests; use ./gradlew test jacocoAggregatedReport.'
     reports {
         html.required = true
         xml.required = true
@@ -335,7 +336,9 @@ gradle.projectsEvaluated {
         subprojects.findAll { it.plugins.hasPlugin('jacoco') }.each { p ->
             // 'junit4' is the JUnit 4 test task of async-query, direct-query and direct-query-core.
             p.tasks.withType(Test).matching { it.name in ['test', 'junit4'] }.each { testTask ->
-                dependsOn testTask
+                // Like each module's jacocoTestReport, only run after the tests rather than depend on
+                // them, so that a failing test still leaves a report for CI to upload.
+                mustRunAfter testTask
                 executionData testTask
             }
         }
