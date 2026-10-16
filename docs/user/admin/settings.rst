@@ -1076,6 +1076,30 @@ scalar data types, allowing basic queries (e.g., SELECT * FROM tbl WHERE conditi
 fields in expressions or functions will result in exceptions. If this setting is disabled or absent, only the
 first element of an array is returned, preserving the default behavior.
 
+plugins.query.flat_object.max_depth
+===================================
+
+Version
+-------
+3.10
+
+Description
+-----------
+
+A ``flat_object`` field is read as a struct keyed by the dotted path of each leaf. This setting is how many levels of objects are descended to reach a leaf. Past it, the object that would have been descended into is kept as one leaf under the path reached so far, holding its own JSON; nothing is dropped.
+
+1. The default value is 20, the default of the index setting ``index.mapping.depth.limit``, so a flat_object is read as deeply as a mapped object is allowed.
+2. This setting is node scope.
+3. This setting can be updated dynamically.
+
+Raise it if a flat_object holds leaves deeper than the default. Here is an example::
+
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	  "transient" : {
+	    "plugins.query.flat_object.max_depth" : 30
+	  }
+	}'
+
 plugins.calcite.enabled
 =======================
 
