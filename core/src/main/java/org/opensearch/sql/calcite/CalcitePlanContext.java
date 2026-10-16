@@ -84,8 +84,8 @@ public class CalcitePlanContext {
   /**
    * The flag used to determine whether we do metadata field projection for user 1. If a project is
    * never visited, we will do metadata field projection for user 2. Else not because user may
-   * intend to show the metadata field themselves. // TODO: use stack here if we want to do similar
-   * projection for subquery.
+   * intend to show the metadata field themselves. Commands that combine several inputs, such as
+   * append, decide this per input; see {@code CalciteRelNodeVisitor#visitInputsWithOwnMetaFields}.
    */
   @Getter @Setter private boolean isProjectVisited = false;
 
