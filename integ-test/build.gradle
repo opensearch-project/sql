@@ -537,6 +537,12 @@ testClusters {
         // Only /_cluster/health is registered; pin the allow-list to it for RestCommandSecurityIT.
         setting 'plugins.ppl.rest.allowed_endpoints', '/_cluster/health'
     }
+    // Long-lived local dev cluster with the security (FGAC) plugin, for `runWithSecurity`.
+    runWithSecurity {
+        testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
+        plugin ":opensearch-sql-plugin"
+    }
     remoteIntegTestWithSecurity {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
@@ -864,6 +870,15 @@ task integTestWithSecurity(type: RestIntegTestTask) {
         includeTestsMatching 'org.opensearch.sql.security.*'
     }
 }
+
+// analogous to the plugin project's `run` task but with a demo config for testing roles.
+task runWithSecurity(type: org.opensearch.gradle.testclusters.RunTask) {
+    useCluster testClusters.runWithSecurity
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+    description = 'Run a local dev cluster with the opensearch-security (FGAC) plugin installed.'
+    group = 'verification'
+}
+configureSecurityPlugin(testClusters.runWithSecurity)
 
 yamlRestTest {
     systemProperty 'tests.security.manager', 'false'
