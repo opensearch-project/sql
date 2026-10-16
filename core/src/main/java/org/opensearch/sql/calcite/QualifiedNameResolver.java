@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -152,7 +153,12 @@ public class QualifiedNameResolver {
 
         Optional<RexNode> fieldNode = tryToResolveField(alias, field, context, inputCount);
         if (fieldNode.isPresent()) {
-          return Optional.of(resolveFieldAccess(context, parts, 1, length, fieldNode.get()));
+          RexNode resolved = resolveFieldAccess(context, parts, 1, length, fieldNode.get(), false);
+          if (resolved != null) {
+            return Optional.of(resolved);
+          }
+          // Null on a failed descent; keep walking shorter prefixes, as resolveFromParts does.
+          // Wrapping it in Optional.of here threw an NPE on `source=t as d | fields d.city.nope`.
         }
       }
     }
@@ -182,15 +188,67 @@ public class QualifiedNameResolver {
     List<Set<String>> inputFieldNames = collectInputFieldNames(context, inputCount);
 
     List<String> parts = nameNode.getParts();
+    Optional<RexNode> resolved =
+        resolveFromParts(parts, context, inputCount, inputFieldNames, false);
+    if (resolved.isPresent()) {
+      return resolved;
+    }
+    // A quoted identifier that contains dots (`cluster.name`) is a single part, so the walk above
+    // has
+    // nothing to descend and only matches a column literally called that. Vanilla flattens objects,
+    // so
+    // there such a column really exists; where an object is a struct instead, the same name means
+    // the
+    // path into it. Split and retry, but only after the literal lookup failed, so a column named
+    // with dots still wins.
+    //
+    // The retry only accepts a resolution that descends a ROW (structDescentOnly). A quoted dotted
+    // name must not turn into a map key: a column whose dotted subtree was shed -- as happens when
+    // a container column is rebuilt, e.g. a second `spath output=data` dropping a `data.custom`
+    // created in between -- is meant to be unreachable, and splitting it into ITEM(data, 'custom')
+    // would silently resolve it again and return null instead of reporting the field as gone.
+    List<String> split = new ArrayList<>(parts.size());
+    for (String part : parts) {
+      for (String segment : part.split("\\.")) {
+        // `a..b` or a trailing dot yields empty segments, which can never name a field.
+        if (!segment.isEmpty()) {
+          split.add(segment);
+        }
+      }
+    }
+    if (split.size() != parts.size()) {
+      return resolveFromParts(split, context, inputCount, inputFieldNames, true);
+    }
+    return Optional.empty();
+  }
+
+  /**
+   * Longest-prefix match over {@code parts}, descending whatever is left into the matched field.
+   *
+   * @param structDescentOnly accept a match only when the leftover path is consumed by descending a
+   *     ROW, never by becoming an ITEM key. Set when retrying a quoted dotted name that was split,
+   *     where turning the name into a map key would resolve a field that is meant to be gone.
+   */
+  private static Optional<RexNode> resolveFromParts(
+      List<String> parts,
+      CalcitePlanContext context,
+      int inputCount,
+      List<Set<String>> inputFieldNames,
+      boolean structDescentOnly) {
     for (int length = parts.size(); 1 <= length; length--) {
       String fieldName = joinParts(parts, 0, length);
-      log.debug("resolveFieldWithoutAlias() trying fieldName={} with length={}", fieldName, length);
+      log.debug("resolveFromParts() trying fieldName={} with length={}", fieldName, length);
 
       int foundInput = findInputContainingFieldName(inputCount, inputFieldNames, fieldName);
-      log.debug("resolveFieldWithoutAlias() foundInput={}", foundInput);
       if (foundInput != -1) {
         RexNode fieldNode = context.relBuilder.field(inputCount, foundInput, fieldName);
-        return Optional.of(resolveFieldAccess(context, parts, 0, length, fieldNode));
+        RexNode resolved =
+            resolveFieldAccess(context, parts, 0, length, fieldNode, structDescentOnly);
+        if (resolved != null) {
+          return Optional.of(resolved);
+        }
+        // This prefix matched a column but the rest of the path is not in its ROW. A shorter prefix
+        // may still match a different column, so keep walking rather than giving up here.
       }
     }
     return Optional.empty();
@@ -279,7 +337,12 @@ public class QualifiedNameResolver {
                   log.debug("resolveCorrelationField() trying fieldName={}", fieldName);
                   if (fieldNameList.contains(fieldName)) {
                     RexNode field = context.relBuilder.field(correlation, fieldName);
-                    return resolveFieldAccess(context, parts, start, length, field);
+                    RexNode resolved =
+                        resolveFieldAccess(context, parts, start, length, field, false);
+                    if (resolved != null) {
+                      return resolved;
+                    }
+                    // Null on a failed descent; keep trying shorter prefixes.
                   }
                 }
               }
@@ -287,15 +350,78 @@ public class QualifiedNameResolver {
             });
   }
 
+  /**
+   * Resolves the path segments left over after {@code field} was matched.
+   *
+   * <p>A ROW is descended one segment at a time with Calcite's native field access, which is how a
+   * struct is referenced: {@code $1.location.latitude} is two accesses, each typed by the child it
+   * reads. Anything else keeps the whole remainder as a single {@code ITEM} key, which is right for
+   * a MAP: a vanilla {@code object} is typed {@code MAP<VARCHAR, ANY>} because vanilla stores
+   * objects flattened, so {@code city.location.latitude} genuinely is one key there.
+   *
+   * <p>Joining the remainder unconditionally, as this did before, produced {@code ITEM($city,
+   * 'location.latitude')} for a real nested struct. {@code SqlItemOperator} looks a dotted key up
+   * as one field name, finds nothing, and throws {@code AssertionError: Cannot infer type of field
+   * ... within ROW type}. Being an Error it escapes the {@code catch (Exception)} in the resolve
+   * loop and surfaces as a 500. That made every struct path deeper than one segment unreachable.
+   *
+   * @return the resolved node, or {@code null} when descent stopped inside a ROW on a segment that
+   *     names no field of it, which is an unresolved path rather than a usable node
+   */
   private static RexNode resolveFieldAccess(
-      CalcitePlanContext context, List<String> parts, int start, int length, RexNode field) {
-    if (length == parts.size() - start) {
-      return field;
-    } else {
-      int remainingStart = length + start;
-      int remainingLength = parts.size() - remainingStart;
-      String itemName = joinParts(parts, remainingStart, remainingLength);
-      return createItemAccess(field, itemName, context);
+      CalcitePlanContext context,
+      List<String> parts,
+      int start,
+      int length,
+      RexNode field,
+      boolean structDescentOnly) {
+    int remaining = length + start;
+    RexNode current = field;
+    while (remaining < parts.size() && current.getType().isStruct()) {
+      RelDataTypeField child = current.getType().getField(parts.get(remaining), false, false);
+      if (child == null) {
+        break;
+      }
+      current = context.rexBuilder.makeFieldAccess(current, child.getIndex());
+      remaining++;
+    }
+    if (remaining == parts.size()) {
+      return current;
+    }
+    if (current.getType().isStruct()) {
+      // Descent stopped on a segment that names no field of this ROW. Joining the remainder into an
+      // ITEM key here would rebuild the very shape this method exists to avoid: ITEM(<ROW>, 'x')
+      // makes SqlItemOperator throw the AssertionError described above, which escapes the caller's
+      // catch (Exception) as a 500. Report it as unresolved so it reaches the ordinary
+      // "Field [...] not found" instead.
+      return null;
+    }
+    if (!supportsItemAccess(current.getType())) {
+      // The path ran past the end of the object: `city.name` is a VARCHAR, and an ITEM key on one
+      // throws the same AssertionError. Narrower than rejecting any leftover once a ROW was
+      // entered, so a flat_object map inside an object can still be keyed into.
+      return null;
+    }
+    if (structDescentOnly) {
+      // Reached only from the split retry of a quoted dotted name. The leftover would become a map
+      // key, which is not what the quoted name asked for, so report it unresolved.
+      return null;
+    }
+    return createItemAccess(
+        current, joinParts(parts, remaining, parts.size() - remaining), context);
+  }
+
+  /** The types {@code SqlItemOperator} accepts; on anything else it throws an {@code Error}. */
+  private static boolean supportsItemAccess(RelDataType type) {
+    switch (type.getSqlTypeName()) {
+      case ARRAY:
+      case MAP:
+      case ROW:
+      case ANY:
+      case DYNAMIC_STAR:
+        return true;
+      default:
+        return false;
     }
   }
 
