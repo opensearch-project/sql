@@ -63,11 +63,12 @@ public class EnhancedCoalesceFunction extends ImplementorUDF {
     return switch (typeName) {
       case "INTEGER" -> tryConvert(() -> ExprValueUtils.integerValue(value.integerValue()), value);
       case "BIGINT" -> tryConvert(() -> ExprValueUtils.longValue(value.longValue()), value);
-      case "SMALLINT", "TINYINT" ->
-          tryConvert(() -> ExprValueUtils.integerValue(value.integerValue()), value);
-      case "DOUBLE" -> tryConvert(() -> ExprValueUtils.doubleValue(value.doubleValue()), value);
-      case "FLOAT", "REAL" ->
-          tryConvert(() -> ExprValueUtils.floatValue(value.floatValue()), value);
+      case "SMALLINT" -> tryConvert(() -> ExprValueUtils.shortValue(value.shortValue()), value);
+      case "TINYINT" -> tryConvert(() -> ExprValueUtils.byteValue(value.byteValue()), value);
+      // Calcite's FLOAT is double precision, and REAL is single precision
+      case "DOUBLE", "FLOAT" ->
+          tryConvert(() -> ExprValueUtils.doubleValue(value.doubleValue()), value);
+      case "REAL" -> tryConvert(() -> ExprValueUtils.floatValue(value.floatValue()), value);
       case "BOOLEAN" -> tryConvert(() -> ExprValueUtils.booleanValue(value.booleanValue()), value);
       case "VARCHAR", "CHAR" ->
           tryConvert(() -> ExprValueUtils.stringValue(String.valueOf(value.value())), value);
