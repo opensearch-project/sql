@@ -205,6 +205,11 @@ configurations.all {
 
 configurations {
     zipArchive
+    // Resolved only by integTestWithQueryInsights, so no other task depends on a Query Insights
+    // snapshot being published.
+    queryInsightsZip {
+        transitive = false
+    }
 }
 
 dependencies {
@@ -237,6 +242,9 @@ dependencies {
 
     // For GeoIP PPL functions
     zipArchive group: 'org.opensearch.plugin', name:'geospatial', version: "${opensearch_build}"
+
+    // Installed alongside the plugin by integTestWithQueryInsights
+    queryInsightsZip group: 'org.opensearch.plugin', name:'query-insights', version: "${opensearch_build}"
 
 }
 
@@ -278,6 +286,17 @@ def getGeoSpatialPlugin() {
         configurations.zipArchive.asFileTree.matching {
             include '**/geospatia*'
         }.singleFile )
+    }
+}
+
+// The published Query Insights snapshot, or a local build via -PqueryInsightsZip=/path/to.zip.
+def getQueryInsightsPlugin() {
+    provider { (RegularFile) (() ->
+        project.findProperty('queryInsightsZip')
+            ? file(project.findProperty('queryInsightsZip'))
+            : configurations.queryInsightsZip.asFileTree.matching {
+                include '**/query-insights*'
+            }.singleFile )
     }
 }
 
@@ -540,6 +559,14 @@ testClusters {
         plugin(getJobSchedulerPlugin())
         plugin ":opensearch-sql-plugin"
     }
+    // Query Insights installed, so the PPL -> Query Insights reporting path actually runs.
+    integTestWithQueryInsights {
+        testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
+        plugin(getQueryInsightsPlugin())
+        plugin ":opensearch-sql-plugin"
+        setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
+    }
     // Smoke test: verify sql loads cleanly alongside analytics-engine.
     analyticsEngineCompat {
         testDistribution = 'archive'
@@ -795,6 +822,29 @@ task asyncMultiNodeIT(type: RestIntegTestTask) {
 // (needs a 2-node cluster) and would never actually run.
 check.dependsOn asyncMultiNodeIT
 
+// Asserts that PPL queries are recorded into Query Insights. Not part of `check` yet: the published
+// Query Insights snapshot does not include the PPL consumer until that change merges there, so run
+// it against a local build until then:
+//   ./gradlew :integ-test:integTestWithQueryInsights -PqueryInsightsZip=/path/to/query-insights.zip
+task integTestWithQueryInsights(type: RestIntegTestTask) {
+    useCluster testClusters.integTestWithQueryInsights
+
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+
+    systemProperty 'tests.security.manager', 'false'
+    systemProperty 'project.root', project.projectDir.absolutePath
+    systemProperty 'defaultQuerySizeLimit', '10000'
+    systemProperty 'defaultQueryBucketSize', '1000'
+    systemProperty 'defaultMaxResultWindow', '10000'
+    doFirst {
+        systemProperty 'cluster.debug', getDebug()
+    }
+
+    filter {
+        includeTestsMatching 'org.opensearch.sql.ppl.QueryInsightsRecordingIT'
+    }
+}
+
 task integTestWithSecurity(type: RestIntegTestTask) {
     useCluster testClusters.integTestWithSecurity
     useCluster testClusters.remoteIntegTestWithSecurity
@@ -948,6 +998,9 @@ integTest {
 
     // Run on dedicated two-node cluster via :integ-test:asyncMultiNodeIT.
     exclude 'org/opensearch/sql/ppl/AsyncPPLMultiNodeRoutingIT.class'
+
+    // Needs Query Insights installed; runs via :integ-test:integTestWithQueryInsights.
+    exclude 'org/opensearch/sql/ppl/QueryInsightsRecordingIT.class'
 
     // Exclude tests that require the analytics engine plugin stack (run separately via dedicated tasks)
     exclude 'org/opensearch/sql/analytics/AnalyticsEngineProfileIT.class'
@@ -1299,6 +1352,9 @@ task integTestRemote(type: RestIntegTestTask) {
         if (System.getProperty("tests.rest.bwcsuite") == null) {
             excludeTestsMatching "org.opensearch.sql.bwc.*IT"
         }
+
+        // Needs Query Insights installed; runs via :integ-test:integTestWithQueryInsights.
+        excludeTestsMatching 'org.opensearch.sql.ppl.QueryInsightsRecordingIT'
 
         if (analyticsEnabled) {
             // Full-text search (search-filter syntax -> Lucene query_string) needs an inverted-index
