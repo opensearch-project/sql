@@ -156,15 +156,27 @@ public class CalcitePPLKnnTest extends CalcitePPLAbstractTest {
                 .visit(pplParser.parse(ppl));
     // Lower the same AST twice, in fresh contexts and with one visitor, as the profiling path of
     // QueryService does; lowering changes the AST, so the second pass must give the same plan.
+    // timewrap writes the query's start time, in seconds, into the plan, so both contexts start
+    // in the same second.
     CalciteRelNodeVisitor visitor = new CalciteRelNodeVisitor(dataSourceService);
-    RelNode first = lowerOnce(visitor, query.getPlan());
-    RelNode second = lowerOnce(visitor, query.getPlan());
+    CalcitePlanContext firstContext;
+    CalcitePlanContext secondContext;
+    do {
+      firstContext = createBuilderContext();
+      secondContext = createBuilderContext();
+    } while (startSecond(firstContext) != startSecond(secondContext));
+    RelNode first = lowerOnce(visitor, query.getPlan(), firstContext);
+    RelNode second = lowerOnce(visitor, query.getPlan(), secondContext);
     assertEquals("lowering the same AST again differs", first.explain(), second.explain());
     return first;
   }
 
-  private RelNode lowerOnce(CalciteRelNodeVisitor visitor, UnresolvedPlan plan) {
-    CalcitePlanContext context = createBuilderContext();
+  private static long startSecond(CalcitePlanContext context) {
+    return context.functionProperties.getQueryStartClock().millis() / 1000;
+  }
+
+  private RelNode lowerOnce(
+      CalciteRelNodeVisitor visitor, UnresolvedPlan plan, CalcitePlanContext context) {
     visitor.analyzeStatement(plan, context);
     return context.relBuilder.build();
   }

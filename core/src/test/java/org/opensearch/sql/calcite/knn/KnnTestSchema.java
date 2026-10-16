@@ -26,6 +26,7 @@ import org.apache.calcite.tools.FrameworkConfig;
 import org.apache.calcite.tools.Frameworks;
 import org.apache.calcite.tools.Programs;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.Util;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.SysLimit;
@@ -89,8 +90,13 @@ final class KnnTestSchema {
     return CalcitePlanContext.create(config, SysLimit.DEFAULT, QueryType.PPL);
   }
 
+  /**
+   * The plan as text, with {@code \n} line ends: {@link RelOptUtil#toString} ends its lines with
+   * the platform's line separator ({@code \r\n} on Windows), and the expected plans use {@code \n},
+   * as Calcite's {@code Matchers.hasTree} compares them.
+   */
   static String explain(RelNode rel) {
-    return RelOptUtil.toString(rel);
+    return Util.toLinux(RelOptUtil.toString(rel));
   }
 
   /** A table without rows that Calcite can still compile a plan over. */
