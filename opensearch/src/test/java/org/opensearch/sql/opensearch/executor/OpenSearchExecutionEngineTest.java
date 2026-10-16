@@ -9,6 +9,8 @@ import static com.google.common.collect.ImmutableMap.of;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -38,6 +40,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
+import org.opensearch.sql.common.error.ResourceLimitExceededException;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprValue;
@@ -288,6 +293,30 @@ class OpenSearchExecutionEngineTest {
             "exception while executing query", new RuntimeException("all shards failed"));
 
     assertFalse(OpenSearchExecutionEngine.isPitContextLimitReached(chain));
+  }
+
+  @Test
+  void finds_error_report_raised_while_reading_results() {
+    // A response parser's ErrorReport reaches the engine wrapped by Calcite's JDBC layer.
+    ErrorReport report =
+        ErrorReport.wrap(new ResourceLimitExceededException("too many values"))
+            .code(ErrorCode.RESOURCE_LIMIT_EXCEEDED)
+            .build();
+    Throwable chain =
+        new SQLException(
+            "exception while executing query: too many values",
+            new RuntimeException("wrapped", report));
+
+    assertSame(report, OpenSearchExecutionEngine.findErrorReport(chain));
+  }
+
+  @Test
+  void finds_no_error_report_in_unrelated_failures() {
+    Throwable chain =
+        new SQLException(
+            "exception while executing query", new RuntimeException("all shards failed"));
+
+    assertNull(OpenSearchExecutionEngine.findErrorReport(chain));
   }
 
   @Test

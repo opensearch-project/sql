@@ -32,6 +32,7 @@ import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.opensearch.action.search.*;
 import org.opensearch.cluster.metadata.AliasMetadata;
 import org.opensearch.common.action.ActionFuture;
+import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.tasks.TaskId;
@@ -160,14 +161,36 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   public Map<String, Integer> getIndexMaxResultWindows(String... indexExpression) {
     IndexGroups groups = groupByCluster(indexExpression);
     if (groups.remote().isEmpty()) {
-      return localIndexMaxResultWindows(indexExpression);
+      return localIndexIntSettings(IndexSettings.MAX_RESULT_WINDOW_SETTING, indexExpression);
     }
     Map<String, Integer> windows = new HashMap<>();
     if (groups.local().length > 0) {
-      windows.putAll(localIndexMaxResultWindows(groups.local()));
+      windows.putAll(
+          localIndexIntSettings(IndexSettings.MAX_RESULT_WINDOW_SETTING, groups.local()));
     }
     // Read with the mappings and cached together, so this is a cache hit after getIndexMappings.
     windows.putAll(readRemote(groups).windows());
+    return windows;
+  }
+
+  /**
+   * Fetch index.max_inner_result_window settings according to index expression given.
+   *
+   * @param indexExpression index expression
+   * @return map from index name to its max inner result window
+   */
+  @Override
+  public Map<String, Integer> getIndexMaxInnerResultWindows(String... indexExpression) {
+    IndexGroups groups = groupByCluster(indexExpression);
+    if (groups.remote().isEmpty()) {
+      return localIndexIntSettings(IndexSettings.MAX_INNER_RESULT_WINDOW_SETTING, indexExpression);
+    }
+    Map<String, Integer> windows = new HashMap<>();
+    if (groups.local().length > 0) {
+      windows.putAll(
+          localIndexIntSettings(IndexSettings.MAX_INNER_RESULT_WINDOW_SETTING, groups.local()));
+    }
+    windows.putAll(readRemote(groups).innerWindows());
     return windows;
   }
 
@@ -187,7 +210,7 @@ public class OpenSearchNodeClient implements OpenSearchClient {
       if (groups.local().length == 0) {
         throw IndexMappingErrors.allClustersSkipped(e.getMessage(), e.indexNames);
       }
-      return new RemoteMappingsReader.RemoteMetadata(Map.of(), Map.of());
+      return new RemoteMappingsReader.RemoteMetadata(Map.of(), Map.of(), Map.of());
     }
   }
 
@@ -213,7 +236,8 @@ public class OpenSearchNodeClient implements OpenSearchClient {
     return new IndexGroups(local == null ? new String[0] : local, byCluster);
   }
 
-  private Map<String, Integer> localIndexMaxResultWindows(String... indexExpression) {
+  private Map<String, Integer> localIndexIntSettings(
+      Setting<Integer> setting, String... indexExpression) {
     try {
       GetSettingsResponse settingsResponse =
           client.admin().indices().prepareGetSettings(indexExpression).setLocal(true).get();
@@ -223,9 +247,7 @@ public class OpenSearchNodeClient implements OpenSearchClient {
         Settings settings = indexToSetting.getValue();
         result.put(
             indexToSetting.getKey(),
-            settings.getAsInt(
-                IndexSettings.MAX_RESULT_WINDOW_SETTING.getKey(),
-                IndexSettings.MAX_RESULT_WINDOW_SETTING.getDefault(settings)));
+            settings.getAsInt(setting.getKey(), setting.getDefault(settings)));
       }
       return result.build();
     } catch (OpenSearchSecurityException e) {

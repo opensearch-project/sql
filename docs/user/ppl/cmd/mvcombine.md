@@ -21,6 +21,16 @@ The `mvcombine` command supports the following parameters.
 | --- | --- | --- |
 | `<field>` | Required | The name of the field whose values are combined into a multivalue field. |
 
+## Pushdown
+
+When pushdown is enabled (`plugins.calcite.pushdown.enabled`), `mvcombine` can be pushed down to OpenSearch as a `top_hits` aggregation that returns up to `plugins.query.buckets` values for each group. OpenSearch rejects a `top_hits` aggregation larger than the index setting `index.max_inner_result_window` (default `100`), so `mvcombine` is pushed down only when `index.max_inner_result_window` is at least `plugins.query.buckets` for every queried index. Otherwise, `mvcombine` runs in memory. Each shard reserves heap for up to `index.max_inner_result_window` values for each group, so increase this setting with care.
+
+When `mvcombine` is pushed down:
+
+- The combined values keep the order of a preceding `sort` on fields. A preceding `sort` on an expression prevents the pushdown.
+- A group with more than `plugins.query.buckets` values fails the query with a `RESOURCE_LIMIT_EXCEEDED` error. The query does not return a truncated multivalue field.
+- If the target field holds an array in a document, only the first value of that array is combined.
+
 ## Example 1: Using basic mvcombine
 
 The following query collapses rows into a single row and combines `packets_str` into a multivalue field:
