@@ -5,24 +5,26 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.plugin.rest.RestPPLQueryAction.QUERY_API_ENDPOINT;
+import static org.opensearch.sql.util.QueryInsightsRecords.PPL_ENABLED;
+import static org.opensearch.sql.util.QueryInsightsRecords.awaitChildren;
+import static org.opensearch.sql.util.QueryInsightsRecords.indicesOf;
+import static org.opensearch.sql.util.QueryInsightsRecords.isPpl;
+import static org.opensearch.sql.util.QueryInsightsRecords.measurement;
+import static org.opensearch.sql.util.QueryInsightsRecords.pplRecordFor;
 
-import java.io.IOException;
-import java.time.Instant;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.client.Request;
+import org.opensearch.client.RequestOptions;
 import org.opensearch.client.ResponseException;
+import org.opensearch.sql.util.QueryInsightsRecords;
 
 /**
  * End to end: PPL queries are recorded into Query Insights Top N on a cluster that has Query
@@ -38,8 +40,6 @@ import org.opensearch.client.ResponseException;
  */
 public class QueryInsightsRecordingIT extends PPLIntegTestCase {
 
-  private static final String PPL_ENABLED = "search.insights.top_queries.ppl.enabled";
-
   /** Records are stamped with their query's start, so everything this class records is later. */
   private static final long CLASS_START_MILLIS = System.currentTimeMillis();
 
@@ -49,16 +49,8 @@ public class QueryInsightsRecordingIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     enableCalcite(); // join runs on the Calcite path
-    assertQueryInsightsSupportsPpl();
-    updateClusterSettings(new ClusterSetting(PERSISTENT, PPL_ENABLED, "true"));
-    updateClusterSettings(
-        new ClusterSetting(PERSISTENT, "search.insights.top_queries.latency.enabled", "true"));
-    // Room for every query this class runs, so none is evicted from the window it is read from.
-    updateClusterSettings(
-        new ClusterSetting(PERSISTENT, "search.insights.top_queries.latency.top_n_size", "100"));
-    // The smallest window, so records reach the exported store within a minute.
-    updateClusterSettings(
-        new ClusterSetting(PERSISTENT, "search.insights.top_queries.latency.window_size", "1m"));
+    QueryInsightsRecords.assertSupportsPpl(client());
+    QueryInsightsRecords.enableRecording(client());
   }
 
   @Test
@@ -118,7 +110,7 @@ public class QueryInsightsRecordingIT extends PPLIntegTestCase {
     awaitBarrier();
     // A query that never parses has no text or indices to report. Every other query in this class
     // names an index, so a PPL record without one could only be the syntax error.
-    for (JSONObject record : topQueries(QueryInsightsRecordingIT::isPpl)) {
+    for (JSONObject record : topQueries(QueryInsightsRecords::isPpl)) {
       assertFalse("unparsed query was recorded: " + record, indicesOf(record).isEmpty());
     }
   }
@@ -126,11 +118,11 @@ public class QueryInsightsRecordingIT extends PPLIntegTestCase {
   @Test
   public void nothingIsRecordedWhenTheGateIsOff() throws Exception {
     indexWithDocs("qi_it_gated");
-    updateClusterSettings(new ClusterSetting(PERSISTENT, PPL_ENABLED, "false"));
+    QueryInsightsRecords.putPersistentSettings(client(), Map.of(PPL_ENABLED, "false"));
     try {
       executeQuery("source=qi_it_gated | where v > 1 | fields v");
     } finally {
-      updateClusterSettings(new ClusterSetting(PERSISTENT, PPL_ENABLED, "true"));
+      QueryInsightsRecords.putPersistentSettings(client(), Map.of(PPL_ENABLED, "true"));
     }
 
     awaitBarrier();
@@ -167,8 +159,7 @@ public class QueryInsightsRecordingIT extends PPLIntegTestCase {
     JSONObject parent = awaitPplRecord("qi_it_join_left");
     assertEquals(Set.of("qi_it_join_left", "qi_it_join_right"), indicesOf(parent));
 
-    // Children are kept out of the Top N overview, so read them from the exported store.
-    List<JSONObject> children = awaitChildren(parent.getString("parent_marker"), 2);
+    List<JSONObject> children = awaitChildren(client(), parent.getString("parent_marker"), 2);
     Set<String> childIndices = new HashSet<>();
     for (JSONObject child : children) {
       assertTrue(child.getBoolean("is_child"));
@@ -186,41 +177,8 @@ public class QueryInsightsRecordingIT extends PPLIntegTestCase {
 
   // ---------------------------------------------------------------------------------------------
 
-  /**
-   * Fails fast, naming the cause, when the installed Query Insights predates the PPL consumer:
-   * without it the gate setting is unregistered and no record would ever arrive.
-   */
-  private static void assertQueryInsightsSupportsPpl() throws IOException {
-    Request request = new Request("GET", "/_cluster/settings");
-    request.addParameter("include_defaults", "true");
-    request.addParameter("flat_settings", "true");
-    JSONObject settings = new JSONObject(getResponseBody(client().performRequest(request)));
-    // Listed under defaults until a test sets it, then under persistent.
-    boolean registered = false;
-    for (String section : List.of("defaults", "persistent", "transient")) {
-      JSONObject values = settings.optJSONObject(section);
-      registered |= values != null && values.has(PPL_ENABLED);
-    }
-    assertTrue(
-        "Query Insights in this cluster does not register "
-            + PPL_ENABLED
-            + ", so it predates the PPL consumer. Run with -PqueryInsightsZip=<path to a Query"
-            + " Insights build that includes it>.",
-        registered);
-  }
-
-  private static void indexWithDocs(String index) throws IOException {
-    Request create = new Request("PUT", "/" + index);
-    create.setJsonEntity(
-        "{\"settings\": {\"number_of_shards\": 1, \"number_of_replicas\": 0},"
-            + " \"mappings\": {\"properties\": {\"k\": {\"type\": \"keyword\"},"
-            + " \"v\": {\"type\": \"integer\"}}}}");
-    client().performRequest(create);
-    Request bulk = new Request("POST", "/" + index + "/_bulk");
-    bulk.addParameter("refresh", "true");
-    bulk.setJsonEntity(
-        "{\"index\": {}}\n{\"k\": \"a\", \"v\": 1}\n{\"index\": {}}\n{\"k\": \"b\", \"v\": 2}\n");
-    client().performRequest(bulk);
+  private static void indexWithDocs(String index) throws Exception {
+    QueryInsightsRecords.indexWithDocs(client(), index);
   }
 
   /** Runs a recorded query and waits for its record, so everything sent before it has arrived. */
@@ -232,100 +190,21 @@ public class QueryInsightsRecordingIT extends PPLIntegTestCase {
   }
 
   private static JSONObject awaitPplRecord(String index) throws Exception {
-    return awaitRecord(r -> isPpl(r) && indicesOf(r).contains(index), "PPL record for " + index);
+    return awaitRecord(pplRecordFor(index), "PPL record for " + index);
   }
 
-  private static void assertNoPplRecord(String index) throws IOException {
-    List<JSONObject> found = topQueries(r -> isPpl(r) && indicesOf(r).contains(index));
+  private static void assertNoPplRecord(String index) throws Exception {
+    List<JSONObject> found = topQueries(pplRecordFor(index));
     assertTrue("unexpected PPL record for " + index + ": " + found, found.isEmpty());
   }
 
   private static JSONObject awaitRecord(Predicate<JSONObject> match, String what) throws Exception {
-    AtomicReference<JSONObject> found = new AtomicReference<>();
-    assertBusy(
-        () -> {
-          List<JSONObject> records = topQueries(match);
-          assertFalse("no " + what + " yet", records.isEmpty());
-          found.set(records.get(0));
-        },
-        60,
-        TimeUnit.SECONDS);
-    return found.get();
+    return QueryInsightsRecords.awaitRecord(
+        client(), RequestOptions.DEFAULT, CLASS_START_MILLIS, match, what);
   }
 
-  /**
-   * Top N overview over this class's run. The time range makes the API merge the in-memory window
-   * with the exported store, so a record is found even after its window has rolled over.
-   */
-  private static List<JSONObject> topQueries(Predicate<JSONObject> match) throws IOException {
-    Request request = new Request("GET", "/_insights/top_queries");
-    request.addParameter("type", "latency");
-    request.addParameter("from", Instant.ofEpochMilli(CLASS_START_MILLIS - 60_000).toString());
-    request.addParameter("to", Instant.now().plusSeconds(60).toString());
-    JSONArray records =
-        new JSONObject(getResponseBody(client().performRequest(request)))
-            .optJSONArray("top_queries");
-    return select(records, match);
-  }
-
-  private static List<JSONObject> awaitChildren(String parentMarker, int atLeast) throws Exception {
-    AtomicReference<List<JSONObject>> found = new AtomicReference<>();
-    // The store is written when the window rolls over, so allow a few windows.
-    assertBusy(
-        () -> {
-          Request search = new Request("POST", "/top_queries-*/_search");
-          search.setJsonEntity(
-              "{\"size\": 50, \"query\": {\"term\": {\"derived_from\": \""
-                  + parentMarker
-                  + "\"}}}");
-          JSONArray hits =
-              new JSONObject(getResponseBody(client().performRequest(search)))
-                  .getJSONObject("hits")
-                  .getJSONArray("hits");
-          List<JSONObject> children = new ArrayList<>();
-          for (int i = 0; i < hits.length(); i++) {
-            children.add(hits.getJSONObject(i).getJSONObject("_source"));
-          }
-          assertTrue(
-              "children of " + parentMarker + " so far: " + children.size(),
-              children.size() >= atLeast);
-          found.set(children);
-        },
-        3,
-        TimeUnit.MINUTES);
-    return found.get();
-  }
-
-  private static List<JSONObject> select(JSONArray records, Predicate<JSONObject> match) {
-    List<JSONObject> selected = new ArrayList<>();
-    if (records != null) {
-      for (int i = 0; i < records.length(); i++) {
-        JSONObject record = records.getJSONObject(i);
-        if (match.test(record)) {
-          selected.add(record);
-        }
-      }
-    }
-    return selected;
-  }
-
-  private static boolean isPpl(JSONObject record) {
-    return "PPL".equals(record.optString("query_source"));
-  }
-
-  private static Set<String> indicesOf(JSONObject record) {
-    Set<String> indices = new HashSet<>();
-    JSONArray array = record.optJSONArray("indices");
-    if (array != null) {
-      for (int i = 0; i < array.length(); i++) {
-        indices.add(array.getString(i));
-      }
-    }
-    return indices;
-  }
-
-  private static long measurement(JSONObject record, String metric) {
-    JSONObject value = record.getJSONObject("measurements").optJSONObject(metric);
-    return value == null ? 0L : value.getLong("number");
+  private static List<JSONObject> topQueries(Predicate<JSONObject> match) throws Exception {
+    return QueryInsightsRecords.topQueries(
+        client(), RequestOptions.DEFAULT, CLASS_START_MILLIS, match);
   }
 }

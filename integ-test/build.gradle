@@ -567,6 +567,15 @@ testClusters {
         plugin ":opensearch-sql-plugin"
         setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
     }
+    // The same, plus the security plugin (added by configureSecurityPlugin below), so records carry
+    // the requesting user and Top N reads go through Query Insights' RBAC filter.
+    integTestWithQueryInsightsAndSecurity {
+        testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
+        plugin(getQueryInsightsPlugin())
+        plugin ":opensearch-sql-plugin"
+        setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
+    }
     // Smoke test: verify sql loads cleanly alongside analytics-engine.
     analyticsEngineCompat {
         testDistribution = 'archive'
@@ -845,6 +854,35 @@ task integTestWithQueryInsights(type: RestIntegTestTask) {
     }
 }
 
+// The reporting path on a secured cluster: whose identity a record carries and who can read it
+// back. Not part of `check` yet, for the same reason as integTestWithQueryInsights:
+//   ./gradlew :integ-test:integTestWithQueryInsightsAndSecurity -PqueryInsightsZip=/path/to.zip
+task integTestWithQueryInsightsAndSecurity(type: RestIntegTestTask) {
+    useCluster testClusters.integTestWithQueryInsightsAndSecurity
+
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+
+    // This task installs the security plugin, so its absence is a breakage rather than a skip.
+    systemProperty 'tests.required.plugins', 'opensearch-security'
+    systemProperty 'tests.security.manager', 'false'
+    systemProperty 'project.root', project.projectDir.absolutePath
+    systemProperty 'defaultQuerySizeLimit', '10000'
+    systemProperty 'defaultQueryBucketSize', '1000'
+    systemProperty 'defaultMaxResultWindow', '10000'
+    doFirst {
+        systemProperty 'cluster.debug', getDebug()
+        systemProperty "https", "false"
+        systemProperty "user", "admin"
+        systemProperty "password", "admin"
+    }
+
+    filter {
+        includeTestsMatching 'org.opensearch.sql.security.QueryInsightsRecordingSecurityIT'
+    }
+}
+
+configureSecurityPlugin(testClusters.integTestWithQueryInsightsAndSecurity)
+
 task integTestWithSecurity(type: RestIntegTestTask) {
     useCluster testClusters.integTestWithSecurity
     useCluster testClusters.remoteIntegTestWithSecurity
@@ -874,6 +912,8 @@ task integTestWithSecurity(type: RestIntegTestTask) {
     // Exclude tests that require the analytics engine plugin stack (run separately via analyticsEngineSecurityIT)
     filter {
         excludeTestsMatching 'org.opensearch.sql.security.AnalyticsEngineSecurityIT'
+        // Needs Query Insights installed; runs via integTestWithQueryInsightsAndSecurity.
+        excludeTestsMatching 'org.opensearch.sql.security.QueryInsightsRecordingSecurityIT'
     }
 
     systemProperty 'tests.security.manager', 'false'
@@ -1353,8 +1393,9 @@ task integTestRemote(type: RestIntegTestTask) {
             excludeTestsMatching "org.opensearch.sql.bwc.*IT"
         }
 
-        // Needs Query Insights installed; runs via :integ-test:integTestWithQueryInsights.
+        // Need Query Insights installed; run via the integTestWithQueryInsights* tasks.
         excludeTestsMatching 'org.opensearch.sql.ppl.QueryInsightsRecordingIT'
+        excludeTestsMatching 'org.opensearch.sql.security.QueryInsightsRecordingSecurityIT'
 
         if (analyticsEnabled) {
             // Full-text search (search-filter syntax -> Lucene query_string) needs an inverted-index
