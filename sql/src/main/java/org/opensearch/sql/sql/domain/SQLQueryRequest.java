@@ -159,7 +159,11 @@ public class SQLQueryRequest {
   }
 
   private boolean isSupportedExplainFormat() {
-    return Stream.of("simple", "standard", "extended", "cost").anyMatch(format::equalsIgnoreCase);
+    // "json" is accepted for backward compatibility: the explain endpoint always returns JSON
+    // regardless of this parameter, so treating it as valid avoids the 400 regression
+    // introduced in OpenSearch 3.0. See https://github.com/opensearch-project/sql/issues/4373
+    return Stream.of("simple", "standard", "extended", "cost", "json")
+        .anyMatch(format::equalsIgnoreCase);
   }
 
   private String getFormat(Map<String, String> params) {
