@@ -101,6 +101,7 @@ import org.opensearch.sql.calcite.type.ExprSqlType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.ExprUDT;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprIpValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -161,6 +162,16 @@ public class PredicateAnalyzer {
     }
   }
 
+  /**
+   * A {@code script} query is one of the query types OpenSearch classifies as expensive, so the
+   * shard refuses it when {@code search.allow_expensive_queries} is off. Reported as a predicate
+   * this analyzer cannot convert, which leaves the predicate to be evaluated above the scan.
+   */
+  static final String SCRIPT_PUSHDOWN_DISALLOWED =
+      "Cannot push down a predicate as a script query while ["
+          + Settings.Key.ALLOW_EXPENSIVE_QUERIES.getKeyValue()
+          + "] is false";
+
   private PredicateAnalyzer() {}
 
   /**
@@ -209,6 +220,23 @@ public class PredicateAnalyzer {
       RelDataType rowType,
       RelOptCluster cluster)
       throws ExpressionNotAnalyzableException {
+    return analyzeExpression(expression, schema, fieldTypes, rowType, cluster, true);
+  }
+
+  /**
+   * Analyzes the expression, optionally refusing to plan any part of it as a script query.
+   *
+   * @param scriptPushdownAllowed whether a predicate the index cannot answer may become a script
+   *     query; false leaves such a predicate to be evaluated above the scan
+   */
+  public static QueryExpression analyzeExpression(
+      RexNode expression,
+      List<String> schema,
+      Map<String, ExprType> fieldTypes,
+      RelDataType rowType,
+      RelOptCluster cluster,
+      boolean scriptPushdownAllowed)
+      throws ExpressionNotAnalyzableException {
     requireNonNull(expression, "expression");
     return analyzeExpression(
         expression,
@@ -216,7 +244,7 @@ public class PredicateAnalyzer {
         fieldTypes,
         rowType,
         cluster,
-        new Visitor(schema, fieldTypes, rowType, cluster));
+        new Visitor(schema, fieldTypes, rowType, cluster, scriptPushdownAllowed));
   }
 
   /** For test only, passing a customer Visitor */
@@ -243,6 +271,11 @@ public class PredicateAnalyzer {
       if (e instanceof UnsupportedScriptException) {
         throw new ExpressionNotAnalyzableException("Can't convert " + expression, e);
       }
+      if (!visitor.scriptPushdownAllowed) {
+        throw new ExpressionNotAnalyzableException(
+            "Can't convert " + expression,
+            new UnsupportedScriptException(SCRIPT_PUSHDOWN_DISALLOWED));
+      }
       try {
         return new ScriptQueryExpression(
             expression, rowType, fieldTypes, cluster, Collections.emptyMap());
@@ -259,17 +292,28 @@ public class PredicateAnalyzer {
     Map<String, ExprType> fieldTypes;
     RelDataType rowType;
     RelOptCluster cluster;
+    final boolean scriptPushdownAllowed;
 
     Visitor(
         List<String> schema,
         Map<String, ExprType> fieldTypes,
         RelDataType rowType,
         RelOptCluster cluster) {
+      this(schema, fieldTypes, rowType, cluster, true);
+    }
+
+    Visitor(
+        List<String> schema,
+        Map<String, ExprType> fieldTypes,
+        RelDataType rowType,
+        RelOptCluster cluster,
+        boolean scriptPushdownAllowed) {
       super(true);
       this.schema = schema;
       this.fieldTypes = fieldTypes;
       this.rowType = rowType;
       this.cluster = cluster;
+      this.scriptPushdownAllowed = scriptPushdownAllowed;
     }
 
     @Override
@@ -1115,6 +1159,9 @@ public class PredicateAnalyzer {
         }
         return qe;
       } catch (PredicateAnalyzerException firstFailed) {
+        if (!scriptPushdownAllowed) {
+          throw new PredicateAnalyzerException(SCRIPT_PUSHDOWN_DISALLOWED);
+        }
         try {
           QueryExpression qe =
               new ScriptQueryExpression(node, rowType, fieldTypes, cluster, Collections.emptyMap());

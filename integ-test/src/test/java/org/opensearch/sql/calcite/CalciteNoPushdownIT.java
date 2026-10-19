@@ -21,6 +21,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
   CalciteExplainIT.class,
+  CalciteAllowExpensiveQueriesIT.class,
   CalciteAddTotalsCommandIT.class,
   CalciteAddColTotalsCommandIT.class,
   CalciteConvertCommandIT.class,
