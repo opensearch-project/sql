@@ -1,9 +1,11 @@
 # Issue: https://github.com/opensearch-project/sql/issues/5873
 # coalesce built its SMALLINT and TINYINT result as an Integer and its Calcite FLOAT result as a
-# Float, mvappend and array built Calcite FLOAT elements as Float, and percentile_approx returned
-# a Double for SMALLINT, TINYINT and Calcite REAL and a Float for Calcite FLOAT. The code Calcite
-# generates, or Avatica's array accessor, then cast them to the declared class, so the query
-# returned 500 with a ClassCastException. Expected coalesce values match ifnull on the same field.
+# Float. mvappend and array built Calcite FLOAT elements as Float. array also kept each element's
+# own class when its operands mixed numeric widths. percentile_approx returned a Double for
+# SMALLINT, TINYINT and Calcite REAL and a Float for Calcite FLOAT. The code Calcite generates, or
+# Avatica's array accessor, then cast each result to the declared class, so the query returned 500
+# with a ClassCastException. Expected coalesce values match ifnull on the same field, and expected
+# array values match mvappend on the same operands apart from the nulls that only array keeps.
 
 setup:
   - do:
@@ -185,6 +187,51 @@ teardown:
           query: source=numeric_udf_result_5873 | sort host | eval x = array(f, 2.5F) | fields host, x
   - match: {"schema": [{"name": "host", "type": "string"}, {"name": "x", "type": "array"}]}
   - match: {"datarows": [["a", [1.5, 2.5]], ["b", [null, 2.5]]]}
+
+---
+"array on a byte field and an int literal returns both values":
+  - skip:
+      features:
+        - headers
+  # Before the fix: status 500, Byte cannot be cast to Integer
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=numeric_udf_result_5873 | sort host | eval x = array(b, 7) | fields host, x
+  - match: {"schema": [{"name": "host", "type": "string"}, {"name": "x", "type": "array"}]}
+  - match: {"datarows": [["a", [5, 7]], ["b", [null, 7]]]}
+
+---
+"array on a byte and a short field returns both values":
+  - skip:
+      features:
+        - headers
+  # Before the fix: status 500, Byte cannot be cast to Short
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=numeric_udf_result_5873 | sort host | eval x = array(b, s) | fields host, x
+  - match: {"schema": [{"name": "host", "type": "string"}, {"name": "x", "type": "array"}]}
+  - match: {"datarows": [["a", [5, 5]], ["b", [null, null]]]}
+
+---
+"array on a float field and an int literal returns both values":
+  - skip:
+      features:
+        - headers
+  # Before the fix: status 500, Integer cannot be cast to Float
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: source=numeric_udf_result_5873 | sort host | eval x = array(f, 1) | fields host, x
+  - match: {"schema": [{"name": "host", "type": "string"}, {"name": "x", "type": "array"}]}
+  - match: {"datarows": [["a", [1.5, 1.0]], ["b", [null, 1.0]]]}
 
 ---
 "percentile_approx on a short field in memory returns smallint":

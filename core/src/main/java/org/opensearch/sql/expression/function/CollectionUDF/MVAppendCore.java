@@ -55,9 +55,10 @@ public class MVAppendCore {
    * Align a boxed numeric element to the array's target element type. Only numeric widenings that
    * arise from operand widening (e.g. INTEGER cells into a BIGINT array) are handled; non-numeric
    * or null-typed targets pass the value through unchanged so mixed / ANY-typed arrays keep their
-   * existing {@code Object[]} runtime semantics.
+   * existing {@code Object[]} runtime semantics. Also used by {@link
+   * ArrayFunctionImpl#internalCast}.
    */
-  private static Object coerce(Object value, SqlTypeName elementType) {
+  static Object coerce(Object value, SqlTypeName elementType) {
     if (elementType == null || !(value instanceof Number)) {
       return value;
     }
