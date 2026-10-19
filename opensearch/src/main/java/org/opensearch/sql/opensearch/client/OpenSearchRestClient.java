@@ -90,6 +90,17 @@ public class OpenSearchRestClient implements OpenSearchClient {
 
   @Override
   public Map<String, Integer> getIndexMaxResultWindows(String... indexExpression) {
+    return getIndexIntSettings("index.max_result_window", "max result window", indexExpression);
+  }
+
+  @Override
+  public Map<String, Integer> getIndexMaxInnerResultWindows(String... indexExpression) {
+    return getIndexIntSettings(
+        "index.max_inner_result_window", "max inner result window", indexExpression);
+  }
+
+  private Map<String, Integer> getIndexIntSettings(
+      String settingKey, String settingDescription, String... indexExpression) {
     GetSettingsRequest request =
         new GetSettingsRequest().indices(indexExpression).includeDefaults(true);
     try {
@@ -100,24 +111,26 @@ public class OpenSearchRestClient implements OpenSearchClient {
 
       defaultSettings.forEach(
           (key, value) -> {
-            Integer maxResultWindow = value.getAsInt("index.max_result_window", null);
-            if (maxResultWindow != null) {
-              result.put(key, maxResultWindow);
+            Integer settingValue = value.getAsInt(settingKey, null);
+            if (settingValue != null) {
+              result.put(key, settingValue);
             }
           });
 
       settings.forEach(
           (key, value) -> {
-            Integer maxResultWindow = value.getAsInt("index.max_result_window", null);
-            if (maxResultWindow != null) {
-              result.put(key, maxResultWindow);
+            Integer settingValue = value.getAsInt(settingKey, null);
+            if (settingValue != null) {
+              result.put(key, settingValue);
             }
           });
 
       return result;
     } catch (IOException e) {
       throw new IllegalStateException(
-          "Failed to get max result window for "
+          "Failed to get "
+              + settingDescription
+              + " for "
               + String.join(",", indexExpression)
               + ": "
               + e.getMessage(),

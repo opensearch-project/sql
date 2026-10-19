@@ -47,8 +47,11 @@ import org.opensearch.transport.client.node.NodeClient;
  */
 class RemoteMappingsReader {
 
-  /** Mappings and max result windows of the indices named, keyed by "cluster:index". */
-  record RemoteMetadata(Map<String, IndexMapping> mappings, Map<String, Integer> windows) {}
+  /** Mappings, max result windows and max inner result windows, keyed by "cluster:index". */
+  record RemoteMetadata(
+      Map<String, IndexMapping> mappings,
+      Map<String, Integer> windows,
+      Map<String, Integer> innerWindows) {}
 
   private static final long TTL_SECONDS = 60;
 
@@ -101,6 +104,7 @@ class RemoteMappingsReader {
     String indexNames = String.join(",", qualifiedNames(indicesByCluster));
     Map<String, IndexMapping> mappings = new LinkedHashMap<>();
     Map<String, Integer> windows = new LinkedHashMap<>();
+    Map<String, Integer> innerWindows = new LinkedHashMap<>();
     // Rollover indices usually share one mapping: parse it once and share the result, so cost and
     // memory follow the number of distinct mappings rather than the number of indices.
     Map<MappingMetadata, IndexMapping> parsed = new HashMap<>();
@@ -128,13 +132,20 @@ class RemoteMappingsReader {
             settingsResponse
                 .getIndexToSettings()
                 .forEach(
-                    (index, settings) ->
-                        windows.put(
-                            RemoteClusterAware.buildRemoteIndexName(clusterAlias, index),
-                            settings.getAsInt(
-                                IndexSettings.MAX_RESULT_WINDOW_SETTING.getKey(),
-                                IndexSettings.MAX_RESULT_WINDOW_SETTING.getDefault(
-                                    Settings.EMPTY))));
+                    (index, settings) -> {
+                      String name = RemoteClusterAware.buildRemoteIndexName(clusterAlias, index);
+                      windows.put(
+                          name,
+                          settings.getAsInt(
+                              IndexSettings.MAX_RESULT_WINDOW_SETTING.getKey(),
+                              IndexSettings.MAX_RESULT_WINDOW_SETTING.getDefault(Settings.EMPTY)));
+                      innerWindows.put(
+                          name,
+                          settings.getAsInt(
+                              IndexSettings.MAX_INNER_RESULT_WINDOW_SETTING.getKey(),
+                              IndexSettings.MAX_INNER_RESULT_WINDOW_SETTING.getDefault(
+                                  Settings.EMPTY)));
+                    });
           } catch (Exception e) {
             Throwable cause = ExceptionsHelper.unwrapCause(e);
             // A missing index or a denied read is the remote's answer, not an outage.
@@ -160,9 +171,9 @@ class RemoteMappingsReader {
     if (!skipped.isEmpty()) {
       // Partial answer during an outage: serve it, but don't cache it. The search that follows
       // reports the skipped cluster.
-      throw new NotCached(new RemoteMetadata(mappings, windows));
+      throw new NotCached(new RemoteMetadata(mappings, windows, innerWindows));
     }
-    return new RemoteMetadata(mappings, windows);
+    return new RemoteMetadata(mappings, windows, innerWindows);
   }
 
   /** Clusters named in a skipped-cluster message; the rest are counted. */

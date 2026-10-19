@@ -2757,6 +2757,35 @@ public class CalciteExplainIT extends ExplainIT {
   }
 
   @Test
+  public void testExplainMvCombinePushdown() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    try {
+      // mvcombine is pushed down as a top_hits of plugins.query.buckets (1000) hits per group,
+      // which the shards only accept once index.max_inner_result_window allows it.
+      setMaxInnerResultWindow(TEST_INDEX_ACCOUNT, 1000);
+      assertYamlEqualsIgnoreId(
+          loadExpectedPlan("explain_mvcombine_push.yaml"),
+          explainQueryYaml(
+              "source=opensearch-sql_test_index_account | fields state, city, age | mvcombine"
+                  + " age"));
+      // The top_hits sort keeps the combined values in the order of the preceding sort.
+      assertYamlEqualsIgnoreId(
+          loadExpectedPlan("explain_mvcombine_sort_push.yaml"),
+          explainQueryYaml(
+              "source=opensearch-sql_test_index_account | fields state, city, age | sort - age,"
+                  + " city | mvcombine age"));
+      // A sort on an expression cannot be applied to the top_hits, so mvcombine stays in memory.
+      assertYamlEqualsIgnoreId(
+          loadExpectedPlan("explain_mvcombine_sort_expr.yaml"),
+          explainQueryYaml(
+              "source=opensearch-sql_test_index_account | eval k = abs(age - 30) | sort k |"
+                  + " fields state, city, age | mvcombine age"));
+    } finally {
+      resetMaxInnerResultWindow(TEST_INDEX_ACCOUNT);
+    }
+  }
+
+  @Test
   public void testExplainNoMv() throws IOException {
     String query =
         "source=opensearch-sql_test_index_account "

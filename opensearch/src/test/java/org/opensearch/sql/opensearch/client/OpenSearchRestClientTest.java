@@ -293,6 +293,43 @@ class OpenSearchRestClientTest {
   }
 
   @Test
+  void get_index_max_inner_result_windows_settings() throws IOException {
+    GetSettingsResponse response = mock(GetSettingsResponse.class);
+    when(response.getIndexToSettings())
+        .thenReturn(
+            mockSettings(
+                "test", Settings.builder().put("index.max_inner_result_window", 1000).build()));
+    when(response.getIndexToDefaultSettings())
+        .thenReturn(mockSettings("test", Settings.builder().build()));
+    when(restClient.indices().getSettings(any(GetSettingsRequest.class), any()))
+        .thenReturn(response);
+
+    assertEquals(Map.of("test", 1000), client.getIndexMaxInnerResultWindows("test"));
+  }
+
+  @Test
+  void get_index_max_inner_result_windows_default_settings() throws IOException {
+    GetSettingsResponse response = mock(GetSettingsResponse.class);
+    when(response.getIndexToSettings())
+        .thenReturn(mockSettings("test", Settings.builder().build()));
+    when(response.getIndexToDefaultSettings())
+        .thenReturn(
+            mockSettings(
+                "test", Settings.builder().put("index.max_inner_result_window", 100).build()));
+    when(restClient.indices().getSettings(any(GetSettingsRequest.class), any()))
+        .thenReturn(response);
+
+    assertEquals(Map.of("test", 100), client.getIndexMaxInnerResultWindows("test"));
+  }
+
+  @Test
+  void get_index_max_inner_result_windows_with_IOException() throws IOException {
+    when(restClient.indices().getSettings(any(GetSettingsRequest.class), any()))
+        .thenThrow(new IOException());
+    assertThrows(IllegalStateException.class, () -> client.getIndexMaxInnerResultWindows("test"));
+  }
+
+  @Test
   void search() throws IOException {
     // Mock first scroll request
     SearchResponse searchResponse = mock(SearchResponse.class);
