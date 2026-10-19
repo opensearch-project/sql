@@ -1352,6 +1352,10 @@ task integTestRemote(type: RestIntegTestTask) {
             // CalciteAliasFieldAggregationIT: raw-PUT alias index can't be created on the AE route
             // and every test queries alias fields directly — whole class doomed.
             excludeTestsMatching 'org.opensearch.sql.calcite.remote.CalciteAliasFieldAggregationIT'
+            // CalciteAllowExpensiveQueriesIT: asserts what reaches the index as an OpenSearch
+            // DSL query (a script pushdown, or its absence). The AE route plans the predicate in
+            // its own engine and does not produce one — whole class doomed.
+            excludeTestsMatching 'org.opensearch.sql.calcite.remote.CalciteAllowExpensiveQueriesIT'
 
             // === Excludes: WhereCommandIT / CalciteWhereCommandIT route divergences (#5546) ===
             // Each test also carries an in-test requireCapability(...) recording the reason (see

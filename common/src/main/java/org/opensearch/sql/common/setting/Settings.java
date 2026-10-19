@@ -59,6 +59,7 @@ public abstract class Settings {
     DESERIALIZATION_MAX_BYTES("plugins.query.deserialization.max_bytes"),
     QUERY_BUCKET_SIZE("plugins.query.buckets"),
     SEARCH_MAX_BUCKETS("search.max_buckets"),
+    ALLOW_EXPENSIVE_QUERIES("search.allow_expensive_queries"),
     ENCYRPTION_MASTER_KEY("plugins.query.datasources.encryption.masterkey"),
     DATASOURCES_URI_HOSTS_DENY_LIST("plugins.query.datasources.uri.hosts.denylist"),
     DATASOURCES_LIMIT("plugins.query.datasources.limit"),

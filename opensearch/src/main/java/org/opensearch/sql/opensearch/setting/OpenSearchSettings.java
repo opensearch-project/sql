@@ -28,6 +28,7 @@ import org.opensearch.common.settings.SecureSetting;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.IndexSettings;
+import org.opensearch.search.SearchService;
 import org.opensearch.search.aggregations.MultiBucketConsumerService;
 import org.opensearch.sql.common.antlr.AstBuildGuard;
 import org.opensearch.sql.common.setting.Settings;
@@ -581,6 +582,12 @@ public class OpenSearchSettings extends Settings {
         Key.SEARCH_MAX_BUCKETS,
         MultiBucketConsumerService.MAX_BUCKET_SETTING,
         new Updater(Key.SEARCH_MAX_BUCKETS));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.ALLOW_EXPENSIVE_QUERIES,
+        SearchService.ALLOW_EXPENSIVE_QUERIES,
+        new Updater(Key.ALLOW_EXPENSIVE_QUERIES));
     register(
         settingBuilder,
         clusterSettings,
