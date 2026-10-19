@@ -127,19 +127,35 @@ class FlatObjectValuesTest {
     assertEquals(nullValue(), flatten(5));
   }
 
-  // A flat_object exists so documents can escape the mapping depth limit, so nothing upstream
-  // bounds the recursion: levels past the cap are kept as one leaf rather than dropped.
-  @Test
-  void depthIsCapped() {
-    Map<String, Object> deepest = Map.of("leaf", "v");
-    Map<String, Object> source = deepest;
-    for (int i = 0; i < 25; i++) {
+  private static String deepestKey(int levels) {
+    Map<String, Object> source = Map.of("leaf", "v");
+    for (int i = 0; i < levels; i++) {
       source = Map.of("l" + i, source);
     }
     ExprValue value = flatten(source);
     assertEquals(1, value.tupleValue().size());
-    String key = value.tupleValue().keySet().iterator().next();
-    // MAX_DEPTH levels are descended, so the key is that many prefixes plus the leaf's own name
-    assertEquals(FlatObjectValues.MAX_DEPTH + 1, key.split("\\.").length);
+    return value.tupleValue().keySet().iterator().next();
+  }
+
+  // A flat_object exists so documents can escape the mapping depth limit, so the depth comes from
+  // the document: levels past the cap are kept as one leaf rather than dropped.
+  @Test
+  void depthIsCapped() {
+    // the cap's levels are descended, so the key is that many prefixes plus the leaf's own name
+    assertEquals(FlatObjectValues.DEFAULT_MAX_DEPTH + 1, deepestKey(25).split("\\.").length);
+  }
+
+  // plugins.query.flat_object.max_depth moves the cap both ways
+  @Test
+  void depthCapFollowsTheSetting() {
+    try {
+      // raised past the document's depth: the leaf is reached under its full path
+      FlatObjectValues.setMaxDepth(30);
+      assertEquals(26, deepestKey(25).split("\\.").length);
+      FlatObjectValues.setMaxDepth(3);
+      assertEquals(4, deepestKey(25).split("\\.").length);
+    } finally {
+      FlatObjectValues.setMaxDepth(FlatObjectValues.DEFAULT_MAX_DEPTH);
+    }
   }
 }

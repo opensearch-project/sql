@@ -34,14 +34,26 @@ import org.opensearch.sql.opensearch.data.utils.ObjectContent;
 public class FlatObjectValues {
 
   /**
-   * Depth guard. A flat_object exists so that documents can escape the mapping depth limit, so
-   * nothing upstream bounds this recursion -- the depth comes from the document, not the mapping.
-   * The cap is the default of {@code index.mapping.depth.limit}, which is the depth a mapped object
-   * is allowed, so a flat_object is read as deeply as one. Nothing is dropped at the cap: the
-   * object that would have been descended into is kept as one leaf, holding its own JSON as the
-   * value.
+   * Default depth guard. A flat_object exists so that documents can escape the mapping depth limit,
+   * so the depth comes from the document, not the mapping. The default is the default of {@code
+   * index.mapping.depth.limit}, which is the depth a mapped object is allowed, so a flat_object is
+   * read as deeply as one. Nothing is dropped at the cap: the object that would have been descended
+   * into is kept as one leaf, holding its own JSON as the value.
    */
-  static final int MAX_DEPTH = 20;
+  public static final int DEFAULT_MAX_DEPTH = 20;
+
+  /**
+   * The depth guard in effect, set from {@code plugins.query.flat_object.max_depth}. It is static
+   * because a pushed-down script flattens on the data node, where nothing of the query's settings
+   * reaches it; every node holds the cluster setting and keeps this in step with it, as OpenSearch
+   * does for {@code indices.query.bool.max_clause_count}.
+   */
+  private static volatile int maxDepth = DEFAULT_MAX_DEPTH;
+
+  /** Sets the depth guard; called with the setting's value at startup and on every update. */
+  public static void setMaxDepth(int depth) {
+    maxDepth = depth;
+  }
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -129,7 +141,7 @@ public class FlatObjectValues {
    */
   private static void fold(
       Content value, String key, LinkedHashMap<String, List<String>> out, int depth) {
-    if (value.isObject() && depth < MAX_DEPTH) {
+    if (value.isObject() && depth < maxDepth) {
       flattenInto(value, key, out, depth + 1);
       return;
     }
