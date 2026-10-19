@@ -9,7 +9,9 @@ import static org.opensearch.action.search.SearchRequest.DEFAULT_INDICES_OPTIONS
 import static org.opensearch.sql.calcite.plan.OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP;
 
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -67,9 +69,16 @@ public class IndexPruner {
         return indexName;
       }
 
-      String[] candidates = indexExpr.probeMatching(filter, timeField).getIndices();
+      FieldCapabilitiesResponse probe = indexExpr.probeMatching(filter, timeField);
+      String[] candidates = probe.getIndices();
       if (0 < candidates.length && indexExpr.isPrunedBy(candidates.length)) {
-        return new IndexName(String.join(",", candidates));
+        // Field caps couldn't check these, including an unreachable remote; the search reports
+        // them.
+        Set<String> keep = new LinkedHashSet<>(Arrays.asList(candidates));
+        keep.addAll(probe.getFailures().keySet());
+        if (indexExpr.isPrunedBy(keep.size())) {
+          return new IndexName(String.join(",", keep));
+        }
       }
       log.info(
           "Index pruning declined: {} of {} indices matched",
