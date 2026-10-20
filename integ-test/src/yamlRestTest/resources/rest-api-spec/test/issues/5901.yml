@@ -1,0 +1,172 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  - do:
+      indices.create:
+        index: integers_byte_5901
+        body:
+          mappings:
+            properties:
+              f:
+                type: byte
+  - do:
+      indices.create:
+        index: integers_short_5901
+        body:
+          mappings:
+            properties:
+              f:
+                type: short
+  - do:
+      indices.create:
+        index: integers_integer_5901
+        body:
+          mappings:
+            properties:
+              f:
+                type: integer
+  - do:
+      indices.create:
+        index: integers_long_5901
+        body:
+          mappings:
+            properties:
+              f:
+                type: long
+  - do:
+      indices.create:
+        index: long_double_long_5901
+        body:
+          mappings:
+            properties:
+              f:
+                type: long
+  - do:
+      indices.create:
+        index: long_double_double_5901
+        body:
+          mappings:
+            properties:
+              f:
+                type: double
+  - do:
+      indices.create:
+        index: long_half_long_5901
+        body:
+          mappings:
+            properties:
+              f:
+                type: long
+  - do:
+      indices.create:
+        index: long_half_half_float_5901
+        body:
+          mappings:
+            properties:
+              f:
+                type: half_float
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "integers_byte_5901", "_id": "1"}}'
+          - '{"f": 1}'
+          - '{"index": {"_index": "integers_short_5901", "_id": "1"}}'
+          - '{"f": 2}'
+          - '{"index": {"_index": "integers_integer_5901", "_id": "1"}}'
+          - '{"f": 3}'
+          - '{"index": {"_index": "integers_long_5901", "_id": "1"}}'
+          - '{"f": 5000000000}'
+          - '{"index": {"_index": "long_double_long_5901", "_id": "1"}}'
+          - '{"f": 5}'
+          - '{"index": {"_index": "long_double_double_5901", "_id": "1"}}'
+          - '{"f": 1.5}'
+          - '{"index": {"_index": "long_half_long_5901", "_id": "1"}}'
+          - '{"f": 16777217}'
+          - '{"index": {"_index": "long_half_half_float_5901", "_id": "1"}}'
+          - '{"f": 1.5}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : null
+  - do:
+      indices.delete:
+        index: integers_byte_5901
+        ignore_unavailable: true
+  - do:
+      indices.delete:
+        index: integers_short_5901
+        ignore_unavailable: true
+  - do:
+      indices.delete:
+        index: integers_integer_5901
+        ignore_unavailable: true
+  - do:
+      indices.delete:
+        index: integers_long_5901
+        ignore_unavailable: true
+  - do:
+      indices.delete:
+        index: long_double_long_5901
+        ignore_unavailable: true
+  - do:
+      indices.delete:
+        index: long_double_double_5901
+        ignore_unavailable: true
+  - do:
+      indices.delete:
+        index: long_half_long_5901
+        ignore_unavailable: true
+  - do:
+      indices.delete:
+        index: long_half_half_float_5901
+        ignore_unavailable: true
+
+---
+"Byte, short, integer and long across indices merge to bigint and keep a long beyond the integer range":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=integers_*_5901 | fields f | sort f'
+  - match: {"schema": [{"name": "f", "type": "bigint"}]}
+  - match: {"datarows": [[1], [2], [3], [5000000000]]}
+
+---
+"Long and double across indices merge to double and keep the fraction":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=long_double_*_5901 | fields f | sort f'
+  - match: {"schema": [{"name": "f", "type": "double"}]}
+  - match: {"datarows": [[1.5], [5.0]]}
+
+---
+"Long and half_float across indices merge to double and keep an integer above 2^24":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=long_half_*_5901 | fields f | sort f'
+  - match: {"schema": [{"name": "f", "type": "double"}]}
+  - match: {"datarows": [[1.5], [16777217.0]]}

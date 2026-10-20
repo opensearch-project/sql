@@ -3,6 +3,7 @@
 ## Inconsistent Field Types across indices  
 
 * If the same field has different types across indices (e.g., `field` is a `string` in one index and an `integer` in another), PPL selects a field type from one of the indices—this selection is non-deterministic. Fields with other types are ignored during query execution.  
+* One exception is a field mapped as `byte`, `short`, `integer`, `long`, `half_float`, `float`, `scaled_float` or `double` in every index. PPL merges it to one type, whatever the order of the indices. A mix of `byte`, `short`, `integer` and `long` merges to the widest of them. A mix of `half_float` and `float` merges to `float`. Any other mix merges to `double`, which may be a type that no index holds.  
 * For `object` fields, [PPL merges subfields from different indices to tolerate schema variations](https://github.com/opensearch-project/sql/issues/3625).  
   
 ## Unsupported OpenSearch Field Types  
