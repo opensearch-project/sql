@@ -52,10 +52,11 @@ public abstract class LuceneQuery {
    * @return return true if supported, otherwise false.
    */
   public boolean canSupport(FunctionExpression func) {
-    return (func.getArguments().size() == 2)
-            && (func.getArguments().get(0) instanceof ReferenceExpression)
+    return ((func.getArguments().size() == 2)
+            && (func.getArguments().get(0) instanceof ReferenceExpression
+                || referenceWrappedByRedundantDateCast(func.getArguments().get(0)))
             && (func.getArguments().get(1) instanceof LiteralExpression
-                || literalExpressionWrappedByCast(func))
+                || literalExpressionWrappedByCast(func)))
         || isMultiParameterQuery(func);
   }
 
@@ -86,15 +87,147 @@ public abstract class LuceneQuery {
   }
 
   /**
-   * Check if the second argument of the function is a literal expression wrapped by cast function.
+   * Check if the value operand of the function is a literal wrapped in conversions that can be
+   * evaluated up front, so the comparison can still push down instead of falling back to a script.
    */
   protected boolean literalExpressionWrappedByCast(FunctionExpression func) {
-    if (func.getArguments().get(1) instanceof FunctionExpression) {
-      FunctionExpression expr = (FunctionExpression) func.getArguments().get(1);
-      return castMap.containsKey(expr.getFunctionName())
-          && expr.getArguments().get(0) instanceof LiteralExpression;
+    return resolveLiteralOperand(
+            func.getArguments().get(1), fieldDateType(func.getArguments().get(0)))
+        != null;
+  }
+
+  /**
+   * The date/time type of the filtered field, or null when it is not a date/time field. Used to
+   * keep a date conversion on the bound from being resolved against a field of a different
+   * date/time type, which would silently change the bound (for example resolving a {@code
+   * timestamp('...')} bound against a {@code DATE} field drops the time component).
+   */
+  private ExprCoreType fieldDateType(Expression arg) {
+    Expression ref =
+        referenceWrappedByRedundantDateCast(arg)
+            ? ((FunctionExpression) arg).getArguments().get(0)
+            : arg;
+    return ref.type() instanceof OpenSearchDateType dateType ? dateType.getExprCoreType() : null;
+  }
+
+  /**
+   * The {@code timestamp()}/{@code date()}/{@code time()} builtins and the cast they are equal to.
+   */
+  private static final Map<FunctionName, FunctionName> DATE_CONVERSION_TO_CAST =
+      ImmutableMap.of(
+          BuiltinFunctionName.TIMESTAMP.getName(),
+          BuiltinFunctionName.CAST_TO_TIMESTAMP.getName(),
+          BuiltinFunctionName.DATE.getName(),
+          BuiltinFunctionName.CAST_TO_DATE.getName(),
+          BuiltinFunctionName.TIME.getName(),
+          BuiltinFunctionName.CAST_TO_TIME.getName());
+
+  /**
+   * Resolve the value operand to the cast that should be evaluated and the literal to evaluate it
+   * on, or null when the operand is not a literal behind supported conversions.
+   *
+   * <p>Besides the plain {@code CAST_TO_*(literal)} form, this accepts the {@code
+   * timestamp()}/{@code date()}/{@code time()} builtins, which are what clients typically emit for
+   * a time-range bound (for example the Grafana OpenSearch data source builds its PPL time filter
+   * as {@code where `field` >= timestamp('...')}). PPL coerces the string argument first, so the
+   * operand arrives as {@code timestamp(cast_to_timestamp('...'))}; applying {@code timestamp()} to
+   * a value that is already a timestamp is a no-op, so the inner cast alone is evaluated. The cast
+   * is resolved rather than evaluated here so that {@link #castMap} keeps parsing the literal
+   * against the field's declared date formats.
+   */
+  private Map.Entry<FunctionName, LiteralExpression> resolveLiteralOperand(
+      Expression expr, ExprCoreType fieldDateType) {
+    if (!(expr instanceof FunctionExpression fn)) {
+      return null;
     }
-    return false;
+    FunctionName name = fn.getFunctionName();
+    Expression inner = fn.getArguments().isEmpty() ? null : fn.getArguments().get(0);
+
+    if (castMap.containsKey(name) && inner instanceof LiteralExpression literal) {
+      return Map.entry(name, literal);
+    }
+    FunctionName equivalentCast = DATE_CONVERSION_TO_CAST.get(name);
+    if (equivalentCast == null || fn.getArguments().size() != 1) {
+      return null;
+    }
+    // Only resolve the conversion when it produces the type the field already has. Resolving across
+    // date/time types would re-format the bound into the field's format and change which documents
+    // match, so those are left on the script path.
+    if (!DATE_CAST_TARGET_TYPES.get(name).equals(fieldDateType)) {
+      return null;
+    }
+    if (inner instanceof LiteralExpression literal) {
+      return Map.entry(equivalentCast, literal);
+    }
+    if (inner instanceof FunctionExpression innerFn
+        && innerFn.getArguments().size() == 1
+        && innerFn.getArguments().get(0) instanceof LiteralExpression literal
+        && castMap.containsKey(innerFn.getFunctionName())
+        && DATE_CAST_TARGET_TYPES
+            .get(name)
+            .equals(DATE_CAST_TARGET_TYPES.get(innerFn.getFunctionName()))) {
+      return Map.entry(innerFn.getFunctionName(), literal);
+    }
+    return null;
+  }
+
+  /** Date/time cast functions mapped to the type each one produces. */
+  private static final Map<FunctionName, ExprCoreType> DATE_CAST_TARGET_TYPES =
+      ImmutableMap.<FunctionName, ExprCoreType>builder()
+          .put(BuiltinFunctionName.CAST_TO_TIMESTAMP.getName(), ExprCoreType.TIMESTAMP)
+          .put(BuiltinFunctionName.TIMESTAMP.getName(), ExprCoreType.TIMESTAMP)
+          .put(BuiltinFunctionName.CAST_TO_DATE.getName(), ExprCoreType.DATE)
+          .put(BuiltinFunctionName.DATE.getName(), ExprCoreType.DATE)
+          .put(BuiltinFunctionName.CAST_TO_TIME.getName(), ExprCoreType.TIME)
+          .put(BuiltinFunctionName.TIME.getName(), ExprCoreType.TIME)
+          .build();
+
+  /**
+   * Check if the left operand is a date/time cast (or the {@code timestamp()}/{@code date()}/{@code
+   * time()} builtin) applied to a reference of <b>the same</b> date/time type. Such a wrap is a
+   * no-op, so it can be unwrapped, letting the predicate push down to a native range/term query
+   * instead of falling back to a per-document script.
+   *
+   * <p>The cast target must match the field type exactly. A cast that changes the date/time type is
+   * a real conversion and must not be folded: {@code date(<timestamp field>)} truncates the time
+   * component (so {@code date(ts) <= '2024-01-15'} is not {@code ts <= '2024-01-15'}), and {@code
+   * time(<timestamp field>)} extracts the time of day, which is not even monotonic with respect to
+   * the timestamp.
+   *
+   * @param arg left operand of the comparison.
+   * @return true if the operand is a redundant, order-preserving date/time cast over a reference.
+   */
+  protected boolean referenceWrappedByRedundantDateCast(Expression arg) {
+    if (!(arg instanceof FunctionExpression)) {
+      return false;
+    }
+    FunctionExpression fn = (FunctionExpression) arg;
+    ExprCoreType castTarget = DATE_CAST_TARGET_TYPES.get(fn.getFunctionName());
+    if (castTarget == null || fn.getArguments().size() != 1) {
+      return false;
+    }
+    Expression inner = fn.getArguments().get(0);
+    return inner instanceof ReferenceExpression
+        && inner.type() instanceof OpenSearchDateType dateType
+        && castTarget.equals(dateType.getExprCoreType());
+  }
+
+  /**
+   * Return the underlying reference of the left operand, unwrapping a redundant date/time cast if
+   * present (see {@link #referenceWrappedByRedundantDateCast}). Callers must ensure {@link
+   * #canSupport} returned true for the enclosing function; otherwise an {@link
+   * IllegalStateException} is thrown rather than allowing an unchecked cast to fail.
+   */
+  private ReferenceExpression unwrapReference(Expression arg) {
+    if (arg instanceof ReferenceExpression) {
+      return (ReferenceExpression) arg;
+    }
+    if (referenceWrappedByRedundantDateCast(arg)) {
+      return (ReferenceExpression) ((FunctionExpression) arg).getArguments().get(0);
+    }
+    throw new IllegalStateException(
+        "Left operand must be a reference or a redundant date/time cast over a reference; "
+            + "canSupport() must be checked before build()");
   }
 
   /**
@@ -105,7 +238,7 @@ public abstract class LuceneQuery {
    * @return query
    */
   public QueryBuilder build(FunctionExpression func) {
-    ReferenceExpression ref = (ReferenceExpression) func.getArguments().get(0);
+    ReferenceExpression ref = unwrapReference(func.getArguments().get(0));
     Expression expr = func.getArguments().get(1);
     ExprValue literalValue =
         expr instanceof LiteralExpression ? expr.valueOf() : cast((FunctionExpression) expr, ref);
@@ -117,9 +250,14 @@ public abstract class LuceneQuery {
   }
 
   private ExprValue cast(FunctionExpression castFunction, ReferenceExpression ref) {
-    return castMap
-        .get(castFunction.getFunctionName())
-        .apply((LiteralExpression) castFunction.getArguments().get(0), ref);
+    Map.Entry<FunctionName, LiteralExpression> resolved =
+        resolveLiteralOperand(castFunction, fieldDateType(ref));
+    if (resolved == null) {
+      throw new IllegalStateException(
+          "Value operand must be a literal behind supported conversions; canSupport() must be"
+              + " checked before build()");
+    }
+    return castMap.get(resolved.getKey()).apply(resolved.getValue(), ref);
   }
 
   /** Type converting map. */
