@@ -87,7 +87,7 @@ public final class RexExtractMultiFunction extends ImplementorUDF {
    * @return List of extracted values or null if no matches found
    */
   public static List<String> extractMultipleGroups(
-      String text, String pattern, int groupIndex, int maxMatch) {
+      String text, String pattern, long groupIndex, long maxMatch) {
     if (text == null || pattern == null) {
       return null;
     }
@@ -98,7 +98,7 @@ public final class RexExtractMultiFunction extends ImplementorUDF {
         maxMatch,
         matcher -> {
           if (groupIndex > 0 && groupIndex <= matcher.groupCount()) {
-            return matcher.group(groupIndex);
+            return matcher.group((int) groupIndex);
           }
           return null;
         });
@@ -115,7 +115,7 @@ public final class RexExtractMultiFunction extends ImplementorUDF {
    * @return List of extracted values or null if no matches found
    */
   public static List<String> extractMultipleGroups(
-      String text, String pattern, String groupName, int maxMatch) {
+      String text, String pattern, String groupName, long maxMatch) {
     if (text == null || pattern == null || groupName == null) {
       return null;
     }
@@ -146,7 +146,7 @@ public final class RexExtractMultiFunction extends ImplementorUDF {
   private static List<String> executeMultipleExtractions(
       String text,
       String pattern,
-      int maxMatch,
+      long maxMatch,
       java.util.function.Function<Matcher, String> extractor) {
     try {
       Pattern compiledPattern = RegexCommonUtils.getCompiledPattern(pattern);
