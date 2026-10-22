@@ -1,3 +1,6 @@
+# Copyright OpenSearch Contributors
+# SPDX-License-Identifier: Apache-2.0
+
 #!/usr/bin/env python3
 """
 Convert RST PPL documentation to Markdown format.
