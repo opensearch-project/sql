@@ -446,6 +446,7 @@ public class SQLPlugin extends Plugin
     publishRestCommandRegistries();
 
     this.dataSourceService = createDataSourceService();
+    // Runs before assignSubject, which PluginClient would reject; the default is never stored.
     dataSourceService.createDataSource(defaultOpenSearchDataSourceMetadata());
     LocalClusterState.state().setClusterService(clusterService);
     LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
@@ -604,9 +605,13 @@ public class SQLPlugin extends Plugin
         dataSourceUserAuthorizationHelper);
   }
 
+  /**
+   * Gives the plugin client the subject core assigns, with or without the security plugin.
+   *
+   * @param pluginSubject the subject the plugin's own index access runs as
+   */
   @Override
   public void assignSubject(PluginSubject pluginSubject) {
-    // Assigned whether or not the security plugin is installed, so there is no unsecured path here.
     this.pluginClient.setSubject(pluginSubject);
   }
 
