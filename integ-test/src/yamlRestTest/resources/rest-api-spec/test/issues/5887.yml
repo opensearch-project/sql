@@ -1,0 +1,168 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  # oa is mapped as an object but holds an array of objects, the shape dynamic mapping produces.
+  - do:
+      indices.create:
+        index: expand_type_guard_5887
+        body:
+          mappings:
+            properties:
+              host:
+                type: keyword
+              n:
+                type: long
+              s:
+                type: keyword
+              o:
+                properties:
+                  a:
+                    type: keyword
+                  b:
+                    type: long
+              oa:
+                properties:
+                  a:
+                    type: keyword
+              fo:
+                type: flat_object
+              nd:
+                type: nested
+                properties:
+                  a:
+                    type: keyword
+  - do:
+      bulk:
+        index: expand_type_guard_5887
+        refresh: true
+        body:
+          - '{"index": {"_id": "1"}}'
+          - '{"host": "a", "n": 5, "s": "abc", "o": {"a": "x", "b": 5}, "oa": [{"a": "x"}, {"a": "y"}], "fo": {"a": "x"}, "nd": [{"a": "x"}, {"a": "y"}]}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : null
+  - do:
+      indices.delete:
+        index: expand_type_guard_5887
+        ignore_unavailable: true
+
+---
+"expand on a long field is rejected while analyzing":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=expand_type_guard_5887 | expand n | fields host"
+  - match: { "$body": "/SemanticCheckException/" }
+  - match: { "$body": "/TYPE_ERROR/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/expand\\s+requires\\s+an\\s+array\\s+field,\\s+but\\s+\\[n\\]\\s+is\\s+LONG/" }
+
+---
+"expand on a keyword field is rejected while analyzing":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=expand_type_guard_5887 | expand s | fields host"
+  - match: { "$body": "/SemanticCheckException/" }
+  - match: { "$body": "/TYPE_ERROR/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/expand\\s+requires\\s+an\\s+array\\s+field,\\s+but\\s+\\[s\\]\\s+is\\s+STRING/" }
+
+---
+"expand on an object field is rejected while analyzing":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=expand_type_guard_5887 | fields host, o | expand o"
+  - match: { "$body": "/SemanticCheckException/" }
+  - match: { "$body": "/TYPE_ERROR/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/expand\\s+requires\\s+an\\s+array\\s+field,\\s+but\\s+\\[o\\]\\s+is\\s+STRUCT/" }
+
+---
+"expand on a flat_object field is rejected while analyzing":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=expand_type_guard_5887 | fields host, fo | expand fo"
+  - match: { "$body": "/SemanticCheckException/" }
+  - match: { "$body": "/TYPE_ERROR/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/expand\\s+requires\\s+an\\s+array\\s+field,\\s+but\\s+\\[fo\\]\\s+is\\s+STRUCT/" }
+
+---
+"expand on an object field holding an array is rejected while analyzing":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=expand_type_guard_5887 | fields host, oa | expand oa"
+  - match: { "$body": "/SemanticCheckException/" }
+  - match: { "$body": "/TYPE_ERROR/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/expand\\s+requires\\s+an\\s+array\\s+field,\\s+but\\s+\\[oa\\]\\s+is\\s+STRUCT/" }
+
+---
+"expand on a nested field still returns one row per element":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=expand_type_guard_5887 | fields host, nd | expand nd"
+  - match: {"total": 2}
+  - match: {"datarows": [["a", {"a": "x"}], ["a", {"a": "y"}]]}
+
+---
+"expand on a computed array still returns one row per element":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=expand_type_guard_5887 | eval arr = array(1, 2) | fields host, arr | expand arr"
+  - match: {"total": 2}
+  - match: {"datarows": [["a", 1], ["a", 2]]}

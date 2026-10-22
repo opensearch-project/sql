@@ -1,0 +1,210 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  - do:
+      indices.create:
+        index: command_type_guard_5885
+        body:
+          mappings:
+            properties:
+              host:
+                type: keyword
+              n:
+                type: long
+              s:
+                type: keyword
+              d:
+                type: date
+              o:
+                properties:
+                  a:
+                    type: keyword
+              items:
+                type: nested
+                properties:
+                  a:
+                    type: keyword
+  - do:
+      bulk:
+        index: command_type_guard_5885
+        refresh: true
+        body:
+          - '{"index": {"_id": "1"}}'
+          - '{"host": "a", "n": 5, "s": "abc", "d": "2024-01-01T00:00:00Z", "o": {"a": "x"}, "items": [{"a": "x"}]}'
+          - '{"index": {"_id": "2"}}'
+          - '{"host": "b", "n": 7, "s": "abd", "d": "2024-01-02T00:00:00Z", "o": {"a": "y"}, "items": [{"a": "y"}]}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : null
+  - do:
+      indices.delete:
+        index: command_type_guard_5885
+        ignore_unavailable: true
+
+---
+"replace on a long field is rejected while analyzing":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=command_type_guard_5885 | replace \"a\" WITH \"b\" IN n | fields n"
+  - match: { "$body": "/SemanticCheckException/" }
+  - match: { "$body": "/TYPE_ERROR/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/replace\\s+requires\\s+a\\s+string\\s+field,\\s+but\\s+\\[n\\]\\s+is\\s+LONG/" }
+
+---
+"replace on an object field is rejected while analyzing":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=command_type_guard_5885 | replace \"a\" WITH \"b\" IN o | fields o"
+  - match: { "$body": "/SemanticCheckException/" }
+  - match: { "$body": "/TYPE_ERROR/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/replace\\s+requires\\s+a\\s+string\\s+field,\\s+but\\s+\\[o\\]\\s+is\\s+STRUCT/" }
+
+---
+"replace on a keyword field still replaces":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=command_type_guard_5885 | replace \"a\" WITH \"b\" IN s | sort host | fields s"
+  - match: {"total": 2}
+  - match: {"datarows": [["bbc"], ["bbd"]]}
+
+---
+"replace on a date field still replaces its string form":
+  - skip:
+      features:
+        - headers
+  # The date type is a string underneath, so replace keeps accepting it and returns a string.
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=command_type_guard_5885 | replace \"2024\" WITH \"1999\" IN d | sort host | fields d"
+  - match: {"total": 2}
+  - match: {"schema": [{"name": "d", "type": "string"}]}
+  - match: {"datarows": [["1999-01-01 00:00:00"], ["1999-01-02 00:00:00"]]}
+
+---
+"trendline sma on a keyword field is rejected while analyzing":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=command_type_guard_5885 | trendline sma(2, s) as t | fields t"
+  - match: { "$body": "/SemanticCheckException/" }
+  - match: { "$body": "/TYPE_ERROR/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/trendline\\s+requires\\s+a\\s+numeric\\s+field,\\s+but\\s+\\[s\\]\\s+is\\s+STRING/" }
+
+---
+"trendline wma on a date field is rejected while analyzing":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=command_type_guard_5885 | trendline wma(2, d) as t | fields t"
+  - match: { "$body": "/SemanticCheckException/" }
+  - match: { "$body": "/TYPE_ERROR/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/trendline\\s+requires\\s+a\\s+numeric\\s+field,\\s+but\\s+\\[d\\]\\s+is\\s+TIMESTAMP/" }
+
+---
+"trendline sma on a long field still averages":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=command_type_guard_5885 | sort host | trendline sma(2, n) as t | fields t"
+  - match: {"total": 2}
+  - match: {"datarows": [[null], [6.0]]}
+
+---
+"transpose over an object field is rejected while analyzing":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=command_type_guard_5885 | fields host, o | transpose"
+  - match: { "$body": "/SemanticCheckException/" }
+  - match: { "$body": "/TYPE_ERROR/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/transpose\\s+requires\\s+scalar\\s+fields,\\s+but\\s+\\[o\\]\\s+is\\s+STRUCT/" }
+
+---
+"transpose over a nested field is rejected while analyzing":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=command_type_guard_5885 | fields host, items | transpose"
+  - match: { "$body": "/SemanticCheckException/" }
+  - match: { "$body": "/TYPE_ERROR/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/transpose\\s+requires\\s+scalar\\s+fields,\\s+but\\s+\\[items\\]\\s+is\\s+ARRAY/" }
+
+---
+"transpose over scalar fields still transposes":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=command_type_guard_5885 | where host = 'a' | fields n | transpose 1"
+  - match: {"total": 1}
+  - match: {"datarows": [["n", "5"]]}
