@@ -23,6 +23,8 @@
     ".bat",
     ".properties",
     ".git",
+    ".github",
+    ".claude",
     ".gitignore",
     ".whitesource",
     ".lycheeignore",
