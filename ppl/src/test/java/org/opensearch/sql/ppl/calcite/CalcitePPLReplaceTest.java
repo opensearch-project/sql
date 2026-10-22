@@ -5,10 +5,15 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
+
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Test;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.common.error.ErrorReport;
 
 public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
 
@@ -72,21 +77,21 @@ public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
   @Test
   public void testMultipleFieldsReplace() {
     String ppl =
-        "source=EMP | replace \"CLERK\" WITH \"EMPLOYEE\" IN JOB | replace \"20\" WITH \"RESEARCH\""
-            + " IN DEPTNO";
+        "source=EMP | replace \"CLERK\" WITH \"EMPLOYEE\" IN JOB | replace \"SMITH\" WITH \"SMYTH\""
+            + " IN ENAME";
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[REPLACE($2, 'CLERK':VARCHAR,"
-            + " 'EMPLOYEE':VARCHAR)], MGR=[$3], HIREDATE=[$4], SAL=[$5], COMM=[$6],"
-            + " DEPTNO=[REPLACE($7, '20':VARCHAR, 'RESEARCH':VARCHAR)])\n"
+        "LogicalProject(EMPNO=[$0], ENAME=[REPLACE($1, 'SMITH':VARCHAR, 'SMYTH':VARCHAR)],"
+            + " JOB=[REPLACE($2, 'CLERK':VARCHAR, 'EMPLOYEE':VARCHAR)], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
 
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, `ENAME`, REPLACE(`JOB`, 'CLERK', 'EMPLOYEE') `JOB`, `MGR`, `HIREDATE`,"
-            + " `SAL`, `COMM`, REPLACE(`DEPTNO`, '20', 'RESEARCH') `DEPTNO`\n"
+        "SELECT `EMPNO`, REPLACE(`ENAME`, 'SMITH', 'SMYTH') `ENAME`, REPLACE(`JOB`, 'CLERK',"
+            + " 'EMPLOYEE') `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`";
 
     verifyPPLToSparkSQL(root, expectedSparkSql);
@@ -94,24 +99,32 @@ public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testReplaceSameValueInMultipleFields() {
-    // In EMP table, both JOB and MGR fields contain numeric values
-    String ppl = "source=EMP | replace \"7839\" WITH \"CEO\" IN MGR, EMPNO";
+    // "ER" occurs in both fields, in JOB=MANAGER and in ENAME=TURNER and MILLER
+    String ppl = "source=EMP | replace \"ER\" WITH \"OR\" IN JOB, ENAME";
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-        "LogicalProject(EMPNO=[REPLACE($0, '7839':VARCHAR, 'CEO':VARCHAR)], ENAME=[$1], JOB=[$2],"
-            + " MGR=[REPLACE($3, '7839':VARCHAR, 'CEO':VARCHAR)], HIREDATE=[$4], SAL=[$5],"
+        "LogicalProject(EMPNO=[$0], ENAME=[REPLACE($1, 'ER':VARCHAR, 'OR':VARCHAR)],"
+            + " JOB=[REPLACE($2, 'ER':VARCHAR, 'OR':VARCHAR)], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
             + " COMM=[$6], DEPTNO=[$7])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
 
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT REPLACE(`EMPNO`, '7839', 'CEO') `EMPNO`, `ENAME`, `JOB`,"
-            + " REPLACE(`MGR`, '7839', 'CEO') `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
+        "SELECT `EMPNO`, REPLACE(`ENAME`, 'ER', 'OR') `ENAME`, REPLACE(`JOB`, 'ER', 'OR') `JOB`,"
+            + " `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`";
 
     verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testReplaceNamesFirstNonStringField() {
+    // JOB is a string, DEPTNO and MGR are numeric, so the error names DEPTNO
+    String ppl = "source=EMP | replace \"CLERK\" WITH \"EMPLOYEE\" IN JOB, DEPTNO, MGR";
+    ErrorReport e = assertThrows(ErrorReport.class, () -> getRelNode(ppl));
+    assertThat(e.getMessage(), is("replace requires a string field, but [DEPTNO] is BYTE"));
   }
 
   @Test
@@ -289,23 +302,22 @@ public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testReplaceWithMultiplePairsSequentialApplication() {
-    // Test that replacements are applied sequentially
-    // This test demonstrates the order matters: if we have "20" WITH "30", "30" WITH "40"
-    // then "20" will become "30" first, then that "30" becomes "40", resulting in "40"
-    String ppl = "source=EMP | replace \"20\" WITH \"30\", \"30\" WITH \"40\" IN DEPTNO";
+    // Pairs apply in order, so CLERK becomes MANAGER and then that MANAGER becomes BOSS
+    String ppl =
+        "source=EMP | replace \"CLERK\" WITH \"MANAGER\", \"MANAGER\" WITH \"BOSS\" IN JOB";
     RelNode root = getRelNode(ppl);
 
     String expectedLogical =
-        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
-            + " COMM=[$6], DEPTNO=[REPLACE(REPLACE($7, '20':VARCHAR, '30':VARCHAR),"
-            + " '30':VARCHAR, '40':VARCHAR)])\n"
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[REPLACE(REPLACE($2, 'CLERK':VARCHAR,"
+            + " 'MANAGER':VARCHAR), 'MANAGER':VARCHAR, 'BOSS':VARCHAR)], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7])\n"
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
 
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, `ENAME`, `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`,"
-            + " REPLACE(REPLACE(`DEPTNO`, '20', '30'), '30', '40') `DEPTNO`\n"
+        "SELECT `EMPNO`, `ENAME`, REPLACE(REPLACE(`JOB`, 'CLERK', 'MANAGER'), 'MANAGER', 'BOSS')"
+            + " `JOB`, `MGR`, `HIREDATE`, `SAL`, `COMM`, `DEPTNO`\n"
             + "FROM `scott`.`EMP`";
 
     verifyPPLToSparkSQL(root, expectedSparkSql);
