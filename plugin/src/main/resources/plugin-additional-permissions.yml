@@ -32,7 +32,10 @@ index_permissions:
       - "indices:data/write/delete/byquery"
       # the search that opens its scroll
       - "indices:data/read/search"
-      # the shard level bulk that carries the deletes
+      # the shard level bulk that carries the deletes, which security also checks against the
+      # action of each item in it
       - "indices:data/write/bulk*"
-      # setRefresh(true) on the delete-by-query request
-      - "indices:admin/refresh"
+      - "indices:data/write/delete"
+      # setRefresh(true) on the delete-by-query request, which also runs the shard level
+      # indices:admin/refresh[s] through the action filters
+      - "indices:admin/refresh*"
