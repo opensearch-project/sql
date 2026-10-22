@@ -40,6 +40,7 @@ import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchFlatObjectType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.script.CalciteScriptEngine.Source;
 
@@ -110,8 +111,10 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
     String docFieldName =
         exprType == ExprCoreType.STRUCT
                 || exprType == ExprCoreType.ARRAY
-                // A binary field has no doc values, so it has to be read from _source too.
+                // A binary field has no doc values, so it has to be read from _source too, and
+                // neither does a flat_object: each leaf is one folded path=value term.
                 || exprType instanceof OpenSearchBinaryType
+                || exprType instanceof OpenSearchFlatObjectType
             ? null
             : OpenSearchTextType.toKeywordSubField(field.getName(), exprType);
     int newIndex = helper.sources.size();
@@ -120,7 +123,12 @@ public class RexStandardizer extends RexBiVisitorImpl<RexNode, ScriptParameterHe
       helper.sources.add(Source.DOC_VALUE.getValue());
     } else {
       helper.digests.add(field.getName());
-      helper.sources.add(Source.SOURCE.getValue());
+      // A flat_object has no doc values -- each leaf is one folded path=value term -- so it is read
+      // from _source, and has to be flattened on the way in, as the engine's own read does.
+      helper.sources.add(
+          exprType instanceof OpenSearchFlatObjectType
+              ? Source.FLAT_OBJECT_SOURCE.getValue()
+              : Source.SOURCE.getValue());
     }
     return new RexDynamicParam(widenType(field.getType(), helper.stack.peek()), newIndex);
   }

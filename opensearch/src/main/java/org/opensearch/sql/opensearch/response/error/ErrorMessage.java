@@ -75,7 +75,12 @@ public class ErrorMessage {
     return output.toString(2);
   }
 
-  private JSONObject getErrorAsJson() {
+  /**
+   * Returns the structured error JSON that normally sits under {@code "error"} in the HTTP body.
+   * Exposed so async callers can embed the same object alongside a job-state field without the
+   * outer {@code "status"} HTTP envelope produced by {@link #toString()}.
+   */
+  public JSONObject getErrorAsJson() {
     if (exception instanceof ErrorReport errorReport) {
       JSONObject errorJson = new JSONObject(errorReport.toJsonMap());
       // Add 'reason' field for backward compatibility with existing clients

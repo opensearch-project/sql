@@ -24,6 +24,14 @@ public class AstStatementBuilder extends OpenSearchSQLParserBaseVisitor<Statemen
   private final StatementBuilderContext context;
 
   @Override
+  public Statement visitRoot(OpenSearchSQLParser.RootContext ctx) {
+    if (ctx.sqlStatement() == null) {
+      throw new IllegalArgumentException("Query is empty");
+    }
+    return super.visitRoot(ctx);
+  }
+
+  @Override
   public Statement visitSqlStatement(OpenSearchSQLParser.SqlStatementContext ctx) {
     Query query = new Query(astBuilder.visit(ctx), context.fetchSize, SQL);
     return context.isExplain ? new Explain(query, SQL, context.format) : query;

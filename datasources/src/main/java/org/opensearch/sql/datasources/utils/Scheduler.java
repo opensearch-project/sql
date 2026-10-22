@@ -17,8 +17,17 @@ import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_
 @UtilityClass
 public class Scheduler {
   public static void schedule(NodeClient client, Runnable task) {
+    schedule(client, task, SQL_WORKER_THREAD_POOL_NAME);
+  }
+
+  /**
+   * Schedule {@code task} on the named thread pool while preserving the caller's thread context.
+   * Lets short, cheap operations run off {@code sql-worker} so they don't contend with async query
+   * execution on a saturated pool.
+   */
+  public static void schedule(NodeClient client, Runnable task, String poolName) {
     ThreadPool threadPool = client.threadPool();
-    threadPool.schedule(withCurrentContext(task), new TimeValue(0), SQL_WORKER_THREAD_POOL_NAME);
+    threadPool.schedule(withCurrentContext(task), new TimeValue(0), poolName);
   }
 
   private static Runnable withCurrentContext(final Runnable task) {

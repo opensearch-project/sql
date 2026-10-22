@@ -9,7 +9,6 @@ import static org.opensearch.sql.data.model.ExprValueUtils.*;
 import static org.opensearch.sql.opensearch.client.OpenSearchClient.META_CLUSTER_NAME;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -100,8 +99,7 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
   // TODO possible collision if two indices have fields with the same name and different mappings
   public Map<String, OpenSearchDataType> getFieldTypes() {
     Map<String, OpenSearchDataType> fieldTypes = new HashMap<>();
-    Map<String, IndexMapping> indexMappings =
-        client.getIndexMappings(getLocalIndexNames(indexName.getIndexNames()));
+    Map<String, IndexMapping> indexMappings = client.getIndexMappings(indexName.getIndexNames());
     if (indexMappings.size() <= 1) {
       for (IndexMapping indexMapping : indexMappings.values()) {
         fieldTypes.putAll(indexMapping.getFieldMappings());
@@ -130,10 +128,7 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
    * @return max result window
    */
   public Integer getMaxResultWindow() {
-    return client
-        .getIndexMaxResultWindows(getLocalIndexNames(indexName.getIndexNames()))
-        .values()
-        .stream()
+    return client.getIndexMaxResultWindows(indexName.getIndexNames()).values().stream()
         .min(Integer::compare)
         .get();
   }
@@ -156,19 +151,6 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
     // TODO Defaulting to unknown, need to check
     valueMap.put("IS_GENERATEDCOLUMN", stringValue(""));
     return new ExprTupleValue(valueMap);
-  }
-
-  /**
-   * Return index names without "{cluster}:" prefix. Without the prefix, they refer to the indices
-   * at the local cluster.
-   *
-   * @param indexNames a string array of index names
-   * @return local cluster index names
-   */
-  private String[] getLocalIndexNames(String[] indexNames) {
-    return Arrays.stream(indexNames)
-        .map(name -> name.substring(name.indexOf(":") + 1))
-        .toArray(String[]::new);
   }
 
   private String clusterName(Map<String, String> meta) {

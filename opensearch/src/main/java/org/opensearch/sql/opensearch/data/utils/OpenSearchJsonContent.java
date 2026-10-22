@@ -141,6 +141,11 @@ public class OpenSearchJsonContent implements Content {
   }
 
   @Override
+  public boolean isObject() {
+    return value().isObject();
+  }
+
+  @Override
   public Object objectValue() {
     return value();
   }

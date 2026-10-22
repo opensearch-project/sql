@@ -11,6 +11,7 @@ import static org.opensearch.core.rest.RestStatus.TOO_MANY_REQUESTS;
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
+import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_WORKER_THREAD_POOL_NAME;
 
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -47,6 +48,7 @@ import org.opensearch.sql.spark.transport.model.CreateAsyncQueryActionRequest;
 import org.opensearch.sql.spark.transport.model.CreateAsyncQueryActionResponse;
 import org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionRequest;
 import org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionResponse;
+import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.node.NodeClient;
 
 @RequiredArgsConstructor
@@ -107,7 +109,7 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
   @Override
   protected RestChannelConsumer prepareRequest(RestRequest restRequest, NodeClient nodeClient)
       throws IOException {
-    if (!dataSourcesEnabled()) {
+    if (!dataSourcesEnabled() && !isPplRequest(restRequest)) {
       return dataSourcesDisabledError(restRequest);
     }
     switch (restRequest.method()) {
@@ -213,6 +215,13 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
   private RestChannelConsumer executeDeleteRequest(RestRequest restRequest, NodeClient nodeClient) {
     MetricUtils.incrementNumericalMetric(MetricName.ASYNC_QUERY_CANCEL_API_REQUEST_COUNT);
     String queryId = restRequest.param("queryId");
+    boolean isPpl = isPplRequest(restRequest);
+    // PPL jobs acknowledge with their final status; Spark keeps its existing 204 contract.
+    RestStatus successStatus = isPpl ? RestStatus.OK : RestStatus.NO_CONTENT;
+    // PPL DELETE is a store lookup and a cancel — cheap and non-blocking. Route it off sql-worker
+    // so a saturated query pool can't delay cancellations that are supposed to free that pool up.
+    // Spark DELETE still runs on sql-worker to preserve its existing dispatch contract.
+    String poolName = isPpl ? ThreadPool.Names.GENERIC : SQL_WORKER_THREAD_POOL_NAME;
     return restChannel ->
         Scheduler.schedule(
             nodeClient,
@@ -226,7 +235,7 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
                           CancelAsyncQueryActionResponse cancelAsyncQueryActionResponse) {
                         restChannel.sendResponse(
                             new BytesRestResponse(
-                                RestStatus.NO_CONTENT,
+                                successStatus,
                                 "application/json; charset=UTF-8",
                                 cancelAsyncQueryActionResponse.getResult()));
                       }
@@ -235,7 +244,8 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
                       public void onFailure(Exception e) {
                         handleException(e, restChannel, restRequest.method());
                       }
-                    }));
+                    }),
+            poolName);
   }
 
   private void reportError(final RestChannel channel, final Exception e, final RestStatus status) {
@@ -285,6 +295,21 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
 
   private boolean dataSourcesEnabled() {
     return settings.getSettingValue(Settings.Key.DATASOURCES_ENABLED);
+  }
+
+  /**
+   * A GET or DELETE whose {@code queryId} parses as a neutral {@link
+   * org.opensearch.sql.job.QueryJobId} is a PPL async submission ({@code POST /_plugins/_ppl} with
+   * {@code wait_for_completion_timeout}), not a Spark datasource request. The {@link
+   * Settings.Key#DATASOURCES_ENABLED} gate only governs Spark access and must not block
+   * fetch/cancel of PPL jobs.
+   */
+  static boolean isPplRequest(RestRequest req) {
+    if (req.method() != GET && req.method() != DELETE) {
+      return false;
+    }
+    String queryId = req.param("queryId");
+    return queryId != null && org.opensearch.sql.job.QueryJobId.tryParse(queryId).isPresent();
   }
 
   private RestChannelConsumer dataSourcesDisabledError(RestRequest request) {

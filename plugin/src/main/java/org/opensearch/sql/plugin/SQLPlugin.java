@@ -107,6 +107,7 @@ import org.opensearch.sql.legacy.plugin.RestSqlAction;
 import org.opensearch.sql.legacy.plugin.RestSqlStatsAction;
 import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
 import org.opensearch.sql.opensearch.client.PluginClient;
+import org.opensearch.sql.opensearch.client.RemoteClusterServiceProvider;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
 import org.opensearch.sql.opensearch.storage.rest.CoreEndpointsProvider;
@@ -205,6 +206,13 @@ public class SQLPlugin extends Plugin
 
   private NodeClient client;
   private PluginClient pluginClient;
+
+  /**
+   * Filled by {@link org.opensearch.sql.plugin.transport.TransportPPLQueryAction}, the first holder
+   * of a {@code TransportService}; returned as a component so it can be injected there.
+   */
+  private final RemoteClusterServiceProvider remoteClusters = new RemoteClusterServiceProvider();
+
   private DataSourceServiceImpl dataSourceService;
   private OpenSearchAsyncQueryScheduler asyncQueryScheduler;
   private Injector injector;
@@ -451,6 +459,7 @@ public class SQLPlugin extends Plugin
           b.bind(org.opensearch.sql.common.setting.Settings.class).toInstance(pluginSettings);
           b.bind(DataSourceService.class).toInstance(dataSourceService);
           b.bind(ClusterService.class).toInstance(clusterService);
+          b.bind(RemoteClusterServiceProvider.class).toInstance(remoteClusters);
         });
     modules.add(new AsyncExecutorServiceModule());
     modules.add(new DirectQueryModule());
@@ -476,6 +485,11 @@ public class SQLPlugin extends Plugin
     DirectQueryExecutorService directQueryExecutorService =
         injector.getInstance(DirectQueryExecutorService.class);
 
+    org.opensearch.sql.job.QueryJobService queryJobService =
+        injector.getInstance(org.opensearch.sql.job.QueryJobService.class);
+    org.opensearch.sql.job.SecurityAdapter securityAdapter =
+        injector.getInstance(org.opensearch.sql.job.SecurityAdapter.class);
+
     ScheduledAsyncQueryJobRunner.getJobRunnerInstance()
         .loadJobResource(client, clusterService, threadPool, asyncQueryExecutorService);
 
@@ -487,7 +501,10 @@ public class SQLPlugin extends Plugin
         clusterManagerEventListener,
         pluginSettings,
         directQueryExecutorService,
-        extensionsHolder);
+        extensionsHolder,
+        queryJobService,
+        securityAdapter,
+        remoteClusters);
   }
 
   @Override
@@ -578,7 +595,7 @@ public class SQLPlugin extends Plugin
         new ImmutableSet.Builder<DataSourceFactory>()
             .add(
                 new OpenSearchDataSourceFactory(
-                    new OpenSearchNodeClient(this.client), pluginSettings))
+                    new OpenSearchNodeClient(this.client, remoteClusters), pluginSettings))
             .add(new PrometheusStorageFactory(pluginSettings))
             .add(new GlueDataSourceFactory(pluginSettings))
             .add(new SecurityLakeDataSourceFactory(pluginSettings))

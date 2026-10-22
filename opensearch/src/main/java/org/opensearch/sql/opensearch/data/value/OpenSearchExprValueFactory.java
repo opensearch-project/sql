@@ -61,6 +61,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchFlatObjectType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.utils.Content;
 import org.opensearch.sql.opensearch.data.utils.ObjectContent;
@@ -217,6 +218,11 @@ public class OpenSearchExprValueFactory {
       } catch (Exception e) {
         return ExprNullValue.of();
       }
+    } else if (type.equals(OpenSearchFlatObjectType.of())) {
+      // Before the isArray() branch below: OpenSearch accepts an array at the top level of a
+      // flat_object and folds its elements into the same terms, so flatten handles it rather than
+      // parseArray, which would leave the elements unflattened.
+      return FlatObjectValues.flatten(content);
     } else if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Nested))
         || content.isArray()) {
       return parseArray(content, field, type, supportArrays);
@@ -260,7 +266,7 @@ public class OpenSearchExprValueFactory {
     }
   }
 
-  private ExprValue parseContent(Content content) {
+  static ExprValue parseContent(Content content) {
     if (content.isNumber()) {
       if (content.isInt()) {
         return new ExprIntegerValue(content.intValue());

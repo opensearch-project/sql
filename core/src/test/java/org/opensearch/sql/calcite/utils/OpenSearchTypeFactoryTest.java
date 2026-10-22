@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
@@ -247,6 +248,62 @@ public class OpenSearchTypeFactoryTest {
 
     assertNotNull(result);
     assertEquals(SqlTypeName.VARCHAR, result.getSqlTypeName());
+  }
+
+  @Test
+  public void testLeastRestrictiveVarcharAndMapReturnsNull() {
+    // A string literal types as CHAR(n), a keyword field as nullable VARCHAR, and an object field
+    // as STRUCT, which converts to MAP
+    RelDataType literalType = TYPE_FACTORY.createSqlType(SqlTypeName.CHAR, 1);
+    RelDataType keyword =
+        TYPE_FACTORY.createTypeWithNullability(
+            TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR), true);
+    RelDataType object = OpenSearchTypeFactory.convertExprTypeToRelDataType(ExprCoreType.STRUCT);
+
+    assertNull(TYPE_FACTORY.leastRestrictive(List.of(literalType, literalType, object)));
+    assertNull(TYPE_FACTORY.leastRestrictive(List.of(object, keyword)));
+  }
+
+  @Test
+  public void testLeastRestrictiveVarcharBackedUdtAndMapReturnsNull() {
+    RelDataType timestamp = TYPE_FACTORY.createUDT(ExprUDT.EXPR_TIMESTAMP);
+    RelDataType object = OpenSearchTypeFactory.convertExprTypeToRelDataType(ExprCoreType.STRUCT);
+
+    assertNull(TYPE_FACTORY.leastRestrictive(List.of(timestamp, object)));
+  }
+
+  @Test
+  public void testLeastRestrictiveVarcharAndArrayReturnsNull() {
+    RelDataType literalType = TYPE_FACTORY.createSqlType(SqlTypeName.CHAR, 1);
+    RelDataType keyword =
+        TYPE_FACTORY.createTypeWithNullability(
+            TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR), true);
+    RelDataType array = OpenSearchTypeFactory.convertExprTypeToRelDataType(ExprCoreType.ARRAY);
+
+    assertNull(TYPE_FACTORY.leastRestrictive(List.of(literalType, literalType, array)));
+    assertNull(TYPE_FACTORY.leastRestrictive(List.of(array, keyword)));
+  }
+
+  @Test
+  public void testLeastRestrictiveAnyVarcharAndMapReturnsAny() {
+    RelDataType any = TYPE_FACTORY.createSqlType(SqlTypeName.ANY);
+    RelDataType literalType = TYPE_FACTORY.createSqlType(SqlTypeName.CHAR, 1);
+    RelDataType object = OpenSearchTypeFactory.convertExprTypeToRelDataType(ExprCoreType.STRUCT);
+
+    RelDataType result = TYPE_FACTORY.leastRestrictive(List.of(object, any, literalType));
+
+    assertNotNull(result);
+    assertEquals(SqlTypeName.ANY, result.getSqlTypeName());
+  }
+
+  @Test
+  public void testLeastRestrictiveTwoMapsReturnsMap() {
+    RelDataType object = OpenSearchTypeFactory.convertExprTypeToRelDataType(ExprCoreType.STRUCT);
+
+    RelDataType result = TYPE_FACTORY.leastRestrictive(List.of(object, object));
+
+    assertNotNull(result);
+    assertEquals(SqlTypeName.MAP, result.getSqlTypeName());
   }
 
   @Test

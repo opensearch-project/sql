@@ -65,6 +65,16 @@ public class StageErrorHandler {
         .orElse(null);
   }
 
+  /**
+   * Whether anything in the cause chain of {@code e} marks it as a codegen failure, meaning engine
+   * generated code or a pushed script that failed to compile or load, in this JVM or on a shard. It
+   * matches class names and message text only and does not check the stage, so a caller must limit
+   * it to failures from execution, as {@code hideCodegenInternals} does.
+   */
+  public static boolean isCodegenFailure(Throwable e) {
+    return isCodegenFailure(ExceptionUtils.getThrowableList(e));
+  }
+
   /** Whether anything in the chain marks this as a codegen failure, by class or by message. */
   private static boolean isCodegenFailure(List<Throwable> chain) {
     return chain.stream().anyMatch(StageErrorHandler::marksCodegen);

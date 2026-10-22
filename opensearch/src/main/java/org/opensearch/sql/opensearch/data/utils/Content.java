@@ -53,6 +53,9 @@ public interface Content {
   /** Is array value. */
   boolean isArray();
 
+  /** Is object value: a set of named members, as opposed to a scalar or an array. */
+  boolean isObject();
+
   /** Get integer value. */
   Integer intValue();
 

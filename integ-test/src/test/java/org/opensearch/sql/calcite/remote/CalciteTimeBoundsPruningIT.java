@@ -94,6 +94,42 @@ public class CalciteTimeBoundsPruningIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void shouldReadACommaSeparatedSourceWithBounds() throws IOException {
+    String query =
+        "source="
+            + OLD_INDEX
+            + ","
+            + NEW_INDEX
+            + " | where `ts` >= '"
+            + FROM
+            + "' AND `ts` <= '"
+            + TO
+            + "' | stats count()";
+
+    verifyDataRows(executeWithBounds(query, "ts", FROM, TO), rows(2));
+  }
+
+  @Test
+  public void shouldPruneEverySourceOfACommaSeparatedList() {
+    String query =
+        "source="
+            + OLD_INDEX
+            + ",prune_range_00000*"
+            + " | where `ts` >= '"
+            + FROM
+            + "' AND `ts` <= '"
+            + TO
+            + "' | fields legacy_only";
+
+    ResponseException e =
+        assertThrows(ResponseException.class, () -> executeWithBounds(query, "ts", FROM, TO));
+
+    assertTrue(
+        "legacy_only lives only in the out-of-range index, so it must be gone: " + e.getMessage(),
+        e.getMessage().contains("Field [legacy_only] not found."));
+  }
+
+  @Test
   public void shouldResolveTheWholePatternWithoutBounds() throws IOException {
     verifyDataRows(executeQuery(IN_RANGE + " | fields legacy_only | head 1"), rows((Object) null));
   }

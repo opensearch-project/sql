@@ -43,7 +43,7 @@ public class CrossClusterSearchIT extends CrossClusterTestBase {
   }
 
   @Test
-  public void testCrossClusterSearchWithoutLocalFieldMappingShouldFail() throws IOException {
+  public void testCrossClusterSearchOfIndexMissingOnRemoteShouldFail() throws IOException {
     var exception =
         assertThrows(
             ResponseException.class,

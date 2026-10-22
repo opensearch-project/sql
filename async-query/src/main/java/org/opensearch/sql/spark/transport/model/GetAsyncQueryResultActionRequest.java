@@ -11,6 +11,7 @@ import lombok.Getter;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.core.common.io.stream.StreamInput;
+import org.opensearch.core.common.io.stream.StreamOutput;
 
 @AllArgsConstructor
 public class GetAsyncQueryResultActionRequest extends ActionRequest {
@@ -20,6 +21,13 @@ public class GetAsyncQueryResultActionRequest extends ActionRequest {
   /** Constructor of GetJobQueryResultActionRequest from StreamInput. */
   public GetAsyncQueryResultActionRequest(StreamInput in) throws IOException {
     super(in);
+    this.queryId = in.readOptionalString();
+  }
+
+  @Override
+  public void writeTo(StreamOutput out) throws IOException {
+    super.writeTo(out);
+    out.writeOptionalString(queryId);
   }
 
   @Override

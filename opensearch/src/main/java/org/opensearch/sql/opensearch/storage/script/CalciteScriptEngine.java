@@ -81,6 +81,7 @@ import org.opensearch.search.lookup.SourceLookup;
 import org.opensearch.sql.calcite.utils.CalciteClassLoaderHelper;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprTimestampValue;
+import org.opensearch.sql.opensearch.data.value.FlatObjectValues;
 import org.opensearch.sql.opensearch.storage.script.aggregation.CalciteAggregationScriptFactory;
 import org.opensearch.sql.opensearch.storage.script.field.CalciteFieldScriptFactory;
 import org.opensearch.sql.opensearch.storage.script.filter.CalciteFilterScriptFactory;
@@ -222,6 +223,7 @@ public class CalciteScriptEngine implements ScriptEngine {
         return switch (sources.get(index)) {
           case DOC_VALUE -> getFromDocValue((String) digests.get(index));
           case SOURCE -> getFromSource((String) digests.get(index));
+          case FLAT_OBJECT_SOURCE -> getFlatObjectFromSource((String) digests.get(index));
           case LITERAL -> digests.get(index);
         };
       } catch (Exception e) {
@@ -245,6 +247,15 @@ public class CalciteScriptEngine implements ScriptEngine {
       return value;
     }
 
+    /**
+     * A flat_object as the engine presents it: one level, keyed by dotted leaf path. _source holds
+     * the document as written, so a leaf would not be found under its path and an array at the root
+     * would not be a map at all; {@link FlatObjectValues} is what the ordinary read uses too.
+     */
+    public Object getFlatObjectFromSource(String name) {
+      return FlatObjectValues.flattenToText(this.sourceLookup.extractValue(name, null));
+    }
+
     public Object getFromSource(String name) {
       // Resolve the field through the source path, not a flat map lookup: object subfields are
       // addressed as dotted paths (e.g. "log.user_agent") while _source stores them nested.
@@ -258,7 +269,9 @@ public class CalciteScriptEngine implements ScriptEngine {
   public enum Source {
     DOC_VALUE(0),
     SOURCE(1),
-    LITERAL(2);
+    LITERAL(2),
+    /** _source, flattened the way the engine presents a flat_object. */
+    FLAT_OBJECT_SOURCE(3);
 
     private final int value;
 

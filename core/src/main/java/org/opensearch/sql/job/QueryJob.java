@@ -6,18 +6,22 @@
 package org.opensearch.sql.job;
 
 import java.time.Clock;
+import java.time.Duration;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 /**
  * Active object that carries one query through the lifecycle state machine.
  *
  * <p>Instances are constructed only by {@link QueryJobService} implementations. The public surface
- * is deliberately small — four accessors and one mutator — so that engines cannot observe or drive
+ * is deliberately small — five accessors and one mutator — so that engines cannot observe or drive
  * lifecycle transitions except through the runner they were given.
  *
  * <p>State transitions:
@@ -33,8 +37,8 @@ import java.util.concurrent.CompletionStage;
  *
  * All mutable state is guarded by {@code this}. Side effects that may block or reenter — invoking
  * the runner, cancelling it, completing the future — are performed after the monitor is released.
- * The {@link CompletableFuture} that backs {@link #completion()} is never leaked to callers; only
- * its {@link CompletionStage} view is returned.
+ * The {@link CompletableFuture} that backs completion is never leaked to callers; observation goes
+ * through {@link #await(Duration)} and {@link #onTerminal(Runnable)}.
  */
 public final class QueryJob {
 
@@ -42,6 +46,7 @@ public final class QueryJob {
   private final Principal owner;
   private final QueryRunner runner;
   private final Clock clock;
+  private final Function<Throwable, Map<String, Object>> failureRenderer;
   private final long submittedAtMillis;
   private final CompletableFuture<QueryResult> completion = new CompletableFuture<>();
 
@@ -61,13 +66,33 @@ public final class QueryJob {
    * @param runner engine adapter that will produce the result; started later via {@link
    *     #startRunner()}
    * @param clock time source used for submission, start, and completion timestamps
-   * @throws NullPointerException if any argument is {@code null}
+   * @throws NullPointerException if any of {@code id}, {@code owner}, {@code runner}, or {@code
+   *     clock} is {@code null}
    */
   QueryJob(QueryJobId id, Principal owner, QueryRunner runner, Clock clock) {
+    this(id, owner, runner, clock, null);
+  }
+
+  /**
+   * Creates a job in {@link QueryJobState#PENDING} with a failure renderer. Package-private: only
+   * {@link QueryJobService} implementations may construct a job.
+   *
+   * @param failureRenderer supplies the structured {@code details} payload on failure; nullable
+   *     (empty details). Invoked on the runner-completing thread exactly once if the job reaches
+   *     {@code FAILED}. Exceptions from the renderer are swallowed — see {@link
+   *     QueryFailure#of(Throwable, Function)}.
+   */
+  QueryJob(
+      QueryJobId id,
+      Principal owner,
+      QueryRunner runner,
+      Clock clock,
+      Function<Throwable, Map<String, Object>> failureRenderer) {
     this.id = Objects.requireNonNull(id, "id must not be null");
     this.owner = Objects.requireNonNull(owner, "owner must not be null");
     this.runner = Objects.requireNonNull(runner, "runner must not be null");
     this.clock = Objects.requireNonNull(clock, "clock must not be null");
+    this.failureRenderer = failureRenderer;
     this.submittedAtMillis = clock.millis();
   }
 
@@ -88,18 +113,50 @@ public final class QueryJob {
   }
 
   /**
-   * Returns a read-only view of the completion future. Completes normally with the {@link
-   * QueryResult} on success, exceptionally with the original runner exception on failure, and
-   * exceptionally with {@link java.util.concurrent.CancellationException} on cancel.
+   * Bounded, non-blocking wait. The returned stage fires exactly once — with the runner's {@link
+   * QueryResult} on success, {@link QueryResult.Running} when the budget expires, or exceptionally
+   * with the unwrapped runner cause on failure or cancellation. The callback fires on the
+   * runner-completing thread (success/failure) or the JDK {@code Delayer} daemon (timeout); callers
+   * needing {@code ThreadContext} preserved must wrap their listener with {@code
+   * ContextPreservingActionListener} before registering.
+   *
+   * <p>Non-{@link Exception} throwables re-throw so JVM-level errors (e.g. {@link
+   * OutOfMemoryError}) are not silently downgraded to an application-level failure.
    */
-  public CompletionStage<QueryResult> completion() {
-    return completion.minimalCompletionStage();
+  public CompletionStage<QueryResult> await(Duration budget) {
+    CompletableFuture<QueryResult> out = new CompletableFuture<>();
+    completion.whenComplete(
+        (value, throwable) -> {
+          if (throwable == null) {
+            out.complete(value);
+            return;
+          }
+          Throwable cause = unwrap(throwable);
+          if (cause instanceof Error error) {
+            throw error;
+          }
+          out.completeExceptionally(cause);
+        });
+    long millis = budget == null ? 0L : budget.toMillis();
+    QueryResult.Running running = new QueryResult.Running(id);
+    if (millis <= 0L) {
+      out.complete(running);
+    } else {
+      out.completeOnTimeout(running, millis, TimeUnit.MILLISECONDS);
+    }
+    return out.minimalCompletionStage();
+  }
+
+  /** One-shot hook that fires exactly once when the job reaches any terminal state. */
+  public void onTerminal(Runnable action) {
+    Objects.requireNonNull(action, "action must not be null");
+    completion.whenComplete((result, err) -> action.run());
   }
 
   /**
    * Requests cancellation. Terminal states are unaffected. Cancellation from {@code PENDING} or
    * {@code RUNNING} moves the job to {@code CANCELLED}, cancels the runner (best effort), and
-   * completes {@link #completion()} exceptionally.
+   * completes the internal future exceptionally.
    */
   public void cancel() {
     boolean shouldCancelRunner;
@@ -191,7 +248,7 @@ public final class QueryJob {
       }
       state = QueryJobState.FAILED;
       completedAtMillis = OptionalLong.of(clock.millis());
-      failure = Optional.of(QueryFailure.of(throwable));
+      failure = Optional.of(QueryFailure.of(throwable, failureRenderer));
     }
     completion.completeExceptionally(throwable);
   }
@@ -217,7 +274,7 @@ public final class QueryJob {
    * @return the underlying cause when {@code throwable} is a {@link CompletionException} carrying a
    *     non-{@code null} cause; otherwise the original throwable
    */
-  private static Throwable unwrap(Throwable throwable) {
+  public static Throwable unwrap(Throwable throwable) {
     return throwable instanceof CompletionException && throwable.getCause() != null
         ? throwable.getCause()
         : throwable;

@@ -90,6 +90,17 @@ public class QueryAnalysisIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void emptyQueryShouldFailSyntaxCheckWithBadRequest() {
+    for (String query : new String[] {"", "   ", "/* only a comment */"}) {
+      ResponseException e = assertThrows(ResponseException.class, () -> executeQuery(query));
+      assertEquals(400, e.getResponse().getStatusLine().getStatusCode());
+      String errorMsg = e.getMessage();
+      assertTrue(errorMsg, errorMsg.contains("SyntaxCheckException"));
+      assertTrue(errorMsg, errorMsg.contains(SYNTAX_EX_MSG_FRAGMENT));
+    }
+  }
+
+  @Test
   public void queryWithIncorrectCommandShouldFailSyntaxCheck() {
     String query = String.format("search source=%s | field firstname", TEST_INDEX_ACCOUNT);
     queryShouldThrowSyntaxException(query, SYNTAX_EX_MSG_FRAGMENT);

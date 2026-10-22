@@ -10,6 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_TYPE;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORKER;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORK_INFORMATION;
 import static org.opensearch.sql.util.Capability.ID_METADATA;
 import static org.opensearch.sql.util.Capability.MULTI_VALUE_FIELD_LOAD;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
@@ -19,8 +21,11 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -39,6 +44,8 @@ public class IncludeMetadataIT extends PPLIntegTestCase {
     super.init();
     enableCalcite();
     loadIndex(Index.ACCOUNT);
+    loadIndex(Index.WORKER);
+    loadIndex(Index.WORK_INFORMATION);
   }
 
   @Test
@@ -181,6 +188,54 @@ public class IncludeMetadataIT extends PPLIntegTestCase {
             "include_metadata",
             "false");
     assertTrue("_id must survive a following head", columnNames(headed).contains("_id"));
+  }
+
+  @Test
+  @RequiresCapability(ID_METADATA)
+  public void testIncludeMetadataWithLookupKeepsSourceMetadata() throws IOException {
+    // Both indices name their metadata fields alike, so one set is returned: the workers' own.
+    // Workers 1001 and 1004 have no work_information match and must keep theirs too.
+    for (String output : List.of("", " APPEND occupation")) {
+      JSONObject result =
+          executeQueryWithParams(
+              String.format(
+                  Locale.ROOT,
+                  "source=%s | lookup %s uid AS id%s | sort id",
+                  TEST_INDEX_WORKER,
+                  TEST_INDEX_WORK_INFORMATION,
+                  output),
+              "include_metadata",
+              "true");
+      assertEquals(List.of("1", "2", "3", "4", "5", "6"), columnValues(result, "_id"));
+      assertEquals(Collections.nCopies(6, TEST_INDEX_WORKER), columnValues(result, "_index"));
+    }
+  }
+
+  @Test
+  @RequiresCapability(ID_METADATA)
+  public void testIncludeMetadataWithLookupOutputsLookupMetadataByName() throws IOException {
+    JSONObject result =
+        executeQueryWithParams(
+            String.format(
+                Locale.ROOT,
+                "source=%s | lookup %s uid AS id OUTPUT _id AS dept_doc_id, _index AS dept_index"
+                    + " | sort id",
+                TEST_INDEX_WORKER,
+                TEST_INDEX_WORK_INFORMATION),
+            "include_metadata",
+            "true");
+    assertEquals(List.of("1", "2", "3", "4", "5", "6"), columnValues(result, "_id"));
+    assertEquals(
+        Arrays.asList("1", null, "2", "3", null, "4"), columnValues(result, "dept_doc_id"));
+    assertEquals(
+        Arrays.asList(
+            TEST_INDEX_WORK_INFORMATION,
+            null,
+            TEST_INDEX_WORK_INFORMATION,
+            TEST_INDEX_WORK_INFORMATION,
+            null,
+            TEST_INDEX_WORK_INFORMATION),
+        columnValues(result, "dept_index"));
   }
 
   @Test
@@ -391,6 +446,19 @@ public class IncludeMetadataIT extends PPLIntegTestCase {
       names.add(schema.getJSONObject(i).getString("name"));
     }
     return names;
+  }
+
+  /** Extracts the values of one column from a response, with {@code null} for a JSON null. */
+  private List<Object> columnValues(JSONObject result, String column) {
+    int index = columnNames(result).indexOf(column);
+    assertTrue("Result should contain column " + column, index >= 0);
+    JSONArray rows = result.getJSONArray("datarows");
+    List<Object> values = new ArrayList<>(rows.length());
+    for (int i = 0; i < rows.length(); i++) {
+      JSONArray row = rows.getJSONArray(i);
+      values.add(row.isNull(index) ? null : row.get(index));
+    }
+    return values;
   }
 
   private JSONObject executeQueryWithJsonBodyParam(String query, boolean includeMetadata)
