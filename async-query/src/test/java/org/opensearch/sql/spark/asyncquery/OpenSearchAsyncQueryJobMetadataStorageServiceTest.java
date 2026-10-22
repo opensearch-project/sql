@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.spark.asyncquery;
 
-import org.opensearch.sql.spark.utils.TestPluginClient;
 import static org.opensearch.sql.spark.constants.TestConstants.EMRS_APPLICATION_ID;
 import static org.opensearch.sql.spark.constants.TestConstants.EMR_JOB_ID;
 
@@ -20,6 +19,7 @@ import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.execution.xcontent.AsyncQueryJobMetadataXContentSerializer;
 import org.opensearch.sql.spark.utils.IDUtils;
+import org.opensearch.sql.spark.utils.TestPluginClient;
 import org.opensearch.test.OpenSearchIntegTestCase;
 
 public class OpenSearchAsyncQueryJobMetadataStorageServiceTest extends OpenSearchIntegTestCase {

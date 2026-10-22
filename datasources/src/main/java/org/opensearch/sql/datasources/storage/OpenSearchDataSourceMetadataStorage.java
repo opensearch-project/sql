@@ -185,8 +185,7 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
     DeleteRequest deleteRequest = new DeleteRequest(DATASOURCE_INDEX_NAME);
     deleteRequest.id(datasourceName);
     deleteRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-    ActionFuture<DeleteResponse> deleteResponseActionFuture = client.delete(deleteRequest);
-    DeleteResponse deleteResponse = deleteResponseActionFuture.actionGet();
+    DeleteResponse deleteResponse = client.delete(deleteRequest).actionGet();
     if (deleteResponse.getResult().equals(DocWriteResponse.Result.DELETED)) {
       LOG.debug("DatasourceMetadata : {}  successfully deleted", datasourceName);
     } else if (deleteResponse.getResult().equals(DocWriteResponse.Result.NOT_FOUND)) {
@@ -214,9 +213,8 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
           .mapping(IOUtils.toString(mappingFileStream, StandardCharsets.UTF_8), XContentType.YAML)
           .settings(
               IOUtils.toString(settingsFileStream, StandardCharsets.UTF_8), XContentType.YAML);
-      ActionFuture<CreateIndexResponse> createIndexResponseActionFuture =
-          client.admin().indices().create(createIndexRequest);
-      CreateIndexResponse createIndexResponse = createIndexResponseActionFuture.actionGet();
+      CreateIndexResponse createIndexResponse =
+          client.admin().indices().create(createIndexRequest).actionGet();
       if (createIndexResponse.isAcknowledged()) {
         LOG.info("Index: {} creation Acknowledged", DATASOURCE_INDEX_NAME);
       } else {
@@ -240,8 +238,7 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
     searchRequest.source(searchSourceBuilder);
     // https://github.com/opensearch-project/sql/issues/1801.
     searchRequest.preference("_primary_first");
-    ActionFuture<SearchResponse> searchResponseActionFuture = client.search(searchRequest);
-    SearchResponse searchResponse = searchResponseActionFuture.actionGet();
+    SearchResponse searchResponse = client.search(searchRequest).actionGet();
     if (searchResponse.status().getStatus() != 200) {
       throw new RuntimeException(
           "Fetching dataSource metadata information failed with status : "

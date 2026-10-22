@@ -31,7 +31,6 @@ import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.action.update.UpdateResponse;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -41,6 +40,7 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.seqno.SequenceNumbers;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.sql.opensearch.client.PluginClient;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.dispatcher.model.IndexDMLResult;
 import org.opensearch.sql.spark.execution.session.SessionModel;
@@ -57,7 +57,6 @@ import org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes;
 import org.opensearch.sql.spark.execution.xcontent.XContentSerializer;
 import org.opensearch.sql.spark.execution.xcontent.XContentSerializerUtil;
 import org.opensearch.sql.spark.flint.FlintIndexState;
-import org.opensearch.sql.opensearch.client.PluginClient;
 import org.opensearch.sql.spark.flint.FlintIndexStateModel;
 
 /**
@@ -208,9 +207,8 @@ public class StateStore {
       createIndexRequest
           .mapping(loadConfigFromResource(MAPPING_FILE_NAME), XContentType.YAML)
           .settings(loadConfigFromResource(SETTINGS_FILE_NAME), XContentType.YAML);
-      ActionFuture<CreateIndexResponse> createIndexResponseActionFuture =
-          client.admin().indices().create(createIndexRequest);
-      CreateIndexResponse createIndexResponse = createIndexResponseActionFuture.actionGet();
+      CreateIndexResponse createIndexResponse =
+          client.admin().indices().create(createIndexRequest).actionGet();
       if (createIndexResponse.isAcknowledged()) {
         LOG.info("Index: {} creation Acknowledged", indexName);
       } else {
@@ -235,8 +233,7 @@ public class StateStore {
             .preference("_primary_first")
             .source(searchSourceBuilder);
 
-    ActionFuture<SearchResponse> searchResponseActionFuture = client.search(searchRequest);
-    SearchResponse searchResponse = searchResponseActionFuture.actionGet();
+    SearchResponse searchResponse = client.search(searchRequest).actionGet();
     if (searchResponse.status().getStatus() != 200) {
       throw new RuntimeException(
           "Fetching job metadata information failed with status : " + searchResponse.status());

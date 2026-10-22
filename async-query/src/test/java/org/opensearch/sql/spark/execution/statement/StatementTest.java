@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.spark.execution.statement;
 
-import org.opensearch.sql.spark.utils.TestPluginClient;
 import static org.opensearch.sql.spark.constants.TestConstants.TEST_DATASOURCE_NAME;
 import static org.opensearch.sql.spark.execution.session.SessionTestUtil.createSessionRequest;
 import static org.opensearch.sql.spark.execution.statement.StatementState.CANCELLED;
@@ -40,6 +39,7 @@ import org.opensearch.sql.spark.execution.xcontent.SessionModelXContentSerialize
 import org.opensearch.sql.spark.execution.xcontent.StatementModelXContentSerializer;
 import org.opensearch.sql.spark.rest.model.LangType;
 import org.opensearch.sql.spark.utils.IDUtils;
+import org.opensearch.sql.spark.utils.TestPluginClient;
 import org.opensearch.test.OpenSearchIntegTestCase;
 
 public class StatementTest extends OpenSearchIntegTestCase {

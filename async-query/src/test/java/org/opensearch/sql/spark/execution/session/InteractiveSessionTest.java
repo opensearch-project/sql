@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.spark.execution.session;
 
-import org.opensearch.sql.spark.utils.TestPluginClient;
 import static org.opensearch.sql.spark.constants.TestConstants.TEST_CLUSTER_NAME;
 import static org.opensearch.sql.spark.constants.TestConstants.TEST_DATASOURCE_NAME;
 import static org.opensearch.sql.spark.execution.session.SessionState.NOT_STARTED;
@@ -33,6 +32,7 @@ import org.opensearch.sql.spark.execution.statestore.StatementStorageService;
 import org.opensearch.sql.spark.execution.xcontent.SessionModelXContentSerializer;
 import org.opensearch.sql.spark.execution.xcontent.StatementModelXContentSerializer;
 import org.opensearch.sql.spark.utils.IDUtils;
+import org.opensearch.sql.spark.utils.TestPluginClient;
 import org.opensearch.test.OpenSearchIntegTestCase;
 
 /** mock-maker-inline does not work with OpenSearchTestCase. */
