@@ -137,10 +137,7 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
    */
   @Override
   public Map<String, ExprType> getFieldTypes() {
-    if (cachedFieldOpenSearchTypes == null) {
-      cachedFieldOpenSearchTypes =
-          new OpenSearchDescribeIndexRequest(client, indexName).getFieldTypes();
-    }
+    resolveFieldOpenSearchTypes();
     if (cachedFieldTypes == null) {
       cachedFieldTypes =
           OpenSearchDataType.traverseAndFlatten(cachedFieldOpenSearchTypes).entrySet().stream()
@@ -163,10 +160,7 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
   }
 
   public Map<String, String> getAliasMapping() {
-    if (cachedFieldOpenSearchTypes == null) {
-      cachedFieldOpenSearchTypes =
-          new OpenSearchDescribeIndexRequest(client, indexName).getFieldTypes();
-    }
+    resolveFieldOpenSearchTypes();
     if (aliasMapping == null) {
       aliasMapping =
           OpenSearchDataType.traverseAndFlatten(cachedFieldOpenSearchTypes).entrySet().stream()
@@ -184,11 +178,17 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
    * @return A complete map between field names and their types.
    */
   public Map<String, OpenSearchDataType> getFieldOpenSearchTypes() {
-    if (cachedFieldOpenSearchTypes == null) {
-      cachedFieldOpenSearchTypes =
-          new OpenSearchDescribeIndexRequest(client, indexName).getFieldTypes();
-    }
+    resolveFieldOpenSearchTypes();
     return cachedFieldOpenSearchTypes;
+  }
+
+  /** Fetch and cache the merged field types. */
+  private void resolveFieldOpenSearchTypes() {
+    if (cachedFieldOpenSearchTypes == null) {
+      OpenSearchDescribeIndexRequest request =
+          new OpenSearchDescribeIndexRequest(client, indexName);
+      cachedFieldOpenSearchTypes = request.getFieldTypes();
+    }
   }
 
   /** Get the max result window setting of the table. */

@@ -6,12 +6,14 @@
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_CSV_SANITIZE;
+import static org.opensearch.sql.util.Capability.RESPONSE_FORMAT;
 import static org.opensearch.sql.util.TestUtils.assertRowsEqual;
 
 import java.io.IOException;
 import java.util.Locale;
 import org.junit.Test;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CsvFormatIT extends PPLIntegTestCase {
 
@@ -22,6 +24,7 @@ public class CsvFormatIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(RESPONSE_FORMAT)
   public void sanitizeTest() throws IOException {
     String result =
         executeCsvQuery(
@@ -41,6 +44,7 @@ public class CsvFormatIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(RESPONSE_FORMAT)
   public void escapeSanitizeTest() throws IOException {
     String result =
         executeCsvQuery(

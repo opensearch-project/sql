@@ -1,19 +1,19 @@
 root:
-  name: ProjectOperator
-  description:
-    fields: "[ageTrend]"
   children:
-    - name: TrendlineOperator
+    - children:
+        - children: []
+          description:
+            request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account,\
+              \ sourceBuilder={\"from\":0,\"size\":5,\"timeout\":\"1m\"}, pitId=*,\
+              \ cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
+          name: OpenSearchIndexScan
       description:
         computations:
           - computationType: sma
             numberOfDataPoints: "2"
             dataField: age
             alias: ageTrend
-      children:
-        - name: OpenSearchIndexScan
-          description:
-            request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account,\
-              \ sourceBuilder={\"from\":0,\"size\":5,\"timeout\":\"1m\"}, pitId=*,\
-              \ cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
-          children: []
+      name: TrendlineOperator
+  description:
+    fields: "[ageTrend]"
+  name: ProjectOperator

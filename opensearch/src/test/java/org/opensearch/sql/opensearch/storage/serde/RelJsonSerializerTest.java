@@ -12,11 +12,15 @@ import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTOR
 
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectOutputStream;
 import java.math.BigDecimal;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
+import org.apache.calcite.rel.externalize.RelJson;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.StructKind;
 import org.apache.calcite.rex.RexBuilder;
@@ -25,6 +29,7 @@ import org.apache.calcite.rex.RexUnknownAs;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.JsonBuilder;
 import org.apache.calcite.util.Sarg;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -124,7 +129,8 @@ public class RelJsonSerializerTest {
     String serialized = serializer.serialize(rexNode, helper);
     RexNode expr = serializer.deserialize(serialized);
     assertEquals(expectedNode, expr);
-    assertEquals(List.of(0, 0, 0, 0, 0), helper.sources);
+    // 1 is SOURCE, since a binary field has no doc values to read.
+    assertEquals(List.of(0, 0, 0, 0, 1), helper.sources);
     assertEquals(List.of("date", "time", "timestamp", "ip", "binary"), helper.digests);
   }
 
@@ -348,6 +354,124 @@ public class RelJsonSerializerTest {
     assertEquals(expectedNode, rexNode);
     assertEquals(List.of(2, 0, 0, 2), helper.sources);
     assertEquals(List.of(20, "Number", "Number", 10), helper.digests);
+  }
+
+  @Test
+  void testArithmeticInItemIndexPreservesIntegerType() {
+    // Simulates the mvindex(entity, 1) scenario where PLUS(1, 1) is used as an array index.
+    // The PLUS operands get widened to BIGINT during standardization (for doc-value compat),
+    // but the result must remain INTEGER since ITEM/arrayItemOptional expects int.
+    RelDataType intType = TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER);
+    RexNode plusCall =
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.PLUS,
+            rexBuilder.makeLiteral(1, TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER)),
+            rexBuilder.makeLiteral(1, TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER)));
+
+    final ScriptParameterHelper helper =
+        new ScriptParameterHelper(rowType.getFieldList(), fieldTypes, rexBuilder);
+    String code = serializer.serialize(plusCall, helper);
+    RexNode deserialized = serializer.deserialize(code);
+
+    // After round-trip, the result should be wrapped in CAST(INTEGER) to preserve the type
+    assertEquals(SqlTypeName.INTEGER, deserialized.getType().getSqlTypeName());
+  }
+
+  @Test
+  void testArithmeticBigintNotWrappedInCast() {
+    // When the original arithmetic type is already BIGINT, no cast should be added.
+    RexNode plusCall =
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.PLUS,
+            rexBuilder.makeLiteral(1L, TYPE_FACTORY.createSqlType(SqlTypeName.BIGINT)),
+            rexBuilder.makeLiteral(1L, TYPE_FACTORY.createSqlType(SqlTypeName.BIGINT)));
+
+    final ScriptParameterHelper helper =
+        new ScriptParameterHelper(rowType.getFieldList(), fieldTypes, rexBuilder);
+    String code = serializer.serialize(plusCall, helper);
+    RexNode deserialized = serializer.deserialize(code);
+
+    // BIGINT arithmetic should stay BIGINT without extra CAST
+    assertEquals(SqlTypeName.BIGINT, deserialized.getType().getSqlTypeName());
+  }
+
+  @Test
+  void testArithmeticWithFieldPreservesIntegerType() {
+    // Simulates arithmetic with a field reference: Number + 1
+    // The field gets widened to BIGINT, but the original PLUS type is INTEGER,
+    // so the result should be cast back to INTEGER.
+    RexNode plusCall =
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.PLUS,
+            rexBuilder.makeInputRef(rowType.getFieldList().get(1).getType(), 1),
+            rexBuilder.makeLiteral(1, TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER)));
+
+    Map<String, ExprType> fieldTypesWithNumber =
+        Map.of("Referer", ExprCoreType.STRING, "Number", ExprCoreType.INTEGER);
+    final ScriptParameterHelper helper =
+        new ScriptParameterHelper(rowType.getFieldList(), fieldTypesWithNumber, rexBuilder);
+    String code = serializer.serialize(plusCall, helper);
+    RexNode deserialized = serializer.deserialize(code);
+
+    // Result should be INTEGER after deserialization
+    assertEquals(SqlTypeName.INTEGER, deserialized.getType().getSqlTypeName());
+  }
+
+  @Test
+  void deserialize_rejects_struct_literal_with_list_element_poc() throws Exception {
+    // Reported RCE shape (benign body): a struct-typed literal with a list element — a shape a
+    // legitimate serializer never inlines, and the one that reaches the vulnerable code generator.
+    String maliciousJson =
+        "{\"literal\": [\"harmless-marker\"], \"type\": {\"fields\": [{\"name\": \"f\","
+            + " \"type\": \"ANY\", \"nullable\": false}], \"nullable\": false}}";
+    String encoded = wrapAsScript(maliciousJson);
+    var exception =
+        assertThrows(IllegalStateException.class, () -> serializer.deserialize(encoded));
+    assertTrue(rootCauseMessage(exception).contains("unsafe inlined literal"));
+  }
+
+  @Test
+  void deserialize_rejects_inlined_string_literal() throws Exception {
+    // Inlined character literals are never produced by a legitimately serialized script.
+    RexNode inlinedString = rexBuilder.makeLiteral("evil' payload");
+    String encoded = wrapAsScript(rawSerialize(inlinedString));
+    var exception =
+        assertThrows(IllegalStateException.class, () -> serializer.deserialize(encoded));
+    assertTrue(rootCauseMessage(exception).contains("unsafe inlined literal"));
+  }
+
+  @Test
+  void deserialize_allows_safe_inlined_literal() throws Exception {
+    // Regression guard: safe inlined literal families must still be accepted.
+    RexNode inlinedBool = rexBuilder.makeLiteral(true);
+    RexNode result = serializer.deserialize(wrapAsScript(rawSerialize(inlinedBool)));
+    assertEquals(SqlTypeName.BOOLEAN, result.getType().getSqlTypeName());
+  }
+
+  /**
+   * Serialize a RexNode to its RelJson string WITHOUT standardization, as a forged payload would.
+   */
+  private String rawSerialize(RexNode node) {
+    JsonBuilder jsonBuilder = new JsonBuilder();
+    RelJson relJson = ExtendedRelJson.create(jsonBuilder);
+    return jsonBuilder.toJsonString(relJson.toJson(node));
+  }
+
+  /** Wrap a RelJson string the way {@link RelJsonSerializer#deserialize} expects to read it. */
+  private static String wrapAsScript(String json) throws Exception {
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+    ObjectOutputStream objectOutput = new ObjectOutputStream(output);
+    objectOutput.writeObject(json);
+    objectOutput.flush();
+    return Base64.getEncoder().encodeToString(output.toByteArray());
+  }
+
+  private static String rootCauseMessage(Throwable throwable) {
+    Throwable cause = throwable;
+    while (cause.getCause() != null) {
+      cause = cause.getCause();
+    }
+    return String.valueOf(cause.getMessage());
   }
 
   @Test

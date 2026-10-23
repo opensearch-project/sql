@@ -5,12 +5,15 @@
 
 package org.opensearch.sql.plugin.request;
 
+import java.time.Duration;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.format.Format;
@@ -30,7 +33,12 @@ public class PPLQueryRequestFactory {
   private static final String DEFAULT_EXPLAIN_MODE = "standard";
   private static final String QUERY_PARAMS_PRETTY = "pretty";
   private static final String QUERY_PARAMS_PROFILE = "profile";
+  private static final String QUERY_PARAMS_ANALYZE = "analyze";
   private static final String QUERY_PARAMS_FETCH_SIZE = "fetch_size";
+  private static final String QUERY_PARAMS_INCLUDE_METADATA = "include_metadata";
+  private static final String QUERY_PARAMS_WAIT_FOR_COMPLETION_TIMEOUT =
+      "wait_for_completion_timeout";
+  private static final String QUERY_PARAMS_KEEP_ALIVE = "keep_alive";
 
   /**
    * Build {@link PPLQueryRequest} from {@link RestRequest}.
@@ -82,9 +90,12 @@ public class PPLQueryRequestFactory {
     try {
       jsonContent = new JSONObject(content);
       boolean profileRequested = jsonContent.optBoolean(QUERY_PARAMS_PROFILE, false);
+      boolean analyzeRequested = jsonContent.optBoolean(QUERY_PARAMS_ANALYZE, false);
       String queryString = jsonContent.optString(PPL_FIELD_NAME, "");
-      boolean enableProfile =
-          profileRequested && isProfileSupported(restRequest.path(), format, queryString);
+      // if both profile and analyze are requested, profile overrides analyze
+      boolean profileSupported = isProfileSupported(restRequest.path(), format, queryString);
+      boolean enableProfile = profileRequested && profileSupported;
+      boolean enableAnalyze = analyzeRequested && !profileRequested && profileSupported;
       // Support fetch_size as a URL parameter if not already in the JSON body
       if (!jsonContent.has(QUERY_PARAMS_FETCH_SIZE)
           && restRequest.params().containsKey(QUERY_PARAMS_FETCH_SIZE)) {
@@ -97,6 +108,13 @@ public class PPLQueryRequestFactory {
               "Invalid fetch_size parameter: must be a valid integer", e);
         }
       }
+      // Support include_metadata as a URL parameter if not already in the JSON body
+      if (!jsonContent.has(QUERY_PARAMS_INCLUDE_METADATA)
+          && restRequest.params().containsKey(QUERY_PARAMS_INCLUDE_METADATA)) {
+        jsonContent.put(
+            QUERY_PARAMS_INCLUDE_METADATA,
+            Boolean.parseBoolean(restRequest.params().get(QUERY_PARAMS_INCLUDE_METADATA)));
+      }
       PPLQueryRequest pplRequest =
           new PPLQueryRequest(
               jsonContent.getString(PPL_FIELD_NAME),
@@ -104,7 +122,8 @@ public class PPLQueryRequestFactory {
               restRequest.path(),
               format.getFormatName(),
               explainMode,
-              enableProfile);
+              enableProfile,
+              enableAnalyze);
       // set sanitize option if csv format
       if (format.equals(Format.CSV)) {
         pplRequest.sanitize(getSanitizeOption(restRequest.params()));
@@ -117,6 +136,22 @@ public class PPLQueryRequestFactory {
       String queryId = jsonContent.optString("queryId", null);
       if (queryId != null) {
         pplRequest.queryId(queryId);
+      }
+      if (jsonContent.has(QUERY_PARAMS_WAIT_FOR_COMPLETION_TIMEOUT)) {
+        pplRequest.waitForCompletionTimeout(
+            parseDuration(
+                jsonContent.getString(QUERY_PARAMS_WAIT_FOR_COMPLETION_TIMEOUT),
+                QUERY_PARAMS_WAIT_FOR_COMPLETION_TIMEOUT,
+                Duration.ZERO,
+                Duration.ofSeconds(60)));
+      }
+      if (jsonContent.has(QUERY_PARAMS_KEEP_ALIVE)) {
+        pplRequest.keepAlive(
+            parseDuration(
+                jsonContent.getString(QUERY_PARAMS_KEEP_ALIVE),
+                QUERY_PARAMS_KEEP_ALIVE,
+                Duration.ofMillis(1),
+                Duration.ofHours(24)));
       }
       return pplRequest;
     } catch (JSONException e) {
@@ -167,6 +202,21 @@ public class PPLQueryRequestFactory {
     boolean isJdbcFormat =
         format != null && DEFAULT_RESPONSE_FORMAT.equalsIgnoreCase(format.getFormatName());
     return !explainPath && !explainQuery && isJdbcFormat;
+  }
+
+  /**
+   * Parses an OpenSearch-style time value ({@code "5s"}, {@code "0"}, {@code "10m"}) into a {@link
+   * Duration}. Delegates to {@link TimeValue#parseTimeValue} for consistent grammar with other
+   * request-body time fields.
+   */
+  private static Duration parseDuration(
+      String value, String fieldName, Duration min, Duration max) {
+    Duration parsed = Duration.ofMillis(TimeValue.parseTimeValue(value, fieldName).millis());
+    if (parsed.compareTo(min) < 0 || parsed.compareTo(max) > 0) {
+      throw new IllegalArgumentException(
+          String.format(Locale.ROOT, "%s=%s is out of range [%s, %s]", fieldName, value, min, max));
+    }
+    return parsed;
   }
 
   private static String getExplainMode(Map<String, String> requestParams, String path) {

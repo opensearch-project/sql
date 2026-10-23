@@ -25,8 +25,8 @@ import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.data.model.ExprIpValue;
-import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
@@ -120,7 +120,8 @@ public class CompareIpFunction extends ImplementorUDF {
 
   @Override
   public UDFOperandMetadata getOperandMetadata() {
-    return UDFOperandMetadata.wrapUDT(List.of(List.of(ExprCoreType.IP, ExprCoreType.IP)));
+    return UDFOperandMetadata.wrapUDT(
+        List.of(List.of(PPLOperandTypes.IP_UDT, PPLOperandTypes.IP_UDT)));
   }
 
   public static class CompareImplementor implements NotNullImplementor {

@@ -128,6 +128,59 @@ public class ErrorReportTest {
   }
 
   @Test
+  public void testReasonIsOmittedUnlessSet() {
+    ErrorReport report =
+        ErrorReport.wrap(new IllegalArgumentException("Field not found"))
+            .code(ErrorCode.FIELD_NOT_FOUND)
+            .build();
+
+    assertNull(report.getReason());
+    assertFalse(report.toJsonMap().containsKey("reason"));
+  }
+
+  @Test
+  public void testReasonRoundTripsThroughJsonMap() {
+    ErrorReport report =
+        ErrorReport.wrap(new IllegalArgumentException("Error while preparing plan [plan text]"))
+            .code(ErrorCode.PLANNING_ERROR)
+            .reason("Internal error while compiling the query plan.")
+            .build();
+
+    Map<String, Object> json = report.toJsonMap();
+
+    assertEquals("Internal error while compiling the query plan.", report.getReason());
+    assertEquals("Internal error while compiling the query plan.", json.get("reason"));
+    // details keeps defaulting to the cause message, the two fields are independent
+    assertEquals("Error while preparing plan [plan text]", json.get("details"));
+  }
+
+  @Test
+  public void testReasonIsFirstWriteWins() {
+    ErrorReport report =
+        ErrorReport.wrap(new IllegalArgumentException("Original error"))
+            .reason("specific message from the inner layer")
+            .reason("generic message from an outer layer")
+            .build();
+
+    assertEquals("specific message from the inner layer", report.getReason());
+  }
+
+  @Test
+  public void testReasonSurvivesRewrapping() {
+    ErrorReport firstWrap =
+        ErrorReport.wrap(new IllegalArgumentException("Original error"))
+            .code(ErrorCode.PLANNING_ERROR)
+            .reason("specific message from the inner layer")
+            .build();
+
+    ErrorReport secondWrap =
+        ErrorReport.wrap(firstWrap).stage(QueryProcessingStage.EXECUTING).build();
+
+    assertEquals("specific message from the inner layer", secondWrap.getReason());
+    assertEquals("specific message from the inner layer", secondWrap.toJsonMap().get("reason"));
+  }
+
+  @Test
   public void testToDetailedMessage() {
     Exception cause = new IllegalArgumentException("Field not found");
 

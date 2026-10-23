@@ -770,9 +770,11 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
                   (arguments.isEmpty() || arguments.size() == 1)
                       ? Collections.emptyList()
                       : arguments.subList(1, arguments.size());
-              // ROW_NUMBER takes no field/args and isn't in aggFunctionRegistry,
+              // These take no field/args and aren't in aggFunctionRegistry,
               // so skip aggregate signature validation.
-              if (functionName == BuiltinFunctionName.ROW_NUMBER) {
+              if (functionName == BuiltinFunctionName.ROW_NUMBER
+                  || functionName == BuiltinFunctionName.RANK
+                  || functionName == BuiltinFunctionName.DENSE_RANK) {
                 return PlanUtils.makeOver(
                     context,
                     functionName,
@@ -929,6 +931,15 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
         OpenSearchTypeFactory.convertExprTypeToRelDataType(node.getDataType().getCoreType());
     RelDataType nullableType =
         context.rexBuilder.getTypeFactory().createTypeWithNullability(type, true);
+    // Object and array values have no scalar representation, and the cast would only fail later
+    // while the generated code is compiled
+    String containerType = OpenSearchTypeFactory.getContainerTypeName(expr.getType());
+    if (containerType != null) {
+      throw new IllegalArgumentException(
+          StringUtils.format(
+              "Cannot cast an %s to %s",
+              containerType, OpenSearchTypeFactory.getLegacyTypeName(type, context.queryType)));
+    }
     // call makeCast() instead of cast() because the saft parameter is true could avoid exception.
     return context.rexBuilder.makeCast(nullableType, expr, true, true);
   }

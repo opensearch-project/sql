@@ -40,7 +40,9 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -114,6 +116,7 @@ import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Replace;
 import org.opensearch.sql.ast.tree.ReplacePair;
+import org.opensearch.sql.ast.tree.RestRelation;
 import org.opensearch.sql.ast.tree.Reverse;
 import org.opensearch.sql.ast.tree.Rex;
 import org.opensearch.sql.ast.tree.SPath;
@@ -137,6 +140,7 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.setting.Settings.Key;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.executor.TimeBounds;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.AdCommandContext;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ByClauseContext;
@@ -149,6 +153,7 @@ import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
 import org.opensearch.sql.ppl.utils.MakeResultsDataParser;
 import org.opensearch.sql.ppl.utils.UnresolvedPlanHelper;
+import org.opensearch.sql.utils.SystemIndexUtils;
 
 /** Class of building the AST. Refines the visit path and build the AST nodes */
 public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
@@ -163,14 +168,63 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    */
   private final String query;
 
+  /** Time range the main source is narrowed to, or null when the request declared none. */
+  @Nullable private final TimeBounds timeBounds;
+
   public AstBuilder(String query) {
-    this(query, null);
+    this(query, null, null);
   }
 
   public AstBuilder(String query, Settings settings) {
+    this(query, settings, null);
+  }
+
+  public AstBuilder(String query, Settings settings, @Nullable TimeBounds timeBounds) {
     this.expressionBuilder = new AstExpressionBuilder(this, AstBuildGuard.fromSettings(settings));
     this.query = query;
     this.settings = settings;
+    this.timeBounds = timeBounds;
+  }
+
+  /** A relation whose names carry the request's time bounds (see {@link TimeBounds}). */
+  private Relation relation(List<UnresolvedExpression> tableSources) {
+    if (timeBounds == null) {
+      return new Relation(tableSources);
+    }
+    // Only the last: the sources are joined with commas, and the joined name must end in one block.
+    List<UnresolvedExpression> sources = new ArrayList<>(tableSources);
+    int last = sources.size() - 1;
+    sources.set(last, withTimeBounds(sources.get(last)));
+    return new Relation(sources);
+  }
+
+  /**
+   * Whether {@code ctx} is the outermost pipeline's own {@code source=}, rather than a join's other
+   * side, a subsearch's source, a multisearch dataset or a lookup table. Only that one is narrowed:
+   * a client's time filter constrains the first command, so a secondary source keeps every row, and
+   * narrowing it would drop indices nothing filtered.
+   */
+  private boolean isMainSource(TableSourceClauseContext ctx) {
+    if (!(ctx.getParent() instanceof OpenSearchPPLParser.TableOrSubqueryClauseContext)
+        || !(ctx.getParent().getParent() instanceof OpenSearchPPLParser.FromClauseContext)) {
+      return false;
+    }
+    for (RuleContext parent = ctx.getParent(); parent != null; parent = parent.getParent()) {
+      if (parent instanceof OpenSearchPPLParser.SubSearchContext) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private UnresolvedExpression withTimeBounds(UnresolvedExpression tableSource) {
+    if (!(tableSource instanceof QualifiedName name)) {
+      return tableSource;
+    }
+    List<String> parts = new ArrayList<>(name.getParts());
+    int last = parts.size() - 1;
+    parts.set(last, timeBounds.encodeInto(parts.get(last)));
+    return new QualifiedName(parts);
   }
 
   public Settings getSettings() {
@@ -258,6 +312,34 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitShowDataSourcesCommand(
       OpenSearchPPLParser.ShowDataSourcesCommandContext ctx) {
     return new DescribeRelation(qualifiedName(DATASOURCES_TABLE_NAME));
+  }
+
+  /**
+   * <b>Rest command.</b><br>
+   * Encodes the validated endpoint spec into a reserved table name (via {@link
+   * org.opensearch.sql.utils.SystemIndexUtils#restTable}) that resolves through the storage engine
+   * to a REST source table on the Calcite path, mirroring how DESCRIBE resolves to a system index.
+   */
+  @Override
+  public UnresolvedPlan visitRestCommand(OpenSearchPPLParser.RestCommandContext ctx) {
+    String endpoint = StringUtils.unquoteText(ctx.stringLiteral().getText());
+    LinkedHashMap<String, String> args = new LinkedHashMap<>();
+    Integer count = null;
+    String timeout = null;
+    for (OpenSearchPPLParser.RestArgumentContext arg : ctx.restArgument()) {
+      if (arg.COUNT() != null) {
+        count = Integer.parseInt(arg.integerLiteral().getText());
+      } else if (arg.TIMEOUT() != null) {
+        timeout = StringUtils.unquoteText(arg.stringLiteral().getText());
+      } else {
+        args.put(
+            StringUtils.unquoteIdentifier(arg.ident().getText()),
+            StringUtils.unquoteText(arg.literalValue().getText()));
+      }
+    }
+    String token =
+        SystemIndexUtils.restTable(new SystemIndexUtils.RestSpec(endpoint, args, count, timeout));
+    return new RestRelation(new QualifiedName(token));
   }
 
   /** makeresults command. */
@@ -1216,11 +1298,9 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
 
   @Override
   public UnresolvedPlan visitTableSourceClause(TableSourceClauseContext ctx) {
-    Relation relation =
-        new Relation(
-            ctx.tableSource().stream()
-                .map(this::internalVisitExpression)
-                .collect(Collectors.toList()));
+    List<UnresolvedExpression> tableSources =
+        ctx.tableSource().stream().map(this::internalVisitExpression).collect(Collectors.toList());
+    Relation relation = isMainSource(ctx) ? relation(tableSources) : new Relation(tableSources);
     return ctx.alias != null
         ? new SubqueryAlias(internalVisitExpression(ctx.alias).toString(), relation)
         : relation;

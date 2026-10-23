@@ -6,10 +6,12 @@
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT_SINGLE_SHARD;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TIME_DATE_NULL;
 import static org.opensearch.sql.util.Capability.BIN_TIME_FIELD_BUCKETING;
+import static org.opensearch.sql.util.Capability.FRACTIONAL_SPAN_BUCKETING;
 import static org.opensearch.sql.util.Capability.PERCENTILE_APPROXIMATE;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -29,6 +31,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
   public void init() throws Exception {
     super.init();
     loadIndex(Index.ACCOUNT);
+    loadIndex(Index.ACCOUNT_SINGLE_SHARD);
     loadIndex(Index.BANK_WITH_NULL_VALUES);
     loadIndex(Index.BANK);
     loadIndex(Index.TIME_TEST_DATA_WITH_NULL);
@@ -512,11 +515,6 @@ public class StatsCommandIT extends PPLIntegTestCase {
                 "source=%s | where age = 36 | stats sum(balance)",
                 TEST_INDEX_BANK_WITH_NULL_VALUES));
     verifySchema(response, schema("sum(balance)", null, "bigint"));
-    // TODO: Fix -- temporary workaround for the pushdown issue:
-    //  The current pushdown implementation will return 0 for sum when getting null values as input.
-    //  Returning null should be the expected behavior.
-    // The analytics-engine backend (DataFusion) follows the SQL spec like Calcite-no-pushdown —
-    // SUM of all-null is null, not 0.
     Integer expectedValue = (isPushdownDisabled() || isAnalyticsParquetIndicesEnabled()) ? null : 0;
     verifyDataRows(response, rows(expectedValue));
   }
@@ -844,6 +842,9 @@ public class StatsCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testStatsSortOnMeasure() throws IOException {
+    // Single-shard fixture: sort-on-measure orders a terms agg by a sub-aggregation, which is
+    // approximate on multi-shard indices (per-shard top-N pruning of partial sums). See
+    // TEST_INDEX_ACCOUNT_SINGLE_SHARD javadoc in TestsConstants.
     try {
       setQueryBucketSize(5);
       // count=25 is tied across multiple states (AL/ME/TN/WY); add `state` as an explicit
@@ -854,7 +855,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
               String.format(
                   "source=%s | stats bucket_nullable=false count() by state | sort - `count()`,"
                       + " state | head 5",
-                  TEST_INDEX_ACCOUNT));
+                  TEST_INDEX_ACCOUNT_SINGLE_SHARD));
       verifyDataRows(
           response, rows(30, "TX"), rows(28, "MD"), rows(27, "ID"), rows(25, "AL"), rows(25, "ME"));
       // Ascending: count=13 (NV/SC) and count=14 (many states); state asc as tiebreaker.
@@ -863,7 +864,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
               String.format(
                   "source=%s | stats bucket_nullable=false count() by state | sort `count()`,"
                       + " state | head 5",
-                  TEST_INDEX_ACCOUNT));
+                  TEST_INDEX_ACCOUNT_SINGLE_SHARD));
       verifyDataRows(
           response, rows(13, "NV"), rows(13, "SC"), rows(14, "AZ"), rows(14, "CO"), rows(14, "DE"));
       response =
@@ -871,7 +872,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
               String.format(
                   "source=%s | stats bucket_nullable=false sum(balance) as sum by state | sort sum"
                       + " | head 5",
-                  TEST_INDEX_ACCOUNT));
+                  TEST_INDEX_ACCOUNT_SINGLE_SHARD));
       verifyDataRows(
           response,
           rows(266971, "NV"),
@@ -884,7 +885,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
               String.format(
                   "source=%s | stats bucket_nullable=false sum(balance) as sum by state | sort -"
                       + " sum | head 5",
-                  TEST_INDEX_ACCOUNT));
+                  TEST_INDEX_ACCOUNT_SINGLE_SHARD));
       verifyDataRows(
           response,
           rows(782199, "TX"),
@@ -1025,6 +1026,9 @@ public class StatsCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testStatsSpanSortOnMeasureMultiTerms() throws IOException {
+    // Single-shard fixture: sort-on-measure orders a terms agg by a sub-aggregation, which is
+    // approximate on multi-shard indices (per-shard top-N pruning of partial sums). See
+    // TEST_INDEX_ACCOUNT_SINGLE_SHARD javadoc in TestsConstants.
     try {
       setQueryBucketSize(5);
       // count=17 ties between (M,ID) and (F,TX); count=5 ties across many (gender, state)
@@ -1034,7 +1038,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
               String.format(
                   "source=%s | stats bucket_nullable=false count() by gender, state | sort -"
                       + " `count()`, gender, state | head 5",
-                  TEST_INDEX_ACCOUNT));
+                  TEST_INDEX_ACCOUNT_SINGLE_SHARD));
       verifyDataRows(
           response,
           rows(18, "M", "MD"),
@@ -1047,7 +1051,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
               String.format(
                   "source=%s | stats bucket_nullable=false count() by gender, state | sort"
                       + " `count()`, gender, state | head 5",
-                  TEST_INDEX_ACCOUNT));
+                  TEST_INDEX_ACCOUNT_SINGLE_SHARD));
       verifyDataRows(
           response,
           rows(3, "F", "DE"),
@@ -1060,7 +1064,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
               String.format(
                   "source=%s | stats bucket_nullable=false sum(balance) as sum by gender, state |"
                       + " sort sum | head 5",
-                  TEST_INDEX_ACCOUNT));
+                  TEST_INDEX_ACCOUNT_SINGLE_SHARD));
       verifyDataRows(
           response,
           rows(85753, "F", "OR"),
@@ -1073,7 +1077,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
               String.format(
                   "source=%s | stats bucket_nullable=false sum(balance) as sum by gender, state |"
                       + " sort - sum | head 5",
-                  TEST_INDEX_ACCOUNT));
+                  TEST_INDEX_ACCOUNT_SINGLE_SHARD));
       verifyDataRows(
           response,
           rows(505688, "F", "TX"),
@@ -1088,6 +1092,9 @@ public class StatsCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testStatsSpanSortOnMeasureMultiTermsWithScript() throws IOException {
+    // Single-shard fixture: sort-on-measure orders a terms agg by a sub-aggregation, which is
+    // approximate on multi-shard indices (per-shard top-N pruning of partial sums). See
+    // TEST_INDEX_ACCOUNT_SINGLE_SHARD javadoc in TestsConstants.
     try {
       setQueryBucketSize(5);
       // Same tie shapes as testStatsSpanSortOnMeasureMultiTerms but with script-derived
@@ -1098,7 +1105,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
                   "source=%s | eval new_gender = lower(gender), new_state = lower(state) | stats"
                       + " bucket_nullable=false count() by new_gender, new_state | sort -"
                       + " `count()`, new_gender, new_state | head 5",
-                  TEST_INDEX_ACCOUNT));
+                  TEST_INDEX_ACCOUNT_SINGLE_SHARD));
       verifyDataRows(
           response,
           rows(18, "m", "md"),
@@ -1112,7 +1119,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
                   "source=%s | eval new_gender = lower(gender), new_state = lower(state) | stats"
                       + " bucket_nullable=false count() by new_gender, new_state | sort `count()`,"
                       + " new_gender, new_state | head 5",
-                  TEST_INDEX_ACCOUNT));
+                  TEST_INDEX_ACCOUNT_SINGLE_SHARD));
       verifyDataRows(
           response,
           rows(3, "f", "de"),
@@ -1126,7 +1133,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
                   "source=%s | eval new_gender = lower(gender), new_state = lower(state) | stats"
                       + " bucket_nullable=false sum(balance) as sum by new_gender, new_state | sort"
                       + " sum | head 5",
-                  TEST_INDEX_ACCOUNT));
+                  TEST_INDEX_ACCOUNT_SINGLE_SHARD));
       verifyDataRows(
           response,
           rows(85753, "f", "or"),
@@ -1140,7 +1147,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
                   "source=%s | eval new_gender = lower(gender), new_state = lower(state) | stats"
                       + " bucket_nullable=false sum(balance) as sum by new_gender, new_state | sort"
                       + " - sum | head 5",
-                  TEST_INDEX_ACCOUNT));
+                  TEST_INDEX_ACCOUNT_SINGLE_SHARD));
       verifyDataRows(
           response,
           rows(505688, "f", "tx"),
@@ -1208,6 +1215,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FRACTIONAL_SPAN_BUCKETING)
   public void testStatsByFractionalSpan() throws IOException {
     JSONObject response1 =
         executeQuery(

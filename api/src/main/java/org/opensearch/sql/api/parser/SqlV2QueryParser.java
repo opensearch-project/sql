@@ -8,7 +8,8 @@ package org.opensearch.sql.api.parser;
 import static org.opensearch.sql.ast.dsl.AstDSL.existsSubquery;
 import static org.opensearch.sql.ast.dsl.AstDSL.inSubquery;
 import static org.opensearch.sql.ast.dsl.AstDSL.join;
-import static org.opensearch.sql.ast.dsl.AstDSL.union;
+import static org.opensearch.sql.ast.dsl.AstDSL.unionAll;
+import static org.opensearch.sql.ast.dsl.AstDSL.unionDistinct;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +30,7 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.AstBuildGuard;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ExistsSubqueryExpressionAtomContext;
@@ -154,7 +156,14 @@ public class SqlV2QueryParser implements UnifiedQueryParser<UnresolvedPlan> {
     public UnresolvedPlan visitUnionSelect(UnionSelectContext ctx) {
       List<UnresolvedPlan> datasets =
           ctx.querySpecification().stream().map(this::visit).collect(Collectors.toList());
-      return union(datasets);
+      if (ctx.ALL().isEmpty()) {
+        return unionDistinct(datasets);
+      }
+      if (ctx.ALL().size() == ctx.UNION().size()) {
+        return unionAll(datasets);
+      }
+      throw new SemanticCheckException(
+          "Mixing UNION and UNION ALL in the same query is not supported");
     }
 
     /**

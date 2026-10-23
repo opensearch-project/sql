@@ -25,6 +25,7 @@ src/site-server/node_modules
 build/
 gen/
 *.tokens
+.attach_pid*
 
 # various IDE files
 .vscode

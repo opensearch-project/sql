@@ -31,6 +31,7 @@ import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelBuilder;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.executor.Warning;
 import org.opensearch.sql.expression.function.FunctionProperties;
 
 public class CalcitePlanContext {
@@ -58,6 +59,19 @@ public class CalcitePlanContext {
   /** Timewrap series mode: "relative", "short", or "exact". */
   public static final ThreadLocal<String> timewrapSeries = new ThreadLocal<>();
 
+  /**
+   * Thread-local tracking which pool executed this query ("sql-worker" or "sql-complex-worker").
+   */
+  public static final ThreadLocal<String> executionPool = new ThreadLocal<>();
+
+  /**
+   * Non-fatal warnings raised while planning or executing a query, to be attached to its response.
+   * Drained in {@code OpenSearchExecutionEngine.buildResultSet} and cleared with the other
+   * lifecycle signals so it never leaks onto the next query on a pooled worker thread.
+   */
+  private static final ThreadLocal<List<Warning>> pendingWarnings =
+      ThreadLocal.withInitial(ArrayList::new);
+
   /** Thread-local switch that tells whether the current query prefers legacy behavior. */
   private static final ThreadLocal<Boolean> legacyPreferredFlag =
       ThreadLocal.withInitial(() -> true);
@@ -70,10 +84,17 @@ public class CalcitePlanContext {
   /**
    * The flag used to determine whether we do metadata field projection for user 1. If a project is
    * never visited, we will do metadata field projection for user 2. Else not because user may
-   * intend to show the metadata field themselves. // TODO: use stack here if we want to do similar
-   * projection for subquery.
+   * intend to show the metadata field themselves. Commands that combine several inputs, such as
+   * append, decide this per input; see {@code CalciteRelNodeVisitor#visitInputsWithOwnMetaFields}.
    */
   @Getter @Setter private boolean isProjectVisited = false;
+
+  /**
+   * Whether to include metadata fields like _id, _index, _score in the result. When true, metadata
+   * fields are included in wildcard field selections. When false (default), metadata fields are
+   * excluded.
+   */
+  @Getter @Setter private boolean includeMetadata = false;
 
   private final Stack<RexCorrelVariable> correlVar = new Stack<>();
   private final Stack<List<RexNode>> windowPartitions = new Stack<>();
@@ -144,6 +165,7 @@ public class CalcitePlanContext {
     this.rexBuilder = parent.rexBuilder; // Share the same rexBuilder
     this.functionProperties = parent.functionProperties;
     this.highlightConfig = parent.highlightConfig;
+    this.includeMetadata = parent.includeMetadata; // Preserve parent's metadata setting
     this.rexLambdaRefMap = new HashMap<>(); // New map for lambda variables
     this.capturedVariables = new ArrayList<>(); // New list for captured variables
     this.inLambdaContext = true; // Mark that we're inside a lambda
@@ -198,6 +220,13 @@ public class CalcitePlanContext {
     return new CalcitePlanContext(config, sysLimit, queryType);
   }
 
+  public static CalcitePlanContext create(
+      FrameworkConfig config, SysLimit sysLimit, QueryType queryType, boolean includeMetadata) {
+    CalcitePlanContext context = new CalcitePlanContext(config, sysLimit, queryType);
+    context.setIncludeMetadata(includeMetadata);
+    return context;
+  }
+
   /**
    * Executes {@code action} with the thread-local legacy flag set according to the supplied
    * settings.
@@ -229,6 +258,72 @@ public class CalcitePlanContext {
     stripNullColumns.set(false);
     timewrapUnitName.set(null);
     timewrapSeries.set(null);
+    executionPool.set(null);
+    pendingWarnings.remove();
+  }
+
+  /** Records a non-fatal warning to be attached to the response for the current query. */
+  public static void addWarning(Warning warning) {
+    pendingWarnings.get().add(warning);
+  }
+
+  /**
+   * Returns and clears the warnings collected for the current query, de-duplicated by value. The
+   * planner may fire a rule that raises a warning more than once for equivalent plan alternatives,
+   * so identical warnings are collapsed to one.
+   */
+  public static List<Warning> drainWarnings() {
+    List<Warning> warnings = pendingWarnings.get();
+    if (warnings.isEmpty()) {
+      return List.of();
+    }
+    List<Warning> drained = warnings.stream().distinct().toList();
+    pendingWarnings.remove();
+    return drained;
+  }
+
+  /**
+   * Snapshot of all thread-local state in CalcitePlanContext. Used when dispatching queries to the
+   * complex worker pool — capture state on the caller thread, restore on the worker thread.
+   */
+  public static class ThreadLocalSnapshot {
+    final boolean skipEncoding;
+    final boolean stripNullColumns;
+    final String timewrapUnitName;
+    final String timewrapSeries;
+    final String executionPool;
+
+    private ThreadLocalSnapshot(
+        boolean skipEncoding,
+        boolean stripNullColumns,
+        String timewrapUnitName,
+        String timewrapSeries,
+        String executionPool) {
+      this.skipEncoding = skipEncoding;
+      this.stripNullColumns = stripNullColumns;
+      this.timewrapUnitName = timewrapUnitName;
+      this.timewrapSeries = timewrapSeries;
+      this.executionPool = executionPool;
+    }
+  }
+
+  /** Capture current thread-local state for cross-thread propagation. */
+  public static ThreadLocalSnapshot snapshotThreadLocals() {
+    return new ThreadLocalSnapshot(
+        skipEncoding.get(),
+        stripNullColumns.get(),
+        timewrapUnitName.get(),
+        timewrapSeries.get(),
+        executionPool.get());
+  }
+
+  /** Restore thread-local state from a snapshot. */
+  public static void restoreThreadLocals(ThreadLocalSnapshot snapshot) {
+    skipEncoding.set(snapshot.skipEncoding);
+    stripNullColumns.set(snapshot.stripNullColumns);
+    timewrapUnitName.set(snapshot.timewrapUnitName);
+    timewrapSeries.set(snapshot.timewrapSeries);
+    executionPool.set(snapshot.executionPool);
   }
 
   public void pushForeachBindings(

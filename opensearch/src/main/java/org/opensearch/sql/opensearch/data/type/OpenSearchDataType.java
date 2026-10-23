@@ -39,6 +39,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
     DateNanos("date_nanos", ExprCoreType.TIMESTAMP),
     Object("object", ExprCoreType.STRUCT),
     Nested("nested", ExprCoreType.ARRAY),
+    FlatObject("flat_object", ExprCoreType.UNKNOWN),
     Byte("byte", ExprCoreType.BYTE),
     Short("short", ExprCoreType.SHORT),
     Integer("integer", ExprCoreType.INTEGER),
@@ -170,6 +171,8 @@ public class OpenSearchDataType implements ExprType, Serializable {
         return OpenSearchGeoPointType.of();
       case Binary:
         return OpenSearchBinaryType.of();
+      case FlatObject:
+        return OpenSearchFlatObjectType.of();
       case Date:
       case DateNanos:
         // Default date formatter is used when "" is passed as the second parameter
@@ -262,6 +265,22 @@ public class OpenSearchDataType implements ExprType, Serializable {
     return this.mappingType == null
         ? new OpenSearchDataType(this.exprCoreType)
         : new OpenSearchDataType(this.mappingType);
+  }
+
+  /**
+   * Clone this type including its nested {@link #properties} subtree, so the copy shares no mutable
+   * state with the original. Needed by callers that must keep a mapping intact across an in-place
+   * merge (see {@code MergeRuleHelper}), which rewrites the target's {@code properties}.
+   *
+   * @return A deep copy of this type.
+   */
+  public OpenSearchDataType cloneDeep() {
+    OpenSearchDataType copy = cloneEmpty();
+    // Mutable even when empty: a later merge may put fields into this copy.
+    Map<String, OpenSearchDataType> copiedProperties = new LinkedHashMap<>();
+    properties.forEach((field, type) -> copiedProperties.put(field, type.cloneDeep()));
+    copy.properties = copiedProperties;
+    return copy;
   }
 
   /**

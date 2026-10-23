@@ -5,8 +5,10 @@
 
 package org.opensearch.sql.plugin.config;
 
+import java.time.Clock;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.AbstractModule;
 import org.opensearch.common.inject.Provides;
 import org.opensearch.common.inject.Singleton;
@@ -15,17 +17,27 @@ import org.opensearch.sql.analysis.ExpressionAnalyzer;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.executor.DelegatingExecutionEngine;
+import org.opensearch.sql.executor.ExecutionDispatcher;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.job.InMemoryQueryJobStore;
+import org.opensearch.sql.job.OpenSearchQueryJobService;
+import org.opensearch.sql.job.OpenSearchSecurityAdapter;
+import org.opensearch.sql.job.QueryJobService;
+import org.opensearch.sql.job.QueryJobStore;
+import org.opensearch.sql.job.RetentionPolicy;
+import org.opensearch.sql.job.SecurityAdapter;
 import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
+import org.opensearch.sql.opensearch.client.RemoteClusterServiceProvider;
 import org.opensearch.sql.opensearch.executor.OpenSearchExecutionEngine;
 import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
+import org.opensearch.sql.opensearch.executor.ThreadPoolExecutionDispatcher;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
 import org.opensearch.sql.opensearch.executor.protector.OpenSearchExecutionProtector;
 import org.opensearch.sql.opensearch.monitor.OpenSearchMemoryHealthy;
@@ -38,16 +50,19 @@ import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.sql.SQLService;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.storage.StorageEngine;
+import org.opensearch.telemetry.tracing.Tracer;
+import org.opensearch.telemetry.tracing.noop.NoopTracer;
 import org.opensearch.transport.client.node.NodeClient;
 
 @RequiredArgsConstructor
 public class OpenSearchPluginModule extends AbstractModule {
 
   private final List<ExecutionEngine> executionEngineExtensions;
+  private final Tracer tracer;
 
   /** Default constructor for when no engines are available. */
   public OpenSearchPluginModule() {
-    this(List.of());
+    this(List.of(), NoopTracer.INSTANCE);
   }
 
   private final BuiltinFunctionRepository functionRepository =
@@ -57,8 +72,9 @@ public class OpenSearchPluginModule extends AbstractModule {
   protected void configure() {}
 
   @Provides
-  public OpenSearchClient openSearchClient(NodeClient nodeClient) {
-    return new OpenSearchNodeClient(nodeClient);
+  public OpenSearchClient openSearchClient(
+      NodeClient nodeClient, RemoteClusterServiceProvider remoteClusters) {
+    return new OpenSearchNodeClient(nodeClient, remoteClusters);
   }
 
   @Provides
@@ -89,8 +105,8 @@ public class OpenSearchPluginModule extends AbstractModule {
   }
 
   @Provides
-  public PlanSerializer planSerializer(StorageEngine storageEngine) {
-    return new PlanSerializer(storageEngine);
+  public PlanSerializer planSerializer(StorageEngine storageEngine, Settings settings) {
+    return new PlanSerializer(storageEngine, settings);
   }
 
   @Provides
@@ -111,16 +127,60 @@ public class OpenSearchPluginModule extends AbstractModule {
     return new SQLService(new SQLSyntaxParser(), queryManager, queryPlanFactory, settings);
   }
 
+  @Provides
+  @Singleton
+  public Tracer tracer() {
+    return tracer;
+  }
+
+  @Provides
+  @Singleton
+  public QueryJobStore queryJobStore() {
+    return new InMemoryQueryJobStore();
+  }
+
+  @Provides
+  @Singleton
+  public SecurityAdapter securityAdapter(NodeClient nodeClient) {
+    return new OpenSearchSecurityAdapter(nodeClient.threadPool().getThreadContext());
+  }
+
+  @Provides
+  @Singleton
+  public RetentionPolicy retentionPolicy(QueryJobStore store, NodeClient nodeClient) {
+    return new RetentionPolicy(store, nodeClient.threadPool());
+  }
+
+  @Provides
+  @Singleton
+  public QueryJobService queryJobService(
+      QueryJobStore store, ClusterService clusterService, RetentionPolicy retentionPolicy) {
+    return new OpenSearchQueryJobService(
+        store,
+        clusterService,
+        Clock.systemUTC(),
+        retentionPolicy,
+        // Reuse the sync REST renderer so an async GET on a FAILED job returns the same
+        // structured error body a synchronous POST would have returned for the same exception.
+        org.opensearch.sql.plugin.rest.SyncErrorReportRenderer::renderErrorMap);
+  }
+
   /** {@link QueryPlanFactory}. */
   @Provides
   public QueryPlanFactory queryPlanFactory(
-      DataSourceService dataSourceService, ExecutionEngine executionEngine, Settings settings) {
+      DataSourceService dataSourceService,
+      ExecutionEngine executionEngine,
+      Settings settings,
+      NodeClient nodeClient) {
     Analyzer analyzer =
         new Analyzer(
             new ExpressionAnalyzer(functionRepository), dataSourceService, functionRepository);
-    Planner planner = new Planner(LogicalPlanOptimizer.create());
+    Planner planner = new Planner(LogicalPlanOptimizer.create(), settings);
+    ExecutionDispatcher executionDispatcher =
+        new ThreadPoolExecutionDispatcher(nodeClient.threadPool(), settings);
     QueryService queryService =
-        new QueryService(analyzer, executionEngine, planner, dataSourceService, settings);
+        new QueryService(
+            analyzer, executionEngine, planner, dataSourceService, settings, executionDispatcher);
     return new QueryPlanFactory(queryService);
   }
 }

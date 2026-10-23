@@ -218,6 +218,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
 
       SearchRequest searchRequest =
           new SearchRequest().indices(indexName.getIndexNames()).source(this.sourceBuilder);
+
       this.searchResponse = searchAction.apply(searchRequest);
 
       openSearchResponse =

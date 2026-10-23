@@ -24,7 +24,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.data.type.ExprType;
 
 class CoercionUtilsTest {
 
@@ -88,7 +87,8 @@ class CoercionUtilsTest {
 
   @Test
   void castArgumentsReturnsExactMatchWhenAvailable() {
-    PPLTypeChecker typeChecker = new StubTypeChecker(List.of(List.of(INTEGER), List.of(DOUBLE)));
+    PPLTypeChecker typeChecker =
+        new StubTypeChecker(List.of(List.of(sqlType(INTEGER)), List.of(sqlType(DOUBLE))));
     List<RexNode> arguments = List.of(nullLiteral(INTEGER));
 
     List<RexNode> result = CoercionUtils.castArguments(REX_BUILDER, typeChecker, arguments);
@@ -102,7 +102,7 @@ class CoercionUtilsTest {
   @Test
   void castArgumentsFallsBackToWidestCandidate() {
     PPLTypeChecker typeChecker =
-        new StubTypeChecker(List.of(List.of(ExprCoreType.LONG), List.of(DOUBLE)));
+        new StubTypeChecker(List.of(List.of(sqlType(ExprCoreType.LONG)), List.of(sqlType(DOUBLE))));
     List<RexNode> arguments = List.of(nullLiteral(STRING));
 
     List<RexNode> result = CoercionUtils.castArguments(REX_BUILDER, typeChecker, arguments);
@@ -114,16 +114,23 @@ class CoercionUtilsTest {
 
   @Test
   void castArgumentsReturnsNullWhenNoCompatibleSignatureExists() {
-    PPLTypeChecker typeChecker = new StubTypeChecker(List.of(List.of(ExprCoreType.GEO_POINT)));
+    PPLTypeChecker typeChecker =
+        new StubTypeChecker(
+            List.of(
+                List.of(OpenSearchTypeFactory.TYPE_FACTORY.createSqlType(SqlTypeName.GEOMETRY))));
     List<RexNode> arguments = List.of(nullLiteral(INTEGER));
 
     assertNull(CoercionUtils.castArguments(REX_BUILDER, typeChecker, arguments));
   }
 
-  private static class StubTypeChecker implements PPLTypeChecker {
-    private final List<List<ExprType>> signatures;
+  private static RelDataType sqlType(ExprCoreType type) {
+    return OpenSearchTypeFactory.convertExprTypeToRelDataType(type);
+  }
 
-    private StubTypeChecker(List<List<ExprType>> signatures) {
+  private static class StubTypeChecker implements PPLTypeChecker {
+    private final List<List<RelDataType>> signatures;
+
+    private StubTypeChecker(List<List<RelDataType>> signatures) {
       this.signatures = signatures;
     }
 
@@ -138,7 +145,7 @@ class CoercionUtilsTest {
     }
 
     @Override
-    public List<List<ExprType>> getParameterTypes() {
+    public List<List<RelDataType>> getParameterTypes() {
       return signatures;
     }
   }

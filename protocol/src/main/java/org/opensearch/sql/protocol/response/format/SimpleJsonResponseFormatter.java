@@ -10,6 +10,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Singular;
+import org.opensearch.sql.executor.Warning;
 import org.opensearch.sql.monitor.profile.MetricName;
 import org.opensearch.sql.monitor.profile.ProfileMetric;
 import org.opensearch.sql.monitor.profile.QueryProfile;
@@ -55,6 +56,10 @@ public class SimpleJsonResponseFormatter extends JsonResponseFormatter<QueryResu
 
     json.datarows(fetchDataRows(response));
 
+    if (!response.getWarnings().isEmpty()) {
+      json.warnings(response.getWarnings());
+    }
+
     formatMetric.set(System.nanoTime() - formatTime);
 
     json.profile(QueryProfiling.current().finish());
@@ -83,6 +88,9 @@ public class SimpleJsonResponseFormatter extends JsonResponseFormatter<QueryResu
 
     private long total;
     private long size;
+
+    /** Present only when non-empty; a plain success omits this field entirely. */
+    private final List<Warning> warnings;
   }
 
   @RequiredArgsConstructor

@@ -11,6 +11,7 @@ import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.data.model.ExprValue;
@@ -92,12 +93,18 @@ public class EnhancedCoalesceFunction extends ImplementorUDF {
   public SqlReturnTypeInference getReturnTypeInference() {
     return opBinding -> {
       var operandTypes = opBinding.collectOperandTypes();
+      var typeFactory = opBinding.getTypeFactory();
 
       // Let Calcite determine the least restrictive common type
-      var commonType = opBinding.getTypeFactory().leastRestrictive(operandTypes);
-      return commonType != null
-          ? commonType
-          : opBinding.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+      var commonType = typeFactory.leastRestrictive(operandTypes);
+      if (commonType != null) {
+        return commonType;
+      }
+      // Fall back to VARCHAR, nullable unless an operand is NOT NULL as in Calcite's COALESCE,
+      // so IS NULL on the result is not folded to false
+      boolean nullable = operandTypes.stream().allMatch(RelDataType::isNullable);
+      return typeFactory.createTypeWithNullability(
+          typeFactory.createSqlType(SqlTypeName.VARCHAR), nullable);
     };
   }
 

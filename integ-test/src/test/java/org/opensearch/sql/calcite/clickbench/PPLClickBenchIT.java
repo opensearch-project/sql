@@ -35,6 +35,11 @@ public class PPLClickBenchIT extends PPLIntegTestCase {
   public static void reset() throws IOException {
     long total = 0;
     Map<String, Long> map = summary.immutableMap();
+    if (map.isEmpty()) {
+      // Every test in the class was skipped (e.g. capability-gated on the analytics route);
+      // there is nothing to summarize and the average below would divide by zero.
+      return;
+    }
     for (long duration : map.values()) {
       total += duration;
     }
@@ -70,15 +75,16 @@ public class PPLClickBenchIT extends PPLIntegTestCase {
   @Test
   public void test() throws IOException {
     for (int i = 1; i <= 43; i++) {
-      if (ignored().contains(i)) {
-        continue;
-      }
       logger.info("Running Query{}", i);
       String ppl = sanitize(loadFromFile("clickbench/queries/q" + i + ".ppl"));
       // V2 gets unstable scripts, ignore them when comparing plan
       if (isCalciteEnabled()) {
         String expected = loadExpectedPlan("clickbench/q" + i + ".yaml");
         assertYamlEqualsIgnoreId(expected, explainQueryYaml(ppl));
+      }
+      // Ignored queries still get their plan checked above; only execution is skipped
+      if (ignored().contains(i)) {
+        continue;
       }
       timing(summary, "q" + i, ppl);
     }

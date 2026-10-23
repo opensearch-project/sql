@@ -26,14 +26,27 @@ import org.opensearch.test.rest.OpenSearchRestTestCase;
 public class AnalyticsEngineProfileIT extends OpenSearchRestTestCase {
 
   private static final String INDEX = "profile_test";
-  private static boolean initialized = false;
 
   private void ensureSetup() throws IOException {
-    if (initialized) return;
+    // OpenSearchRestTestCase wipes indices between tests, so a static seed-once flag leaves every
+    // test after the first querying a deleted index. Probe the index instead and re-seed when the
+    // wipe removed it.
+    if (indexExists()) return;
     enableCalcite();
     createCompositeIndex();
     ingestData();
-    initialized = true;
+  }
+
+  private boolean indexExists() throws IOException {
+    try {
+      return client()
+              .performRequest(new Request("HEAD", "/" + INDEX))
+              .getStatusLine()
+              .getStatusCode()
+          == 200;
+    } catch (ResponseException e) {
+      return false;
+    }
   }
 
   private void enableCalcite() throws IOException {
@@ -52,7 +65,9 @@ public class AnalyticsEngineProfileIT extends OpenSearchRestTestCase {
               "number_of_shards": 2,
               "number_of_replicas": 0,
               "index.pluggable.dataformat.enabled": true,
-              "index.pluggable.dataformat": "composite"
+              "index.pluggable.dataformat": "composite",
+              "index.composite.primary_data_format": "parquet",
+              "index.composite.secondary_data_formats": ["lucene"]
             },
             "mappings": {
               "properties": {

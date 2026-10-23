@@ -13,6 +13,8 @@ options { caseInsensitive = true; }
 SEARCH:                             'SEARCH';
 DESCRIBE:                           'DESCRIBE';
 SHOW:                               'SHOW';
+REST:                               'REST';
+TIMEOUT:                            'TIMEOUT';
 MAKERESULTS:                        'MAKERESULTS';
 FORMAT:                             'FORMAT';
 CSV:                                'CSV';
@@ -188,6 +190,8 @@ UNION:                              'UNION';
 MAXOUT:                             'MAXOUT';
 COUNTFIELD:                         'COUNTFIELD';
 SHOWCOUNT:                          'SHOWCOUNT';
+PERCENTFIELD:                       'PERCENTFIELD';
+SHOWPERC:                           'SHOWPERC';
 LIMIT:                              'LIMIT';
 USEOTHER:                           'USEOTHER';
 OTHERSTR:                           'OTHERSTR';

@@ -6,7 +6,7 @@
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.8.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.10.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
         version_tokens = opensearch_version.tokenize('-')
@@ -68,6 +68,7 @@ buildscript {
     repositories {
         mavenLocal()
         maven { url "https://ci.opensearch.org/maven2/" }
+        maven { url "https://ci.opensearch.org/m2/" }
         mavenCentral()
         maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
     }
@@ -93,13 +94,14 @@ apply plugin: 'opensearch.java-agent'
 // Repository on root level is for dependencies that project code depends on. And this block must be placed after plugins{}
 repositories {
     mavenLocal()
-    maven { url "https://ci.opensearch.org/maven2/" }
-    mavenCentral() // For Elastic Libs that you can use to get started coding until open OpenSearch libs are available
     maven {
         url 'https://jitpack.io'
         content { includeGroup "com.github.babbel" }
     }
     maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
+    maven { url "https://ci.opensearch.org/maven2/" }
+    maven { url "https://ci.opensearch.org/m2/" }
+    mavenCentral()
 }
 
 spotless {
@@ -135,6 +137,12 @@ allprojects {
             sourceCompatibility = JavaVersion.VERSION_21
             targetCompatibility = JavaVersion.VERSION_21
         }
+
+        // Pin source-file encoding so multi-byte characters (e.g. CJK/emoji in tests) are decoded
+        // deterministically regardless of the build host's default charset.
+        tasks.withType(JavaCompile).configureEach {
+            options.encoding = 'UTF-8'
+        }
     }
 
     tasks.withType(Test) {
@@ -163,9 +171,11 @@ allprojects {
         resolutionStrategy.force 'org.apache.commons:commons-text:1.11.0'
         resolutionStrategy.force 'commons-io:commons-io:2.15.0'
         resolutionStrategy.force 'org.yaml:snakeyaml:2.2'
+        resolutionStrategy.force "org.snakeyaml:snakeyaml-engine:${versions.snakeyaml_engine}"
         // Align Calcite 1.42.0's bumped transitive deps under strict conflict resolution
         resolutionStrategy.force 'com.jayway.jsonpath:json-path:2.10.0'
         resolutionStrategy.force 'org.jooq:joou-java-6:0.9.5'
+        resolutionStrategy.force 'org.jspecify:jspecify:1.0.1'
         resolutionStrategy.dependencySubstitution {
             substitute module('commons-lang:commons-lang') using module('org.apache.commons:commons-lang3:3.18.0') because 'CVE-2025-48924: commons-lang 2.x vulnerable to StackOverflowError'
         }
@@ -175,14 +185,15 @@ allprojects {
 subprojects {
     repositories {
         mavenLocal()
-        maven { url "https://ci.opensearch.org/maven2/" }
-        mavenCentral()
         maven {
             url 'https://jitpack.io'
             content { includeGroup "com.github.babbel" }
         }
         maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
         maven { url "https://ci.opensearch.org/ci/dbc/snapshots/lucene/" }
+        maven { url "https://ci.opensearch.org/maven2/" }
+        maven { url "https://ci.opensearch.org/m2/" }
+        mavenCentral()
     }
 
     // Publish internal modules as Maven artifacts for external use, such as by opensearch-spark and opensearch-cli.
@@ -288,6 +299,56 @@ jacocoTestCoverageVerification {
     }
 }
 check.dependsOn jacocoTestCoverageVerification
+
+// Each module's jacocoTestReport credits a class only with the tests of its own module, but many
+// classes are mostly tested from other modules (for example core's CalciteRelNodeVisitor is tested
+// by ppl's CalcitePPL*Test). This report merges the unit test execution data of every module that
+// applies jacoco and reports it against the classes of the modules below, with the same excludes as
+// their own jacocoTestReport. CI uploads it to Codecov. The per-module
+// jacocoTestCoverageVerification rules still measure each module's own tests only.
+def aggregatedCoverageModules = [
+        ':api',
+        ':async-query',
+        ':async-query-core',
+        ':core',
+        ':datasources',
+        ':direct-query',
+        ':direct-query-core',
+        ':opensearch',
+        ':ppl',
+        ':prometheus',
+        ':protocol',
+        ':sql',
+]
+def jacocoAggregatedReport = tasks.register('jacocoAggregatedReport', JacocoReport) {
+    group = 'verification'
+    description = 'Generates a code coverage report of all modules from the unit tests of all modules. ' +
+            'Does not run the tests; use ./gradlew test jacocoAggregatedReport.'
+    reports {
+        html.required = true
+        xml.required = true
+        csv.required = false
+    }
+}
+// The module reports set their excludes in afterEvaluate, so read them once every project is evaluated.
+gradle.projectsEvaluated {
+    jacocoAggregatedReport.configure {
+        subprojects.findAll { it.plugins.hasPlugin('jacoco') }.each { p ->
+            // 'junit4' is the JUnit 4 test task of async-query, direct-query and direct-query-core.
+            p.tasks.withType(Test).matching { it.name in ['test', 'junit4'] }.each { testTask ->
+                // Like each module's jacocoTestReport, only run after the tests rather than depend on
+                // them, so that a failing test still leaves a report for CI to upload.
+                mustRunAfter testTask
+                executionData testTask
+            }
+        }
+        aggregatedCoverageModules.each { path ->
+            def moduleReport = project(path).tasks.named('jacocoTestReport', JacocoReport).get()
+            classDirectories.from(moduleReport.classDirectories)
+            sourceDirectories.from(moduleReport.sourceDirectories)
+        }
+    }
+}
 
 
 configurations.all {

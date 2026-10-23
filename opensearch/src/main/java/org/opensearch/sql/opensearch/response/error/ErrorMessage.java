@@ -38,13 +38,26 @@ public class ErrorMessage {
   }
 
   protected String fetchReason() {
+    // Read through ErrorReport when we have one, so the formatters that publish this field agree
+    // with getErrorAsJson instead of falling back to a fixed string.
+    if (exception instanceof ErrorReport errorReport) {
+      String reason = errorReport.getUserFacingMessage();
+      if (reason != null) {
+        return reason;
+      }
+    }
     return status == RestStatus.BAD_REQUEST.getStatus()
         ? "Invalid Query"
         : "There was internal problem at backend";
   }
 
   protected String fetchDetails() {
-    // Some exception prints internal information (full class name) which is security concern
+    // Some exception prints internal information (full class name) which is security concern.
+    // Read through ErrorReport when we have one, since its own message is the plan. This field is
+    // what JdbcResponseFormatter and VisualizationResponseFormatter publish via getDetails().
+    if (exception instanceof ErrorReport errorReport) {
+      return emptyStringIfNull(errorReport.getUserFacingDetails());
+    }
     return emptyStringIfNull(exception.getLocalizedMessage());
   }
 
@@ -62,16 +75,19 @@ public class ErrorMessage {
     return output.toString(2);
   }
 
-  private JSONObject getErrorAsJson() {
+  /**
+   * Returns the structured error JSON that normally sits under {@code "error"} in the HTTP body.
+   * Exposed so async callers can embed the same object alongside a job-state field without the
+   * outer {@code "status"} HTTP envelope produced by {@link #toString()}.
+   */
+  public JSONObject getErrorAsJson() {
     if (exception instanceof ErrorReport errorReport) {
       JSONObject errorJson = new JSONObject(errorReport.toJsonMap());
       // Add 'reason' field for backward compatibility with existing clients
       // Use the underlying exception message as 'reason' (broad error description)
       // while 'details' contains the more precise handwritten message
       if (!errorJson.has("reason")) {
-        Exception cause = errorReport.getCause();
-        String reasonMessage =
-            cause.getLocalizedMessage() != null ? cause.getLocalizedMessage() : cause.getMessage();
+        String reasonMessage = errorReport.getUserFacingMessage();
         if (reasonMessage != null) {
           errorJson.put("reason", reasonMessage);
         }

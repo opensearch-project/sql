@@ -33,6 +33,11 @@ public class IndexMapping {
             (Map<String, Object>) metaData.getSourceAsMap().getOrDefault("properties", null));
   }
 
+  /** Construct directly from parsed field mappings. Visible for testing. */
+  public IndexMapping(Map<String, OpenSearchDataType> fieldMappings) {
+    this.fieldMappings = fieldMappings;
+  }
+
   /**
    * How many fields in the index (after flatten).
    *

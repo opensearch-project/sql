@@ -387,6 +387,20 @@ public class PPLSyntaxParserTest {
   }
 
   @Test
+  public void testQueryWithoutStatementShouldFail() {
+    for (String query : new String[] {"", " \n\t ", "/* block */ // line"}) {
+      SyntaxCheckException e =
+          assertThrows(SyntaxCheckException.class, () -> new PPLSyntaxParser().parse(query));
+      assertTrue(e.getMessage(), e.getMessage().startsWith("[<EOF>] is not a valid term"));
+    }
+  }
+
+  @Test
+  public void testQueryWithSurroundingCommentsShouldPass() {
+    assertNotNull(new PPLSyntaxParser().parse("/* leading */ search source=t a=1 // trailing"));
+  }
+
+  @Test
   public void testRareCommandShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("source=t a=1 | rare a");
     assertNotEquals(null, tree);
@@ -395,6 +409,25 @@ public class PPLSyntaxParserTest {
   @Test
   public void testRareCommandWithGroupByShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("source=t a=1 | rare a by b");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testRareCommandWithShowPercShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("source=t a=1 | rare showperc=true a");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testRareCommandWithShowPercAndGroupByShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("source=t | rare showperc=true a by b");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testRareCommandWithPercentFieldShouldPass() {
+    ParseTree tree =
+        new PPLSyntaxParser().parse("source=t | rare showperc=true percentfield='pct' a");
     assertNotEquals(null, tree);
   }
 
@@ -419,6 +452,25 @@ public class PPLSyntaxParserTest {
   @Test
   public void testTopCommandWithoutNAndGroupByShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("source=t a=1 | top a by b");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testTopCommandWithShowPercShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("source=t | top showperc=true a");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testTopCommandWithShowPercAndGroupByShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("source=t | top showperc=true a by b");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testTopCommandWithPercentFieldShouldPass() {
+    ParseTree tree =
+        new PPLSyntaxParser().parse("source=t | top showperc=true percentfield='pct' a");
     assertNotEquals(null, tree);
   }
 
@@ -763,9 +815,9 @@ public class PPLSyntaxParserTest {
         new PPLSyntaxParser()
             .parse(
                 """
-                // test is a new line comment \
-                search source=t a=1 b=2 // test is a line comment at the end of ppl command \
-                | fields a,b // this is line comment inner ppl command\
+                // test is a new line comment
+                search source=t a=1 b=2 // test is a line comment at the end of ppl command
+                | fields a,b // this is line comment inner ppl command
                 ////this is a new line comment
                 """));
   }

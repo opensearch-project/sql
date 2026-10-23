@@ -1,10 +1,6 @@
 root:
-  name: ProjectOperator
-  description:
-    fields: "[agent, process, log, message, tags, cloud, input, @timestamp, ecs, data_stream,\
-      \ meta, host, metrics, aws, event]"
   children:
-    - name: OpenSearchIndexScan
+    - children: []
       description:
         request: "OpenSearchQueryRequest(indexName=big5, sourceBuilder={\"from\":0,\"\
           size\":10,\"timeout\":\"1m\",\"query\":{\"bool\":{\"filter\":[{\"range\"\
@@ -16,4 +12,8 @@ root:
           ,\"input\",\"@timestamp\",\"ecs\",\"data_stream\",\"meta\",\"host\",\"metrics\"\
           ,\"aws\",\"event\"]}}, pitId=*, cursorKeepAlive=null, searchAfter=null,\
           \ searchResponse=null)"
-      children: []
+      name: OpenSearchIndexScan
+  description:
+    fields: "[agent, process, log, message, tags, cloud, input, @timestamp, ecs, data_stream,\
+      \ meta, host, metrics, aws, event]"
+  name: ProjectOperator

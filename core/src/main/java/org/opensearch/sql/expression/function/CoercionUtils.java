@@ -37,7 +37,14 @@ public final class CoercionUtils {
    */
   public static @Nullable List<RexNode> castArguments(
       RexBuilder builder, PPLTypeChecker typeChecker, List<RexNode> arguments) {
-    List<List<ExprType>> paramTypeCombinations = typeChecker.getParameterTypes();
+    List<List<ExprType>> paramTypeCombinations =
+        typeChecker.getParameterTypes().stream()
+            .map(
+                types ->
+                    types.stream()
+                        .map(OpenSearchTypeFactory::convertRelDataTypeToExprType)
+                        .toList())
+            .toList();
 
     List<ExprType> sourceTypes =
         arguments.stream()

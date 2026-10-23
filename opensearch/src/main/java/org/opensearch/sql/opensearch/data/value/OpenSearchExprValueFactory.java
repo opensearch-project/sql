@@ -20,9 +20,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.utils.DateTimeFormatters.STRICT_HOUR_MINUTE_SECOND_FORMATTER;
 import static org.opensearch.sql.utils.DateTimeFormatters.STRICT_YEAR_MONTH_DAY_FORMATTER;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -64,11 +61,17 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchFlatObjectType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.utils.Content;
 import org.opensearch.sql.opensearch.data.utils.ObjectContent;
 import org.opensearch.sql.opensearch.data.utils.OpenSearchJsonContent;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 /** Construct ExprValue from OpenSearch response. */
 public class OpenSearchExprValueFactory {
@@ -100,7 +103,8 @@ public class OpenSearchExprValueFactory {
 
   private static final String TOP_PATH = "";
 
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final ObjectMapper OBJECT_MAPPER =
+      JsonMapper.builder().disable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS).build();
 
   private static final Map<ExprType, BiFunction<Content, ExprType, ExprValue>> typeActionMap =
       new ImmutableMap.Builder<ExprType, BiFunction<Content, ExprType, ExprValue>>()
@@ -122,10 +126,10 @@ public class OpenSearchExprValueFactory {
           .put(
               OpenSearchDataType.of(OpenSearchDataType.MappingType.Double),
               (c, dt) -> new ExprDoubleValue(c.doubleValue()))
-          .put(OpenSearchTextType.of(), (c, dt) -> new OpenSearchExprTextValue(c.stringValue()))
+          .put(OpenSearchTextType.of(), (c, dt) -> new OpenSearchExprTextValue(stringOf(c)))
           .put(
               OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword),
-              (c, dt) -> new ExprStringValue(c.stringValue()))
+              (c, dt) -> new ExprStringValue(stringOf(c)))
           .put(
               OpenSearchDataType.of(OpenSearchDataType.MappingType.Boolean),
               (c, dt) -> ExprBooleanValue.of(c.booleanValue()))
@@ -171,7 +175,7 @@ public class OpenSearchExprValueFactory {
           TOP_PATH,
           Optional.of(STRUCT),
           fieldTypeTolerance || supportArrays);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new IllegalStateException(String.format("invalid json: %s.", jsonString), e);
     }
   }
@@ -214,12 +218,24 @@ public class OpenSearchExprValueFactory {
       } catch (Exception e) {
         return ExprNullValue.of();
       }
+    } else if (type.equals(OpenSearchFlatObjectType.of())) {
+      // Before the isArray() branch below: OpenSearch accepts an array at the top level of a
+      // flat_object and folds its elements into the same terms, so flatten handles it rather than
+      // parseArray, which would leave the elements unflattened.
+      return FlatObjectValues.flatten(content);
     } else if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Nested))
         || content.isArray()) {
       return parseArray(content, field, type, supportArrays);
     } else if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Object))
         || type == STRUCT) {
-      return parseStruct(content, field, supportArrays);
+      // A scalar under an object-typed field (wildcard over indices with conflicting mappings)
+      // would throw here; return null instead. CCE-scoped: this is also the whole-document parse
+      // entry, so a broader catch would hide unrelated errors deeper in the recursion.
+      try {
+        return parseStruct(content, field, supportArrays);
+      } catch (ClassCastException e) {
+        return ExprNullValue.of();
+      }
     } else if (typeActionMap.containsKey(type)) {
       if (content.isArray()) {
         return parseArray(content, field, type, supportArrays);
@@ -236,7 +252,21 @@ public class OpenSearchExprValueFactory {
     }
   }
 
-  private ExprValue parseContent(Content content) {
+  /**
+   * String form of scalar content destined for a text/keyword column. A numeric or boolean value
+   * can land in a string column -- e.g. an aggregation over indices where the field is numeric in
+   * one and keyword in another, so some bucket keys come back as numbers. Render it as its string
+   * form rather than letting the {@code (String) value} cast fail and null the value out.
+   */
+  private static String stringOf(Content content) {
+    try {
+      return content.stringValue();
+    } catch (RuntimeException e) {
+      return String.valueOf(content.objectValue());
+    }
+  }
+
+  static ExprValue parseContent(Content content) {
     if (content.isNumber()) {
       if (content.isInt()) {
         return new ExprIntegerValue(content.intValue());

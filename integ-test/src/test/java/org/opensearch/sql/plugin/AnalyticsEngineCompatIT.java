@@ -5,9 +5,13 @@
 
 package org.opensearch.sql.plugin;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.IOException;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 import org.opensearch.client.Request;
@@ -55,5 +59,29 @@ public class AnalyticsEngineCompatIT extends OpenSearchSQLRestTestCase {
   public void testClusterStarted() {
     // If the cluster booted with analytics-engine present, all plugins loaded without classloader
     // errors. The assumption above guarantees we only assert this where it is meaningful.
+  }
+
+  /**
+   * The {@code rest} row source is a Calcite Enumerable/Scannable scan with no backing index, so it
+   * is never routed to the analytics (DataFusion) engine. This pins that {@code rest} returns its
+   * single-column schema and correct data unchanged when the analytics-engine plugin is present.
+   */
+  @Test
+  public void testRestCommandUnaffectedByAnalyticsEngine() throws IOException {
+    Request request = new Request("POST", "/_plugins/_ppl");
+    request.setJsonEntity("{\"query\": \"| rest '/_cluster/health' | fields response\"}");
+    Response response = client().performRequest(request);
+    assertEquals(200, response.getStatusLine().getStatusCode());
+
+    JSONObject result = new JSONObject(TestUtils.getResponseBody(response, true));
+
+    JSONArray schema = result.getJSONArray("schema");
+    assertEquals(1, schema.length());
+    assertEquals("response", schema.getJSONObject(0).getString("name"));
+    assertEquals("string", schema.getJSONObject(0).getString("type"));
+
+    JSONArray datarows = result.getJSONArray("datarows");
+    assertEquals(1, datarows.length());
+    assertTrue(datarows.getJSONArray(0).getString(0).contains("number_of_nodes"));
   }
 }

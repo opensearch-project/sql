@@ -54,6 +54,18 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testRestCommand() {
+    assertEquals("rest /_cluster/health", anonymize("| rest \"/_cluster/health\""));
+  }
+
+  @Test
+  public void testRestCommandMasksArgValues() {
+    assertEquals(
+        "rest /_cluster/health count=*** timeout=*** level=***",
+        anonymize("| rest \"/_cluster/health\" count=5 timeout=\"30s\" level=\"indices\""));
+  }
+
+  @Test
   public void testWhereCommand() {
     assertEquals("source=table | where identifier = ***", anonymize("search source=t | where a=1"));
   }
@@ -327,6 +339,29 @@ public class PPLQueryDataAnonymizerTest {
         anonymize("source=t | chart sum(amount) over gender by age"));
   }
 
+  @Test
+  public void testXyseriesCommand() {
+    assertEquals(
+        "source=table | stats avg(identifier) by identifier,identifier"
+            + " | xyseries identifier identifier in (***) identifier",
+        anonymize(
+            "source=t | stats avg(balance) by gender, state"
+                + " | xyseries state gender in (\"F\",\"M\") avg_balance"));
+  }
+
+  @Test
+  public void testXyseriesCommandWithOptions() {
+    assertEquals(
+        "source=table | stats avg(identifier),max(identifier) by identifier,identifier"
+            + " | xyseries sep=*** format=*** identifier identifier in (***)"
+            + " identifier,identifier",
+        anonymize(
+            "source=t | stats avg(balance) as avg_balance, max(balance) as max_balance"
+                + " by gender, state"
+                + " | xyseries sep=\"_\" format=\"$AGG$_$VAL$\" state gender"
+                + " in (\"F\",\"M\") avg_balance, max_balance"));
+  }
+
   // todo, sort order is ignored, it doesn't impact the log analysis.
   @Test
   public void testSortCommandWithOptions() {
@@ -406,18 +441,36 @@ public class PPLQueryDataAnonymizerTest {
   public void testRareCommandWithGroupByWithCalcite() {
     when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(true);
     assertEquals(
-        "source=table | rare 10 countield='count' showcount=true usenull=true identifier by"
-            + " identifier",
+        "source=table | rare 10 countfield='count' showcount=true percentfield='percent'"
+            + " showperc=false usenull=true identifier by identifier",
         anonymize("source=t | rare a by b"));
+  }
+
+  @Test
+  public void testRareCommandWithShowPercWithCalCite() {
+    when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(true);
+    assertEquals(
+        "source=table | rare 10 countfield='count' showcount=true percentfield='percent'"
+            + " showperc=true usenull=true identifier",
+        anonymize("source=t | rare showperc=true a "));
   }
 
   @Test
   public void testTopCommandWithNAndGroupByWithCalcite() {
     when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(true);
     assertEquals(
-        "source=table | top 1 countield='count' showcount=true usenull=true identifier by"
-            + " identifier",
+        "source=table | top 1 countfield='count' showcount=true percentfield='percent'"
+            + " showperc=false usenull=true identifier by identifier",
         anonymize("source=t | top 1 a by b"));
+  }
+
+  @Test
+  public void testTopCommandWithShowPercWithCalcite() {
+    when(settings.getSettingValue(Key.CALCITE_ENGINE_ENABLED)).thenReturn(true);
+    assertEquals(
+        "source=table | top 1 countfield='count' showcount=true percentfield='percent'"
+            + " showperc=true usenull=true identifier by identifier",
+        anonymize("source=t | top 1 showperc=true a by b"));
   }
 
   @Test

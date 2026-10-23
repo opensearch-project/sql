@@ -3,6 +3,9 @@
     "properties": {
       "birthday": {
         "type": "date"
+      },
+      "login_time": {
+        "type": "date"
       }
     }
   }

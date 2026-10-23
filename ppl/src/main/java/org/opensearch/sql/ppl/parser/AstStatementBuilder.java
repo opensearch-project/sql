@@ -38,7 +38,7 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
       rawPlan = new Head(context.getFetchSize(), 0).attach(rawPlan);
     }
     UnresolvedPlan plan = addSelectAll(rawPlan);
-    Query query = new Query(plan, 0, PPL);
+    Query query = new Query(plan, 0, PPL, context.isIncludeMetadata());
     if (context.getHighlightConfig() != null
         && context.getHighlightConfig().fields() != null
         && !context.getHighlightConfig().fields().isEmpty()) {
@@ -80,6 +80,9 @@ public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statemen
 
     private final Format format;
     private final String explainMode;
+
+    /** Whether to include metadata fields like _id, _index, _score in the result. */
+    private final boolean includeMetadata;
   }
 
   private UnresolvedPlan addSelectAll(UnresolvedPlan plan) {

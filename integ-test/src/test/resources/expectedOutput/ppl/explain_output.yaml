@@ -1,25 +1,9 @@
 root:
-  name: ProjectOperator
-  description:
-    fields: "[age2]"
   children:
-    - name: DedupeOperator
-      description:
-        dedupeList: "[age2]"
-        allowedDuplication: 1
-        keepEmpty: false
-        consecutive: false
-      children:
-        - name: OpenSearchEvalOperator
-          description:
-            expressions:
-              age2: "+(avg_age, 2)"
-          children:
-            - name: RemoveOperator
-              description:
-                removeList: "[city]"
-              children:
-                - name: OpenSearchIndexScan
+    - children:
+        - children:
+            - children:
+                - children: []
                   description:
                     request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_account,\
                       \ sourceBuilder={\"from\":0,\"size\":0,\"timeout\":\"1m\",\"\
@@ -32,4 +16,20 @@ root:
                       missing_order\":\"first\",\"order\":\"asc\"}}}]},\"aggregations\"\
                       :{\"avg_age\":{\"avg\":{\"field\":\"age\"}}}}}}, pitId=*,\
                       \ cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
-                  children: []
+                  name: OpenSearchIndexScan
+              description:
+                removeList: "[city]"
+              name: RemoveOperator
+          description:
+            expressions:
+              age2: "+(avg_age, 2)"
+          name: OpenSearchEvalOperator
+      description:
+        dedupeList: "[age2]"
+        allowedDuplication: 1
+        keepEmpty: false
+        consecutive: false
+      name: DedupeOperator
+  description:
+    fields: "[age2]"
+  name: ProjectOperator

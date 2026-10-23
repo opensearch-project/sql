@@ -24,6 +24,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Rule;
@@ -48,6 +49,8 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   @Rule public final RetryProcessor retryProcessor = new RetryProcessor();
   public static final Integer DEFAULT_SUBSEARCH_MAXOUT = 10000;
   public static final Integer DEFAULT_JOIN_SUBSEARCH_MAXOUT = 50000;
+  private boolean subsearchMaxOutDirty;
+  private boolean joinSubsearchMaxOutDirty;
 
   @Override
   protected void init() throws Exception {
@@ -202,12 +205,38 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
 
   protected Request buildRequest(String query, String endpoint) {
     Request request = new Request("POST", endpoint);
-    request.setJsonEntity(String.format(Locale.ROOT, "{\n" + "  \"query\": \"%s\"\n" + "}", query));
+    request.setJsonEntity(buildJsonBody(query, endpoint));
 
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");
     request.setOptions(restOptionsBuilder);
     return request;
+  }
+
+  /**
+   * Builds the JSON body for {@code POST /_plugins/_ppl}. When the system property {@code
+   * test.ppl.wait_for_completion_timeout} is set (e.g. {@code "60s"}), injects {@code
+   * wait_for_completion_timeout} into the body so every existing PPL IT exercises the async submit
+   * path. The injection is skipped for {@code /_explain} and {@code /_analyze} endpoints (they hit
+   * the sync-only gate and would fail with 400).
+   *
+   * <p>Formatting matches the original raw-{@code String.format} path exactly — tests pass query
+   * strings whose embedded quotes are Java-escaped to be inserted verbatim into the JSON stream
+   * (i.e. pre-formatted as JSON content). {@link org.json.JSONObject#put} would double-escape and
+   * break those queries.
+   */
+  private static String buildJsonBody(String query, String endpoint) {
+    String asyncWait = System.getProperty("test.ppl.wait_for_completion_timeout", "");
+    boolean asyncEligible =
+        !asyncWait.isEmpty() && !endpoint.contains("/_explain") && !endpoint.contains("/_analyze");
+    if (asyncEligible) {
+      return String.format(
+          Locale.ROOT,
+          "{\n  \"query\": \"%s\",\n  \"wait_for_completion_timeout\": \"%s\"\n}",
+          query,
+          asyncWait);
+    }
+    return String.format(Locale.ROOT, "{\n" + "  \"query\": \"%s\"\n" + "}", query);
   }
 
   protected Request buildRequestWithHighlight(String query, String endpoint, String highlightJson) {
@@ -426,6 +455,7 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   }
 
   protected void setSubsearchMaxOut(Integer limit) throws IOException {
+    subsearchMaxOutDirty = true;
     updateClusterSettings(
         new SQLIntegTestCase.ClusterSetting(
             "transient", Key.PPL_SUBSEARCH_MAXOUT.getKeyValue(), limit.toString()));
@@ -437,9 +467,11 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
             "transient",
             Settings.Key.PPL_SUBSEARCH_MAXOUT.getKeyValue(),
             DEFAULT_SUBSEARCH_MAXOUT.toString()));
+    subsearchMaxOutDirty = false;
   }
 
   protected void setJoinSubsearchMaxOut(Integer limit) throws IOException {
+    joinSubsearchMaxOutDirty = true;
     updateClusterSettings(
         new SQLIntegTestCase.ClusterSetting(
             "transient", Key.PPL_JOIN_SUBSEARCH_MAXOUT.getKeyValue(), limit.toString()));
@@ -451,6 +483,35 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
             "transient",
             Settings.Key.PPL_JOIN_SUBSEARCH_MAXOUT.getKeyValue(),
             DEFAULT_JOIN_SUBSEARCH_MAXOUT.toString()));
+    joinSubsearchMaxOutDirty = false;
+  }
+
+  @After
+  public void resetModifiedSubsearchSettings() throws IOException {
+    IOException failure = null;
+    try {
+      if (subsearchMaxOutDirty) {
+        resetSubsearchMaxOut();
+      }
+    } catch (IOException e) {
+      failure = e;
+    }
+
+    try {
+      if (joinSubsearchMaxOutDirty) {
+        resetJoinSubsearchMaxOut();
+      }
+    } catch (IOException e) {
+      if (failure == null) {
+        failure = e;
+      } else {
+        failure.addSuppressed(e);
+      }
+    }
+
+    if (failure != null) {
+      throw failure;
+    }
   }
 
   /**

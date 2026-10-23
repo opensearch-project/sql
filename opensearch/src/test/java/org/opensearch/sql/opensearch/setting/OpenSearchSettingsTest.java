@@ -9,12 +9,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.AdditionalMatchers.not;
 import static org.mockito.AdditionalMatchers.or;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.ASYNC_QUERY_EXTERNAL_SCHEDULER_ENABLED_SETTING;
 import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.ASYNC_QUERY_EXTERNAL_SCHEDULER_INTERVAL_SETTING;
+import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.PPL_REST_ALLOWED_ENDPOINTS_SETTING;
 import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.QUERY_MEMORY_LIMIT_SETTING;
 import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.SPARK_EXECUTION_ENGINE_CONFIG;
 
@@ -28,6 +30,7 @@ import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.core.common.unit.ByteSizeValue;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.utils.DeserializationFilterUtil;
 
 @ExtendWith(MockitoExtension.class)
 class OpenSearchSettingsTest {
@@ -75,6 +78,13 @@ class OpenSearchSettingsTest {
   }
 
   @Test
+  void restSettingsAreNonDynamic() {
+    assertFalse(PPL_REST_ALLOWED_ENDPOINTS_SETTING.isDynamic());
+    List<Setting<?>> nonDynamic = OpenSearchSettings.pluginNonDynamicSettings();
+    assertTrue(nonDynamic.contains(PPL_REST_ALLOWED_ENDPOINTS_SETTING));
+  }
+
+  @Test
   void getSettings() {
     when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
     when(clusterSettings.get(not((eq(ClusterName.CLUSTER_NAME_SETTING))))).thenReturn(null);
@@ -113,6 +123,49 @@ class OpenSearchSettingsTest {
     // Test retrieval after update
     Integer newLimit = settings.getSettingValue(Settings.Key.PPL_VALUES_MAX_LIMIT);
     assertEquals(5000, newLimit);
+  }
+
+  @Test
+  void testQueryPruningEnabledSetting() {
+    when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
+    when(clusterSettings.get(not((eq(ClusterName.CLUSTER_NAME_SETTING))))).thenReturn(null);
+    OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
+
+    assertEquals(true, settings.getSettingValue(Settings.Key.QUERY_PRUNING_ENABLED));
+
+    settings.new Updater(Settings.Key.QUERY_PRUNING_ENABLED).accept(false);
+    assertEquals(false, settings.getSettingValue(Settings.Key.QUERY_PRUNING_ENABLED));
+  }
+
+  @Test
+  void testDeserializationStructuralLimitSettings() {
+    when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
+    when(clusterSettings.get(not((eq(ClusterName.CLUSTER_NAME_SETTING))))).thenReturn(null);
+    OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
+
+    // Defaults match DeserializationFilterUtil
+    Integer maxDepth = settings.getSettingValue(Settings.Key.DESERIALIZATION_MAX_DEPTH);
+    Integer maxRefs = settings.getSettingValue(Settings.Key.DESERIALIZATION_MAX_REFS);
+    Integer maxBytes = settings.getSettingValue(Settings.Key.DESERIALIZATION_MAX_BYTES);
+    assertEquals(DeserializationFilterUtil.DEFAULT_MAX_DEPTH, maxDepth);
+    assertEquals(DeserializationFilterUtil.DEFAULT_MAX_REFS, maxRefs);
+    assertEquals(DeserializationFilterUtil.DEFAULT_MAX_BYTES, maxBytes);
+
+    // Dynamically updatable
+    settings.new Updater(Settings.Key.DESERIALIZATION_MAX_REFS).accept(2000);
+    Integer updatedRefs = settings.getSettingValue(Settings.Key.DESERIALIZATION_MAX_REFS);
+    assertEquals(2000, updatedRefs);
+  }
+
+  @Test
+  void deserializationStructuralLimitSettingsAreDynamicAndRegistered() {
+    assertTrue(OpenSearchSettings.DESERIALIZATION_MAX_DEPTH_SETTING.isDynamic());
+    assertTrue(OpenSearchSettings.DESERIALIZATION_MAX_REFS_SETTING.isDynamic());
+    assertTrue(OpenSearchSettings.DESERIALIZATION_MAX_BYTES_SETTING.isDynamic());
+    List<Setting<?>> pluginSettings = OpenSearchSettings.pluginSettings();
+    assertTrue(pluginSettings.contains(OpenSearchSettings.DESERIALIZATION_MAX_DEPTH_SETTING));
+    assertTrue(pluginSettings.contains(OpenSearchSettings.DESERIALIZATION_MAX_REFS_SETTING));
+    assertTrue(pluginSettings.contains(OpenSearchSettings.DESERIALIZATION_MAX_BYTES_SETTING));
   }
 
   @Test

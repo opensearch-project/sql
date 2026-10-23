@@ -238,6 +238,7 @@ import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUBTRAC
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SUM;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.SYSDATE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TAKE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.TAN;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIME;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMEDIFF;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.TIMESTAMP;
@@ -283,12 +284,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexLambda;
@@ -309,6 +312,7 @@ import org.apache.calcite.sql.type.SameOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.sql.validate.SqlUserDefinedAggFunction;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
 import org.apache.calcite.tools.RelBuilder;
@@ -319,8 +323,6 @@ import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
-import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.CollectionUDF.MVIndexFunctionImp;
@@ -450,7 +452,7 @@ public class PPLFuncImpTable {
         return false;
       }
       try {
-        List<List<ExprType>> signatures =
+        List<List<RelDataType>> signatures =
             checker.getParameterTypes().stream()
                 .filter(parameters -> argumentIndex < parameters.size())
                 .toList();
@@ -458,12 +460,12 @@ public class PPLFuncImpTable {
           return false;
         }
         foundArgument = true;
-        List<ExprType> acceptedTypes =
+        List<RelDataType> acceptedTypes =
             signatures.stream().map(parameters -> parameters.get(argumentIndex)).toList();
-        if (acceptedTypes.stream().allMatch(ExprCoreType.numberTypes()::contains)) {
+        if (acceptedTypes.stream().allMatch(SqlTypeUtil::isNumeric)) {
           continue;
         }
-        if (acceptedTypes.stream().anyMatch(type -> type != ExprCoreType.UNKNOWN)
+        if (acceptedTypes.stream().anyMatch(type -> type.getSqlTypeName() != SqlTypeName.ANY)
             || !requiresNumericByValidation(checker, signatures, argumentIndex)) {
           return false;
         }
@@ -475,7 +477,7 @@ public class PPLFuncImpTable {
   }
 
   private boolean requiresNumericByValidation(
-      PPLTypeChecker checker, List<List<ExprType>> signatures, int argumentIndex) {
+      PPLTypeChecker checker, List<List<RelDataType>> signatures, int argumentIndex) {
     RelDataType numericType = TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE);
     RelDataType stringType = TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR);
     return signatures.stream()
@@ -1080,6 +1082,7 @@ public class PPLFuncImpTable {
       registerOperator(SIGN, SqlStdOperatorTable.SIGN);
       registerOperator(SIGNUM, SqlStdOperatorTable.SIGN);
       registerOperator(SIN, SqlStdOperatorTable.SIN);
+      registerOperator(TAN, SqlStdOperatorTable.TAN);
       registerOperator(CBRT, SqlStdOperatorTable.CBRT);
 
       registerOperator(IFNULL, SqlStdOperatorTable.COALESCE);
@@ -1363,6 +1366,37 @@ public class PPLFuncImpTable {
                   OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.INTEGER)
                       .or(OperandTypes.family(SqlTypeFamily.MAP, SqlTypeFamily.ANY)),
               false));
+      // A `nested` mapping is exposed as ARRAY<ROW<...>>, so `events.name` becomes
+      // ITEM(<array-of-rows>, 'name'). By default, Calcite types this as the whole ROW because it
+      // never looks at the field name — so a later `events.count > 4` fails with
+      // "Unsupported conversion for Relational Data type: ROW".
+      // Fix: look 'name' up in the ROW and type the result as that field. Must be registered before
+      // the (IGNORE, CHARACTER) catch-all in the next registration below — that fallback would
+      // otherwise match ITEM(<array-of-rows>, 'name') first and re-apply the stock whole-ROW
+      // typing.
+      register(
+          INTERNAL_ITEM,
+          (FunctionImp2)
+              (builder, array, key) -> {
+                RelDataType arrayType = array.getType();
+                RelDataType component = arrayType.getComponentType();
+                if (component != null
+                    && component.isStruct()
+                    && key instanceof RexLiteral literal
+                    && SqlTypeFamily.CHARACTER.contains(literal.getType())) {
+                  String fieldName = literal.getValueAs(String.class);
+                  RelDataTypeField field = component.getField(fieldName, true, false);
+                  if (field != null) {
+                    // Nullable: an empty array yields NULL, independent of field nullability.
+                    RelDataType fieldType =
+                        builder.getTypeFactory().createTypeWithNullability(field.getType(), true);
+                    return builder.makeCall(
+                        fieldType, SqlStdOperatorTable.ITEM, List.of(array, key));
+                  }
+                }
+                return builder.makeCall(SqlStdOperatorTable.ITEM, array, key);
+              },
+          PPLTypeChecker.family(SqlTypeFamily.ARRAY, SqlTypeFamily.CHARACTER));
       registerOperator(
           INTERNAL_ITEM,
           SqlStdOperatorTable.ITEM,
@@ -1596,7 +1630,14 @@ public class PPLFuncImpTable {
     }
 
     void registerOperator(BuiltinFunctionName functionName, SqlAggFunction aggFunction) {
-      SqlOperandTypeChecker innerTypeChecker = extractTypeCheckerFromUDF(aggFunction);
+      registerOperator(functionName, aggFunction, field -> aggFunction);
+    }
+
+    void registerOperator(
+        BuiltinFunctionName functionName,
+        SqlAggFunction typeCheckerSource,
+        Function<RexNode, SqlAggFunction> aggFunctionSelector) {
+      SqlOperandTypeChecker innerTypeChecker = extractTypeCheckerFromUDF(typeCheckerSource);
       PPLTypeChecker typeChecker =
           wrapSqlOperandTypeChecker(innerTypeChecker, functionName.name(), true);
       AggHandler handler =
@@ -1604,15 +1645,30 @@ public class PPLFuncImpTable {
             List<RexNode> newArgList =
                 argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
             return UserDefinedFunctionUtils.makeAggregateCall(
-                aggFunction, List.of(field), newArgList, ctx.relBuilder);
+                aggFunctionSelector.apply(field), List.of(field), newArgList, ctx.relBuilder);
           };
       register(functionName, handler, typeChecker);
+    }
+
+    /** Registers checked integral sums while retaining standard SUM behavior for other types. */
+    void registerSumOperator() {
+      registerOperator(
+          SUM,
+          SqlStdOperatorTable.SUM,
+          field ->
+              isIntegral(field.getType().getSqlTypeName())
+                  ? PPLBuiltinOperators.CHECKED_LONG_SUM
+                  : SqlStdOperatorTable.SUM);
+    }
+
+    private static boolean isIntegral(SqlTypeName typeName) {
+      return SqlTypeName.INT_TYPES.contains(typeName);
     }
 
     void populate() {
       registerOperator(MAX, SqlStdOperatorTable.MAX);
       registerOperator(MIN, SqlStdOperatorTable.MIN);
-      registerOperator(SUM, SqlStdOperatorTable.SUM);
+      registerSumOperator();
       registerOperator(VARSAMP, PPLBuiltinOperators.VAR_SAMP_NULLABLE);
       registerOperator(VARPOP, PPLBuiltinOperators.VAR_POP_NULLABLE);
       registerOperator(STDDEV_SAMP, PPLBuiltinOperators.STDDEV_SAMP_NULLABLE);
@@ -1631,7 +1687,14 @@ public class PPLFuncImpTable {
 
       register(
           AVG,
-          (distinct, field, argList, ctx) -> ctx.relBuilder.avg(distinct, null, field),
+          (distinct, field, argList, ctx) -> {
+            if (field.getType().getSqlTypeName() == SqlTypeName.BIGINT) {
+              return ctx.relBuilder
+                  .aggregateCall(PPLBuiltinOperators.BIGINT_AVG, field)
+                  .distinct(distinct);
+            }
+            return ctx.relBuilder.avg(distinct, null, field);
+          },
           wrapSqlOperandTypeChecker(
               SqlStdOperatorTable.AVG.getOperandTypeChecker(), AVG.name(), false));
 

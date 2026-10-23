@@ -18,6 +18,13 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalciteTransposeCommandIT extends PPLIntegTestCase {
 
+  private static final String ACCOUNT_STREAM =
+      "makeresults format=csv data='firstname:string,age:int,balance:long\\n"
+          + "Amber,32,39225\\nHattie,36,5686\\nNanette,28,32838\\nDale,33,4180\\n"
+          + "Elinor,36,16418\\nVirginia,39,40540\\nDillard,34,48086\\nMcgee,39,18612\\n"
+          + "Aurelia,37,34487\\nFulton,23,29104\\nBurton,31,14097\\nJosie,32,14992\\n"
+          + "Hughes,30,6077\\nHall,25,44214\\nDeidre,33,38172'";
+
   @Override
   public void init() throws Exception {
     super.init();
@@ -33,11 +40,11 @@ public class CalciteTransposeCommandIT extends PPLIntegTestCase {
    */
   @Test
   public void testTranspose() throws IOException {
+    // `head` selects rows by input encounter order, which is not stable across shards. Use the
+    // deterministic ACCOUNT_STREAM for exact head/transpose examples; other tests in this class
+    // retain the real index path for field-name collisions and aggregate inputs.
     var result =
-        executeQuery(
-            String.format(
-                "source=%s |  head 5 | fields firstname,  age, balance | transpose",
-                TEST_INDEX_ACCOUNT));
+        executeQuery(ACCOUNT_STREAM + " | head 5 | fields firstname, age, balance | transpose");
 
     // Verify that we get original rows plus totals row
     verifySchema(
@@ -63,10 +70,7 @@ public class CalciteTransposeCommandIT extends PPLIntegTestCase {
   @Test
   public void testTransposeLimit() throws IOException {
     var result =
-        executeQuery(
-            String.format(
-                "source=%s |  head 10 | fields firstname ,  age, balance | transpose 14",
-                TEST_INDEX_ACCOUNT));
+        executeQuery(ACCOUNT_STREAM + " | head 10 | fields firstname, age, balance | transpose 14");
 
     // Verify that we get original rows plus totals row
     verifySchema(
@@ -119,10 +123,7 @@ public class CalciteTransposeCommandIT extends PPLIntegTestCase {
   @Test
   public void testTransposeLowerLimit() throws IOException {
     var result =
-        executeQuery(
-            String.format(
-                "source=%s |  head 15 | fields firstname ,  age, balance | transpose 5",
-                TEST_INDEX_ACCOUNT));
+        executeQuery(ACCOUNT_STREAM + " | head 15 | fields firstname, age, balance | transpose 5");
 
     // Verify that we get original rows plus totals row
     verifySchema(
@@ -192,10 +193,9 @@ public class CalciteTransposeCommandIT extends PPLIntegTestCase {
   public void testTransposeColumnName() throws IOException {
     var result =
         executeQuery(
-            String.format(
-                "source=%s |  head 5 | fields firstname,  age, balance | transpose 5"
-                    + " column_name='column_names'",
-                TEST_INDEX_ACCOUNT));
+            ACCOUNT_STREAM
+                + " | head 5 | fields firstname, age, balance | transpose 5"
+                + " column_name='column_names'");
 
     // Verify that we get original rows plus totals row
     verifySchema(

@@ -1,0 +1,364 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.ppl;
+
+import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.ASYNC_QUERY_ENDPOINT;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.OVERFLOW_QUERY;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.STREAMSTATS_QUERY;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.assertNotFound;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.assertStopped;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.awaitPoolsIdle;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.awaitRunning;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.deleteAsyncQuery;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.getAsyncQuery;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.indexSearchCount;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.localNodeId;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.pollUntilTerminal;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.postPpl;
+import static org.opensearch.sql.util.MatcherUtils.rows;
+import static org.opensearch.sql.util.MatcherUtils.schema;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
+import static org.opensearch.sql.util.MatcherUtils.verifySchema;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import org.apache.hc.core5.http.HttpHost;
+import org.json.JSONObject;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Test;
+import org.opensearch.client.Request;
+import org.opensearch.client.Response;
+import org.opensearch.client.ResponseException;
+import org.opensearch.client.RestClient;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.sql.job.QueryJobId;
+
+/**
+ * Multi-node IT for owner-node routing (issue #5765).
+ *
+ * <p>Runs against the {@code asyncMultiNodeIT} test cluster (two nodes). Verifies:
+ *
+ * <ul>
+ *   <li>submit lands on node A; the returned queryId encodes node A as owner;
+ *   <li>GET on node B forwards to node A and returns the terminal snapshot with full schema + rows;
+ *   <li>statement-level explain submitted on node A and fetched on node B returns the explain body
+ *       produced by the owner's sync explain path;
+ *   <li>DELETE on node B forwards to node A, returns the job's final status, and removes it from
+ *       node A; an unknown id returns 404 across forwarding;
+ *   <li>a long-running Calcite query cancelled through the non-owner node stops execution;
+ *   <li>concurrent DELETEs on both nodes resolve to one 200 + one 404, and the single cancel drains
+ *       the owner;
+ *   <li>a job that fails naturally after the full scan reports FAILED on DELETE via the peer.
+ * </ul>
+ *
+ * <p>Each request is pinned to a specific node by constructing a dedicated {@link RestClient} for
+ * that node's HTTP address. The base {@link PPLIntegTestCase#client()} would round-robin across the
+ * cluster hosts, which defeats the purpose of the test.
+ */
+public class AsyncPPLMultiNodeRoutingIT extends PPLIntegTestCase {
+
+  private RestClient nodeA;
+  private RestClient nodeB;
+  private String nodeAId;
+
+  @Override
+  protected void init() throws Exception {
+    super.init();
+    // Match the single-node lifecycle IT: the legacy v2 analyzer throws SemanticCheckException
+    // synchronously from pplService.execute for field-not-found errors, which short-circuits the
+    // async submit path (await(0) sees FAILED instead of RUNNING) and returns 400 inline. Calcite
+    // delivers the same error through the response listener on the engine thread, so submit
+    // returns a RUNNING id and the GET body carries the structured sync-shape error.
+    enableCalcite();
+    loadIndex(Index.ACCOUNT);
+    // getClusterHosts() returns one HttpHost per bound address — in test clusters each node binds
+    // both [::1] AND 127.0.0.1, so a two-node cluster yields four hosts of which hosts[0] and
+    // hosts[1] are typically the *same* node. Resolve node ids per host and pick two with distinct
+    // ids, otherwise owner-node forwarding never triggers and the test gives a false pass.
+    RestClient[] nodes = AsyncPPLTestHelpers.twoNodeClients(getClusterHosts(), this::nodeClient);
+    nodeA = nodes[0];
+    nodeB = nodes[1];
+    nodeAId = localNodeId(nodeA);
+  }
+
+  @After
+  public void closeNodeClients() throws Exception {
+    try {
+      // Drain any scan left by a failed cancellation test before the next test takes its baseline.
+      if (nodeA != null && nodeAId != null) {
+        awaitPoolsIdle(nodeA, nodeAId);
+      }
+    } finally {
+      if (nodeA != null) {
+        nodeA.close();
+      }
+      if (nodeB != null) {
+        nodeB.close();
+      }
+    }
+  }
+
+  @Test
+  public void get_forwardsFromNonOwnerNodeToOwner() throws Exception {
+    JSONObject body = new JSONObject();
+    body.put("query", "source=" + TEST_INDEX_ACCOUNT + " | stats count() as c");
+    body.put("wait_for_completion_timeout", "0");
+
+    JSONObject submitResponse = new JSONObject(postPpl(nodeA, body));
+    Assert.assertTrue("submit response must carry queryId", submitResponse.has("id"));
+    String queryId = submitResponse.getString("id");
+
+    JSONObject fetched = pollUntilTerminal(nodeB, queryId, 30_000);
+    Assert.assertEquals("SUCCEEDED", fetched.getString("status"));
+    // Async GET formatter emits raw engine type ("long"), not the JDBC family ("bigint").
+    verifySchema(fetched, schema("c", "long"));
+    verifyDataRows(fetched, rows(1000));
+    verifyNumOfRows(fetched, 1);
+  }
+
+  @Test
+  public void getUnknownPplIdFromNonOwner_returns404() throws Exception {
+    // A QueryJobId whose node id matches nodeA (owner-encoded) but the context id doesn't exist.
+    String fakeId = QueryJobId.create(nodeAId).encode();
+    Request request = new Request("GET", ASYNC_QUERY_ENDPOINT + fakeId);
+    ResponseException ex =
+        Assert.assertThrows(ResponseException.class, () -> nodeB.performRequest(request));
+    // Owner's QueryJobNotFoundException must translate to a transport-serializable 404 so
+    // forwarding doesn't drop it to 500.
+    Assert.assertEquals(404, ex.getResponse().getStatusLine().getStatusCode());
+    assertForwardedErrorIsUnwrapped(ex);
+  }
+
+  @Test
+  public void delete_forwardsFromNonOwnerNodeToOwner() throws Exception {
+    JSONObject body = new JSONObject();
+    body.put("query", "source=" + TEST_INDEX_ACCOUNT + " | stats count() as c");
+    body.put("wait_for_completion_timeout", "0");
+    String queryId = new JSONObject(postPpl(nodeA, body)).getString("id");
+    Assert.assertEquals("SUCCEEDED", pollUntilTerminal(nodeA, queryId, 30_000).getString("status"));
+
+    Response deleted = deleteAsyncQuery(nodeB, queryId);
+
+    Assert.assertEquals(200, deleted.getStatusLine().getStatusCode());
+    Assert.assertEquals(
+        "SUCCEEDED", new JSONObject(getResponseBody(deleted, true)).getString("status"));
+    assertNotFound(() -> getAsyncQuery(nodeA, queryId));
+    assertNotFound(() -> getAsyncQuery(nodeB, queryId));
+  }
+
+  @Test
+  public void deleteUnknownPplIdFromNonOwner_returns404() throws Exception {
+    String fakeId = QueryJobId.create(nodeAId).encode();
+    Request request = new Request("DELETE", ASYNC_QUERY_ENDPOINT + fakeId);
+    ResponseException ex =
+        Assert.assertThrows(ResponseException.class, () -> nodeB.performRequest(request));
+    Assert.assertEquals(404, ex.getResponse().getStatusLine().getStatusCode());
+    assertForwardedErrorIsUnwrapped(ex);
+  }
+
+  /**
+   * The forwarded error from the owner must unwrap on the entry node. Before the fix the client saw
+   * {@code type=RemoteTransportException} and the owner's hostname/port in {@code details}; after
+   * the fix the client sees the real {@code ResourceNotFoundException} with the id in the message
+   * and no transport-layer leakage.
+   */
+  private static void assertForwardedErrorIsUnwrapped(ResponseException ex) throws IOException {
+    String body = org.opensearch.sql.legacy.TestUtils.getResponseBody(ex.getResponse(), true);
+    JSONObject error = new JSONObject(body).getJSONObject("error");
+    Assert.assertEquals(
+        "forwarded 404 must surface the real cause, not the transport wrapper",
+        "ResourceNotFoundException",
+        error.getString("type"));
+    String details = error.optString("details", "");
+    Assert.assertFalse(
+        "forwarded error details must not leak owner-node transport metadata: " + details,
+        details.contains("cluster:admin/opensearch/ql/async_query"));
+    Assert.assertFalse(
+        "forwarded error details must not leak owner-node address: " + details,
+        details.matches("(?s).*\\d+\\.\\d+\\.\\d+\\.\\d+:\\d+.*"));
+  }
+
+  @Test
+  public void failed_forwardsFromNonOwnerNodeToOwner() throws Exception {
+    // Capture the sync error body on nodeA so the parity assertion is anchored to a real sync
+    // response rather than hard-coded fields.
+    JSONObject syncBody = new JSONObject();
+    syncBody.put("query", "source=" + TEST_INDEX_ACCOUNT + " | fields nonexistent_field");
+    org.opensearch.client.Request syncRequest =
+        new org.opensearch.client.Request("POST", AsyncPPLTestHelpers.PPL_ENDPOINT);
+    syncRequest.setJsonEntity(syncBody.toString());
+    org.opensearch.client.ResponseException syncEx =
+        Assert.assertThrows(
+            org.opensearch.client.ResponseException.class, () -> nodeA.performRequest(syncRequest));
+    JSONObject syncError =
+        new JSONObject(
+                org.opensearch.sql.legacy.TestUtils.getResponseBody(syncEx.getResponse(), true))
+            .getJSONObject("error");
+
+    // Submit on nodeA with wait=0 so the runner fails after the submit returns.
+    JSONObject body = new JSONObject();
+    body.put("query", "source=" + TEST_INDEX_ACCOUNT + " | fields nonexistent_field");
+    body.put("wait_for_completion_timeout", "0");
+    String queryId = new JSONObject(postPpl(nodeA, body)).getString("id");
+
+    // Poll via nodeB (non-owner); request forwards to nodeA, which renders the full error body.
+    JSONObject terminal = pollUntilTerminal(nodeB, queryId, 30_000);
+    Assert.assertEquals("FAILED", terminal.getString("status"));
+    Object errorField = terminal.get("error");
+    Assert.assertTrue(
+        "cross-node GET error must be a structured object", errorField instanceof JSONObject);
+    JSONObject asyncError = (JSONObject) errorField;
+    // Full deep equality — every field the sync body publishes (type, reason, details, code,
+    // context, location, suggestion if present) must appear in the cross-node async body with
+    // the same value. The sync and async paths render through the same SyncErrorReportRenderer.
+    Assert.assertEquals(
+        "cross-node async error must carry the same top-level keys as sync",
+        syncError.keySet(),
+        asyncError.keySet());
+    Assert.assertTrue(
+        "cross-node async error must deep-equal sync; sync=" + syncError + " async=" + asyncError,
+        syncError.similar(asyncError));
+  }
+
+  @Test
+  public void explain_forwardsFromNonOwnerNodeToOwner() throws Exception {
+    JSONObject body = new JSONObject();
+    body.put("query", "explain source=" + TEST_INDEX_ACCOUNT + " | stats count() as c");
+    body.put("wait_for_completion_timeout", "0");
+
+    String queryId = new JSONObject(postPpl(nodeA, body)).getString("id");
+
+    long deadline = System.currentTimeMillis() + 30_000L;
+    JSONObject explain = null;
+    while (System.currentTimeMillis() < deadline) {
+      String raw = getAsyncQuery(nodeB, queryId);
+      try {
+        JSONObject parsed = new JSONObject(raw);
+        if (parsed.has("calcite") || parsed.has("root")) {
+          explain = parsed;
+          break;
+        }
+      } catch (RuntimeException ignored) {
+        // not valid JSON yet; keep polling
+      }
+      Thread.sleep(200);
+    }
+    Assert.assertNotNull("cross-node explain body never arrived", explain);
+    Assert.assertTrue(
+        "explain body must carry a plan tree", explain.has("calcite") || explain.has("root"));
+  }
+
+  @Test
+  public void deleteOnPeerForwardsCancellationOfStreamstatsAndStopsExecution() throws Exception {
+    AsyncPPLTestHelpers.createIndex(nodeA);
+    long searchesBefore = indexSearchCount(nodeA);
+    String queryId = submitAsync(nodeA, STREAMSTATS_QUERY);
+    List<String> runningPits = awaitRunning(nodeA, nodeAId, searchesBefore);
+    Assert.assertEquals(
+        "RUNNING", new JSONObject(getAsyncQuery(nodeA, queryId)).getString("status"));
+
+    Response deleted = deleteAsyncQuery(nodeB, queryId);
+    Assert.assertEquals(200, deleted.getStatusLine().getStatusCode());
+    Assert.assertEquals(
+        "CANCELLED", new JSONObject(getResponseBody(deleted, true)).getString("status"));
+    long searchesAfterDelete = indexSearchCount(nodeA);
+    assertStopped(nodeA, nodeAId, searchesAfterDelete, runningPits);
+    assertNotFound(() -> getAsyncQuery(nodeA, queryId));
+    assertNotFound(() -> getAsyncQuery(nodeB, queryId));
+    assertNotFound(() -> deleteAsyncQuery(nodeB, queryId));
+  }
+
+  @Test
+  public void concurrentDeletesCancelOnceAndRemoveOnce() throws Exception {
+    AsyncPPLTestHelpers.createIndex(nodeA);
+    long searchesBefore = indexSearchCount(nodeA);
+    String queryId = submitAsync(nodeA, STREAMSTATS_QUERY);
+    List<String> runningPits = awaitRunning(nodeA, nodeAId, searchesBefore);
+
+    CountDownLatch start = new CountDownLatch(1);
+    ExecutorService executor = Executors.newFixedThreadPool(2);
+    List<Response> responses = new ArrayList<>();
+    try {
+      Future<Response> onOwner = executor.submit(() -> deleteWhenStarted(start, nodeA, queryId));
+      Future<Response> onPeer = executor.submit(() -> deleteWhenStarted(start, nodeB, queryId));
+      start.countDown();
+      responses.add(onOwner.get(10, TimeUnit.SECONDS));
+      responses.add(onPeer.get(10, TimeUnit.SECONDS));
+    } finally {
+      executor.shutdownNow();
+    }
+
+    List<Integer> codes = new ArrayList<>();
+    for (Response response : responses) {
+      int code = response.getStatusLine().getStatusCode();
+      codes.add(code);
+      if (code == 200) {
+        Assert.assertEquals(
+            "CANCELLED", new JSONObject(getResponseBody(response, true)).getString("status"));
+      }
+    }
+    codes.sort(null);
+    Assert.assertEquals(List.of(200, 404), codes);
+    long searchesAfterDelete = indexSearchCount(nodeA);
+    assertStopped(nodeA, nodeAId, searchesAfterDelete, runningPits);
+    assertNotFound(() -> getAsyncQuery(nodeA, queryId));
+  }
+
+  @Test
+  public void deleteOfFailedJobReturnsFailedAndRemovesIt() throws Exception {
+    AsyncPPLTestHelpers.createIndex(nodeA);
+    String queryId = submitAsync(nodeA, OVERFLOW_QUERY);
+    JSONObject terminal = pollUntilTerminal(nodeA, queryId, 30_000);
+    Assert.assertEquals("FAILED", terminal.getString("status"));
+    JSONObject error = terminal.getJSONObject("error");
+    Assert.assertEquals("ArithmeticException", error.getString("type"));
+    Assert.assertTrue(
+        "FAILED body must identify the overflow: " + terminal,
+        error.getString("details").toLowerCase(java.util.Locale.ROOT).contains("overflow"));
+
+    Response deleted = deleteAsyncQuery(nodeB, queryId);
+    Assert.assertEquals(200, deleted.getStatusLine().getStatusCode());
+    Assert.assertEquals(
+        "FAILED", new JSONObject(getResponseBody(deleted, true)).getString("status"));
+    assertNotFound(() -> getAsyncQuery(nodeA, queryId));
+    assertNotFound(() -> deleteAsyncQuery(nodeB, queryId));
+  }
+
+  private String submitAsync(RestClient client, String query) throws IOException {
+    JSONObject body = new JSONObject();
+    body.put("query", query);
+    body.put("wait_for_completion_timeout", "0");
+    return new JSONObject(postPpl(client, body)).getString("id");
+  }
+
+  private static Response deleteWhenStarted(CountDownLatch start, RestClient node, String queryId)
+      throws Exception {
+    start.await();
+    try {
+      return deleteAsyncQuery(node, queryId);
+    } catch (ResponseException e) {
+      return e.getResponse();
+    }
+  }
+
+  private RestClient nodeClient(HttpHost host) {
+    try {
+      return buildClient(Settings.EMPTY, new HttpHost[] {host});
+    } catch (IOException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+}

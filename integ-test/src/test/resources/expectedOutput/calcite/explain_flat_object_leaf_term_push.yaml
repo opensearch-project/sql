@@ -1,0 +1,10 @@
+calcite:
+  logical: |
+    LogicalSystemLimit(fetch=[10000], type=[QUERY_SIZE_LIMIT])
+      LogicalProject(service=[$7])
+        LogicalFilter(condition=[=(ITEM($0, 'env'), 'prod')])
+          LogicalProject(attributes=[$0], projects=[$1], projects.attributes=[$2], projects.kw=[$3], issue=[$4], issue.labels=[$5], issue.labels.category=[$6], service=[$7], _id=[$8], _index=[$9], _score=[$10], _maxscore=[$11], _sort=[$12], _routing=[$13], attrs=[$0])
+            CalciteLogicalIndexScan(table=[[OpenSearch, opensearch-sql_test_index_flat_object]])
+  physical: |
+    CalciteEnumerableIndexScan(table=[[OpenSearch, opensearch-sql_test_index_flat_object]], PushDownContext=[[PROJECT->[attributes, service], FILTER->=(ITEM($0, 'env'), 'prod'), PROJECT->[service], LIMIT->10000], OpenSearchRequestBuilder(sourceBuilder={"from":0,"size":10000,"timeout":"1m","query":{"term":{"attributes.env":{"value":"prod","boost":1.0}}},"_source":{"includes":["service"]}}, requestedTotalSize=10000, pageSize=null, startFrom=0)])
+

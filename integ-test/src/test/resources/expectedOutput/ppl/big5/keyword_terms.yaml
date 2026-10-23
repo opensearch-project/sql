@@ -1,18 +1,7 @@
 root:
-  name: ProjectOperator
-  description:
-    fields: "[station, aws.cloudwatch.log_stream]"
   children:
-    - name: TakeOrderedOperator
-      description:
-        limit: 500
-        offset: 0
-        sortList:
-          station:
-            sortOrder: DESC
-            nullOrder: NULL_LAST
-      children:
-        - name: OpenSearchIndexScan
+    - children:
+        - children: []
           description:
             request: "OpenSearchQueryRequest(indexName=big5, sourceBuilder={\"from\"\
               :0,\"size\":0,\"timeout\":\"1m\",\"aggregations\":{\"composite_buckets\"\
@@ -21,4 +10,15 @@ root:
               :true,\"missing_order\":\"first\",\"order\":\"asc\"}}}]},\"aggregations\"\
               :{\"station\":{\"value_count\":{\"field\":\"_index\"}}}}}}, pitId=*,\
               \ cursorKeepAlive=null, searchAfter=null, searchResponse=null)"
-          children: []
+          name: OpenSearchIndexScan
+      description:
+        limit: 500
+        offset: 0
+        sortList:
+          station:
+            sortOrder: DESC
+            nullOrder: NULL_LAST
+      name: TakeOrderedOperator
+  description:
+    fields: "[station, aws.cloudwatch.log_stream]"
+  name: ProjectOperator

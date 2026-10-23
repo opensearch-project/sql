@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.util.Capability.NOT_FILTER_NULL_SEMANTICS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
 
@@ -14,11 +15,13 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * Integration tests for NOT LIKE with null/missing field values. Tests the fix for issue #5169: NOT
  * LIKE should exclude rows where the field is null or missing.
  */
+@RequiresCapability(NOT_FILTER_NULL_SEMANTICS)
 public class CalciteNotLikeNullIT extends PPLIntegTestCase {
 
   private static final String TEST_INDEX = "issue5169_not_like_null";

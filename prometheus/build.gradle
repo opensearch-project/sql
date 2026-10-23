@@ -22,9 +22,9 @@ dependencies {
 
     implementation group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
     implementation "io.github.resilience4j:resilience4j-retry:${resilience4j_version}"
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${versions.jackson}"
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "${versions.jackson_databind}"
-    implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: "${versions.jackson}"
+    implementation group: 'tools.jackson.core', name: 'jackson-core', version: "${versions.jackson3}"
+    implementation group: 'tools.jackson.core', name: 'jackson-databind', version: "${versions.jackson3_databind}"
+    implementation group: 'tools.jackson.dataformat', name: 'jackson-dataformat-cbor', version: "${versions.jackson3}"
     implementation group: 'org.json', name: 'json', version: '20231013'
 
     testImplementation('org.junit.jupiter:junit-jupiter:5.9.3')

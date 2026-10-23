@@ -5,13 +5,13 @@
 
 package org.opensearch.sql.opensearch.storage.serde;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.opensearch.sql.opensearch.storage.script.CompoundedScriptEngine.ScriptEngineType;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 /** Serialization wrapper that wraps the script language type with encoded script by JSON. */
 public class SerializationWrapper {
@@ -30,7 +30,7 @@ public class SerializationWrapper {
   public static String wrapWithLangType(ScriptEngineType langType, String script) {
     try {
       return mapper.writeValueAsString(new LangScriptWrapper(langType, script));
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new RuntimeException("Failed to wrap script with langType: " + langType, e);
     }
   }
@@ -48,7 +48,7 @@ public class SerializationWrapper {
         throw new IllegalArgumentException("Missing required fields in language script wrapper.");
       }
       return unwrapped;
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new RuntimeException("Failed to unwrap script with langType.", e);
     }
   }

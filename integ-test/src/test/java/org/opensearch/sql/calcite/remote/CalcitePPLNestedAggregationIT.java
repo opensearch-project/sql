@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
+import static org.opensearch.sql.util.Capability.NESTED_FIELDS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -19,7 +20,9 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
+@RequiresCapability(NESTED_FIELDS)
 public class CalcitePPLNestedAggregationIT extends PPLIntegTestCase {
   @Override
   public void init() throws Exception {

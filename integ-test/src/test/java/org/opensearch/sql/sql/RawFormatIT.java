@@ -33,7 +33,9 @@ public class RawFormatIT extends SQLIntegTestCase {
     String result =
         executeQuery(
             String.format(
-                Locale.ROOT, "SELECT firstname, lastname FROM %s", TEST_INDEX_BANK_RAW_SANITIZE),
+                Locale.ROOT,
+                "SELECT firstname, lastname FROM %s ORDER BY account_number",
+                TEST_INDEX_BANK_RAW_SANITIZE),
             "raw");
 
     assertRowsEqual(
@@ -52,7 +54,9 @@ public class RawFormatIT extends SQLIntegTestCase {
     String result =
         executeQuery(
             String.format(
-                Locale.ROOT, "SELECT firstname, lastname FROM %s", TEST_INDEX_BANK_RAW_SANITIZE),
+                Locale.ROOT,
+                "SELECT firstname, lastname FROM %s ORDER BY account_number",
+                TEST_INDEX_BANK_RAW_SANITIZE),
             "raw",
             Map.of("pretty", "true"));
     assertEquals(

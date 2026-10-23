@@ -9,6 +9,8 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_PEOPLE2;
 import static org.opensearch.sql.sql.NowLikeFunctionIT.utcDateTimeNow;
+import static org.opensearch.sql.util.BackendCapabilities.requireCapability;
+import static org.opensearch.sql.util.Capability.CONSISTENT_QUERY_CLOCK_ACROSS_SHARDS;
 
 import com.carrotsearch.randomizedtesting.annotations.Name;
 import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
@@ -194,6 +196,10 @@ public class NowLikeFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testNowLikeFunctions() throws IOException {
+    if (constValue && !"utc_date".equals(name)) {
+      requireCapability(CONSISTENT_QUERY_CLOCK_ACROSS_SHARDS);
+    }
+
     var serializationPattern =
         new DateTimeFormatterBuilder()
             .appendPattern(serializationPatternStr)

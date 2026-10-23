@@ -75,6 +75,11 @@ ext {
     projectSubstitutions = [:]
     licenseFile = rootProject.file('LICENSE.TXT')
     noticeFile = rootProject.file('NOTICE')
+    telemetryOtelVersion = System.getProperty("telemetryOtelVersion")
+    if (!telemetryOtelVersion) {
+        def metadataUrl = new URL('https://ci.opensearch.org/maven2/org/opensearch/plugin/telemetry-otel/maven-metadata.xml')
+        telemetryOtelVersion = new XmlParser().parse(metadataUrl.openStream()).versioning.release.text()
+    }
 
     getSecurityPluginDownloadLink = { ->
         var repo = "https://ci.opensearch.org/ci/dbc/snapshots/maven/org/opensearch/plugin/" +
@@ -166,6 +171,8 @@ ext {
 
 tasks.withType(licenseHeaders.class) {
     additionalLicense 'AL   ', 'Apache', 'Licensed under the Apache License, Version 2.0 (the "License")'
+    // RAT 0.18 misdetects this 256-byte prefix as IBM424_rtl due to FULLTEXT_RELEVANCE_FUNC.
+    excludes << 'org/opensearch/sql/sql/HighlightFunctionIT.java'
 }
 
 validateNebulaPom.enabled = false
@@ -213,6 +220,7 @@ dependencies {
     testImplementation(testFixtures(project(':api'))) {
         exclude group: 'org.hamcrest', module: 'hamcrest-core'
     }
+    testImplementation 'io.opentelemetry.proto:opentelemetry-proto:1.3.2-alpha'
     testImplementation('org.junit.jupiter:junit-jupiter-api:5.9.3')
     testImplementation('org.junit.jupiter:junit-jupiter-params:5.9.3')
     testRuntimeOnly('org.junit.jupiter:junit-jupiter-engine:5.9.3')
@@ -229,6 +237,7 @@ dependencies {
 
     // For GeoIP PPL functions
     zipArchive group: 'org.opensearch.plugin', name:'geospatial', version: "${opensearch_build}"
+
 }
 
 java {
@@ -275,6 +284,14 @@ def getGeoSpatialPlugin() {
 // fetch from the feature-build artifact for now (linux/x64 only; for local dev pass -PanalyticsEngineZip=/path instead).
 ext.pluginVersion = opensearch_version.tokenize('-')[0]
 ext.featureBuildBase = "https://ci.opensearch.org/ci/dbc/feature-build-opensearch/feature-datafusion/latest/linux/x64/tar/builds/opensearch/plugins"
+// The feature-datafusion distribution tarball is the ONLY published artifact that carries the
+// unified Rust native library (lib/rust/libopensearch_native.so). It is not bundled in any of the
+// individual plugin zips above, so the AE test clusters (which install parquet-data-format) would
+// otherwise fail at node boot with "Failed to load native library 'opensearch_native'". We download
+// the dist tarball once and extract just the .so into build/native/, then point java.library.path
+// at that dir (see downloadNativeLib below and the AE testClusters blocks).
+ext.featureBuildDistBase = "https://ci.opensearch.org/ci/dbc/feature-build-opensearch/feature-datafusion/latest/linux/x64/tar/dist/opensearch"
+ext.nativeLibDir = file("${buildDir}/native")
 ext.analyticsEngineZipDest = "${buildDir}/distributions/analytics-engine-${pluginVersion}-SNAPSHOT.zip"
 ext.arrowFlightRpcZipDest = "${buildDir}/distributions/arrow-flight-rpc-${pluginVersion}-SNAPSHOT.zip"
 ext.arrowBaseZipDest = "${buildDir}/distributions/arrow-base-${pluginVersion}-SNAPSHOT.zip"
@@ -317,7 +334,7 @@ task downloadTestPplFrontendZip(type: Download) {
 }
 
 task downloadAnalyticsBackendLuceneZip(type: Download) {
-    src "${featureBuildBase}/1-analytics-backend-lucene-${pluginVersion}.zip"
+    src "${featureBuildBase}/analytics-backend-lucene-${pluginVersion}.zip"
     dest analyticsBackendLuceneZipDest
     overwrite false
     onlyIfModified true
@@ -325,7 +342,7 @@ task downloadAnalyticsBackendLuceneZip(type: Download) {
 }
 
 task downloadParquetDataFormatZip(type: Download) {
-    src "${featureBuildBase}/1-parquet-data-format-${pluginVersion}.zip"
+    src "${featureBuildBase}/parquet-data-format-${pluginVersion}.zip"
     dest parquetDataFormatZipDest
     overwrite false
     onlyIfModified true
@@ -333,7 +350,7 @@ task downloadParquetDataFormatZip(type: Download) {
 }
 
 task downloadCompositeEngineZip(type: Download) {
-    src "${featureBuildBase}/1-composite-engine-${pluginVersion}.zip"
+    src "${featureBuildBase}/2-composite-engine-${pluginVersion}.zip"
     dest compositeEngineZipDest
     overwrite false
     onlyIfModified true
@@ -341,11 +358,52 @@ task downloadCompositeEngineZip(type: Download) {
 }
 
 task downloadAnalyticsBackendDatafusionZip(type: Download) {
-    src "${featureBuildBase}/1-analytics-backend-datafusion-${pluginVersion}.zip"
+    src "${featureBuildBase}/analytics-backend-datafusion-${pluginVersion}.zip"
     dest analyticsBackendDatafusionZipDest
     overwrite false
     onlyIfModified true
     onlyIf { !project.findProperty('analyticsBackendDatafusionZip') }
+}
+
+// Extract lib/rust/libopensearch_native.so from the feature-datafusion distribution tarball into
+// build/native/. The AE testClusters point java.library.path here so parquet-data-format's
+// RustBridge can load the unified native library at node boot. Skipped entirely when the caller
+// supplies -PnativeLibPath (local runs that build the .so from core).
+task downloadNativeLib {
+    def nativeLib = file("${nativeLibDir}/libopensearch_native.so")
+    outputs.file(nativeLib)
+    onlyIf { !project.findProperty('nativeLibPath') }
+
+    doLast {
+        def distTarball = file("${buildDir}/tmp/opensearch-${pluginVersion}-linux-x64.tar.gz")
+        // Cache-friendly: reuse the tarball across runs (GitHub Actions can cache build/tmp).
+        if (!distTarball.exists()) {
+            def url = "${featureBuildDistBase}/opensearch-${pluginVersion}-linux-x64.tar.gz"
+            logger.lifecycle "Downloading feature-datafusion distribution for native lib: ${url}"
+            distTarball.parentFile.mkdirs()
+            ant.get(src: url, dest: distTarball, httpusecaches: false)
+        }
+
+        delete nativeLibDir
+        nativeLibDir.mkdirs()
+        // Extract only the single native library entry, flattening it into nativeLibDir.
+        copy {
+            from(tarTree(resources.gzip(distTarball))) {
+                include "opensearch-${pluginVersion}/lib/rust/libopensearch_native.so"
+                eachFile { it.path = it.name }
+                includeEmptyDirs = false
+            }
+            into nativeLibDir
+        }
+
+        if (!nativeLib.exists()) {
+            throw new GradleException(
+                "Expected opensearch-${pluginVersion}/lib/rust/libopensearch_native.so inside " +
+                "${distTarball}, but it was not found after extraction. The feature-datafusion " +
+                "distribution layout may have changed.")
+        }
+        logger.lifecycle "Extracted native library to ${nativeLib}"
+    }
 }
 
 def getAnalyticsEnginePlugin() {
@@ -380,6 +438,49 @@ def getAnalyticsBackendDatafusionPlugin() {
     provider { (RegularFile) (() -> file(project.findProperty('analyticsBackendDatafusionZip') ?: analyticsBackendDatafusionZipDest)) }
 }
 
+ext.telemetryOtelZip = file("${buildDir}/tmp/telemetry-otel-patched.zip")
+
+def downloadTelemetryOtel = tasks.register('downloadTelemetryOtel') {
+    outputs.file(project.telemetryOtelZip)
+    doLast {
+        def v = project.telemetryOtelVersion
+        def clusterVersion = opensearch_version.toString().tokenize('-')[0]
+        def rawZip = file("${buildDir}/tmp/telemetry-otel-${v}-raw.zip")
+        def extractDir = file("${buildDir}/tmp/telemetry-otel-${v}-extracted")
+
+        if (!rawZip.exists()) {
+            def url = "https://artifacts.opensearch.org/releases/plugins/telemetry-otel/${v}/telemetry-otel-${v}.zip"
+            logger.lifecycle "Downloading telemetry-otel plugin ${v} from ${url}"
+            rawZip.parentFile.mkdirs()
+            ant.get(src: url, dest: rawZip, httpusecaches: false)
+        }
+
+        delete extractDir
+        extractDir.mkdirs()
+        ant.unzip(src: rawZip, dest: extractDir)
+        def descriptor = file("${extractDir}/plugin-descriptor.properties")
+        descriptor.text = descriptor.text.replaceAll(
+                /(?m)^opensearch\.version=.*$/,
+                "opensearch.version=${clusterVersion}")
+
+        delete project.telemetryOtelZip
+        ant.zip(destfile: project.telemetryOtelZip, basedir: extractDir)
+    }
+}
+
+def getTelemetryOtelPlugin() {
+    return provider(new Callable<RegularFile>() {
+        @Override
+        RegularFile call() throws Exception {
+            return new RegularFile() {
+                @Override
+                File getAsFile() { return project.telemetryOtelZip }
+            }
+        }
+    })
+}
+
+
 testClusters {
     integTest {
         testDistribution = 'archive'
@@ -387,6 +488,32 @@ testClusters {
         plugin(getGeoSpatialPlugin())
         plugin ":opensearch-sql-plugin"
         setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
+        // Only /_cluster/health is registered; pin the allow-list to it for the rest ITs.
+        setting 'plugins.ppl.rest.allowed_endpoints', '/_cluster/health'
+    }
+    // Dedicated two-node cluster for exercising owner-node routing on QueryJobId responses.
+    asyncMultiNodeIT {
+        testDistribution = 'archive'
+        numberOfNodes = 2
+        plugin(getJobSchedulerPlugin())
+        plugin ":opensearch-sql-plugin"
+        setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
+    }
+    tracingIntegTest {
+        testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
+        plugin(getGeoSpatialPlugin())
+        plugin ":opensearch-sql-plugin"
+        plugin(getTelemetryOtelPlugin())
+        setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
+        setting 'plugins.ppl.rest.allowed_endpoints', '/_cluster/health'
+        systemProperty 'opensearch.experimental.feature.telemetry.enabled', 'true'
+        setting 'telemetry.feature.tracer.enabled', 'true'
+        setting 'telemetry.tracer.enabled', 'true'
+        setting 'telemetry.tracer.sampler.probability', '1.0'
+        setting 'telemetry.otel.tracer.span.exporter.class',
+                'io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter'
+        setting 'telemetry.otel.tracer.exporter.delay', '50ms'
     }
     yamlRestTest {
         testDistribution = 'archive'
@@ -402,6 +529,16 @@ testClusters {
         plugin ":opensearch-sql-plugin"
     }
     integTestWithSecurity {
+        testDistribution = 'archive'
+        // AsyncPPLSecurityIT needs two nodes to exercise owner forwarding.
+        numberOfNodes = 2
+        plugin(getJobSchedulerPlugin())
+        plugin ":opensearch-sql-plugin"
+        // Only /_cluster/health is registered; pin the allow-list to it for RestCommandSecurityIT.
+        setting 'plugins.ppl.rest.allowed_endpoints', '/_cluster/health'
+    }
+    // Long-lived local dev cluster with the security (FGAC) plugin, for `runWithSecurity`.
+    runWithSecurity {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
         plugin ":opensearch-sql-plugin"
@@ -419,6 +556,8 @@ testClusters {
         plugin(getArrowFlightRpcPlugin())
         plugin(getAnalyticsEnginePlugin())
         plugin ":opensearch-sql-plugin"
+        // Composite-default cluster: PPL queries route to the analytics engine unless excluded.
+        setting 'cluster.pluggable.dataformat', 'composite'
     }
 }
 
@@ -481,6 +620,7 @@ task analyticsEngineCompatIT(type: RestIntegTestTask) {
 
 task analyticsEngineSecurityIT(type: RestIntegTestTask) {
     dependsOn downloadAnalyticsEngineZip, downloadArrowFlightRpcZip, downloadArrowBaseZip, downloadAnalyticsBackendLuceneZip, downloadParquetDataFormatZip, downloadCompositeEngineZip, downloadAnalyticsBackendDatafusionZip
+    dependsOn downloadNativeLib
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
 
     systemProperty 'tests.security.manager', 'false'
@@ -494,6 +634,16 @@ task analyticsEngineSecurityIT(type: RestIntegTestTask) {
 
     filter {
         includeTestsMatching 'org.opensearch.sql.security.AnalyticsEngineSecurityIT'
+    }
+
+    // Surface per-test results in the CI log so this suite's execution is visible (these AE ITs
+    // historically never ran in CI — a silent gap; explicit logging guards against regressing to it).
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+    }
+    afterTest { desc, result ->
+        logger.quiet "${desc.className}.${desc.name}: ${result.resultType} ${(result.getEndTime() - result.getStartTime())/1000}s"
     }
 }
 
@@ -517,22 +667,39 @@ testClusters.analyticsEngineSecurityIT {
     systemProperty 'io.netty.tryReflectionSetAccessible', 'true'
     systemProperty 'opensearch.experimental.feature.pluggable.dataformat.enabled', 'true'
     systemProperty 'opensearch.experimental.feature.transport.stream.enabled', 'true'
-    // Native library path for DataFusion/parquet — pass via -PnativeLibPath=/path/to/release/
-    if (project.findProperty('nativeLibPath')) {
-        systemProperty 'java.library.path', project.findProperty('nativeLibPath')
-    }
+    // Route ALL queries through analytics engine regardless of index name format (wildcard,
+    // alias, comma-separated). Without this, isAnalyticsIndex() only recognizes concrete
+    // index names via per-index metadata lookup — wildcards/aliases fall back to legacy PPL.
+    setting 'cluster.pluggable.dataformat', 'composite'
+    setting 'cluster.composite.primary_data_format', 'parquet'
+    setting 'cluster.composite.secondary_data_formats', '["lucene"]'
+    // Native library path for DataFusion/parquet. Prefer the caller-supplied -PnativeLibPath
+    // (local runs that build the .so from core); otherwise fall back to the .so extracted
+    // from the feature-datafusion distribution by downloadNativeLib (the CI path).
+    systemProperty 'java.library.path', project.findProperty('nativeLibPath') ?: nativeLibDir.absolutePath
 }
 
 configureSecurityPlugin(testClusters.analyticsEngineSecurityIT)
 
 task analyticsEngineProfileIT(type: RestIntegTestTask) {
     dependsOn downloadAnalyticsEngineZip, downloadArrowFlightRpcZip, downloadArrowBaseZip, downloadAnalyticsBackendLuceneZip, downloadParquetDataFormatZip, downloadCompositeEngineZip, downloadAnalyticsBackendDatafusionZip
+    dependsOn downloadNativeLib
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
 
     systemProperty 'tests.security.manager', 'false'
 
     filter {
         includeTestsMatching 'org.opensearch.sql.analytics.AnalyticsEngineProfileIT'
+    }
+
+    // Surface per-test results in the CI log so this suite's execution is visible (these AE ITs
+    // historically never ran in CI — a silent gap; explicit logging guards against regressing to it).
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+    }
+    afterTest { desc, result ->
+        logger.quiet "${desc.className}.${desc.name}: ${result.resultType} ${(result.getEndTime() - result.getStartTime())/1000}s"
     }
 }
 
@@ -541,11 +708,14 @@ testClusters.analyticsEngineProfileIT {
     plugin(getJobSchedulerPlugin())
     plugin(getArrowBasePlugin())
     plugin(getArrowFlightRpcPlugin())
+    // composite-engine MUST be installed before analytics-backend-lucene/datafusion, which declare
+    // it as a dependency — otherwise the node fails at plugin install with
+    // "Missing plugin [composite-engine], dependency of [analytics-backend-lucene]".
+    plugin(getCompositeEnginePlugin())
     plugin(getAnalyticsEnginePlugin())
     plugin(getAnalyticsBackendLucenePlugin())
     plugin(getAnalyticsBackendDatafusionPlugin())
     plugin(getParquetDataFormatPlugin())
-    plugin(getCompositeEnginePlugin())
     plugin ":opensearch-sql-plugin"
     // Arrow Flight / streaming transport requirements
     jvmArgs '--add-opens=java.base/java.nio=ALL-UNNAMED'
@@ -556,10 +726,10 @@ testClusters.analyticsEngineProfileIT {
     systemProperty 'io.netty.tryReflectionSetAccessible', 'true'
     systemProperty 'opensearch.experimental.feature.pluggable.dataformat.enabled', 'true'
     systemProperty 'opensearch.experimental.feature.transport.stream.enabled', 'true'
-    // Native library path for DataFusion/parquet — pass via -PnativeLibPath=/path/to/release/
-    if (project.findProperty('nativeLibPath')) {
-        systemProperty 'java.library.path', project.findProperty('nativeLibPath')
-    }
+    // Native library path for DataFusion/parquet. Prefer the caller-supplied -PnativeLibPath
+    // (local runs that build the .so from core); otherwise fall back to the .so extracted
+    // from the feature-datafusion distribution by downloadNativeLib (the CI path).
+    systemProperty 'java.library.path', project.findProperty('nativeLibPath') ?: nativeLibDir.absolutePath
 }
 
 task integJdbcTest(type: RestIntegTestTask) {
@@ -607,9 +777,42 @@ task integJdbcTest(type: RestIntegTestTask) {
     }
 }
 
+task asyncMultiNodeIT(type: RestIntegTestTask) {
+    useCluster testClusters.asyncMultiNodeIT
+
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+
+    systemProperty 'tests.security.manager', 'false'
+    // Resolve dataset files (accounts.json, bank.json, ...) relative to the project.
+    systemProperty 'project.root', project.projectDir.absolutePath
+    // Match the defaults the standard integTest task sets so re-runs produce identical plans.
+    systemProperty 'defaultQuerySizeLimit', '10000'
+    systemProperty 'defaultQueryBucketSize', '1000'
+    systemProperty 'defaultMaxResultWindow', '10000'
+    doFirst {
+        systemProperty 'cluster.debug', getDebug()
+    }
+
+    filter {
+        includeTestsMatching 'org.opensearch.sql.ppl.AsyncPPLMultiNodeRoutingIT'
+    }
+}
+
+// Wire the two-node routing IT into the default verification path so CI runs it alongside the
+// single-node integTest. Without this, AsyncPPLMultiNodeRoutingIT is excluded from `integTest`
+// (needs a 2-node cluster) and would never actually run.
+check.dependsOn asyncMultiNodeIT
+
 task integTestWithSecurity(type: RestIntegTestTask) {
     useCluster testClusters.integTestWithSecurity
     useCluster testClusters.remoteIntegTestWithSecurity
+
+    // This task provisions the security plugin and a remote cluster, so their absence is a real
+    // breakage: mark both required so the security and cross-cluster ITs fail loudly instead of
+    // skipping. These properties are scoped to this task's test JVM and are intentionally NOT set
+    // on integTestRemote.
+    systemProperty 'tests.required.plugins', 'opensearch-security'
+    systemProperty 'tests.required.remote.cluster', 'true'
 
     systemProperty "cluster.names",
         getClusters().stream().map(cluster -> cluster.getName()).collect(Collectors.joining(","))
@@ -668,6 +871,15 @@ task integTestWithSecurity(type: RestIntegTestTask) {
     }
 }
 
+// analogous to the plugin project's `run` task but with a demo config for testing roles.
+task runWithSecurity(type: org.opensearch.gradle.testclusters.RunTask) {
+    useCluster testClusters.runWithSecurity
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+    description = 'Run a local dev cluster with the opensearch-security (FGAC) plugin installed.'
+    group = 'verification'
+}
+configureSecurityPlugin(testClusters.runWithSecurity)
+
 yamlRestTest {
     systemProperty 'tests.security.manager', 'false'
 }
@@ -675,6 +887,12 @@ yamlRestTest {
 // Run PPL ITs and new, legacy and comparison SQL ITs with new SQL engine enabled
 integTest {
     useCluster testClusters.remoteCluster
+
+    // This task's cluster bundles the geospatial plugin (see testClusters.integTest above), so a
+    // missing geospatial plugin here is a real breakage, not an environment gap: mark it required
+    // so GeoIpFunctionsIT fails loudly instead of silently skipping. NOT set on integTestRemote,
+    // whose external cluster legitimately may not bundle geospatial.
+    systemProperty 'tests.required.plugins', 'opensearch-geospatial'
 
     // Set properties for connection to clusters and between clusters
     doFirst {
@@ -745,8 +963,13 @@ integTest {
     exclude 'org/opensearch/sql/doctest/**/*IT.class'
     exclude 'org/opensearch/sql/correctness/**'
 
+    // Run on dedicated two-node cluster via :integ-test:asyncMultiNodeIT.
+    exclude 'org/opensearch/sql/ppl/AsyncPPLMultiNodeRoutingIT.class'
+
     // Exclude tests that require the analytics engine plugin stack (run separately via dedicated tasks)
     exclude 'org/opensearch/sql/analytics/AnalyticsEngineProfileIT.class'
+
+    exclude 'org/opensearch/sql/calcite/tracing/**'
 
     // Explain IT is dependent on internal implementation of old engine so it's not necessary
     // to run these with new engine and not necessary to make this consistent with old engine.
@@ -814,6 +1037,46 @@ task printIntegTestPaths {
         println "Test report available at: file://${project.buildDir}/reports/tests/integTest/index.html"
         println "integTest cluster logs available at: file://${project.buildDir}/testclusters/integTest-0/logs/integTest.log"
         println "remoteCluster cluster logs available at: file://${project.buildDir}/testclusters/remoteCluster-0/logs/remoteCluster.log"
+    }
+}
+
+task tracingIntegTest(type: RestIntegTestTask) {
+    useCluster testClusters.tracingIntegTest
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+    dependsOn downloadTelemetryOtel
+
+    // This task's cluster bundles telemetry-otel (see testClusters.tracingIntegTest above), so a
+    // missing plugin is a real breakage: mark it required so PPLTracingIT fails loudly instead of
+    // skipping. NOT set on integTestRemote.
+    systemProperty 'tests.required.plugins', 'telemetry-otel'
+
+    systemProperty 'tests.security.manager', 'false'
+    systemProperty 'project.root', project.projectDir.absolutePath
+    systemProperty 'tests.tracing.otlp.port', '4318'
+
+    doFirst {
+        getClusters().forEach { cluster ->
+            String allHttpSocketURI = cluster.nodes.stream().flatMap { node ->
+                node.getAllHttpSocketURI().stream()
+            }.collect(Collectors.joining(","))
+            String allTransportSocketURI = cluster.nodes.stream().flatMap { node ->
+                node.getAllTransportPortURI().stream()
+            }.collect(Collectors.joining(","))
+            systemProperty "tests.rest.${cluster.name}.http_hosts", "${-> allHttpSocketURI}"
+            systemProperty "tests.rest.${cluster.name}.transport_hosts", "${-> allTransportSocketURI}"
+        }
+        systemProperty "https", "false"
+        systemProperty "user", "admin"
+        systemProperty "password", "admin"
+        systemProperty 'cluster.debug', getDebug()
+    }
+
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+
+    filter {
+        includeTestsMatching 'org.opensearch.sql.calcite.tracing.*'
     }
 }
 
@@ -1342,16 +1605,52 @@ task integTestRemote(type: RestIntegTestTask) {
             //  - STREAMSTATS_SORT_NOT_HONORED: streamstats computes its window over the backend scan
             //    order, ignoring a preceding `| sort` (the OVER clause has no explicit ORDER BY).
             excludeTestsMatching '*CalciteStreamstatsCommandIT.testStreamstatsAndSort'
+        } else {
+            // Suites that require the analytics-engine plugin stack. They create composite
+            // (parquet-backed) indices and depend on the node-level settings
+            // opensearch.experimental.feature.pluggable.dataformat.enabled and
+            // opensearch.experimental.feature.transport.stream.enabled. Each already has a
+            // dedicated task whose testClusters block provisions that stack --
+            // :analyticsEngineCompatIT, :analyticsEngineSecurityIT and :analyticsEngineProfileIT --
+            // whereas integTestRemote runs against an externally provided cluster and can neither
+            // install plugins nor set node settings, so they fail during setup instead of being
+            // skipped. Gated here rather than listed with the exclusions below so that all
+            // analytics-engine filtering for this task stays in one place.
+            excludeTestsMatching 'org.opensearch.sql.plugin.AnalyticsEngineCompatIT'
+            excludeTestsMatching 'org.opensearch.sql.security.AnalyticsEngineSecurityIT'
+            excludeTestsMatching 'org.opensearch.sql.analytics.AnalyticsEngineProfileIT'
         }
     }
 
     // Exclude the same tests that are excluded for integTest
     exclude 'org/opensearch/sql/doctest/**/*IT.class'
     exclude 'org/opensearch/sql/correctness/**'
+    // AsyncPPLSecurityIT needs two local nodes for owner forwarding; integTestRemote runs
+    // against an externally supplied cluster that is not guaranteed to have two.
+    exclude 'org/opensearch/sql/security/AsyncPPLSecurityIT.class'
     exclude 'org/opensearch/sql/legacy/ExplainIT.class'
     exclude 'org/opensearch/sql/legacy/PrettyFormatterIT.class'
     exclude 'org/opensearch/sql/legacy/TermQueryExplainIT.class'
     exclude 'org/opensearch/sql/legacy/QueryAnalysisIT.class'
     exclude 'org/opensearch/sql/legacy/OrderIT.class'
     exclude 'org/opensearch/sql/jdbc/**'
+
+    // Suites that query a Prometheus datasource and therefore need a running Prometheus
+    // instance. `integTest` starts one itself (dependsOn startPrometheus) so it only skips
+    // these when the caller passes -DignorePrometheus; integTestRemote has no such dependency
+    // and runs against an externally provided cluster, so it can never supply Prometheus and
+    // these suites always fail in setup here. Same reasoning as the analytics-engine
+    // exclusions, which integTest also applies unconditionally.
+    exclude 'org/opensearch/sql/ppl/PrometheusDataSourceCommandsIT.class'
+    exclude 'org/opensearch/sql/ppl/ShowDataSourcesCommandIT.class'
+    exclude 'org/opensearch/sql/ppl/InformationSchemaCommandIT.class'
+
+    // Suites that create or update a datasource. That requires
+    // plugins.query.datasources.encryption.masterkey, which EncryptorImpl validates as "a required
+    // config for using create and update datasource APIs" and which must be present in
+    // opensearch.yml on every node. testClusters supplies it for integTest and yamlRestTest;
+    // integTestRemote sets no cluster settings at all and cannot add a node config to an
+    // externally provided cluster, so these suites cannot pass here. integTest still covers them.
+    exclude 'org/opensearch/sql/datasource/DataSourceAPIsIT.class'
+    exclude 'org/opensearch/sql/datasource/DataSourceEnabledIT.class'
 }

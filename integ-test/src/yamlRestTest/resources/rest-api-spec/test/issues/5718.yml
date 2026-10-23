@@ -1,0 +1,89 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+  - do:
+      indices.create:
+        index: issue5718
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              log:
+                properties:
+                  level:
+                    type: keyword
+                  src:
+                    type: keyword
+              body:
+                type: text
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "issue5718", "_id": "1"}}'
+          - '{"log": {"level": "MAPPED-DEBUG", "src": "real-object"}, "body": "{\"level\":\"ERROR\",\"msg\":\"from json\"}"}'
+
+---
+teardown:
+  - do:
+      indices.delete:
+        index: issue5718
+        ignore_unavailable: true
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+
+---
+"Issue 5718: spath output colliding with a mapped object parent shadows the whole subtree":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=issue5718 | spath input=body output=log | fields log.level, log.msg, log.src"
+
+  - match: { total: 1 }
+  - match: { datarows: [["ERROR", "from json", null]] }
+
+---
+"Issue 5718: where on the extracted value matches instead of the stale mapped value":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=issue5718 | spath input=body output=log | where log.level = 'ERROR' | fields log.level"
+
+  - match: { total: 1 }
+  - match: { datarows: [["ERROR"]] }
+
+---
+"Issue 5718: the stale mapped value is no longer silently reachable through the leaf":
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=issue5718 | spath input=body output=log | where log.level = 'MAPPED-DEBUG' | fields log.level"
+
+  - match: { total: 0 }
+  - length: { datarows: 0 }

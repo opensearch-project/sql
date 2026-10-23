@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.Capability.ARRAY_HIGHER_ORDER_FUNC;
+import static org.opensearch.sql.util.Capability.MULTISHARD_EXCHANGE_TYPE_MISMATCH;
 import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
@@ -552,6 +553,35 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testMvindexWithNonZeroIndexPushdown() throws IOException {
+    // Regression test for #5660: mvindex with non-zero literal index fails during pushdown
+    // because PLUS(1,1) gets widened to BIGINT but ITEM expects INTEGER.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('a', 'b', 'c'), result = mvindex(arr, 2)"
+                    + " | head 1 | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "string"));
+    verifyDataRows(actual, rows("c"));
+  }
+
+  @Test
+  public void testMvindexWithStatsAggregationPushdown() throws IOException {
+    // Regression test for #5660: mvindex with non-zero index in aggregation context
+    // triggers pushdown script compilation where BIGINT/INTEGER mismatch occurred.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval arr = array('x', 'y', 'z'), e = mvindex(arr, 1)"
+                    + " | stats count() by e",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("count()", "bigint"), schema("e", "string"));
+  }
+
+  @Test
   public void testMvfindWithMatch() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -779,6 +809,11 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = MULTISHARD_EXCHANGE_TYPE_MISMATCH,
+      note =
+          "AE multi-shard: Field 'result' Substrait List(Utf8) vs table List(Null) -> Failed to"
+              + " create exchange sink (HTTP 500).")
   public void testMvdedupWithEmptyArray() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -926,8 +961,8 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval arr = array(1, 2, 3), result = mvmap(arr, arr * age) | head 1 |"
-                    + " fields age, result",
+                "source=%s | eval arr = array(1, 2, 3), result = mvmap(arr, arr * age) | sort"
+                    + " account_number | head 1 | fields age, result",
                 TEST_INDEX_BANK));
 
     verifySchema(actual, schema("age", "int"), schema("result", "array"));

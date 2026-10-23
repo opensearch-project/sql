@@ -1,0 +1,9 @@
+{
+    "mappings" : {
+        "properties" : {
+            "LastEditorUserId" : {
+                "type" : "long"
+            }
+        }
+    }
+}

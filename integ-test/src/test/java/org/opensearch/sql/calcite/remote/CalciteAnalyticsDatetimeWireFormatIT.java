@@ -47,7 +47,7 @@ public class CalciteAnalyticsDatetimeWireFormatIT extends PPLIntegTestCase {
               + "\"t\":{\"type\":\"date\",\"format\":\"HH:mm:ss\"}}}}";
       TestUtils.createIndexByRestClient(client(), INDEX, mapping);
 
-      Request doc = new Request("PUT", "/" + INDEX + "/_doc/1?refresh=true");
+      Request doc = TestUtils.seedDocRequest(INDEX, "1");
       doc.setJsonEntity(
           "{\"ts\":\"2024-03-15 10:30:00\","
               + "\"ts_nanos\":\"2024-03-15T10:30:00.123456789Z\","
@@ -55,7 +55,7 @@ public class CalciteAnalyticsDatetimeWireFormatIT extends PPLIntegTestCase {
               + "\"t\":\"10:30:00\"}");
       client().performRequest(doc);
 
-      Request doc2 = new Request("PUT", "/" + INDEX + "/_doc/2?refresh=true");
+      Request doc2 = TestUtils.seedDocRequest(INDEX, "2");
       doc2.setJsonEntity(
           "{\"ts\":\"2024-03-16 23:59:59\","
               + "\"ts_nanos\":\"2024-03-16T23:59:59.999999999Z\","

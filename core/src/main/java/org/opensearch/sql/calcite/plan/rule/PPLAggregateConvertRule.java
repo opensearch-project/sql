@@ -26,10 +26,12 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.PairList;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.commons.lang3.tuple.Pair;
 import org.immutables.value.Value;
 import org.opensearch.sql.calcite.utils.PlanUtils;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
 /**
  * Planner rule that converts specific aggCall to a more efficient expressions, which includes:
@@ -217,27 +219,36 @@ public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Con
   }
 
   private boolean isConvertableAggCall(AggregateCall aggCall, Project project) {
-    return aggCall.getAggregation().getKind() == SqlKind.SUM
-        && Config.isCallWithLiteral(project.getProjects().get(aggCall.getArgList().getFirst()));
+    if (aggCall.getAggregation().getKind() != SqlKind.SUM) {
+      return false;
+    }
+    RexNode arg = project.getProjects().get(aggCall.getArgList().getFirst());
+    if (!Config.isCallWithLiteral(arg)) {
+      return false;
+    }
+    // Dropping a widening cast is only type-safe when the sum's return type doesn't depend on
+    // its input type, which holds for CHECKED_LONG_SUM (always BIGINT).
+    return Config.getField((RexCall) arg) instanceof RexInputRef
+        || aggCall.getAggregation() == PPLBuiltinOperators.CHECKED_LONG_SUM;
   }
 
   private static Pair<RexInputRef, RexLiteral> getFieldAndLiteral(RexNode node) {
     RexCall call = (RexCall) node;
     RexNode arg1 = call.getOperands().getFirst();
     RexNode arg2 = call.getOperands().getLast();
-    return arg1.getKind() == SqlKind.INPUT_REF
-        ? Pair.of((RexInputRef) arg1, (RexLiteral) arg2)
-        : Pair.of((RexInputRef) arg2, (RexLiteral) arg1);
+    return arg1.getKind() == SqlKind.LITERAL
+        ? Pair.of(Config.unwrapField(arg2), (RexLiteral) arg1)
+        : Pair.of(Config.unwrapField(arg1), (RexLiteral) arg2);
   }
 
   private static RexNode convertToNewOperand(
       RexNode operand,
       Function<RexNode, RexNode> fieldConverter,
       Function<RexNode, RexNode> literalConverter) {
-    if (operand.getKind() == SqlKind.INPUT_REF) {
-      return fieldConverter.apply(operand);
-    } else {
+    if (operand.getKind() == SqlKind.LITERAL) {
       return literalConverter.apply(operand);
+    } else {
+      return fieldConverter.apply(operand);
     }
   }
 
@@ -274,10 +285,34 @@ public class PPLAggregateConvertRule extends RelRule<PPLAggregateConvertRule.Con
       if (CONVERTABLE_FUNCTIONS.contains(node.getKind()) && node instanceof RexCall call) {
         RexNode arg1 = call.getOperands().getFirst();
         RexNode arg2 = call.getOperands().getLast();
-        return (arg1.getKind() == SqlKind.INPUT_REF && arg2.getKind() == SqlKind.LITERAL)
-            || (arg1.getKind() == SqlKind.LITERAL && arg2.getKind() == SqlKind.INPUT_REF);
+        return (unwrapField(arg1) != null && arg2.getKind() == SqlKind.LITERAL)
+            || (arg1.getKind() == SqlKind.LITERAL && unwrapField(arg2) != null);
       }
       return false;
+    }
+
+    /** Returns the non-literal operand of a call accepted by {@link #isCallWithLiteral}. */
+    private static RexNode getField(RexCall call) {
+      RexNode arg1 = call.getOperands().getFirst();
+      return arg1.getKind() == SqlKind.LITERAL ? call.getOperands().getLast() : arg1;
+    }
+
+    /**
+     * Returns the input ref of a bare field or of a lossless integer widening cast of one (e.g.
+     * {@code CAST($0 AS BIGINT)} on a SMALLINT field, added by PPL arithmetic to prevent overflow),
+     * otherwise null.
+     */
+    private static RexInputRef unwrapField(RexNode node) {
+      if (node instanceof RexInputRef ref) {
+        return ref;
+      }
+      if (node.getKind() == SqlKind.CAST
+          && ((RexCall) node).getOperands().getFirst() instanceof RexInputRef ref) {
+        int from = SqlTypeName.INT_TYPES.indexOf(ref.getType().getSqlTypeName());
+        int to = SqlTypeName.INT_TYPES.indexOf(node.getType().getSqlTypeName());
+        return from >= 0 && to >= from ? ref : null;
+      }
+      return null;
     }
 
     List<SqlKind> CONVERTABLE_FUNCTIONS =

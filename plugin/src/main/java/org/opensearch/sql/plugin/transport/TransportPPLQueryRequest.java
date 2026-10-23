@@ -8,6 +8,7 @@ package org.opensearch.sql.plugin.transport;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -56,7 +57,32 @@ public class TransportPPLQueryRequest extends ActionRequest {
   @Setter
   @Getter
   @Accessors(fluent = true)
+  private boolean analyze = false;
+
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
   private String queryId = null;
+
+  /**
+   * Caller's {@code wait_for_completion_timeout}, {@code null} when the field was not present.
+   * Presence of this field or {@link #keepAlive} switches the transport action to the async submit
+   * path.
+   */
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
+  private Duration waitForCompletionTimeout = null;
+
+  /**
+   * Caller's {@code keep_alive}, {@code null} when the field was not present. Presence of this
+   * field or {@link #waitForCompletionTimeout} switches the transport action to the async submit
+   * path.
+   */
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
+  private Duration keepAlive = null;
 
   /** Constructor of TransportPPLQueryRequest from PPLQueryRequest. */
   public TransportPPLQueryRequest(PPLQueryRequest pplQueryRequest) {
@@ -67,8 +93,11 @@ public class TransportPPLQueryRequest extends ActionRequest {
     sanitize = pplQueryRequest.sanitize();
     style = pplQueryRequest.style();
     profile = pplQueryRequest.profile();
+    analyze = pplQueryRequest.analyze();
     explainMode = pplQueryRequest.mode().getModeName();
     queryId = pplQueryRequest.queryId();
+    waitForCompletionTimeout = pplQueryRequest.waitForCompletionTimeout();
+    keepAlive = pplQueryRequest.keepAlive();
   }
 
   /** Constructor of TransportPPLQueryRequest from StreamInput. */
@@ -83,7 +112,12 @@ public class TransportPPLQueryRequest extends ActionRequest {
     sanitize = in.readBoolean();
     style = in.readEnum(JsonResponseFormatter.Style.class);
     profile = in.readBoolean();
+    analyze = in.readBoolean();
     queryId = in.readOptionalString();
+    Long waitMillis = in.readOptionalLong();
+    waitForCompletionTimeout = waitMillis == null ? null : Duration.ofMillis(waitMillis);
+    Long keepAliveMillis = in.readOptionalLong();
+    keepAlive = keepAliveMillis == null ? null : Duration.ofMillis(keepAliveMillis);
   }
 
   /** Re-create the object from the actionRequest. */
@@ -116,7 +150,11 @@ public class TransportPPLQueryRequest extends ActionRequest {
     out.writeBoolean(sanitize);
     out.writeEnum(style);
     out.writeBoolean(profile);
+    out.writeBoolean(analyze);
     out.writeOptionalString(queryId);
+    out.writeOptionalLong(
+        waitForCompletionTimeout == null ? null : waitForCompletionTimeout.toMillis());
+    out.writeOptionalLong(keepAlive == null ? null : keepAlive.toMillis());
   }
 
   public String getRequest() {
@@ -172,10 +210,17 @@ public class TransportPPLQueryRequest extends ActionRequest {
   /** Convert to PPLQueryRequest. */
   public PPLQueryRequest toPPLQueryRequest() {
     PPLQueryRequest pplQueryRequest =
-        new PPLQueryRequest(pplQuery, jsonContent, path, format, explainMode, profile);
+        new PPLQueryRequest(pplQuery, jsonContent, path, format, explainMode, profile, analyze);
     pplQueryRequest.sanitize(sanitize);
     pplQueryRequest.style(style);
     pplQueryRequest.queryId(queryId);
+    pplQueryRequest.waitForCompletionTimeout(waitForCompletionTimeout);
+    pplQueryRequest.keepAlive(keepAlive);
     return pplQueryRequest;
+  }
+
+  /** Presence of either async body field selects the asynchronous submit path. */
+  public boolean isAsync() {
+    return waitForCompletionTimeout != null || keepAlive != null;
   }
 }

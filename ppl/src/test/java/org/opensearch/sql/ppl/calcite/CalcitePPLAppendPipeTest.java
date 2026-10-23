@@ -60,6 +60,25 @@ public class CalcitePPLAppendPipeTest extends CalcitePPLAbstractTest {
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
 
+  @Test
+  public void testAppendPipeInJoinSubsearch() {
+    // appendpipe must leave exactly one node on the RelBuilder stack, otherwise the join takes a
+    // leftover node as its left input instead of EMP.
+    String ppl = "source=EMP | inner join on DEPTNO [ source=DEPT | appendpipe [ fields DEPTNO ] ]";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4], SAL=[$5],"
+            + " COMM=[$6], DEPTNO=[$7], DEPT.DEPTNO=[$8], DNAME=[$9], LOC=[$10])\n"
+            + "  LogicalJoin(condition=[=($7, $8)], joinType=[inner])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n"
+            + "    LogicalUnion(all=[true])\n"
+            + "      LogicalTableScan(table=[[scott, DEPT]])\n"
+            + "      LogicalProject(DEPTNO=[$0], DNAME=[null:VARCHAR(14)],"
+            + " LOC=[null:VARCHAR(13)])\n"
+            + "        LogicalTableScan(table=[[scott, DEPT]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
   /**
    * Regression test: double appendpipe with different aggregations. Result count (16 = 14 + 1 avg +
    * 1 max) is verified in integration tests only because RelRunners.run() creates a new planner

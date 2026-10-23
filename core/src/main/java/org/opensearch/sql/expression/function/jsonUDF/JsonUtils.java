@@ -5,11 +5,11 @@
 
 package org.opensearch.sql.expression.function.jsonUDF;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import java.util.ArrayList;
 import java.util.List;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 public class JsonUtils {
   static ObjectMapper objectMapper = new ObjectMapper();

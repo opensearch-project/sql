@@ -35,7 +35,8 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
           protected Map<String, Table> getTableMap() {
             return Map.of(
                 "employees", createEmployeesTable(),
-                "departments", createDepartmentsTable());
+                "departments", createDepartmentsTable(),
+                "logs", createLogsTable());
           }
         };
 
@@ -50,6 +51,16 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
         .row(new Object[] {1, "Engineering"})
         .row(new Object[] {2, "Sales"})
         .row(new Object[] {3, "Marketing"})
+        .build();
+  }
+
+  /** A table with an OpenSearch metadata field next to two ordinary fields. */
+  private Table createLogsTable() {
+    return SimpleTable.builder()
+        .col("id", INTEGER)
+        .col("msg", VARCHAR)
+        .col("_id", VARCHAR)
+        .row(new Object[] {1, "a", "id-1"})
         .build();
   }
 
@@ -217,6 +228,33 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
   }
 
   @Test
+  public void testUnionAllSelectStarAfterExplicitColumns() {
+    // The explicit columns of the first input must not keep the second input's SELECT * from
+    // removing its metadata fields, otherwise the inputs have different column counts.
+    givenQuery(
+            """
+            SELECT id, msg FROM catalog.logs UNION ALL SELECT * FROM catalog.logs
+            """)
+        .assertFields("id", "msg");
+  }
+
+  @Test
+  public void testUnionDistinct() {
+    givenQuery(
+            """
+            SELECT name FROM catalog.employees UNION SELECT dept_name FROM catalog.departments
+            """)
+        .assertPlan(
+            """
+            LogicalUnion(all=[false])
+              LogicalProject(name=[$1])
+                LogicalTableScan(table=[[catalog, employees]])
+              LogicalProject(dept_name=[$1])
+                LogicalTableScan(table=[[catalog, departments]])
+            """);
+  }
+
+  @Test
   public void testMultiWayUnion() {
     givenQuery(
             """
@@ -227,6 +265,26 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
         .assertPlan(
             """
             LogicalUnion(all=[true])
+              LogicalProject(name=[$1])
+                LogicalTableScan(table=[[catalog, employees]])
+              LogicalProject(dept_name=[$1])
+                LogicalTableScan(table=[[catalog, departments]])
+              LogicalProject(name=[$1])
+                LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testMultiWayUnionDistinct() {
+    givenQuery(
+            """
+            SELECT name FROM catalog.employees
+            UNION SELECT dept_name FROM catalog.departments
+            UNION SELECT name FROM catalog.employees
+            """)
+        .assertPlan(
+            """
+            LogicalUnion(all=[false])
               LogicalProject(name=[$1])
                 LogicalTableScan(table=[[catalog, employees]])
               LogicalProject(dept_name=[$1])
@@ -286,7 +344,7 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
         .assertPlan(
             """
             LogicalProject(department=[$0], total=[$1])
-              LogicalAggregate(group=[{0}], SUM(age)=[SUM($1)])
+              LogicalAggregate(group=[{0}], SUM(age)=[CHECKED_LONG_SUM($1)])
                 LogicalProject(department=[$3], age=[$2])
                   LogicalTableScan(table=[[catalog, employees]])
             """);
@@ -366,7 +424,7 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
             """)
         .assertPlan(
             """
-            LogicalAggregate(group=[{0}], SUM(age) FILTER(WHERE age > 30)=[SUM($1) FILTER $2])
+            LogicalAggregate(group=[{0}], SUM(age) FILTER(WHERE age > 30)=[CHECKED_LONG_SUM($1) FILTER $2])
               LogicalProject(department=[$3], age=[$2], $f3=[>($2, 30)])
                 LogicalTableScan(table=[[catalog, employees]])
             """);
@@ -487,7 +545,7 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
             """)
         .assertPlan(
             """
-            LogicalProject(name=[$1], SUM(age) OVER(PARTITION BY department ORDER BY age)=[SUM($2) OVER (PARTITION BY $3 ORDER BY $2 NULLS FIRST)])
+            LogicalProject(name=[$1], SUM(age) OVER(PARTITION BY department ORDER BY age)=[CHECKED_LONG_SUM($2) OVER (PARTITION BY $3 ORDER BY $2 NULLS FIRST)])
               LogicalTableScan(table=[[catalog, employees]])
             """);
   }
@@ -503,6 +561,46 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
         .assertPlan(
             """
             LogicalProject(name=[$1], rn=[ROW_NUMBER() OVER (ORDER BY $0 NULLS FIRST)])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testWindowRank() {
+    givenQuery(
+            """
+            SELECT name, RANK() OVER (ORDER BY age) AS r FROM catalog.employees
+            """)
+        .assertPlan(
+            """
+            LogicalProject(name=[$1], r=[RANK() OVER (ORDER BY $2 NULLS FIRST)])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testWindowDenseRank() {
+    givenQuery(
+            """
+            SELECT name, DENSE_RANK() OVER (ORDER BY age) AS r FROM catalog.employees
+            """)
+        .assertPlan(
+            """
+            LogicalProject(name=[$1], r=[DENSE_RANK() OVER (ORDER BY $2 NULLS FIRST)])
+              LogicalTableScan(table=[[catalog, employees]])
+            """);
+  }
+
+  @Test
+  public void testWindowRankPartitionBy() {
+    givenQuery(
+            """
+            SELECT name, RANK() OVER (PARTITION BY department ORDER BY age DESC) AS r
+              FROM catalog.employees
+            """)
+        .assertPlan(
+            """
+            LogicalProject(name=[$1], r=[RANK() OVER (PARTITION BY $3 ORDER BY $2 DESC NULLS FIRST)])
               LogicalTableScan(table=[[catalog, employees]])
             """);
   }

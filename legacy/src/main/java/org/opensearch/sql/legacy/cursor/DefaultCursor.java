@@ -7,8 +7,6 @@ package org.opensearch.sql.legacy.cursor;
 
 import static org.opensearch.core.xcontent.DeprecationHandler.IGNORE_DEPRECATIONS;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -36,6 +34,8 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.search.SearchModule;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.legacy.executor.format.Schema;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Minimum metdata that will be serialized for generating cursorId for<br>
@@ -141,7 +141,7 @@ public class DefaultCursor implements Cursor {
     String sortFieldValue;
     try {
       sortFieldValue = objectMapper.writeValueAsString(sortFields);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new RuntimeException("Failed to serialize sort fields to JSON string.", e);
     }
     json.put(SORT_FIELDS, sortFieldValue);
@@ -223,7 +223,7 @@ public class DefaultCursor implements Cursor {
   private static Object[] getSortFieldsFromJson(JSONObject json) {
     try {
       return objectMapper.readValue(json.getString(SORT_FIELDS), Object[].class);
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       throw new RuntimeException("Failed to parse sort fields from JSON string.", e);
     }
   }

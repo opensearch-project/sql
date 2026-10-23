@@ -13,6 +13,9 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_GRAPH_EMPLOYEES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_MVEXPAND_EDGE_CASES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STRINGS;
+import static org.opensearch.sql.util.Capability.GRAPH_LOOKUP_COMMAND;
+import static org.opensearch.sql.util.Capability.MULTI_VALUE_FIELD_LOAD;
+import static org.opensearch.sql.util.Capability.STRICT_QUERY_REJECTION;
 
 import java.io.IOException;
 import org.apache.commons.text.StringEscapeUtils;
@@ -20,6 +23,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
+import org.opensearch.sql.util.RequiresCapability;
 import org.opensearch.sql.util.TestUtils;
 
 public class NewAddedCommandsIT extends PPLIntegTestCase {
@@ -31,6 +35,19 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
     loadIndex(Index.STRINGS);
     loadIndex(Index.MVEXPAND_EDGE_CASES);
     loadIndex(Index.GRAPH_EMPLOYEES);
+  }
+
+  @Test
+  public void testRest() throws IOException {
+    JSONObject result;
+    try {
+      result = executeQuery("| rest '/_cluster/health' | fields response");
+    } catch (ResponseException e) {
+      result = new JSONObject(TestUtils.getResponseBody(e.getResponse()));
+    }
+    if (isCalciteEnabled()) {
+      assertFalse(result.getJSONArray("datarows").isEmpty());
+    }
   }
 
   @Test
@@ -49,6 +66,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(STRICT_QUERY_REJECTION)
   public void testLookup() throws IOException {
     JSONObject result;
     try {
@@ -64,6 +82,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(STRICT_QUERY_REJECTION)
   public void testSubsearch() throws IOException {
     JSONObject result;
     try {
@@ -113,6 +132,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(STRICT_QUERY_REJECTION)
   public void testAppendcol() throws IOException {
     JSONObject result;
     try {
@@ -156,6 +176,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(STRICT_QUERY_REJECTION)
   public void testAppend() throws IOException {
     JSONObject result;
     try {
@@ -244,6 +265,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(GRAPH_LOOKUP_COMMAND)
   public void testGraphLookup() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     JSONObject result;
@@ -261,6 +283,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(GRAPH_LOOKUP_COMMAND)
   public void testGraphLookupTopLevel() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     JSONObject result;
@@ -290,6 +313,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(STRICT_QUERY_REJECTION)
   public void testMvCombineUnsupportedInV2() throws IOException {
     JSONObject result;
     try {
@@ -304,6 +328,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(STRICT_QUERY_REJECTION)
   public void testNoMvUnsupportedInV2() throws IOException {
     JSONObject result;
     try {
@@ -320,6 +345,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(STRICT_QUERY_REJECTION)
   public void testMakeResults() throws IOException {
     JSONObject result;
     try {
@@ -341,6 +367,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(MULTI_VALUE_FIELD_LOAD)
   public void testMvExpandCommandBasicExpansion() throws IOException {
     JSONObject result;
     try {
@@ -373,6 +400,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(MULTI_VALUE_FIELD_LOAD)
   public void testMvExpandCommandNullInput() throws IOException {
     JSONObject result;
     try {
@@ -399,6 +427,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(MULTI_VALUE_FIELD_LOAD)
   public void testMvExpandCommandEmptyArray() throws IOException {
     JSONObject result;
     try {
@@ -425,6 +454,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(MULTI_VALUE_FIELD_LOAD)
   public void testMvExpandCommandNonArrayField() throws IOException {
     JSONObject result;
     try {
@@ -452,6 +482,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(MULTI_VALUE_FIELD_LOAD)
   public void testMvExpandCommandLimitBoundary() throws IOException {
     JSONObject result;
     try {
@@ -478,6 +509,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(MULTI_VALUE_FIELD_LOAD)
   public void testMvExpandCommandMultiDocument() throws IOException {
     JSONObject result;
     try {
@@ -554,6 +586,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(STRICT_QUERY_REJECTION)
   public void testUnionUnsupportedInV2() throws IOException {
     JSONObject result;
     try {
@@ -570,6 +603,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(STRICT_QUERY_REJECTION)
   public void testXyseriesCommand() throws IOException {
 
     JSONObject result;
@@ -589,6 +623,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(STRICT_QUERY_REJECTION)
   public void testXyseriesCommandMultipleDataFields() throws IOException {
 
     JSONObject result;
@@ -608,6 +643,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(STRICT_QUERY_REJECTION)
   public void testXyseriesCommandWithSep() throws IOException {
     JSONObject result;
     try {
@@ -625,6 +661,7 @@ public class NewAddedCommandsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(STRICT_QUERY_REJECTION)
   public void testXyseriesCommandWithFormat() throws IOException {
     JSONObject result;
     try {

@@ -307,6 +307,18 @@ public class ArgumentFactory {
         new Argument(
             RareTopN.Option.showCount.name(),
             opt.isPresent() ? getArgumentValue(opt.get().showCount) : Literal.TRUE));
+    opt = ctx.rareTopOption().stream().filter(op -> op.percentField != null).findFirst();
+    list.add(
+        new Argument(
+            RareTopN.Option.percentField.name(),
+            opt.isPresent()
+                ? getArgumentValue(opt.get().percentField)
+                : new Literal("percent", DataType.STRING)));
+    opt = ctx.rareTopOption().stream().filter(op -> op.showPerc != null).findFirst();
+    list.add(
+        new Argument(
+            RareTopN.Option.showPerc.name(),
+            opt.isPresent() ? getArgumentValue(opt.get().showPerc) : Literal.FALSE));
     opt = ctx.rareTopOption().stream().filter(op -> op.useNull != null).findFirst();
     list.add(
         new Argument(

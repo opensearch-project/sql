@@ -17,7 +17,6 @@ import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandMetadata;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.validate.SqlUserDefinedFunction;
-import org.opensearch.sql.data.type.ExprType;
 
 /**
  * This class is created for the compatibility with {@link SqlUserDefinedFunction} constructors when
@@ -106,11 +105,12 @@ public interface UDFOperandMetadata extends SqlOperandMetadata {
     };
   }
 
-  static UDFOperandMetadata wrapUDT(List<List<ExprType>> allowSignatures) {
+  static UDFOperandMetadata wrapUDT(List<List<RelDataType>> allowSignatures) {
     return new UDTOperandMetadata(allowSignatures);
   }
 
-  record UDTOperandMetadata(List<List<ExprType>> allowedParamTypes) implements UDFOperandMetadata {
+  record UDTOperandMetadata(List<List<RelDataType>> allowedParamTypes)
+      implements UDFOperandMetadata {
     @Override
     public SqlOperandTypeChecker getInnerTypeChecker() {
       return this;

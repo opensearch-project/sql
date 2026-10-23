@@ -7,9 +7,10 @@ package org.opensearch.sql.api;
 
 import static org.opensearch.sql.monitor.profile.MetricName.ANALYZE;
 
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelCollation;
-import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelRoot;
 import org.apache.calcite.rel.core.Sort;
@@ -154,9 +155,15 @@ public class UnifiedQueryPlanner {
     }
 
     private RelNode preserveCollation(RelNode logical) {
-      RelCollation collation = logical.getTraitSet().getCollation();
-      if (!(logical instanceof Sort) && collation != RelCollations.EMPTY) {
-        return LogicalSort.create(logical, collation, null, null);
+      if (logical instanceof Sort) {
+        return logical;
+      }
+      List<RelCollation> collations =
+          logical.getTraitSet().getTraits(RelCollationTraitDef.INSTANCE);
+      if (collations != null
+          && collations.size() == 1
+          && !collations.get(0).getFieldCollations().isEmpty()) {
+        return LogicalSort.create(logical, collations.get(0), null, null);
       }
       return logical;
     }

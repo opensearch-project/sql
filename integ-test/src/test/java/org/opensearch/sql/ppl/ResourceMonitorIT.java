@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ppl;
 
+import static org.opensearch.sql.util.Capability.STRICT_QUERY_REJECTION;
 import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 
 import java.io.IOException;
@@ -14,6 +15,7 @@ import org.junit.Test;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.opensearch.monitor.GCedMemoryUsage;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class ResourceMonitorIT extends PPLIntegTestCase {
 
@@ -24,6 +26,7 @@ public class ResourceMonitorIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(STRICT_QUERY_REJECTION)
   public void queryExceedResourceLimitShouldFail() throws IOException {
     // update plugins.ppl.query.memory_limit to 1%
     updateClusterSettings(

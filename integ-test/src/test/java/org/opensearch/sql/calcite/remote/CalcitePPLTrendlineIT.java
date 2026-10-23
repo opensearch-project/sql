@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
+import static org.opensearch.sql.util.Capability.TRENDLINE_SORT_NOT_HONORED;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -16,6 +17,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class CalcitePPLTrendlineIT extends PPLIntegTestCase {
 
@@ -98,6 +100,7 @@ public class CalcitePPLTrendlineIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(TRENDLINE_SORT_NOT_HONORED)
   public void testTrendlineWithSort() throws Exception {
     JSONObject result =
         executeQuery(

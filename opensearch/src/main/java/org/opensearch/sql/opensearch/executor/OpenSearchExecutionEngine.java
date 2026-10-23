@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.opensearch.executor;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Suppliers;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -42,10 +41,14 @@ import org.apache.logging.log4j.Logger;
 import org.locationtech.jts.geom.Point;
 import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.TimewrapPivot;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
+import org.opensearch.sql.common.error.ResourceLimitExceededException;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -56,12 +59,12 @@ import org.opensearch.sql.executor.ExecutionContext;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.Schema.Column;
 import org.opensearch.sql.executor.Explain;
+import org.opensearch.sql.executor.Warning;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.monitor.profile.MetricName;
-import org.opensearch.sql.monitor.profile.ProfileMetric;
-import org.opensearch.sql.monitor.profile.QueryProfiling;
+import org.opensearch.sql.monitor.profile.ProfileScope;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprGeoPointValue;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
@@ -71,6 +74,7 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.storage.TableScanOperator;
 import org.opensearch.transport.client.node.NodeClient;
+import tools.jackson.databind.ObjectMapper;
 
 /** OpenSearch execution engine implementation. */
 public class OpenSearchExecutionEngine implements ExecutionEngine {
@@ -259,7 +263,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
                           }
                         })) {
                   // triggers the hook
-                  OpenSearchRelRunners.run(context, rel);
+                  OpenSearchRelRunners.run(context, CalciteToolsHelper.optimize(rel, context));
                 }
 
                 if (physicalError.get() != null) {
@@ -306,7 +310,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
                     CalcitePlanContext.skipEncoding.set(true);
                   }
                   // triggers the hook
-                  OpenSearchRelRunners.run(context, rel);
+                  OpenSearchRelRunners.run(context, CalciteToolsHelper.optimize(rel, context));
                 }
                 listener.onResponse(
                     new ExplainResponse(
@@ -327,18 +331,53 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     client.schedule(
         () -> {
           try (PreparedStatement statement = OpenSearchRelRunners.run(context, rel)) {
-            ProfileMetric metric = QueryProfiling.current().getOrCreateMetric(MetricName.EXECUTE);
-            long execTime = System.nanoTime();
-            ResultSet result = statement.executeQuery();
-            QueryResponse response =
-                buildResultSet(result, rel.getRowType(), context.sysLimit.querySizeLimit());
-            metric.add(System.nanoTime() - execTime);
+            QueryResponse response;
+            try (ProfileScope executePhase = ProfileScope.open(MetricName.EXECUTE)) {
+              ResultSet result = statement.executeQuery();
+              response =
+                  buildResultSet(result, rel.getRowType(), context.sysLimit.querySizeLimit());
+            }
             listener.onResponse(response);
-
           } catch (SQLException e) {
+            if (isPitContextLimitReached(e)) {
+              // reason (title) comes from the wrapped cause's message; keep it short and put the
+              // explanation and remedy in details.
+              ResourceLimitExceededException pitException =
+                  new ResourceLimitExceededException(
+                      "Too many open Point-In-Time (PIT) contexts on this node.", e);
+              throw ErrorReport.wrap(pitException)
+                  .code(ErrorCode.RESOURCE_LIMIT_EXCEEDED)
+                  .details(
+                      "This query opened a Point-In-Time (PIT) context on each shard and reached"
+                          + " the limit set by [search.max_open_pit_context]. Increase that"
+                          + " setting.")
+                  .build();
+            }
             throw new RuntimeException(e);
           }
         });
+  }
+
+  /**
+   * Substring of the error OpenSearch's {@code SearchService} raises when a node has no free PIT
+   * contexts. The engine opens a PIT (one reader context per shard) to page over a query it cannot
+   * push down -- e.g. a {@code stats} that groups by a text field with no {@code keyword} sub-field
+   * -- and a busy node exhausts its per-node budget. The raw failure is an opaque internal message,
+   * so it is replaced with an actionable one when this marker appears anywhere in the cause chain.
+   */
+  private static final String PIT_CONTEXT_LIMIT_MARKER = "too many Point In Time contexts";
+
+  /** Package-private for testing. Walks the cause chain guarding against self-referential loops. */
+  static boolean isPitContextLimitReached(Throwable t) {
+    for (Throwable cause = t;
+        cause != null && cause != cause.getCause();
+        cause = cause.getCause()) {
+      String message = cause.getMessage();
+      if (message != null && message.contains(PIT_CONTEXT_LIMIT_MARKER)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -433,6 +472,9 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       }
       columns.add(new Column(columnName, null, exprType));
     }
+    // Drain before the timewrap block: its finally clears the same thread-local.
+    List<Warning> warnings = CalcitePlanContext.drainWarnings();
+
     // Timewrap post-processing: pivot unpivoted rows into period columns. The pivot is shared with
     // the analytics route (AnalyticsExecutionEngine) so both engines produce identical output.
     if (TimewrapPivot.isTimewrap()) {
@@ -452,6 +494,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
 
     Schema schema = new Schema(columns);
     QueryResponse response = new QueryResponse(schema, values, null);
+    response.setWarnings(warnings);
     return response;
   }
 

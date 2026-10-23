@@ -113,6 +113,35 @@ A string is a sequence of characters enclosed in either single or double quotes.
 ## Query Struct Data Types  
 
 In PPL, the Struct Data Types corresponding to the [Object field type in OpenSearch](https://opensearch.org/docs/latest/field-types/supported-field-types/object/). The "." is used as the path selector when access the inner attribute of the struct data.
+
+A [flat_object field](https://docs.opensearch.org/latest/mappings/supported-field-types/flat-object/) is also presented as a struct, keyed by the dotted path of each leaf. A flat_object declares no sub-fields, so a leaf has no type of its own: every value reads as text, and a path holding more than one value reads as their JSON. This is the rule `spath` already applies to a JSON string, and `typeof` on a leaf reports `string`.
+
+Both a nested object and a literal dotted key reach the same leaf: `{"a": {"b": 1}}` and `{"a.b": 1}` each give the entry `a.b` with the value `"1"`. A path receives more than one value when it comes from an array, from several elements of an array of objects, or from both spellings of the same path appearing in one document; it then reads as a JSON array of those texts, in the order the document wrote them.
+
+A leaf is text, so a query does with it what it does with any text column, the same as a field `spath` extracted from a JSON string. What differs between one operation and the next is the cost, and the difference is large.
+
+**Answered by the index.** Each leaf value is filed as one keyword term with the path folded in, so these are a lookup of that term and no record is opened:
+
+| on a leaf | reaches the index as |
+|-----------|----------------------|
+| `=` | `term` |
+| `!=` | `exists` with the term excluded |
+| `in` | `terms` |
+| `like` | `wildcard` |
+| `isnull`, `isnotnull` | `exists` |
+
+Reading a leaf, or the whole field, costs no more than reading a keyword field, and `cast` is applied to the values already read: `eval ms = cast(attributes.duration_ms as double)`.
+
+**Everything else opens every record it is asked about, and is correspondingly slower.** A flat_object gives its leaves no doc values -- the term holds the path and the value folded together -- so nothing but a term lookup can be answered from the index. These operations are planned as a script that reads the leaf out of `_source` for each candidate record, which means the work grows with the number of records scanned rather than with the number returned:
+
+- an ordered comparison (`>`, `<`, `>=`, `<=`) -- the terms are text, and a range over them would compare text, so `"200" < "90"`; the comparison the query asked for has to be done per record instead;
+- `sort` by a leaf;
+- `stats` over a leaf, and `stats ... by` a leaf;
+- `dedup` by a leaf;
+- any value computed from a leaf, such as a function or an arithmetic expression.
+
+This is the cost the field type exists to avoid, and it is the same cost the same operation carries on a `spath` field. On a large index, put a supported filter before one of these so the script runs over a narrow set rather than the whole scan; `explain` shows which of the two a query got -- a `term`, `terms`, `wildcard` or `exists` clause, or a `script` clause.
+
 ### Example: People  
 
 There are three fields in test index `people`: 1) deep nested object field `city`; 2) object field of array value `account`; 3) nested field `projects`

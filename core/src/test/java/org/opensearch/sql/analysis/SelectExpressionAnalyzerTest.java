@@ -6,6 +6,7 @@
 package org.opensearch.sql.analysis;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -21,6 +22,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.dsl.AstDSL;
+import org.opensearch.sql.ast.expression.AllFields;
+import org.opensearch.sql.ast.expression.AllFieldsExcludeMeta;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.NamedExpression;
@@ -84,6 +87,25 @@ public class SelectExpressionAnalyzerTest extends AnalyzerTestBase {
   protected void assertAnalyzeEqual(
       NamedExpression expected, UnresolvedExpression unresolvedExpression) {
     assertEquals(Arrays.asList(expected), analyze(unresolvedExpression));
+  }
+
+  /**
+   * {@link AllFieldsExcludeMeta} is an {@link org.opensearch.sql.ast.expression.AllFields}, so the
+   * V2 select-list analyzer must expand it the same way. It used to fall through to the default
+   * visitor method, which returns null and made {@link SelectExpressionAnalyzer#analyze} throw
+   * NullPointerException — surfacing as an HTTP 500 on any query wrapped in an implicit select-all.
+   */
+  @Test
+  public void all_fields_exclude_meta_expands_like_all_fields() {
+    SelectExpressionAnalyzer analyzer = new SelectExpressionAnalyzer(expressionAnalyzer);
+
+    List<NamedExpression> allFields =
+        analyzer.analyze(List.of(AllFields.of()), analysisContext, optimizer);
+    List<NamedExpression> excludeMeta =
+        analyzer.analyze(List.of(AllFieldsExcludeMeta.of()), analysisContext, optimizer);
+
+    assertFalse(allFields.isEmpty());
+    assertEquals(allFields, excludeMeta);
   }
 
   @Test

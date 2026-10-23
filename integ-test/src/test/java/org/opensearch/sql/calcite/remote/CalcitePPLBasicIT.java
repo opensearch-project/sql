@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 import org.opensearch.sql.util.RequiresCapability;
 
@@ -36,16 +37,16 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
     // re-seeding these raw-document indices each time would inflate their row counts. Seed once,
     // mirroring loadIndex's isIndexExist guard; v2 behavior is unchanged (same end state).
     if (!isIndexExist(client(), "test")) {
-      Request request1 = new Request("PUT", "/test/_doc/1?refresh=true");
+      Request request1 = TestUtils.seedDocRequest("test", "1");
       request1.setJsonEntity("{\"name\": \"hello\", \"age\": 20}");
       client().performRequest(request1);
-      Request request2 = new Request("PUT", "/test/_doc/2?refresh=true");
+      Request request2 = TestUtils.seedDocRequest("test", "2");
       request2.setJsonEntity("{\"name\": \"world\", \"age\": 30}");
       client().performRequest(request2);
     }
     // PUT index test1
     if (!isIndexExist(client(), "test1")) {
-      Request request3 = new Request("PUT", "/test1/_doc/1?refresh=true");
+      Request request3 = TestUtils.seedDocRequest("test1", "1");
       request3.setJsonEntity("{\"name\": \"HELLO\", \"alias\": \"Hello\"}");
       client().performRequest(request3);
     }
@@ -476,7 +477,7 @@ public class CalcitePPLBasicIT extends PPLIntegTestCase {
 
   @Test
   public void testAllFieldsInTable() throws IOException {
-    Request request = new Request("PUT", "/a/_doc/1?refresh=true");
+    Request request = TestUtils.seedDocRequest("a", "1");
     request.setJsonEntity("{\"name\": \"hello\"}");
     client().performRequest(request);
 

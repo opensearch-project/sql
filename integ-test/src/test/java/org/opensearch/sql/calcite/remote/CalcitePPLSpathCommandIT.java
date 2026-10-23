@@ -37,15 +37,15 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
     if (!TestUtils.isIndexExist(client(), "test_spath")) {
       TestUtils.createIndexByRestClient(client(), "test_spath", null);
 
-      Request request1 = new Request("PUT", "/test_spath/_doc/1?refresh=true");
+      Request request1 = TestUtils.seedDocRequest("test_spath", "1");
       request1.setJsonEntity("{\"doc\": \"{\\\"n\\\": 1}\"}");
       client().performRequest(request1);
 
-      Request request2 = new Request("PUT", "/test_spath/_doc/2?refresh=true");
+      Request request2 = TestUtils.seedDocRequest("test_spath", "2");
       request2.setJsonEntity("{\"doc\": \"{\\\"n\\\": 2}\"}");
       client().performRequest(request2);
 
-      Request request3 = new Request("PUT", "/test_spath/_doc/3?refresh=true");
+      Request request3 = TestUtils.seedDocRequest("test_spath", "3");
       request3.setJsonEntity("{\"doc\": \"{\\\"n\\\": 3}\"}");
       client().performRequest(request3);
     }
@@ -54,7 +54,7 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
     if (!TestUtils.isIndexExist(client(), "test_spath_auto")) {
       TestUtils.createIndexByRestClient(client(), "test_spath_auto", null);
 
-      Request autoExtractDoc = new Request("PUT", "/test_spath_auto/_doc/1?refresh=true");
+      Request autoExtractDoc = TestUtils.seedDocRequest("test_spath_auto", "1");
       autoExtractDoc.setJsonEntity(
           "{\"nested_doc\": \"{\\\"user\\\":{\\\"name\\\":\\\"John\\\"}}\","
               + " \"array_doc\": \"{\\\"tags\\\":[\\\"java\\\",\\\"sql\\\"]}\","
@@ -69,12 +69,12 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
     if (!TestUtils.isIndexExist(client(), "test_spath_cmd")) {
       TestUtils.createIndexByRestClient(client(), "test_spath_cmd", null);
 
-      Request cmdDoc1 = new Request("PUT", "/test_spath_cmd/_doc/1?refresh=true");
+      Request cmdDoc1 = TestUtils.seedDocRequest("test_spath_cmd", "1");
       cmdDoc1.setJsonEntity(
           "{\"doc\": \"{\\\"user\\\":{\\\"name\\\":\\\"John\\\",\\\"age\\\":30}}\"}");
       client().performRequest(cmdDoc1);
 
-      Request cmdDoc2 = new Request("PUT", "/test_spath_cmd/_doc/2?refresh=true");
+      Request cmdDoc2 = TestUtils.seedDocRequest("test_spath_cmd", "2");
       cmdDoc2.setJsonEntity(
           "{\"doc\": \"{\\\"user\\\":{\\\"name\\\":\\\"Alice\\\",\\\"age\\\":25}}\"}");
       client().performRequest(cmdDoc2);
@@ -84,11 +84,11 @@ public class CalcitePPLSpathCommandIT extends PPLIntegTestCase {
     if (!TestUtils.isIndexExist(client(), "test_spath_null")) {
       TestUtils.createIndexByRestClient(client(), "test_spath_null", null);
 
-      Request nullDoc1 = new Request("PUT", "/test_spath_null/_doc/1?refresh=true");
+      Request nullDoc1 = TestUtils.seedDocRequest("test_spath_null", "1");
       nullDoc1.setJsonEntity("{\"doc\": \"{\\\"n\\\": 1}\"}");
       client().performRequest(nullDoc1);
 
-      Request nullDoc2 = new Request("PUT", "/test_spath_null/_doc/2?refresh=true");
+      Request nullDoc2 = TestUtils.seedDocRequest("test_spath_null", "2");
       nullDoc2.setJsonEntity("{\"doc\": null}");
       client().performRequest(nullDoc2);
     }

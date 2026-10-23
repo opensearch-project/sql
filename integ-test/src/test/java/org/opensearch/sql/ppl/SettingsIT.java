@@ -6,12 +6,14 @@
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
+import static org.opensearch.sql.util.Capability.FULLTEXT_RELEVANCE_FUNC;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class SettingsIT extends PPLIntegTestCase {
 
@@ -22,16 +24,23 @@ public class SettingsIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FULLTEXT_RELEVANCE_FUNC)
   public void testQuerySizeLimit() throws IOException {
     // Default setting, fetch 200 rows from query
     JSONObject result =
-        executeQuery(String.format("search source=%s age>35 | fields firstname", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(
+                "search source=%s age>35 | sort account_number | fields firstname",
+                TEST_INDEX_BANK));
     verifyDataRows(result, rows("Hattie"), rows("Elinor"), rows("Virginia"));
 
     // Fetch 1 rows from query
     setQuerySizeLimit(1);
     result =
-        executeQuery(String.format("search source=%s age>35 | fields firstname", TEST_INDEX_BANK));
+        executeQuery(
+            String.format(
+                "search source=%s age>35 | sort account_number | fields firstname",
+                TEST_INDEX_BANK));
     verifyDataRows(result, rows("Hattie"));
   }
 
@@ -41,7 +50,8 @@ public class SettingsIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "search source=%s | eval a = 1 | where age>35 | fields firstname",
+                "search source=%s | eval a = 1 | where age>35 | sort account_number | fields"
+                    + " firstname",
                 TEST_INDEX_BANK));
     verifyDataRows(result, rows("Hattie"), rows("Elinor"), rows("Virginia"));
 
@@ -50,7 +60,8 @@ public class SettingsIT extends PPLIntegTestCase {
     result =
         executeQuery(
             String.format(
-                "search source=%s | eval a = 1 | where age>35 | fields firstname",
+                "search source=%s | eval a = 1 | where age>35 | sort account_number | fields"
+                    + " firstname",
                 TEST_INDEX_BANK));
     verifyDataRows(result, rows("Hattie"), rows("Elinor"));
 
@@ -59,7 +70,8 @@ public class SettingsIT extends PPLIntegTestCase {
     result =
         executeQuery(
             String.format(
-                "search source=%s | eval a = 1 | where age>35 | fields firstname",
+                "search source=%s | eval a = 1 | where age>35 | sort account_number | fields"
+                    + " firstname",
                 TEST_INDEX_BANK));
     verifyDataRows(result, rows("Hattie"));
   }
