@@ -38,6 +38,7 @@ import org.opensearch.core.tasks.TaskId;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.IndexSettings;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
@@ -108,8 +109,9 @@ public class OpenSearchNodeClient implements OpenSearchClient {
    * mapping cache, cluster state listener (mainly for performance and debugging).
    *
    * @param indexExpression index name expression
-   * @return index mapping(s) in our class to isolate OpenSearch API. IndexNotFoundException is
-   *     thrown if no index matched.
+   * @return index mapping(s) in our class to isolate OpenSearch API
+   * @throws ErrorReport with {@link org.opensearch.sql.common.error.ErrorCode#INDEX_NOT_FOUND} if
+   *     no index matched or the pattern returned an empty mapping response
    */
   @Override
   public Map<String, IndexMapping> getIndexMappings(String... indexExpression) {
@@ -130,7 +132,7 @@ public class OpenSearchNodeClient implements OpenSearchClient {
       GetMappingsResponse mappingsResponse =
           client.admin().indices().prepareGetMappings(indexExpression).setLocal(true).get();
       if (mappingsResponse.mappings().isEmpty()) {
-        throw new IndexNotFoundException(indexExpression[0]);
+        throw OpenSearchClient.emptyMappingException(indexExpression);
       }
       return mappingsResponse.mappings().entrySet().stream()
           .collect(
@@ -140,6 +142,8 @@ public class OpenSearchNodeClient implements OpenSearchClient {
       throw IndexMappingErrors.indexNotFound(e, indexExpression[0]);
     } catch (OpenSearchSecurityException e) {
       throw IndexMappingErrors.permissionDenied(e, indexExpression[0]);
+    } catch (ErrorReport e) {
+      throw e;
     } catch (Exception e) {
       throw new IllegalStateException(
           "Failed to read mapping for index pattern ["
