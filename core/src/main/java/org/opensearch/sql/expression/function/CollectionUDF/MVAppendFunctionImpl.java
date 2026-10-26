@@ -159,8 +159,9 @@ public class MVAppendFunctionImpl extends ImplementorUDF {
       case SMALLINT -> Short.class;
       case INTEGER -> Integer.class;
       case BIGINT -> Long.class;
-      case FLOAT, REAL -> Float.class;
-      case DOUBLE -> Double.class;
+      // Calcite's FLOAT is double precision, and REAL is single precision
+      case DOUBLE, FLOAT -> Double.class;
+      case REAL -> Float.class;
       case DECIMAL -> BigDecimal.class;
       case CHAR, VARCHAR -> String.class;
       default -> Object.class;
