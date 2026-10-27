@@ -10,31 +10,23 @@ import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
 
-/**
- * Combines the progress of every index scan in one query. Each physical scan adds its source once,
- * at code generation, so the set of sources is known before the first search is sent. The query's
- * progress is the mean of its sources' progress. Sources hold no plan references, so a retained job
- * does not keep its plan alive.
- */
+/** Progress of one query: the mean of its index scans, each added at code generation. */
 public final class QueryProgressTracker {
 
   private final List<SourceProgress> sources = new CopyOnWriteArrayList<>();
 
-  /** Returns the tracker of the query running on this thread, if that query reports progress. */
   public static Optional<QueryProgressTracker> current() {
     return OpenSearchQueryManager.getCancellableTask() instanceof ProgressTrackingTask task
         ? Optional.ofNullable(task.progressTracker())
         : Optional.empty();
   }
 
-  /** Adds and returns the progress of one more index scan. */
   public SourceProgress addSource() {
     SourceProgress source = new SourceProgress();
     sources.add(source);
     return source;
   }
 
-  /** Returns the mean progress of all registered sources, or {@code 0.0} if there are none. */
   public double fractionDone() {
     return sources.stream().mapToDouble(SourceProgress::fractionDone).average().orElse(0D);
   }

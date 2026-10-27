@@ -91,7 +91,6 @@ public class AsyncQueryResultResponseFormatter extends JsonResponseFormatter<Asy
 
     private final String status;
 
-    /** Query-job progress as {@code {"fraction_done": x}}; omitted on the Spark path. */
     private final Map<String, Double> progress;
 
     private final List<Column> schema;

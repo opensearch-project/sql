@@ -21,26 +21,8 @@ import org.opensearch.search.aggregations.bucket.composite.CompositeAggregationB
 import org.opensearch.search.aggregations.bucket.composite.InternalComposite;
 
 /**
- * Best-effort progress of one index scan, built from signals the searches already return.
- *
- * <ul>
- *   <li>A single-request source (plain search or non-composite aggregation) reports the fraction of
- *       shards that finished the query phase of its in-flight request.
- *   <li>A PIT search reports hits read over the total hits, capped by the row limit.
- *   <li>A composite aggregation reports bucket document counts over the total hits.
- *   <li>The first page of a paged source asks for the total hit count it can afford: exact for
- *       composite, whose pages visit every matching document anyway, and for a PIT scan with no row
- *       limit, which reads every match anyway. A PIT scan with a row limit keeps the default
- *       threshold, so it costs no more than a synchronous scan. PIT pages read one snapshot, so
- *       later pages need no count. Without the total, PIT falls back to an estimate that grows with
- *       the hits read, and composite to buckets read over the row limit.
- *   <li>Before a paged source's first response, its finished shards count toward the first page,
- *       which is at least {@code page size / row limit} of the rows the scan returns.
- * </ul>
- *
- * <p>Each pass over the scan (a scan may be iterated again, e.g. the inner side of a nested-loop
- * join) has its own state, so a late response from an earlier pass cannot change the current one.
- * Thread-safe: shard callbacks arrive on transport threads while the scan reads responses.
+ * Progress of one index scan. A single-request search reports finished shards; a PIT or composite
+ * scan reports hits or bucket doc counts read over the total hits from its first page.
  */
 public final class SourceProgress {
 
@@ -49,12 +31,11 @@ public final class SourceProgress {
 
   SourceProgress() {}
 
-  /** Starts a pass over the scan with the largest number of rows it returns. */
+  /** Starts a new pass, e.g. when the inner side of a nested-loop join is scanned again. */
   public synchronized void start(long rowLimit) {
     pass = new Pass(Math.max(0L, rowLimit));
   }
 
-  /** Returns a copy of {@code request} whose search reports its progress to the current pass. */
   public synchronized Tracked track(SearchRequest request) {
     Pass current = pass;
     boolean firstPage = current.beginRequest(isPaged(request), pageSize(request));
@@ -74,25 +55,25 @@ public final class SourceProgress {
           }
         };
     if (firstPage) {
-      // Copy the source: the scan reuses its own builder for later pages.
+      // Copy: the scan reuses its builder for later pages.
       tracked.source(
           request.source().shallowCopy().trackTotalHitsUpTo(current.totalHitsToTrack(request)));
     }
-    // The copy constructor does not carry the search pipeline.
+    // The copy constructor drops the pipeline.
     return new Tracked(tracked.pipeline(request.pipeline()), current);
   }
 
-  /** Marks the scan as finished; it reports {@code 1.0} from now on. */
   public synchronized void complete() {
     complete = true;
   }
 
-  /** Returns this source's progress in {@code [0.0, 1.0]}. */
   public synchronized double fractionDone() {
     return complete ? 1D : pass.fractionDone();
   }
 
-  /** A search request bound to the pass it was sent in. */
+  /**
+   * A search request bound to the pass it was sent in, so a late response cannot reach a newer one.
+   */
   public final class Tracked {
     private final SearchRequest request;
     private final Pass pass;
@@ -102,12 +83,10 @@ public final class SourceProgress {
       this.pass = pass;
     }
 
-    /** The request to send in place of the original. */
     public SearchRequest request() {
       return request;
     }
 
-    /** Records the units and total hits of the response to {@link #request()}. */
     public void onResponse(SearchResponse response) {
       synchronized (SourceProgress.this) {
         pass.onResponse(response);
@@ -115,7 +94,6 @@ public final class SourceProgress {
     }
   }
 
-  /** State of one pass over the scan; guarded by the enclosing {@link SourceProgress}. */
   private static final class Pass {
     private final long rowLimit;
     private boolean paged;
@@ -124,8 +102,6 @@ public final class SourceProgress {
     private double firstPageShare;
     private long unitsRead;
     private long lastPageUnits;
-    private long bucketsRead;
-    private long lastPageBuckets;
     private long totalUnits = -1L;
     private boolean totalExact;
     private int totalShards;
@@ -139,6 +115,7 @@ public final class SourceProgress {
     private boolean beginRequest(boolean paged, int pageSize) {
       this.paged |= paged;
       if (responses == 0 && pageSize > 0 && rowLimit > 0L) {
+        // The scan returns at most rowLimit rows, so the first page is at least this share.
         firstPageShare = Math.min(1D, (double) pageSize / rowLimit);
       }
       totalShards = 0;
@@ -146,6 +123,10 @@ public final class SourceProgress {
       return paged && responses == 0;
     }
 
+    /**
+     * Count exactly only when it costs nothing extra: composite visits every match, and a PIT scan
+     * without a row limit reads every match.
+     */
     private int totalHitsToTrack(SearchRequest request) {
       return composite(request) != null || rowLimit >= Integer.MAX_VALUE
           ? Integer.MAX_VALUE
@@ -163,8 +144,6 @@ public final class SourceProgress {
       long units;
       if (!composites.isEmpty()) {
         composite = true;
-        lastPageBuckets = composites.stream().mapToLong(agg -> agg.getBuckets().size()).sum();
-        bucketsRead += lastPageBuckets;
         units =
             composites.stream()
                 .flatMap(agg -> agg.getBuckets().stream())
@@ -174,7 +153,7 @@ public final class SourceProgress {
         units = response.getHits() == null ? 0L : response.getHits().getHits().length;
       }
       TotalHits total = response.getHits() == null ? null : response.getHits().getTotalHits();
-      // Only the first page asks for a count; later pages report the default lower bound.
+      // Later pages report only the default lower bound; keep the first page's total.
       if (total != null && !totalExact) {
         totalUnits = Math.max(totalUnits, total.value());
         totalExact =
@@ -191,21 +170,22 @@ public final class SourceProgress {
     private double fractionDone() {
       double inFlight = totalShards > 0 ? (double) finishedShards / totalShards : 0D;
       if (!paged) {
-        // A single-request source sends no further search after its response.
         return responses > 0 ? 1D : inFlight;
       }
       if (responses == 0) {
         return inFlight * firstPageShare;
       }
-      if (composite && !totalExact) {
-        return ratio(bucketsRead + inFlight * lastPageBuckets, rowLimit);
+      long estimate = estimate();
+      if (estimate <= 0L) {
+        return 0D;
       }
-      return ratio(unitsRead + inFlight * lastPageUnits, estimate());
+      double done = unitsRead + inFlight * lastPageUnits;
+      return Math.min(1D, done / Math.max(estimate, done));
     }
 
     private long estimate() {
       long bound = totalExact ? totalUnits : Math.max(totalUnits, unitsRead + lastPageUnits);
-      // The row limit counts PIT hits, not the document counts measured for composite.
+      // The row limit counts hits, not composite doc counts.
       return composite ? bound : Math.min(bound, rowLimit);
     }
 
@@ -219,19 +199,12 @@ public final class SourceProgress {
     }
   }
 
-  private static double ratio(double done, long estimate) {
-    if (estimate <= 0L) {
-      return 0D;
-    }
-    return Math.min(1D, done / Math.max(estimate, done));
-  }
-
   private static boolean isPaged(SearchRequest request) {
     return request.source() != null
         && (request.source().pointInTimeBuilder() != null || composite(request) != null);
   }
 
-  /** Rows one page can return: buckets for composite, hits for PIT; {@code -1} if unknown. */
+  /** Buckets for composite, hits for PIT; {@code -1} if unknown. */
   private static int pageSize(SearchRequest request) {
     if (request.source() == null) {
       return -1;

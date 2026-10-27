@@ -62,19 +62,7 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
 
   private CancellableTask cancellableTask;
 
-  /** Progress of the scan this enumerator reads; {@code null} when the query reports none. */
   @Nullable private final SourceProgress progress;
-
-  public OpenSearchIndexEnumerator(
-      OpenSearchClient client,
-      List<String> fields,
-      int maxResponseSize,
-      int maxResultWindow,
-      int queryBucketSize,
-      OpenSearchRequest request,
-      ResourceMonitor monitor) {
-    this(client, fields, maxResponseSize, maxResultWindow, queryBucketSize, request, monitor, null);
-  }
 
   public OpenSearchIndexEnumerator(
       OpenSearchClient client,
@@ -190,8 +178,7 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
 
   @Override
   public void close() {
-    // Not marked complete: a failing query, or one falling back to another engine, closes its
-    // scans too, and must not read as done.
+    // Not marked complete: failing and fallback queries close their scans too.
     iterator = Collections.emptyIterator();
     queryCount = 0;
     bgScanner.close();

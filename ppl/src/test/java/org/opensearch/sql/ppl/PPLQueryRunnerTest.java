@@ -48,7 +48,8 @@ public class PPLQueryRunnerTest {
             new PPLQueryRequest("source=logs", null, "/_plugins/_ppl", "jdbc"),
             s -> {},
             Clock.systemUTC(),
-            () -> {});
+            () -> {},
+            () -> QueryProgress.NONE);
     QueryResult result = runner.run().toCompletableFuture().get();
     assertTrue(result instanceof QueryResult.Rows);
     assertEquals(response.getSchema(), ((QueryResult.Rows) result).schema());
@@ -73,7 +74,8 @@ public class PPLQueryRunnerTest {
             new PPLQueryRequest("source=logs", null, "/_plugins/_ppl", "jdbc"),
             s -> {},
             Clock.systemUTC(),
-            () -> {});
+            () -> {},
+            () -> QueryProgress.NONE);
     ExecutionException e =
         assertThrows(ExecutionException.class, () -> runner.run().toCompletableFuture().get());
     assertEquals("boom", e.getCause().getMessage());
@@ -87,7 +89,8 @@ public class PPLQueryRunnerTest {
             new PPLQueryRequest("source=logs", null, "/_plugins/_ppl", "jdbc"),
             s -> {},
             Clock.systemUTC(),
-            () -> {});
+            () -> {},
+            () -> QueryProgress.NONE);
     assertEquals(QueryProgress.NONE, runner.progress());
   }
 
@@ -113,7 +116,8 @@ public class PPLQueryRunnerTest {
             new PPLQueryRequest("source=logs", null, "/_plugins/_ppl", "jdbc"),
             s -> {},
             Clock.systemUTC(),
-            () -> {});
+            () -> {},
+            () -> QueryProgress.NONE);
     runner.run();
     assertThrows(IllegalStateException.class, runner::run);
   }
@@ -127,7 +131,8 @@ public class PPLQueryRunnerTest {
             new PPLQueryRequest("source=logs", null, "/_plugins/_ppl", "jdbc"),
             s -> {},
             Clock.systemUTC(),
-            stops::incrementAndGet);
+            stops::incrementAndGet,
+            () -> QueryProgress.NONE);
     var future = runner.run().toCompletableFuture();
 
     runner.cancel();
@@ -155,7 +160,8 @@ public class PPLQueryRunnerTest {
             new PPLQueryRequest("source=logs", null, "/_plugins/_ppl", "jdbc"),
             s -> {},
             Clock.systemUTC(),
-            stops::incrementAndGet);
+            stops::incrementAndGet,
+            () -> QueryProgress.NONE);
     QueryResult result = runner.run().toCompletableFuture().join();
 
     runner.cancel();

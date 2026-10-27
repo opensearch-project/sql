@@ -60,7 +60,7 @@ class BackgroundSearchScannerTest {
     when(nodeClient.threadPool()).thenReturn(threadPool);
     when(threadPool.executor(any())).thenReturn(executor);
 
-    scanner = new BackgroundSearchScanner(client, 10, 10);
+    scanner = new BackgroundSearchScanner(client, 10, 10, null);
   }
 
   @AfterEach
@@ -76,7 +76,7 @@ class BackgroundSearchScannerTest {
     // Setup client without node client
     OpenSearchClient syncClient = mock(OpenSearchClient.class);
     when(syncClient.getNodeClient()).thenReturn(Optional.empty());
-    scanner = new BackgroundSearchScanner(syncClient, 10, 10);
+    scanner = new BackgroundSearchScanner(syncClient, 10, 10, null);
 
     OpenSearchResponse response = mockResponse(false, false, 10);
     when(syncClient.search(request, null)).thenReturn(response);
@@ -205,7 +205,7 @@ class BackgroundSearchScannerTest {
     CancellableTask task = mock(CancellableTask.class);
     OpenSearchQueryManager.setCancellableTask(task);
     // Scanner captures the task at construction time (on this worker thread).
-    scanner = new BackgroundSearchScanner(client, 10, 10);
+    scanner = new BackgroundSearchScanner(client, 10, 10, null);
     // Simulate the ThreadLocal being absent on the background pool thread.
     OpenSearchQueryManager.clearCancellableTask();
 
@@ -260,7 +260,7 @@ class BackgroundSearchScannerTest {
     // The scanner must not leak the restored task onto the shared background pool thread.
     CancellableTask task = mock(CancellableTask.class);
     OpenSearchQueryManager.setCancellableTask(task);
-    scanner = new BackgroundSearchScanner(client, 10, 10);
+    scanner = new BackgroundSearchScanner(client, 10, 10, null);
     OpenSearchQueryManager.clearCancellableTask();
 
     AtomicReference<CancellableTask> afterSearch = new AtomicReference<>();

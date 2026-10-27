@@ -7,10 +7,9 @@ package org.opensearch.sql.opensearch.executor.progress;
 
 import javax.annotation.Nullable;
 
-/** A query task that may carry a {@link QueryProgressTracker}. */
+/** A query task that may carry a {@link QueryProgressTracker}; {@code null} for sync queries. */
 public interface ProgressTrackingTask {
 
-  /** Returns the tracker, or {@code null} when this query does not report progress. */
   @Nullable
   QueryProgressTracker progressTracker();
 }

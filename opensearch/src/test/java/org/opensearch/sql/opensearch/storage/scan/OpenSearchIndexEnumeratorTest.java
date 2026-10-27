@@ -71,7 +71,6 @@ class OpenSearchIndexEnumeratorTest {
 
   @Test
   void closeDoesNotComplete() {
-    // A failing query, or one falling back to another engine, closes its scans too.
     OpenSearchResponse response = response(3);
     when(client.search(request, progress)).thenReturn(response);
     OpenSearchIndexEnumerator enumerator = enumerator(5);

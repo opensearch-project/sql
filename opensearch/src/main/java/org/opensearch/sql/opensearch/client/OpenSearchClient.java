@@ -65,14 +65,7 @@ public interface OpenSearchClient {
    */
   OpenSearchResponse search(OpenSearchRequest request);
 
-  /**
-   * Perform search query in the search request and report its progress to {@code progress}. Clients
-   * that cannot observe search progress ignore it.
-   *
-   * @param request search request
-   * @param progress receives the progress of each search; {@code null} to report nothing
-   * @return search response
-   */
+  /** Same as {@link #search(OpenSearchRequest)}, reporting to {@code progress} if non-null. */
   default OpenSearchResponse search(OpenSearchRequest request, @Nullable SourceProgress progress) {
     return search(request);
   }

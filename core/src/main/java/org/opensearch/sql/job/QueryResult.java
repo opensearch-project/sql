@@ -53,10 +53,7 @@ public sealed interface QueryResult
     }
   }
 
-  /**
-   * Wait budget expired; the client polls {@link #id()} to observe the terminal outcome. {@code
-   * progress} is the job's progress when the budget expired.
-   */
+  /** Wait budget expired; the client polls {@link #id()} to observe the terminal outcome. */
   record Running(QueryJobId id, QueryProgress progress) implements QueryResult {
 
     public Running {

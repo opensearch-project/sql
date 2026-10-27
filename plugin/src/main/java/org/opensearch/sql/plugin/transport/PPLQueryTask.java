@@ -30,10 +30,7 @@ public class PPLQueryTask extends CancellableTask implements ProgressTrackingTas
     return true;
   }
 
-  /**
-   * Starts tracking this query's progress. Called only for async submissions, so synchronous
-   * queries never pay for progress collection.
-   */
+  /** Called only for async submissions. */
   public QueryProgressTracker trackProgress() {
     progressTracker = new QueryProgressTracker();
     return progressTracker;

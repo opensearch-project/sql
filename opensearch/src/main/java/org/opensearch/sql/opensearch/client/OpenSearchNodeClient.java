@@ -272,7 +272,7 @@ public class OpenSearchNodeClient implements OpenSearchClient {
         req -> client.searchScroll(req).actionGet());
   }
 
-  /** Progress is best-effort: a failure to track it leaves the search untracked. */
+  /** Progress is best-effort and must not fail the search. */
   @Nullable
   private static SourceProgress.Tracked trackProgress(
       SearchRequest req, @Nullable SourceProgress progress) {

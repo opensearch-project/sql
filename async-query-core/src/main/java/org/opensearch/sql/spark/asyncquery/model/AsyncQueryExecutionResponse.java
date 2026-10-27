@@ -37,7 +37,7 @@ public class AsyncQueryExecutionResponse {
    */
   private final Map<String, Object> errorDetails;
 
-  /** Progress of a query job; {@code null} on every Spark construction site. */
+  /** {@code null} on the Spark path. */
   private final QueryProgress progress;
 
   /** Spark-shaped constructor; keeps callers that never populate structured error details. */
@@ -65,7 +65,6 @@ public class AsyncQueryExecutionResponse {
     this(status, schema, results, error, sessionId, explain, errorDetails, null);
   }
 
-  /** Full constructor including the job progress. Used by the query-job path. */
   public AsyncQueryExecutionResponse(
       String status,
       ExecutionEngine.Schema schema,

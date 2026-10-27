@@ -86,13 +86,7 @@ public class BackgroundSearchScanner {
    */
   @Nullable private final CancellableTask cancellableTask;
 
-  /** Receives the progress of every search this scanner sends; {@code null} for none. */
   @Nullable private final SourceProgress progress;
-
-  public BackgroundSearchScanner(
-      OpenSearchClient client, int maxResultWindow, int queryBucketSize) {
-    this(client, maxResultWindow, queryBucketSize, null);
-  }
 
   public BackgroundSearchScanner(
       OpenSearchClient client,

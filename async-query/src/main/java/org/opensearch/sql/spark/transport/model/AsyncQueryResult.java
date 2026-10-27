@@ -29,7 +29,7 @@ public class AsyncQueryResult extends QueryResult {
    */
   @Getter private final Map<String, Object> errorDetails;
 
-  /** Query-job progress; {@code null} on the Spark path, where the formatter omits it. */
+  /** {@code null} on the Spark path. */
   @Getter private final QueryProgress progress;
 
   public AsyncQueryResult(

@@ -19,11 +19,7 @@ import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Test;
 
-/**
- * Verifies {@code progress.fraction_done} on async PPL responses (issue #5797): bounded and
- * monotonic while running, {@code 1.0} on success, the last running value on failure, and absent
- * from synchronous responses.
- */
+/** {@code progress.fraction_done} on async PPL responses (#5797). */
 public class AsyncPPLProgressIT extends PPLIntegTestCase {
 
   private static final long TIMEOUT_MILLIS = 60_000;
@@ -66,7 +62,6 @@ public class AsyncPPLProgressIT extends PPLIntegTestCase {
 
   @Test
   public void rootScanProgressIsBoundedMonotonicAndOneOnSuccess() throws Exception {
-    // A fully pushed scan is the plan root and runs without generated code.
     JSONObject submit = submit("source=" + INDEX + " | fields n");
     List<Double> running = new ArrayList<>(List.of(fraction(submit)));
     JSONObject terminal = pollRecordingProgress(submit.getString("id"), running);
@@ -121,14 +116,13 @@ public class AsyncPPLProgressIT extends PPLIntegTestCase {
     String body =
         postPpl(
             client(), new JSONObject().put("query", query).put("wait_for_completion_timeout", "0"));
-    // Rendered as a double, like the GET body, even when it is a whole number.
+    // A double, as on GET.
     Assert.assertTrue(body, body.matches("(?s).*\"fraction_done\"\\s*:\\s*\\d+\\.\\d+.*"));
     JSONObject response = new JSONObject(body);
     Assert.assertEquals("RUNNING", response.getString("status"));
     return response;
   }
 
-  /** Polls until terminal, appending each running {@code fraction_done} to {@code running}. */
   private JSONObject pollRecordingProgress(String id, List<Double> running) throws Exception {
     long deadline = System.currentTimeMillis() + TIMEOUT_MILLIS;
     while (System.currentTimeMillis() < deadline) {

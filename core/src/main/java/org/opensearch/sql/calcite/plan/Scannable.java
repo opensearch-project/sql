@@ -18,7 +18,7 @@ public interface Scannable {
 
   public Enumerable<@Nullable Object> scan();
 
-  /** Scans as the root of a plan, which is executed without generating code for it. */
+  /** Called when this is the plan root, which runs without generated code. */
   default Enumerable<@Nullable Object> scanAsRoot() {
     return scan();
   }

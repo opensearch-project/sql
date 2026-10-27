@@ -108,8 +108,7 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
             pref.preferArray());
 
     Expression scanOperator = implementor.stash(this, CalciteEnumerableIndexScan.class);
-    // In an async query each place the plan uses this scan (the planner may share one scan, e.g.
-    // both sides of a self-join) gets its own progress source, registered before any search.
+    // One source per use: the planner may share a scan, e.g. both sides of a self-join.
     Optional<QueryProgressTracker> tracker = QueryProgressTracker.current();
     Expression scan =
         tracker.isEmpty()
@@ -131,13 +130,11 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
     return scan(null);
   }
 
-  /** A root scan has no generated code, so it registers its progress source when executed. */
   @Override
   public Enumerable<@Nullable Object> scanAsRoot() {
     return scan(QueryProgressTracker.current().map(QueryProgressTracker::addSource).orElse(null));
   }
 
-  /** Scans the index, reporting each pass to {@code progress} when it is non-null. */
   public Enumerable<@Nullable Object> scan(@Nullable SourceProgress progress) {
     return new AbstractEnumerable<>() {
       @Override

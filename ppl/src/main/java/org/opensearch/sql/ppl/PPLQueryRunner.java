@@ -51,19 +51,6 @@ public final class PPLQueryRunner implements QueryRunner {
    * @param clock time source; used to measure {@code tookMillis}
    * @param cancelExecution stops the engine's in-flight execution; invoked at most once, only when
    *     {@link #cancel()} wins against completion
-   * @throws NullPointerException if any argument is {@code null}
-   */
-  public PPLQueryRunner(
-      PPLService pplService,
-      PPLQueryRequest request,
-      Consumer<String> anonymizedQuerySink,
-      Clock clock,
-      Runnable cancelExecution) {
-    this(
-        pplService, request, anonymizedQuerySink, clock, cancelExecution, () -> QueryProgress.NONE);
-  }
-
-  /**
    * @param progress reads the engine's current progress estimate; must not block
    * @throws NullPointerException if any argument is {@code null}
    */

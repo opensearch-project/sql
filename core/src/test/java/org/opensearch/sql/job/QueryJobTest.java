@@ -295,7 +295,7 @@ class QueryJobTest {
     job.startRunner();
     runner.progress = 0.4D;
     job.status();
-    // A failing engine releases its resources and may read as done; that is not sampled.
+    // Not sampled at failure.
     runner.progress = 0.9D;
     runner.fail(new IllegalStateException("boom"));
     runner.progress = 0.9D;

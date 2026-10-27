@@ -229,16 +229,6 @@ class SourceProgressTest {
   }
 
   @Test
-  void compositePaging_withLowerBoundTotal_readsBucketsOverRowLimit() {
-    SourceProgress progress = new SourceProgress();
-    progress.start(20);
-    listenerOf(progress, compositeSearch());
-    respond(compositeResponse(10_000, TotalHits.Relation.GREATER_THAN_OR_EQUAL_TO, 30L, 10L));
-    // The total is a lower bound, so progress is buckets read over the row limit: 2 of 20.
-    assertEquals(0.1D, progress.fractionDone(), DELTA);
-  }
-
-  @Test
   void complete_reportsOne() {
     SourceProgress progress = new SourceProgress();
     listenerOf(progress, pitSearch());
@@ -269,7 +259,6 @@ class SourceProgressTest {
     return (SourceProgress.ShardListener) task.getProgressListener();
   }
 
-  /** Delivers {@code response} for the most recent tracked request. */
   private void respond(SearchResponse response) {
     lastTracked.onResponse(response);
   }

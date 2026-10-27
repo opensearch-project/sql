@@ -42,7 +42,6 @@ import java.util.function.Function;
  */
 public final class QueryJob {
 
-  /** Upper bound for progress while running; only {@code SUCCEEDED} reports {@code 1.0}. */
   static final double MAX_RUNNING_FRACTION = 0.95D;
 
   private final QueryJobId id;
@@ -128,11 +127,11 @@ public final class QueryJob {
 
   /**
    * Bounded, non-blocking wait. The returned stage fires exactly once — with the runner's {@link
-   * QueryResult} on success, {@link QueryResult.Running} carrying the progress at expiry when the
-   * budget expires while the job still runs, or exceptionally with the unwrapped runner cause on
-   * failure or cancellation. The callback fires on the runner-completing thread (success/failure)
-   * or the JDK {@code Delayer} daemon (timeout); callers needing {@code ThreadContext} preserved
-   * must wrap their listener with {@code ContextPreservingActionListener} before registering.
+   * QueryResult} on success, {@link QueryResult.Running} when the budget expires first, or
+   * exceptionally with the unwrapped runner cause on failure or cancellation. The callback fires on
+   * the runner-completing thread (success/failure) or the JDK {@code Delayer} daemon (timeout);
+   * callers needing {@code ThreadContext} preserved must wrap their listener with {@code
+   * ContextPreservingActionListener} before registering.
    *
    * <p>Non-{@link Exception} throwables re-throw so JVM-level errors (e.g. {@link
    * OutOfMemoryError}) are not silently downgraded to an application-level failure.
@@ -152,12 +151,10 @@ public final class QueryJob {
           out.completeExceptionally(cause);
         });
     long millis = budget == null ? 0L : budget.toMillis();
-    // Progress is sampled when the budget expires; an outcome that arrived first wins.
     if (millis <= 0L) {
       out.complete(running());
     } else {
-      // A timer future, not a bare delayed task, so an early outcome cancels the scheduled task
-      // instead of keeping the job and its result reachable until the budget expires.
+      // Cancellable, so an early outcome does not keep the job reachable until the timeout.
       CompletableFuture<Void> timer = new CompletableFuture<>();
       timer
           .completeOnTimeout(null, millis, TimeUnit.MILLISECONDS)
@@ -175,7 +172,6 @@ public final class QueryJob {
   private QueryResult.Running running() {
     double sample = sampleRunnerProgress();
     synchronized (this) {
-      // The job may succeed before its completion fires; a RUNNING response stays below 1.0.
       double fraction = Math.min(MAX_RUNNING_FRACTION, progress(sample).fractionDone());
       return new QueryResult.Running(id, new QueryProgress(fraction));
     }
@@ -278,7 +274,7 @@ public final class QueryJob {
    *     CompletionException} wrapper (already unwrapped in {@link #startRunner()})
    */
   private void onRunnerFailure(Throwable throwable) {
-    // Not sampled: a failing engine has already released its resources, which can read as done.
+    // Not sampled: a failing engine has closed its scans, which reads as done.
     synchronized (this) {
       if (state != QueryJobState.RUNNING && state != QueryJobState.PENDING) {
         return;
@@ -290,11 +286,7 @@ public final class QueryJob {
     completion.completeExceptionally(throwable);
   }
 
-  /**
-   * Folds {@code sample} into the running estimate and returns the progress for the current state.
-   * The estimate never decreases and stays below {@code 1.0} until {@code SUCCEEDED}; {@code
-   * FAILED} and {@code CANCELLED} keep the last running value. Caller holds the monitor.
-   */
+  /** Never decreases, and stays below 1.0 until SUCCEEDED. Caller holds the monitor. */
   private QueryProgress progress(double sample) {
     if (state == QueryJobState.SUCCEEDED) {
       return QueryProgress.DONE;
@@ -305,10 +297,7 @@ public final class QueryJob {
     return new QueryProgress(runningFraction);
   }
 
-  /**
-   * Reads the runner's estimate outside the monitor; returns {@code 0.0} unless the job is running,
-   * when the sample would be discarded, and when the runner misbehaves.
-   */
+  /** Called outside the monitor; the runner is foreign code. */
   private double sampleRunnerProgress() {
     synchronized (this) {
       if (state != QueryJobState.RUNNING) {

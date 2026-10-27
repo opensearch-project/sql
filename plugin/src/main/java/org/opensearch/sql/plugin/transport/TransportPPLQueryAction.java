@@ -387,10 +387,7 @@ public class TransportPPLQueryAction
         .toString();
   }
 
-  /**
-   * Renders {@code fraction_done} as the GET body does: org.json drops the {@code .0} of a whole
-   * number, which Gson keeps.
-   */
+  /** org.json drops the {@code .0} of a whole number; GET (Gson) keeps it. */
   private static JSONString fractionDone(org.opensearch.sql.job.QueryResult.Running running) {
     String value = Double.toString(running.progress().fractionDone());
     return () -> value;

@@ -5,11 +5,7 @@
 
 package org.opensearch.sql.job;
 
-/**
- * Best-effort estimate of how much of a query's work is done.
- *
- * @param fractionDone finite value in {@code [0.0, 1.0]}
- */
+/** Best-effort estimate of how much of a query's work is done, in {@code [0.0, 1.0]}. */
 public record QueryProgress(double fractionDone) {
 
   public static final QueryProgress NONE = new QueryProgress(0D);
