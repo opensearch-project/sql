@@ -155,18 +155,47 @@ class SourceProgressTest {
   }
 
   @Test
-  void track_asksForExactTotalOnFirstPageOnly() {
+  void track_countsPitTotalUpToRowLimitOnFirstPageOnly() {
     SourceProgress progress = new SourceProgress();
     progress.start(100);
     SearchRequest first = pitSearch();
     SearchRequest trackedFirst = progress.track(first);
-    assertEquals(Integer.MAX_VALUE, trackedFirst.source().trackTotalHitsUpTo().intValue());
+    assertEquals(100, trackedFirst.source().trackTotalHitsUpTo().intValue());
     assertNull(first.source().trackTotalHitsUpTo(), "the scan's own builder is not changed");
 
     progress.onResponse(hitsResponse(10, 40, TotalHits.Relation.EQUAL_TO));
     SearchRequest second = pitSearch();
     assertSame(second.source(), progress.track(second).source());
     assertNull(new SourceProgress().track(plainSearch()).source().trackTotalHitsUpTo());
+  }
+
+  @Test
+  void track_countsCompositeTotalExactly() {
+    SourceProgress progress = new SourceProgress();
+    progress.start(100);
+    assertEquals(
+        Integer.MAX_VALUE,
+        progress.track(compositeSearch()).source().trackTotalHitsUpTo().intValue());
+  }
+
+  @Test
+  void exactTotal_isKeptWhenLaterPagesReportLowerBound() {
+    SourceProgress progress = new SourceProgress();
+    progress.start(1_000_000);
+    listenerOf(progress, pitSearch());
+    progress.onResponse(hitsResponse(10, 40, TotalHits.Relation.EQUAL_TO));
+    listenerOf(progress, pitSearch());
+    progress.onResponse(hitsResponse(10, 10, TotalHits.Relation.GREATER_THAN_OR_EQUAL_TO));
+    assertEquals(0.5D, progress.fractionDone(), DELTA);
+  }
+
+  @Test
+  void pitTotalAtRowLimit_isExactForProgress() {
+    SourceProgress progress = new SourceProgress();
+    progress.start(20);
+    listenerOf(progress, pitSearch());
+    progress.onResponse(hitsResponse(10, 20, TotalHits.Relation.GREATER_THAN_OR_EQUAL_TO));
+    assertEquals(0.5D, progress.fractionDone(), DELTA);
   }
 
   @Test

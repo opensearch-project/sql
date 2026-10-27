@@ -5,8 +5,8 @@
 
 package org.opensearch.sql.opensearch.storage.scan;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.PhysType;
@@ -41,16 +41,6 @@ import org.opensearch.sql.opensearch.util.OpenSearchRelOptUtil;
 public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
     implements Scannable, EnumerableRel {
   private static final Logger LOG = LogManager.getLogger(CalciteEnumerableIndexScan.class);
-
-  /**
-   * Progress sources of this scan in an async query, one per place the plan uses it; added at code
-   * generation and empty otherwise. The planner may share one scan across the plan, e.g. both sides
-   * of a self-join.
-   */
-  private final List<SourceProgress> progressSources = new ArrayList<>();
-
-  /** Enumerators created so far; the i-th takes the i-th source, re-scans reuse the last. */
-  private int enumerations;
 
   /**
    * Creates an CalciteOpenSearchIndexScan.
@@ -117,22 +107,18 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
             OpenSearchRelOptUtil.replaceDot(getCluster().getTypeFactory(), getRowType()),
             pref.preferArray());
 
-    // Register before execution so query progress counts every scan from the first search.
-    QueryProgressTracker.current().ifPresent(tracker -> addProgressSource(tracker.addSource()));
     Expression scanOperator = implementor.stash(this, CalciteEnumerableIndexScan.class);
-    return implementor.result(physType, Blocks.toBlock(Expressions.call(scanOperator, "scan")));
-  }
-
-  private synchronized void addProgressSource(SourceProgress source) {
-    progressSources.add(source);
-  }
-
-  @Nullable
-  private synchronized SourceProgress nextProgressSource() {
-    if (progressSources.isEmpty()) {
-      return null;
-    }
-    return progressSources.get(Math.min(enumerations++, progressSources.size() - 1));
+    // In an async query each place the plan uses this scan (the planner may share one scan, e.g.
+    // both sides of a self-join) gets its own progress source, registered before any search.
+    Optional<QueryProgressTracker> tracker = QueryProgressTracker.current();
+    Expression scan =
+        tracker.isEmpty()
+            ? Expressions.call(scanOperator, "scan")
+            : Expressions.call(
+                scanOperator,
+                "scan",
+                implementor.stash(tracker.get().addSource(), SourceProgress.class));
+    return implementor.result(physType, Blocks.toBlock(scan));
   }
 
   /**
@@ -142,6 +128,11 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
    */
   @Override
   public Enumerable<@Nullable Object> scan() {
+    return scan(null);
+  }
+
+  /** Scans the index, reporting each pass to {@code progress} when it is non-null. */
+  public Enumerable<@Nullable Object> scan(@Nullable SourceProgress progress) {
     return new AbstractEnumerable<>() {
       @Override
       public Enumerator<Object> enumerator() {
@@ -154,7 +145,7 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
             osIndex.getQueryBucketSize(),
             osIndex.buildRequest(requestBuilder),
             osIndex.createOpenSearchResourceMonitor(),
-            nextProgressSource());
+            progress);
       }
     };
   }

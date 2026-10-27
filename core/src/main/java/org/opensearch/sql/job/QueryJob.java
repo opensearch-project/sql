@@ -152,24 +152,19 @@ public final class QueryJob {
           out.completeExceptionally(cause);
         });
     long millis = budget == null ? 0L : budget.toMillis();
-    // Placeholder compared by identity; progress is sampled when the budget actually expires.
-    QueryResult.Running expired = new QueryResult.Running(id);
+    // Progress is sampled when the budget expires; an outcome that arrived first wins.
     if (millis <= 0L) {
-      out.complete(expired);
+      out.complete(running());
     } else {
-      out.completeOnTimeout(expired, millis, TimeUnit.MILLISECONDS);
+      CompletableFuture.delayedExecutor(millis, TimeUnit.MILLISECONDS, Runnable::run)
+          .execute(
+              () -> {
+                if (!out.isDone()) {
+                  out.complete(running());
+                }
+              });
     }
-    return out.thenCompose(
-            value -> {
-              if (value != expired) {
-                return CompletableFuture.completedFuture(value);
-              }
-              // A job that finished after the budget expired reports its outcome, as if in time.
-              return completion.isDone()
-                  ? await(Duration.ZERO)
-                  : CompletableFuture.completedFuture(running());
-            })
-        .minimalCompletionStage();
+    return out.minimalCompletionStage();
   }
 
   private QueryResult.Running running() {

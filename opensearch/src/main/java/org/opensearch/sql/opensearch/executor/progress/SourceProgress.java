@@ -26,10 +26,11 @@ import org.opensearch.search.aggregations.bucket.composite.InternalComposite;
  *       shards that finished the query phase of its in-flight request.
  *   <li>A PIT search reports hits read over the total hits, capped by the row limit.
  *   <li>A composite aggregation reports bucket document counts over the total hits.
- *   <li>The first page of a paged source asks for an exact total hit count. PIT pages read one
- *       snapshot and composite pages visit every matching document, so later pages need none.
- *       Without an exact total, PIT falls back to an estimate that grows with the hits read, and
- *       composite to buckets read over the row limit.
+ *   <li>The first page of a paged source asks for the total hit count it needs: exact for
+ *       composite, whose pages visit every matching document anyway, and up to the row limit for
+ *       PIT, so the count costs no more than the rows the scan reads. PIT pages read one snapshot,
+ *       so later pages need no count. Without the total, PIT falls back to an estimate that grows
+ *       with the hits read, and composite to buckets read over the row limit.
  *   <li>Before a paged source's first response, its finished shards count toward the first page,
  *       which is at least {@code page size / row limit} of the rows the scan returns.
  * </ul>
@@ -95,7 +96,7 @@ public final class SourceProgress {
         };
     if (firstPage) {
       // Copy the source: the scan reuses its own builder for later pages.
-      tracked.source(request.source().shallowCopy().trackTotalHits(true));
+      tracked.source(request.source().shallowCopy().trackTotalHitsUpTo(totalHitsToTrack(request)));
     }
     // The copy constructor does not carry the search pipeline.
     return tracked.pipeline(request.pipeline());
@@ -124,9 +125,12 @@ public final class SourceProgress {
       units = response.getHits() == null ? 0L : response.getHits().getHits().length;
     }
     TotalHits total = response.getHits() == null ? null : response.getHits().getTotalHits();
-    if (total != null) {
+    // Only the first page asks for a count; later pages report the default lower bound.
+    if (total != null && !totalExact) {
       totalUnits = Math.max(totalUnits, total.value());
-      totalExact = total.relation() == TotalHits.Relation.EQUAL_TO;
+      totalExact =
+          total.relation() == TotalHits.Relation.EQUAL_TO
+              || (!composite && total.value() >= rowLimit);
     }
     responses++;
     unitsRead += units;
@@ -167,10 +171,7 @@ public final class SourceProgress {
   }
 
   private long estimate() {
-    long bound =
-        totalUnits < 0L || !totalExact
-            ? Math.max(totalUnits, unitsRead + lastPageUnits)
-            : totalUnits;
+    long bound = totalExact ? totalUnits : Math.max(totalUnits, unitsRead + lastPageUnits);
     // The row limit counts PIT hits, not the document counts measured for composite.
     return composite ? bound : Math.min(bound, rowLimit);
   }
@@ -193,6 +194,13 @@ public final class SourceProgress {
 
   private synchronized void onShardDone() {
     finishedShards = Math.min(totalShards, finishedShards + 1);
+  }
+
+  /** Exact for composite; up to the row limit for PIT, which never reads more hits. */
+  private synchronized int totalHitsToTrack(SearchRequest request) {
+    return composite(request) != null
+        ? Integer.MAX_VALUE
+        : (int) Math.min(Integer.MAX_VALUE, rowLimit);
   }
 
   private static boolean isPaged(SearchRequest request) {

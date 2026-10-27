@@ -36,15 +36,6 @@ public final class QueryProgressTracker {
 
   /** Returns the mean progress of all registered sources, or {@code 0.0} if there are none. */
   public double fractionDone() {
-    if (sources.isEmpty()) {
-      return 0D;
-    }
-    double sum = 0D;
-    int count = 0;
-    for (SourceProgress source : sources) {
-      sum += source.fractionDone();
-      count++;
-    }
-    return Math.min(1D, sum / count);
+    return sources.stream().mapToDouble(SourceProgress::fractionDone).average().orElse(0D);
   }
 }
