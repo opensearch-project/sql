@@ -24,12 +24,12 @@ import org.opensearch.search.aggregations.bucket.composite.InternalComposite;
  * <ul>
  *   <li>A single-request source (plain search or non-composite aggregation) reports the fraction of
  *       shards that finished the query phase of its in-flight request.
- *   <li>A PIT search reports hits read over the response's total hits, capped by the row limit.
- *       When the total is only a lower bound, the estimate grows with the hits read, so no exact
- *       hit count is required.
- *   <li>A composite aggregation reports bucket document counts over an exact total hit count.
- *       Aggregations usually report only a lower bound, and then it reports buckets read over the
- *       row limit, which bounds the buckets the scan returns.
+ *   <li>A PIT search reports hits read over the total hits, capped by the row limit.
+ *   <li>A composite aggregation reports bucket document counts over the total hits.
+ *   <li>The first page of a paged source asks for an exact total hit count. PIT pages read one
+ *       snapshot and composite pages visit every matching document, so later pages need none.
+ *       Without an exact total, PIT falls back to an estimate that grows with the hits read, and
+ *       composite to buckets read over the row limit.
  *   <li>Before a paged source's first response, its finished shards count toward the first page,
  *       which is at least {@code page size / row limit} of the rows the scan returns.
  * </ul>
@@ -77,7 +77,7 @@ public final class SourceProgress {
 
   /** Returns a copy of {@code request} whose search task reports shard progress to this source. */
   public SearchRequest track(SearchRequest request) {
-    beginRequest(isPaged(request), pageSize(request));
+    boolean firstPage = beginRequest(isPaged(request), pageSize(request));
     ShardListener listener = new ShardListener();
     SearchRequest tracked =
         new SearchRequest(request) {
@@ -93,6 +93,10 @@ public final class SourceProgress {
             return task;
           }
         };
+    if (firstPage) {
+      // Copy the source: the scan reuses its own builder for later pages.
+      tracked.source(request.source().shallowCopy().trackTotalHits(true));
+    }
     // The copy constructor does not carry the search pipeline.
     return tracked.pipeline(request.pipeline());
   }
@@ -171,13 +175,15 @@ public final class SourceProgress {
     return composite ? bound : Math.min(bound, rowLimit);
   }
 
-  private synchronized void beginRequest(boolean paged, int pageSize) {
+  /** Returns whether this request is the first page of a paged pass. */
+  private synchronized boolean beginRequest(boolean paged, int pageSize) {
     this.paged |= paged;
     if (responses == 0 && pageSize > 0 && rowLimit > 0L) {
       firstPageShare = Math.min(1D, (double) pageSize / rowLimit);
     }
     totalShards = 0;
     finishedShards = 0;
+    return paged && responses == 0;
   }
 
   private synchronized void onShards(int total, int skipped) {

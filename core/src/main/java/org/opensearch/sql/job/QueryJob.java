@@ -129,10 +129,10 @@ public final class QueryJob {
   /**
    * Bounded, non-blocking wait. The returned stage fires exactly once — with the runner's {@link
    * QueryResult} on success, {@link QueryResult.Running} carrying the progress at expiry when the
-   * budget expires, or exceptionally with the unwrapped runner cause on failure or cancellation.
-   * The callback fires on the runner-completing thread (success/failure) or the JDK {@code Delayer}
-   * daemon (timeout); callers needing {@code ThreadContext} preserved must wrap their listener with
-   * {@code ContextPreservingActionListener} before registering.
+   * budget expires while the job still runs, or exceptionally with the unwrapped runner cause on
+   * failure or cancellation. The callback fires on the runner-completing thread (success/failure)
+   * or the JDK {@code Delayer} daemon (timeout); callers needing {@code ThreadContext} preserved
+   * must wrap their listener with {@code ContextPreservingActionListener} before registering.
    *
    * <p>Non-{@link Exception} throwables re-throw so JVM-level errors (e.g. {@link
    * OutOfMemoryError}) are not silently downgraded to an application-level failure.
@@ -159,20 +159,25 @@ public final class QueryJob {
     } else {
       out.completeOnTimeout(expired, millis, TimeUnit.MILLISECONDS);
     }
-    return out.thenApply(value -> value == expired ? running() : value).minimalCompletionStage();
+    return out.thenCompose(
+            value -> {
+              if (value != expired) {
+                return CompletableFuture.completedFuture(value);
+              }
+              // A job that finished after the budget expired reports its outcome, as if in time.
+              return completion.isDone()
+                  ? await(Duration.ZERO)
+                  : CompletableFuture.completedFuture(running());
+            })
+        .minimalCompletionStage();
   }
 
-  /**
-   * Builds the response for an expired wait budget. A job that succeeded after the budget expired
-   * returns its result instead of a {@code RUNNING} response.
-   */
-  private QueryResult running() {
+  private QueryResult.Running running() {
     double sample = sampleRunnerProgress();
     synchronized (this) {
-      if (state == QueryJobState.SUCCEEDED && result.isPresent()) {
-        return result.get();
-      }
-      return new QueryResult.Running(id, progress(sample));
+      // The job may succeed before its completion fires; a RUNNING response stays below 1.0.
+      double fraction = Math.min(MAX_RUNNING_FRACTION, progress(sample).fractionDone());
+      return new QueryResult.Running(id, new QueryProgress(fraction));
     }
   }
 
@@ -273,12 +278,11 @@ public final class QueryJob {
    *     CompletionException} wrapper (already unwrapped in {@link #startRunner()})
    */
   private void onRunnerFailure(Throwable throwable) {
-    double sample = sampleRunnerProgress();
+    // Not sampled: a failing engine has already released its resources, which can read as done.
     synchronized (this) {
       if (state != QueryJobState.RUNNING && state != QueryJobState.PENDING) {
         return;
       }
-      progress(sample);
       state = QueryJobState.FAILED;
       completedAtMillis = OptionalLong.of(clock.millis());
       failure = Optional.of(QueryFailure.of(throwable, failureRenderer));

@@ -5,9 +5,9 @@
 
 package org.opensearch.sql.opensearch.executor.progress;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
 
 /**
@@ -18,7 +18,7 @@ import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
  */
 public final class QueryProgressTracker {
 
-  private final List<SourceProgress> sources = new ArrayList<>();
+  private final List<SourceProgress> sources = new CopyOnWriteArrayList<>();
 
   /** Returns the tracker of the query running on this thread, if that query reports progress. */
   public static Optional<QueryProgressTracker> current() {
@@ -28,7 +28,7 @@ public final class QueryProgressTracker {
   }
 
   /** Adds and returns the progress of one more index scan. */
-  public synchronized SourceProgress addSource() {
+  public SourceProgress addSource() {
     SourceProgress source = new SourceProgress();
     sources.add(source);
     return source;
@@ -36,17 +36,15 @@ public final class QueryProgressTracker {
 
   /** Returns the mean progress of all registered sources, or {@code 0.0} if there are none. */
   public double fractionDone() {
-    List<SourceProgress> snapshot;
-    synchronized (this) {
-      snapshot = new ArrayList<>(sources);
-    }
-    if (snapshot.isEmpty()) {
+    if (sources.isEmpty()) {
       return 0D;
     }
     double sum = 0D;
-    for (SourceProgress source : snapshot) {
+    int count = 0;
+    for (SourceProgress source : sources) {
       sum += source.fractionDone();
+      count++;
     }
-    return Math.min(1D, sum / snapshot.size());
+    return Math.min(1D, sum / count);
   }
 }

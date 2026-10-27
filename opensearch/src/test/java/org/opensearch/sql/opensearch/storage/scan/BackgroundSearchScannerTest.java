@@ -12,7 +12,6 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -80,14 +79,14 @@ class BackgroundSearchScannerTest {
     scanner = new BackgroundSearchScanner(syncClient, 10, 10);
 
     OpenSearchResponse response = mockResponse(false, false, 10);
-    when(syncClient.search(request)).thenReturn(response);
+    when(syncClient.search(request, null)).thenReturn(response);
 
     scanner.startScanning(request);
     BackgroundSearchScanner.SearchBatchResult result = scanner.fetchNextBatch(request);
 
     assertFalse(
         result.stopIteration(), "Expected iteration to continue after fetching one full page");
-    verify(syncClient, times(1)).search(request);
+    verify(syncClient, times(1)).search(request, null);
   }
 
   @Test
@@ -97,7 +96,7 @@ class BackgroundSearchScannerTest {
     // Second batch: empty response
     OpenSearchResponse response2 = mockResponse(true, false, 5);
 
-    when(client.search(request)).thenReturn(response1).thenReturn(response2);
+    when(client.search(request, null)).thenReturn(response1).thenReturn(response2);
 
     scanner.startScanning(request);
 
@@ -116,7 +115,7 @@ class BackgroundSearchScannerTest {
   @Test
   void testFetchOnceForAggregationResponse() {
     OpenSearchResponse response = mockResponse(false, true, 1);
-    when(client.search(request)).thenReturn(response);
+    when(client.search(request, null)).thenReturn(response);
 
     scanner.startScanning(request);
     BackgroundSearchScanner.SearchBatchResult result = scanner.fetchNextBatch(request);
@@ -127,7 +126,7 @@ class BackgroundSearchScannerTest {
   @Test
   void testFetchOnceWhenResultsBelowWindow() {
     OpenSearchResponse response = mockResponse(false, false, 5);
-    when(client.search(request)).thenReturn(response);
+    when(client.search(request, null)).thenReturn(response);
 
     scanner.startScanning(request);
     BackgroundSearchScanner.SearchBatchResult result = scanner.fetchNextBatch(request);
@@ -139,7 +138,7 @@ class BackgroundSearchScannerTest {
   void raisesAWarningWhenAFetchedPageDidNotCoverEveryShard() {
     ShardStats partial = new ShardStats(4, 3, 0, 1, false, List.of("[logs][0] boom"));
     OpenSearchResponse response = mockResponse(false, true, 1, partial);
-    when(client.search(request)).thenReturn(response);
+    when(client.search(request, null)).thenReturn(response);
 
     scanner.startScanning(request);
     scanner.fetchNextBatch(request);
@@ -154,7 +153,7 @@ class BackgroundSearchScannerTest {
   void raisesNoWarningWhenEveryShardAnswered() {
     ShardStats complete = new ShardStats(4, 4, 0, 0, false, List.of());
     OpenSearchResponse response = mockResponse(false, true, 1, complete);
-    when(client.search(request)).thenReturn(response);
+    when(client.search(request, null)).thenReturn(response);
 
     scanner.startScanning(request);
     scanner.fetchNextBatch(request);
@@ -169,7 +168,7 @@ class BackgroundSearchScannerTest {
     OpenSearchResponse page1 = mockResponse(false, false, 10, partial);
     OpenSearchResponse page2 = mockResponse(false, false, 10, partial);
     OpenSearchResponse exhausted = mockResponse(true, false, 0, partial);
-    when(client.search(request)).thenReturn(page1).thenReturn(page2).thenReturn(exhausted);
+    when(client.search(request, null)).thenReturn(page1).thenReturn(page2).thenReturn(exhausted);
 
     scanner.startScanning(request);
     scanner.fetchNextBatch(request);
@@ -184,7 +183,7 @@ class BackgroundSearchScannerTest {
     OpenSearchResponse response1 = mockResponse(false, false, 5);
     OpenSearchResponse response2 = mockResponse(true, false, 0);
 
-    when(client.search(request)).thenReturn(response1).thenReturn(response2);
+    when(client.search(request, null)).thenReturn(response1).thenReturn(response2);
 
     scanner.startScanning(request);
     scanner.fetchNextBatch(request);
@@ -211,7 +210,7 @@ class BackgroundSearchScannerTest {
     OpenSearchQueryManager.clearCancellableTask();
 
     AtomicReference<CancellableTask> seenOnBackgroundThread = new AtomicReference<>();
-    when(client.search(request))
+    when(client.search(request, null))
         .thenAnswer(
             invocation -> {
               seenOnBackgroundThread.set(OpenSearchQueryManager.getCancellableTask());
@@ -239,7 +238,6 @@ class BackgroundSearchScannerTest {
     scanner.fetchNextBatch(request);
 
     verify(client).search(request, progress);
-    verify(client, never()).search(request);
   }
 
   @Test
@@ -266,7 +264,7 @@ class BackgroundSearchScannerTest {
     OpenSearchQueryManager.clearCancellableTask();
 
     AtomicReference<CancellableTask> afterSearch = new AtomicReference<>();
-    when(client.search(request))
+    when(client.search(request, null))
         .thenAnswer(
             invocation -> {
               OpenSearchResponse response = mockResponse(true, false, 0);

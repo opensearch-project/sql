@@ -151,7 +151,7 @@ public class BackgroundSearchScanner {
       restored = true;
     }
     try {
-      return QueryProfiling.withCurrentContext(ctx, () -> search(request));
+      return QueryProfiling.withCurrentContext(ctx, () -> client.search(request, progress));
     } finally {
       if (restored) {
         OpenSearchQueryManager.clearCancellableTask();
@@ -188,12 +188,8 @@ public class BackgroundSearchScanner {
             e);
       }
     } else {
-      return search(request);
+      return client.search(request, progress);
     }
-  }
-
-  private OpenSearchResponse search(OpenSearchRequest request) {
-    return progress == null ? client.search(request) : client.search(request, progress);
   }
 
   /**

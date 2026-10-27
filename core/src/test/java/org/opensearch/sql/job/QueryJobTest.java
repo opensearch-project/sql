@@ -294,6 +294,9 @@ class QueryJobTest {
     QueryJob job = newJob(runner, 200L);
     job.startRunner();
     runner.progress = 0.4D;
+    job.status();
+    // A failing engine releases its resources and may read as done; that is not sampled.
+    runner.progress = 0.9D;
     runner.fail(new IllegalStateException("boom"));
     runner.progress = 0.9D;
     QueryJobStatus status = job.status();
@@ -323,6 +326,20 @@ class QueryJobTest {
     assertEquals(0.5D, job.status().progress().fractionDone());
     runner.progressError = new IllegalStateException("progress bug");
     assertEquals(0.5D, job.status().progress().fractionDone());
+  }
+
+  @Test
+  void await_failureAfterExpiryWithoutPollReportsOutcome() {
+    RecordingRunner runner = new RecordingRunner();
+    QueryJob job = newJob(runner, 226L);
+    job.startRunner();
+    IllegalStateException cause = new IllegalStateException("boom");
+    runner.fail(cause);
+    ExecutionException ex =
+        assertThrows(
+            ExecutionException.class,
+            () -> job.await(Duration.ZERO).toCompletableFuture().get(1, TimeUnit.SECONDS));
+    assertSame(cause, ex.getCause());
   }
 
   @Test

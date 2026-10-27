@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.executor.progress;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -151,6 +152,21 @@ class SourceProgressTest {
     progress.complete();
     progress.start(100);
     assertEquals(1D, progress.fractionDone(), DELTA);
+  }
+
+  @Test
+  void track_asksForExactTotalOnFirstPageOnly() {
+    SourceProgress progress = new SourceProgress();
+    progress.start(100);
+    SearchRequest first = pitSearch();
+    SearchRequest trackedFirst = progress.track(first);
+    assertEquals(Integer.MAX_VALUE, trackedFirst.source().trackTotalHitsUpTo().intValue());
+    assertNull(first.source().trackTotalHitsUpTo(), "the scan's own builder is not changed");
+
+    progress.onResponse(hitsResponse(10, 40, TotalHits.Relation.EQUAL_TO));
+    SearchRequest second = pitSearch();
+    assertSame(second.source(), progress.track(second).source());
+    assertNull(new SourceProgress().track(plainSearch()).source().trackTotalHitsUpTo());
   }
 
   @Test

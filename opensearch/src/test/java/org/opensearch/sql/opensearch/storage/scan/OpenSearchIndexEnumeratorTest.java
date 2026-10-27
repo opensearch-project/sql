@@ -70,14 +70,13 @@ class OpenSearchIndexEnumeratorTest {
   }
 
   @Test
-  void closeDoesNotComplete() {
-    // A failing query closes its scans too; that must not count as finished work.
+  void completesWhenClosedEarly() {
     OpenSearchResponse response = response(3);
     when(client.search(request, progress)).thenReturn(response);
     OpenSearchIndexEnumerator enumerator = enumerator(5);
 
     enumerator.close();
-    verify(progress, never()).complete();
+    verify(progress).complete();
   }
 
   private OpenSearchIndexEnumerator enumerator(int maxResponseSize) {

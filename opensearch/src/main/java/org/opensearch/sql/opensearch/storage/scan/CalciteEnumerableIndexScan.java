@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.opensearch.storage.scan;
 
+import java.util.ArrayList;
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
@@ -41,8 +42,15 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
     implements Scannable, EnumerableRel {
   private static final Logger LOG = LogManager.getLogger(CalciteEnumerableIndexScan.class);
 
-  /** Progress of this scan in an async query; set at code generation, {@code null} otherwise. */
-  @Nullable private SourceProgress progress;
+  /**
+   * Progress sources of this scan in an async query, one per place the plan uses it; added at code
+   * generation and empty otherwise. The planner may share one scan across the plan, e.g. both sides
+   * of a self-join.
+   */
+  private final List<SourceProgress> progressSources = new ArrayList<>();
+
+  /** Enumerators created so far; the i-th takes the i-th source, re-scans reuse the last. */
+  private int enumerations;
 
   /**
    * Creates an CalciteOpenSearchIndexScan.
@@ -109,13 +117,22 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
             OpenSearchRelOptUtil.replaceDot(getCluster().getTypeFactory(), getRowType()),
             pref.preferArray());
 
-    // Register before execution so query progress counts every scan from the first search. A scan
-    // the planner shares across the plan is implemented once per use but is one source.
-    if (progress == null) {
-      progress = QueryProgressTracker.current().map(QueryProgressTracker::addSource).orElse(null);
-    }
+    // Register before execution so query progress counts every scan from the first search.
+    QueryProgressTracker.current().ifPresent(tracker -> addProgressSource(tracker.addSource()));
     Expression scanOperator = implementor.stash(this, CalciteEnumerableIndexScan.class);
     return implementor.result(physType, Blocks.toBlock(Expressions.call(scanOperator, "scan")));
+  }
+
+  private synchronized void addProgressSource(SourceProgress source) {
+    progressSources.add(source);
+  }
+
+  @Nullable
+  private synchronized SourceProgress nextProgressSource() {
+    if (progressSources.isEmpty()) {
+      return null;
+    }
+    return progressSources.get(Math.min(enumerations++, progressSources.size() - 1));
   }
 
   /**
@@ -137,7 +154,7 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
             osIndex.getQueryBucketSize(),
             osIndex.buildRequest(requestBuilder),
             osIndex.createOpenSearchResourceMonitor(),
-            progress);
+            nextProgressSource());
       }
     };
   }
