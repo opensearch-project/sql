@@ -30,17 +30,10 @@ class QueryProgressTrackerTest {
   }
 
   @Test
-  void register_isIdempotentPerScan() {
-    QueryProgressTracker tracker = new QueryProgressTracker();
-    Object scan = new Object();
-    assertSame(tracker.register(scan), tracker.register(scan));
-  }
-
-  @Test
   void fractionDone_isMeanOfSources() {
     QueryProgressTracker tracker = new QueryProgressTracker();
-    tracker.register(new Object()).complete();
-    tracker.register(new Object());
+    tracker.addSource().complete();
+    tracker.addSource();
     assertEquals(0.5D, tracker.fractionDone());
   }
 

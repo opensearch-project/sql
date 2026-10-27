@@ -138,6 +138,28 @@ class SourceProgressTest {
   }
 
   @Test
+  void start_beginsFreshPassUnlessComplete() {
+    SourceProgress progress = new SourceProgress();
+    progress.start(100);
+    listenerOf(progress, pitSearch());
+    progress.onResponse(hitsResponse(10, 40, TotalHits.Relation.EQUAL_TO));
+    assertEquals(0.25D, progress.fractionDone(), DELTA);
+
+    progress.start(100);
+    assertEquals(0D, progress.fractionDone(), DELTA);
+
+    progress.complete();
+    progress.start(100);
+    assertEquals(1D, progress.fractionDone(), DELTA);
+  }
+
+  @Test
+  void track_keepsSearchPipeline() {
+    SearchRequest request = plainSearch().pipeline("my_pipeline");
+    assertEquals("my_pipeline", new SourceProgress().track(request).pipeline());
+  }
+
+  @Test
   void complete_reportsOne() {
     SourceProgress progress = new SourceProgress();
     listenerOf(progress, pitSearch());

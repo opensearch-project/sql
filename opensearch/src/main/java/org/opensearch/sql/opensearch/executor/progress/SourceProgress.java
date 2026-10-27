@@ -52,24 +52,44 @@ public final class SourceProgress {
 
   SourceProgress() {}
 
-  /** Sets the largest number of rows the scan returns. */
+  /**
+   * Starts one pass over the scan with the largest number of rows it returns. A scan iterated again
+   * (e.g. the inner side of a nested-loop join) starts a fresh estimate; a finished source stays
+   * finished.
+   */
   public synchronized void start(long rowLimit) {
     this.rowLimit = Math.max(0L, rowLimit);
+    if (!complete) {
+      responses = 0;
+      firstPageShare = 0D;
+      unitsRead = 0L;
+      lastPageUnits = 0L;
+      totalUnits = -1L;
+      totalExact = false;
+      rowLimitApplies = true;
+    }
   }
 
   /** Returns a copy of {@code request} whose search task reports shard progress to this source. */
   public SearchRequest track(SearchRequest request) {
     beginRequest(isPaged(request), pageSize(request));
     ShardListener listener = new ShardListener();
-    return new SearchRequest(request) {
-      @Override
-      public SearchTask createTask(
-          long id, String type, String action, TaskId parentTaskId, Map<String, String> headers) {
-        SearchTask task = super.createTask(id, type, action, parentTaskId, headers);
-        task.setProgressListener(listener);
-        return task;
-      }
-    };
+    SearchRequest tracked =
+        new SearchRequest(request) {
+          @Override
+          public SearchTask createTask(
+              long id,
+              String type,
+              String action,
+              TaskId parentTaskId,
+              Map<String, String> headers) {
+            SearchTask task = super.createTask(id, type, action, parentTaskId, headers);
+            task.setProgressListener(listener);
+            return task;
+          }
+        };
+    // The copy constructor does not carry the search pipeline.
+    return tracked.pipeline(request.pipeline());
   }
 
   /** Records the units and total hits of one completed search response. */

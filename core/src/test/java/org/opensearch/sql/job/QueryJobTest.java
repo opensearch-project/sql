@@ -326,6 +326,18 @@ class QueryJobTest {
   }
 
   @Test
+  void progress_isNotSampledOnceTerminal() {
+    RecordingRunner runner = new RecordingRunner();
+    QueryJob job = newJob(runner, 225L);
+    job.startRunner();
+    runner.complete(RESULT);
+    int calls = runner.progressCalls;
+    job.status();
+    job.cancel();
+    assertEquals(calls, runner.progressCalls);
+  }
+
+  @Test
   void await_runningCarriesProgressSampledAtExpiry() throws Exception {
     RecordingRunner runner = new RecordingRunner();
     QueryJob job = newJob(runner, 230L);
@@ -371,6 +383,7 @@ class QueryJobTest {
     private boolean cancelled;
     private volatile double progress;
     private volatile RuntimeException progressError;
+    private volatile int progressCalls;
 
     @Override
     public CompletionStage<QueryResult> run() {
@@ -385,6 +398,7 @@ class QueryJobTest {
 
     @Override
     public QueryProgress progress() {
+      progressCalls++;
       if (progressError != null) {
         throw progressError;
       }

@@ -187,8 +187,6 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
 
   @Override
   public void close() {
-    // Closing early (e.g. a LIMIT above the scan was satisfied) also ends this source's work.
-    markComplete();
     iterator = Collections.emptyIterator();
     queryCount = 0;
     bgScanner.close();

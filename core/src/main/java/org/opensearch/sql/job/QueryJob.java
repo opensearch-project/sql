@@ -165,7 +165,9 @@ public final class QueryJob {
   private QueryResult.Running running() {
     double sample = sampleRunnerProgress();
     synchronized (this) {
-      return new QueryResult.Running(id, progress(sample));
+      // The job may have succeeded after the budget expired; a RUNNING response stays below 1.0.
+      double fraction = Math.min(MAX_RUNNING_FRACTION, progress(sample).fractionDone());
+      return new QueryResult.Running(id, new QueryProgress(fraction));
     }
   }
 
@@ -294,8 +296,16 @@ public final class QueryJob {
     return new QueryProgress(runningFraction);
   }
 
-  /** Reads the runner's estimate outside the monitor; a misbehaving runner reports no progress. */
+  /**
+   * Reads the runner's estimate outside the monitor; returns {@code 0.0} unless the job is running,
+   * when the sample would be discarded, and when the runner misbehaves.
+   */
   private double sampleRunnerProgress() {
+    synchronized (this) {
+      if (state != QueryJobState.RUNNING) {
+        return 0D;
+      }
+    }
     try {
       QueryProgress progress = runner.progress();
       return progress == null ? 0D : progress.fractionDone();
