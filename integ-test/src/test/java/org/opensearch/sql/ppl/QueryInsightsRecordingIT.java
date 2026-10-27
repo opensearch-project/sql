@@ -34,9 +34,9 @@ import org.opensearch.sql.util.QueryInsightsRecords;
  * Insights; the default integTest cluster does not, and {@link QueryInsightsReportingIT} covers
  * that case.
  *
- * <p>Each scenario reads its own index, so a record is identified by the index it reports rather
- * than by its query text, which is anonymized. Absence is only asserted after a later query's
- * record has arrived, so a missing record means it was never sent rather than not yet processed.
+ * <p>Each scenario reads its own index, so a record is identified by the index its query text
+ * reads. Absence is only asserted after a later query's record has arrived, so a missing record
+ * means it was never sent rather than not yet processed.
  */
 public class QueryInsightsRecordingIT extends PPLIntegTestCase {
 
@@ -60,12 +60,12 @@ public class QueryInsightsRecordingIT extends PPLIntegTestCase {
 
     JSONObject record = awaitPplRecord("qi_it_success");
     assertFalse(record.getBoolean("failed"));
-    assertEquals(Set.of("qi_it_success"), indicesOf(record));
+    // As written, literal included, the way a DSL search's source is recorded.
+    assertEquals("source=qi_it_success | where v > 1 | fields v", record.getString("source"));
     assertTrue(
         "parent marker must be <source>:<nodeId>:<taskId>, was "
             + record.optString("parent_marker"),
         record.optString("parent_marker").matches("PPL:[^:]+:\\d+"));
-    assertFalse("query text must be recorded", record.optString("source").isEmpty());
     assertTrue(record.getLong("timestamp") >= CLASS_START_MILLIS);
     // The plugin measures its own threads; zero here means the accounting never ran.
     assertTrue(measurement(record, "cpu") > 0);
@@ -76,7 +76,7 @@ public class QueryInsightsRecordingIT extends PPLIntegTestCase {
   public void queryOnMissingIndexIsRecordedAsFailed() throws Exception {
     expectThrows(ResponseException.class, () -> executeQuery("source=qi_it_missing | fields v"));
 
-    // Fails in analysis, before any search runs; the record still names the index it targeted.
+    // Fails in analysis, before any search runs; the query parsed, so it is still recorded.
     JSONObject record = awaitPplRecord("qi_it_missing");
     assertTrue(record.getBoolean("failed"));
   }
@@ -108,11 +108,8 @@ public class QueryInsightsRecordingIT extends PPLIntegTestCase {
     expectThrows(ResponseException.class, () -> executeQuery("source=qi_it_syntax | wherr v > 1"));
 
     awaitBarrier();
-    // A query that never parses has no text or indices to report. Every other query in this class
-    // names an index, so a PPL record without one could only be the syntax error.
-    for (JSONObject record : topQueries(QueryInsightsRecords::isPpl)) {
-      assertFalse("unparsed query was recorded: " + record, indicesOf(record).isEmpty());
-    }
+    // A query that never parses is not reported.
+    assertNoPplRecord("qi_it_syntax");
   }
 
   @Test
@@ -157,7 +154,6 @@ public class QueryInsightsRecordingIT extends PPLIntegTestCase {
             + " | fields l.v, r.v");
 
     JSONObject parent = awaitPplRecord("qi_it_join_left");
-    assertEquals(Set.of("qi_it_join_left", "qi_it_join_right"), indicesOf(parent));
 
     List<JSONObject> children = awaitChildren(client(), parent.getString("parent_marker"), 2);
     Set<String> childIndices = new HashSet<>();
@@ -171,8 +167,8 @@ public class QueryInsightsRecordingIT extends PPLIntegTestCase {
           parent.getLong("timestamp") <= child.getLong("timestamp"));
       childIndices.addAll(indicesOf(child));
     }
-    // The searches read exactly the indices the record names.
-    assertEquals(indicesOf(parent), childIndices);
+    // The record names no indices; its searches carry the join's two sides.
+    assertEquals(Set.of("qi_it_join_left", "qi_it_join_right"), childIndices);
   }
 
   // ---------------------------------------------------------------------------------------------

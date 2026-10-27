@@ -28,7 +28,8 @@ import org.opensearch.sql.util.QueryInsightsRecords;
  * both Query Insights and the security plugin. {@link QueryInsightsReportingSecurityIT} covers a
  * secured cluster without Query Insights.
  *
- * <p>Each user queries an index named after them, so a record is identified by its index.
+ * <p>Each user queries an index named after them, so a record is identified by the index its query
+ * text reads.
  */
 public class QueryInsightsRecordingSecurityIT extends SecurityTestBase {
 

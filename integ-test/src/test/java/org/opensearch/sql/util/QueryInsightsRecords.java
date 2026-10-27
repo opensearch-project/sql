@@ -19,6 +19,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.opensearch.client.Request;
@@ -29,8 +30,8 @@ import org.opensearch.test.OpenSearchTestCase;
 /**
  * Reads Query Insights Top N records for the ITs that run with Query Insights installed.
  *
- * <p>Records are matched by the index they report rather than by query text, which is anonymized,
- * so each scenario should read an index of its own.
+ * <p>A PPL record is matched by the index its query text reads, since the record keeps the query as
+ * written, so each scenario should read an index of its own.
  */
 public final class QueryInsightsRecords {
 
@@ -176,8 +177,11 @@ public final class QueryInsightsRecords {
     return found.get();
   }
 
+  /** The PPL record of a query that reads {@code index} with {@code source=}. */
   public static Predicate<JSONObject> pplRecordFor(String index) {
-    return record -> isPpl(record) && indicesOf(record).contains(index);
+    // Bounded on both sides, so qi_it_barrier_1 does not match source=qi_it_barrier_10.
+    Pattern source = Pattern.compile("(?<![\\w-])source=" + Pattern.quote(index) + "(?![\\w-])");
+    return record -> isPpl(record) && source.matcher(record.optString("source")).find();
   }
 
   public static boolean isPpl(JSONObject record) {
