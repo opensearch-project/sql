@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -31,6 +32,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.Warning;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
+import org.opensearch.sql.opensearch.executor.progress.SourceProgress;
 import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
@@ -224,6 +226,35 @@ class BackgroundSearchScannerTest {
         seenOnBackgroundThread.get(),
         "The cancellable task must be visible on the background search thread so applyParentTask"
             + " can tag the search request with the ppl task as parent");
+  }
+
+  @Test
+  void reportsProgressOfBackgroundSearches() {
+    SourceProgress progress = mock(SourceProgress.class);
+    scanner = new BackgroundSearchScanner(client, 10, 10, progress);
+    OpenSearchResponse response = mockResponse(true, false, 0);
+    when(client.search(request, progress)).thenReturn(response);
+
+    scanner.startScanning(request);
+    scanner.fetchNextBatch(request);
+
+    verify(client).search(request, progress);
+    verify(client, never()).search(request);
+  }
+
+  @Test
+  void reportsProgressOfSynchronousSearches() {
+    OpenSearchClient syncClient = mock(OpenSearchClient.class);
+    when(syncClient.getNodeClient()).thenReturn(Optional.empty());
+    SourceProgress progress = mock(SourceProgress.class);
+    scanner = new BackgroundSearchScanner(syncClient, 10, 10, progress);
+    OpenSearchResponse response = mockResponse(true, false, 0);
+    when(syncClient.search(request, progress)).thenReturn(response);
+
+    scanner.startScanning(request);
+    scanner.fetchNextBatch(request);
+
+    verify(syncClient).search(request, progress);
   }
 
   @Test

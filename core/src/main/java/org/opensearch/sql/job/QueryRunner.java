@@ -25,4 +25,13 @@ public interface QueryRunner {
 
   /** Requests cooperative cancellation. Safe to call from any state. */
   void cancel();
+
+  /**
+   * Returns the engine's current progress estimate. Called from any thread while the job runs, so
+   * it must be cheap and must not block. The job keeps the reported value monotonic and below
+   * {@code 1.0} until success.
+   */
+  default QueryProgress progress() {
+    return QueryProgress.NONE;
+  }
 }

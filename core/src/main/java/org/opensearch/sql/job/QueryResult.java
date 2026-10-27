@@ -53,11 +53,19 @@ public sealed interface QueryResult
     }
   }
 
-  /** Wait budget expired; the client polls {@link #id()} to observe the terminal outcome. */
-  record Running(QueryJobId id) implements QueryResult {
+  /**
+   * Wait budget expired; the client polls {@link #id()} to observe the terminal outcome. {@code
+   * progress} is the job's progress when the budget expired.
+   */
+  record Running(QueryJobId id, QueryProgress progress) implements QueryResult {
 
     public Running {
       Objects.requireNonNull(id, "id must not be null");
+      Objects.requireNonNull(progress, "progress must not be null");
+    }
+
+    public Running(QueryJobId id) {
+      this(id, QueryProgress.NONE);
     }
 
     @Override

@@ -22,6 +22,7 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.executor.ExecutionEngine.Schema;
 import org.opensearch.sql.executor.pagination.Cursor;
+import org.opensearch.sql.job.QueryProgress;
 import org.opensearch.sql.job.QueryResult;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 
@@ -76,6 +77,32 @@ public class PPLQueryRunnerTest {
     ExecutionException e =
         assertThrows(ExecutionException.class, () -> runner.run().toCompletableFuture().get());
     assertEquals("boom", e.getCause().getMessage());
+  }
+
+  @Test
+  public void progress_defaultsToNone() {
+    PPLQueryRunner runner =
+        new PPLQueryRunner(
+            mock(PPLService.class),
+            new PPLQueryRequest("source=logs", null, "/_plugins/_ppl", "jdbc"),
+            s -> {},
+            Clock.systemUTC(),
+            () -> {});
+    assertEquals(QueryProgress.NONE, runner.progress());
+  }
+
+  @Test
+  public void progress_readsSupplier() {
+    QueryProgress progress = new QueryProgress(0.3D);
+    PPLQueryRunner runner =
+        new PPLQueryRunner(
+            mock(PPLService.class),
+            new PPLQueryRequest("source=logs", null, "/_plugins/_ppl", "jdbc"),
+            s -> {},
+            Clock.systemUTC(),
+            () -> {},
+            () -> progress);
+    assertEquals(progress, runner.progress());
   }
 
   @Test

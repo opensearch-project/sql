@@ -23,6 +23,7 @@ import java.util.OptionalLong;
  * @param completedAtMillis wall-clock time the job reached a terminal state
  * @param failure client-visible failure, present iff {@code state == FAILED}
  * @param result final result, present iff {@code state == SUCCEEDED}
+ * @param progress {@code 1.0} iff {@code state == SUCCEEDED}; otherwise the last running estimate
  */
 public record QueryJobStatus(
     QueryJobId id,
@@ -31,7 +32,28 @@ public record QueryJobStatus(
     OptionalLong startedAtMillis,
     OptionalLong completedAtMillis,
     Optional<QueryFailure> failure,
-    Optional<QueryResult> result) {
+    Optional<QueryResult> result,
+    QueryProgress progress) {
+
+  /** Creates a snapshot whose progress is derived from {@code state}. */
+  public QueryJobStatus(
+      QueryJobId id,
+      QueryJobState state,
+      long submittedAtMillis,
+      OptionalLong startedAtMillis,
+      OptionalLong completedAtMillis,
+      Optional<QueryFailure> failure,
+      Optional<QueryResult> result) {
+    this(
+        id,
+        state,
+        submittedAtMillis,
+        startedAtMillis,
+        completedAtMillis,
+        failure,
+        result,
+        state == QueryJobState.SUCCEEDED ? QueryProgress.DONE : QueryProgress.NONE);
+  }
 
   /**
    * Validates the snapshot invariants at construction time so that any {@code QueryJobStatus}
@@ -44,6 +66,7 @@ public record QueryJobStatus(
    *   <li>{@code result} is present iff {@code state == SUCCEEDED};
    *   <li>{@code completedAtMillis} is present iff {@code state.isTerminal()};
    *   <li>{@code startedAtMillis} is empty in {@code PENDING};
+   *   <li>{@code progress} is {@code 1.0} iff {@code state == SUCCEEDED};
    *   <li>{@code submittedAtMillis} is non-negative;
    *   <li>no field is {@code null}.
    * </ul>
@@ -58,6 +81,7 @@ public record QueryJobStatus(
     Objects.requireNonNull(completedAtMillis, "completedAtMillis must not be null");
     Objects.requireNonNull(failure, "failure must not be null");
     Objects.requireNonNull(result, "result must not be null");
+    Objects.requireNonNull(progress, "progress must not be null");
     if (submittedAtMillis < 0) {
       throw new IllegalArgumentException("submittedAtMillis must not be negative");
     }
@@ -72,6 +96,9 @@ public record QueryJobStatus(
     }
     if (state == QueryJobState.PENDING && startedAtMillis.isPresent()) {
       throw new IllegalArgumentException("startedAtMillis must be empty in PENDING state");
+    }
+    if ((state == QueryJobState.SUCCEEDED) != (progress.fractionDone() == 1D)) {
+      throw new IllegalArgumentException("progress is 1.0 only in SUCCEEDED state");
     }
   }
 }

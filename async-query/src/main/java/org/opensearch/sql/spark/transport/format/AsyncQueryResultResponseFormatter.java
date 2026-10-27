@@ -7,6 +7,7 @@ package org.opensearch.sql.spark.transport.format;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.Builder;
 import lombok.Getter;
@@ -57,6 +58,9 @@ public class AsyncQueryResultResponseFormatter extends JsonResponseFormatter<Asy
       json.datarows(fetchDataRows(response));
     }
     json.status(response.getStatus());
+    if (response.getProgress() != null) {
+      json.progress(Map.of("fraction_done", response.getProgress().fractionDone()));
+    }
     // Prefer the structured error map (PPL FAILED path) over the error string (Spark path).
     // Spark results never populate errorDetails, so the string branch here is byte-identical
     // to the pre-change behavior; the Gson field type (`Object`) serializes String as a JSON
@@ -86,6 +90,9 @@ public class AsyncQueryResultResponseFormatter extends JsonResponseFormatter<Asy
   public static class JsonResponse {
 
     private final String status;
+
+    /** Query-job progress as {@code {"fraction_done": x}}; omitted on the Spark path. */
+    private final Map<String, Double> progress;
 
     private final List<Column> schema;
 

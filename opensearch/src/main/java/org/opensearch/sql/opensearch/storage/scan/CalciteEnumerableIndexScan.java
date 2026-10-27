@@ -29,6 +29,7 @@ import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.plan.Scannable;
 import org.opensearch.sql.calcite.plan.rule.OpenSearchRules;
+import org.opensearch.sql.opensearch.executor.progress.QueryProgressTracker;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
@@ -104,6 +105,8 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
             OpenSearchRelOptUtil.replaceDot(getCluster().getTypeFactory(), getRowType()),
             pref.preferArray());
 
+    // Register before execution so query progress counts every scan from the first search.
+    QueryProgressTracker.current().ifPresent(tracker -> tracker.register(this));
     Expression scanOperator = implementor.stash(this, CalciteEnumerableIndexScan.class);
     return implementor.result(physType, Blocks.toBlock(Expressions.call(scanOperator, "scan")));
   }
@@ -126,7 +129,10 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
             requestBuilder.getMaxResultWindow(),
             osIndex.getQueryBucketSize(),
             osIndex.buildRequest(requestBuilder),
-            osIndex.createOpenSearchResourceMonitor());
+            osIndex.createOpenSearchResourceMonitor(),
+            QueryProgressTracker.current()
+                .map(tracker -> tracker.register(CalciteEnumerableIndexScan.this))
+                .orElse(null));
       }
     };
   }

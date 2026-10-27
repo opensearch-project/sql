@@ -45,6 +45,7 @@ import org.opensearch.sql.job.OpenSearchQueryJobService;
 import org.opensearch.sql.job.OpenSearchSecurityAdapter;
 import org.opensearch.sql.job.QueryJob;
 import org.opensearch.sql.job.QueryJobService;
+import org.opensearch.sql.job.QueryProgress;
 import org.opensearch.sql.job.QueryRunner;
 import org.opensearch.sql.job.SecurityAdapter;
 import org.opensearch.sql.legacy.metrics.MetricName;
@@ -53,6 +54,7 @@ import org.opensearch.sql.monitor.profile.ProfileScope;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.sql.opensearch.client.RemoteClusterServiceProvider;
 import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
+import org.opensearch.sql.opensearch.executor.progress.QueryProgressTracker;
 import org.opensearch.sql.opensearch.executor.tracing.TracingPhaseListener;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.plugin.config.EngineExtensionsHolder;
@@ -315,13 +317,15 @@ public class TransportPPLQueryAction
       throw new IllegalArgumentException("Async PPL queries require a cancellable PPLQueryTask");
     }
     Runnable cancelExecution = () -> pplQueryTask.cancel("async PPL query cancelled");
+    QueryProgressTracker progressTracker = pplQueryTask.trackProgress();
     QueryRunner runner =
         new PPLQueryRunner(
             pplService,
             transformedRequest,
             anonymizedQuerySink,
             Clock.systemUTC(),
-            cancelExecution);
+            cancelExecution,
+            () -> new QueryProgress(progressTracker.fractionDone()));
     ThreadContext threadContext = clientRef.threadPool().getThreadContext();
     ActionListener<TransportPPLQueryResponse> ctxListener =
         ContextPreservingActionListener.wrapPreservingContext(listener, threadContext);
@@ -375,6 +379,7 @@ public class TransportPPLQueryAction
     return new JSONObject()
         .put("id", running.id().encode())
         .put("status", "RUNNING")
+        .put("progress", new JSONObject().put("fraction_done", running.progress().fractionDone()))
         .put("schema", new JSONArray())
         .put("datarows", new JSONArray())
         .put("total", 0)

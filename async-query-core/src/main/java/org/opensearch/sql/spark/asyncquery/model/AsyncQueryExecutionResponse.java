@@ -10,6 +10,7 @@ import java.util.Map;
 import lombok.Data;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionEngine;
+import org.opensearch.sql.job.QueryProgress;
 
 /** AsyncQueryExecutionResponse to store the response form spark job execution. */
 @Data
@@ -36,6 +37,9 @@ public class AsyncQueryExecutionResponse {
    */
   private final Map<String, Object> errorDetails;
 
+  /** Progress of a query job; {@code null} on every Spark construction site. */
+  private final QueryProgress progress;
+
   /** Spark-shaped constructor; keeps callers that never populate structured error details. */
   public AsyncQueryExecutionResponse(
       String status,
@@ -58,6 +62,19 @@ public class AsyncQueryExecutionResponse {
       String sessionId,
       ExecutionEngine.ExplainResponse explain,
       Map<String, Object> errorDetails) {
+    this(status, schema, results, error, sessionId, explain, errorDetails, null);
+  }
+
+  /** Full constructor including the job progress. Used by the query-job path. */
+  public AsyncQueryExecutionResponse(
+      String status,
+      ExecutionEngine.Schema schema,
+      List<ExprValue> results,
+      String error,
+      String sessionId,
+      ExecutionEngine.ExplainResponse explain,
+      Map<String, Object> errorDetails,
+      QueryProgress progress) {
     this.status = status;
     this.schema = schema;
     this.results = results;
@@ -65,5 +82,6 @@ public class AsyncQueryExecutionResponse {
     this.sessionId = sessionId;
     this.explain = explain;
     this.errorDetails = errorDetails;
+    this.progress = progress;
   }
 }

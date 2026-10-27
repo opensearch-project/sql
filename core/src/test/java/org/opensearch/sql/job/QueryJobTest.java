@@ -256,6 +256,110 @@ class QueryJobTest {
     assertThrows(NullPointerException.class, () -> job.onTerminal(null));
   }
 
+  @Test
+  void progress_isZeroWhilePending() {
+    RecordingRunner runner = new RecordingRunner();
+    runner.progress = 0.5D;
+    QueryJob job = newJob(runner, 170L);
+    assertEquals(0D, job.status().progress().fractionDone());
+  }
+
+  @Test
+  void progress_isMonotonicAndBelowOneWhileRunning() {
+    RecordingRunner runner = new RecordingRunner();
+    QueryJob job = newJob(runner, 180L);
+    job.startRunner();
+    runner.progress = 0.3D;
+    assertEquals(0.3D, job.status().progress().fractionDone());
+    runner.progress = 0.1D;
+    assertEquals(0.3D, job.status().progress().fractionDone());
+    runner.progress = 1D;
+    assertEquals(QueryJob.MAX_RUNNING_FRACTION, job.status().progress().fractionDone());
+    assertEquals(QueryJobState.RUNNING, job.status().state());
+  }
+
+  @Test
+  void progress_isOneOnSuccess() {
+    RecordingRunner runner = new RecordingRunner();
+    QueryJob job = newJob(runner, 190L);
+    job.startRunner();
+    runner.progress = 0.2D;
+    runner.complete(RESULT);
+    assertEquals(1D, job.status().progress().fractionDone());
+  }
+
+  @Test
+  void progress_failureRetainsLastRunningValue() {
+    RecordingRunner runner = new RecordingRunner();
+    QueryJob job = newJob(runner, 200L);
+    job.startRunner();
+    runner.progress = 0.4D;
+    runner.fail(new IllegalStateException("boom"));
+    runner.progress = 0.9D;
+    QueryJobStatus status = job.status();
+    assertEquals(QueryJobState.FAILED, status.state());
+    assertEquals(0.4D, status.progress().fractionDone());
+  }
+
+  @Test
+  void progress_cancellationRetainsLastRunningValue() {
+    RecordingRunner runner = new RecordingRunner();
+    QueryJob job = newJob(runner, 210L);
+    job.startRunner();
+    runner.progress = 0.6D;
+    job.cancel();
+    runner.progress = 0.9D;
+    QueryJobStatus status = job.status();
+    assertEquals(QueryJobState.CANCELLED, status.state());
+    assertEquals(0.6D, status.progress().fractionDone());
+  }
+
+  @Test
+  void progress_runnerErrorKeepsPreviousValue() {
+    RecordingRunner runner = new RecordingRunner();
+    QueryJob job = newJob(runner, 220L);
+    job.startRunner();
+    runner.progress = 0.5D;
+    assertEquals(0.5D, job.status().progress().fractionDone());
+    runner.progressError = new IllegalStateException("progress bug");
+    assertEquals(0.5D, job.status().progress().fractionDone());
+  }
+
+  @Test
+  void await_runningCarriesProgressSampledAtExpiry() throws Exception {
+    RecordingRunner runner = new RecordingRunner();
+    QueryJob job = newJob(runner, 230L);
+    job.startRunner();
+    CompletionStage<QueryResult> stage = job.await(Duration.ofMillis(50));
+    runner.progress = 0.7D;
+    QueryResult result = stage.toCompletableFuture().get(1, TimeUnit.SECONDS);
+    assertEquals(
+        0.7D, assertInstanceOf(QueryResult.Running.class, result).progress().fractionDone());
+  }
+
+  @Test
+  void queryProgress_rejectsValuesOutsideUnitInterval() {
+    assertThrows(IllegalArgumentException.class, () -> new QueryProgress(-0.1D));
+    assertThrows(IllegalArgumentException.class, () -> new QueryProgress(1.1D));
+    assertThrows(IllegalArgumentException.class, () -> new QueryProgress(Double.NaN));
+  }
+
+  @Test
+  void status_rejectsFullProgressOutsideSucceeded() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            new QueryJobStatus(
+                ID,
+                QueryJobState.RUNNING,
+                0L,
+                java.util.OptionalLong.of(0L),
+                java.util.OptionalLong.empty(),
+                java.util.Optional.empty(),
+                java.util.Optional.empty(),
+                QueryProgress.DONE));
+  }
+
   private static QueryJob newJob(QueryRunner runner, long submittedMillis) {
     return new QueryJob(
         ID, OWNER, runner, Clock.fixed(Instant.ofEpochMilli(submittedMillis), ZoneOffset.UTC));
@@ -265,6 +369,8 @@ class QueryJobTest {
     private final CompletableFuture<QueryResult> future = new CompletableFuture<>();
     private int runInvocations;
     private boolean cancelled;
+    private volatile double progress;
+    private volatile RuntimeException progressError;
 
     @Override
     public CompletionStage<QueryResult> run() {
@@ -275,6 +381,14 @@ class QueryJobTest {
     @Override
     public void cancel() {
       cancelled = true;
+    }
+
+    @Override
+    public QueryProgress progress() {
+      if (progressError != null) {
+        throw progressError;
+      }
+      return new QueryProgress(progress);
     }
 
     void complete(QueryResult result) {

@@ -23,6 +23,7 @@ import org.opensearch.sql.monitor.profile.ProfileContext;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
+import org.opensearch.sql.opensearch.executor.progress.SourceProgress;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.tasks.CancellableTask;
@@ -85,9 +86,21 @@ public class BackgroundSearchScanner {
    */
   @Nullable private final CancellableTask cancellableTask;
 
+  /** Receives the progress of every search this scanner sends; {@code null} for none. */
+  @Nullable private final SourceProgress progress;
+
   public BackgroundSearchScanner(
       OpenSearchClient client, int maxResultWindow, int queryBucketSize) {
+    this(client, maxResultWindow, queryBucketSize, null);
+  }
+
+  public BackgroundSearchScanner(
+      OpenSearchClient client,
+      int maxResultWindow,
+      int queryBucketSize,
+      @Nullable SourceProgress progress) {
     this.client = client;
+    this.progress = progress;
     this.maxResultWindow = maxResultWindow;
     this.queryBucketSize = queryBucketSize;
     this.cancellableTask = OpenSearchQueryManager.getCancellableTask();
@@ -138,7 +151,7 @@ public class BackgroundSearchScanner {
       restored = true;
     }
     try {
-      return QueryProfiling.withCurrentContext(ctx, () -> client.search(request));
+      return QueryProfiling.withCurrentContext(ctx, () -> search(request));
     } finally {
       if (restored) {
         OpenSearchQueryManager.clearCancellableTask();
@@ -175,8 +188,12 @@ public class BackgroundSearchScanner {
             e);
       }
     } else {
-      return client.search(request);
+      return search(request);
     }
+  }
+
+  private OpenSearchResponse search(OpenSearchRequest request) {
+    return progress == null ? client.search(request) : client.search(request, progress);
   }
 
   /**

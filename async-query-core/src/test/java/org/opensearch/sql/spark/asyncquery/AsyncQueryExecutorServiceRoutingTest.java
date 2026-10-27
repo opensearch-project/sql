@@ -33,6 +33,7 @@ import org.opensearch.sql.job.QueryJobId;
 import org.opensearch.sql.job.QueryJobService;
 import org.opensearch.sql.job.QueryJobState;
 import org.opensearch.sql.job.QueryJobStatus;
+import org.opensearch.sql.job.QueryProgress;
 import org.opensearch.sql.job.QueryResult;
 import org.opensearch.sql.job.SecurityAdapter;
 import org.opensearch.sql.job.exceptions.QueryJobForbiddenException;
@@ -144,6 +145,36 @@ class AsyncQueryExecutorServiceRoutingTest {
     assertEquals("query execution failed", response.getError());
     assertEmptyResults(response);
     verifyNoSparkCalls();
+  }
+
+  @Test
+  void jobSnapshotsCarryProgress() {
+    when(securityAdapter.current()).thenReturn(ALICE);
+    when(jobService.get(JOB_ID, ALICE))
+        .thenReturn(
+            new QueryJobStatus(
+                JOB_ID,
+                QueryJobState.RUNNING,
+                0,
+                OptionalLong.of(1),
+                OptionalLong.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                new QueryProgress(0.4D)));
+    assertEquals(0.4D, fetch().getProgress().fractionDone());
+
+    stubSnapshot(QueryJobState.FAILED, Optional.empty(), Optional.empty());
+    assertEquals(0D, fetch().getProgress().fractionDone());
+  }
+
+  @Test
+  void succeededSnapshotReportsFullProgress() {
+    Schema schema = new Schema(List.of(new Schema.Column("count", null, INTEGER)));
+    stubSnapshot(
+        QueryJobState.SUCCEEDED,
+        Optional.of(new QueryResult.Rows(schema, List.of(), null, null, 10)),
+        Optional.empty());
+    assertEquals(QueryProgress.DONE, fetch().getProgress());
   }
 
   @Test

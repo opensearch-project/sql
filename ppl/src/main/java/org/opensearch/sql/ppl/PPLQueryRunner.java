@@ -12,9 +12,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
+import org.opensearch.sql.job.QueryProgress;
 import org.opensearch.sql.job.QueryResult;
 import org.opensearch.sql.job.QueryRunner;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
@@ -37,6 +39,7 @@ public final class PPLQueryRunner implements QueryRunner {
   private final Consumer<String> anonymizedQuerySink;
   private final Clock clock;
   private final Runnable cancelExecution;
+  private final Supplier<QueryProgress> progress;
   private final AtomicBoolean started = new AtomicBoolean();
   private final CompletableFuture<QueryResult> future = new CompletableFuture<>();
 
@@ -56,6 +59,21 @@ public final class PPLQueryRunner implements QueryRunner {
       Consumer<String> anonymizedQuerySink,
       Clock clock,
       Runnable cancelExecution) {
+    this(
+        pplService, request, anonymizedQuerySink, clock, cancelExecution, () -> QueryProgress.NONE);
+  }
+
+  /**
+   * @param progress reads the engine's current progress estimate; must not block
+   * @throws NullPointerException if any argument is {@code null}
+   */
+  public PPLQueryRunner(
+      PPLService pplService,
+      PPLQueryRequest request,
+      Consumer<String> anonymizedQuerySink,
+      Clock clock,
+      Runnable cancelExecution,
+      Supplier<QueryProgress> progress) {
     this.pplService = Objects.requireNonNull(pplService, "pplService must not be null");
     this.request = Objects.requireNonNull(request, "request must not be null");
     this.anonymizedQuerySink =
@@ -63,6 +81,7 @@ public final class PPLQueryRunner implements QueryRunner {
     this.clock = Objects.requireNonNull(clock, "clock must not be null");
     this.cancelExecution =
         Objects.requireNonNull(cancelExecution, "cancelExecution must not be null");
+    this.progress = Objects.requireNonNull(progress, "progress must not be null");
   }
 
   @Override
@@ -97,6 +116,11 @@ public final class PPLQueryRunner implements QueryRunner {
         },
         anonymizedQuerySink);
     return future;
+  }
+
+  @Override
+  public QueryProgress progress() {
+    return progress.get();
   }
 
   @Override

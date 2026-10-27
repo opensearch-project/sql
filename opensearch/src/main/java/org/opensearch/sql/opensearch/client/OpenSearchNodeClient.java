@@ -22,6 +22,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
@@ -39,6 +40,7 @@ import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.IndexSettings;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
+import org.opensearch.sql.opensearch.executor.progress.SourceProgress;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
@@ -243,10 +245,20 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   /** TODO: Scroll doesn't work for aggregation. Support aggregation later. */
   @Override
   public OpenSearchResponse search(OpenSearchRequest request) {
+    return search(request, null);
+  }
+
+  @Override
+  public OpenSearchResponse search(OpenSearchRequest request, @Nullable SourceProgress progress) {
     return request.search(
         req -> {
-          applyParentTask(req);
-          return client.search(req).actionGet();
+          SearchRequest tracked = progress == null ? req : progress.track(req);
+          applyParentTask(tracked);
+          SearchResponse response = client.search(tracked).actionGet();
+          if (progress != null) {
+            progress.onResponse(response);
+          }
+          return response;
         },
         req -> client.searchScroll(req).actionGet());
   }

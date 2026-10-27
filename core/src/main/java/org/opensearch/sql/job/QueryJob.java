@@ -42,6 +42,9 @@ import java.util.function.Function;
  */
 public final class QueryJob {
 
+  /** Upper bound for progress while running; only {@code SUCCEEDED} reports {@code 1.0}. */
+  static final double MAX_RUNNING_FRACTION = 0.95D;
+
   private final QueryJobId id;
   private final Principal owner;
   private final QueryRunner runner;
@@ -55,6 +58,7 @@ public final class QueryJob {
   private OptionalLong completedAtMillis = OptionalLong.empty();
   private Optional<QueryFailure> failure = Optional.empty();
   private Optional<QueryResult> result = Optional.empty();
+  private double runningFraction;
 
   /**
    * Creates a job in {@link QueryJobState#PENDING}. Package-private: only {@link QueryJobService}
@@ -107,18 +111,28 @@ public final class QueryJob {
   }
 
   /** Returns an immutable snapshot of the job's current state. */
-  public synchronized QueryJobStatus status() {
-    return new QueryJobStatus(
-        id, state, submittedAtMillis, startedAtMillis, completedAtMillis, failure, result);
+  public QueryJobStatus status() {
+    double sample = sampleRunnerProgress();
+    synchronized (this) {
+      return new QueryJobStatus(
+          id,
+          state,
+          submittedAtMillis,
+          startedAtMillis,
+          completedAtMillis,
+          failure,
+          result,
+          progress(sample));
+    }
   }
 
   /**
    * Bounded, non-blocking wait. The returned stage fires exactly once — with the runner's {@link
-   * QueryResult} on success, {@link QueryResult.Running} when the budget expires, or exceptionally
-   * with the unwrapped runner cause on failure or cancellation. The callback fires on the
-   * runner-completing thread (success/failure) or the JDK {@code Delayer} daemon (timeout); callers
-   * needing {@code ThreadContext} preserved must wrap their listener with {@code
-   * ContextPreservingActionListener} before registering.
+   * QueryResult} on success, {@link QueryResult.Running} carrying the progress at expiry when the
+   * budget expires, or exceptionally with the unwrapped runner cause on failure or cancellation.
+   * The callback fires on the runner-completing thread (success/failure) or the JDK {@code Delayer}
+   * daemon (timeout); callers needing {@code ThreadContext} preserved must wrap their listener with
+   * {@code ContextPreservingActionListener} before registering.
    *
    * <p>Non-{@link Exception} throwables re-throw so JVM-level errors (e.g. {@link
    * OutOfMemoryError}) are not silently downgraded to an application-level failure.
@@ -138,13 +152,21 @@ public final class QueryJob {
           out.completeExceptionally(cause);
         });
     long millis = budget == null ? 0L : budget.toMillis();
-    QueryResult.Running running = new QueryResult.Running(id);
+    // Placeholder compared by identity; progress is sampled when the budget actually expires.
+    QueryResult.Running expired = new QueryResult.Running(id);
     if (millis <= 0L) {
-      out.complete(running);
+      out.complete(expired);
     } else {
-      out.completeOnTimeout(running, millis, TimeUnit.MILLISECONDS);
+      out.completeOnTimeout(expired, millis, TimeUnit.MILLISECONDS);
     }
-    return out.minimalCompletionStage();
+    return out.thenApply(value -> value == expired ? running() : value).minimalCompletionStage();
+  }
+
+  private QueryResult.Running running() {
+    double sample = sampleRunnerProgress();
+    synchronized (this) {
+      return new QueryResult.Running(id, progress(sample));
+    }
   }
 
   /** One-shot hook that fires exactly once when the job reaches any terminal state. */
@@ -160,10 +182,12 @@ public final class QueryJob {
    */
   public void cancel() {
     boolean shouldCancelRunner;
+    double sample = sampleRunnerProgress();
     synchronized (this) {
       if (state.isTerminal()) {
         return;
       }
+      progress(sample);
       state = QueryJobState.CANCELLED;
       completedAtMillis = OptionalLong.of(clock.millis());
       shouldCancelRunner = true;
@@ -242,15 +266,42 @@ public final class QueryJob {
    *     CompletionException} wrapper (already unwrapped in {@link #startRunner()})
    */
   private void onRunnerFailure(Throwable throwable) {
+    double sample = sampleRunnerProgress();
     synchronized (this) {
       if (state != QueryJobState.RUNNING && state != QueryJobState.PENDING) {
         return;
       }
+      progress(sample);
       state = QueryJobState.FAILED;
       completedAtMillis = OptionalLong.of(clock.millis());
       failure = Optional.of(QueryFailure.of(throwable, failureRenderer));
     }
     completion.completeExceptionally(throwable);
+  }
+
+  /**
+   * Folds {@code sample} into the running estimate and returns the progress for the current state.
+   * The estimate never decreases and stays below {@code 1.0} until {@code SUCCEEDED}; {@code
+   * FAILED} and {@code CANCELLED} keep the last running value. Caller holds the monitor.
+   */
+  private QueryProgress progress(double sample) {
+    if (state == QueryJobState.SUCCEEDED) {
+      return QueryProgress.DONE;
+    }
+    if (state == QueryJobState.RUNNING) {
+      runningFraction = Math.max(runningFraction, Math.min(MAX_RUNNING_FRACTION, sample));
+    }
+    return new QueryProgress(runningFraction);
+  }
+
+  /** Reads the runner's estimate outside the monitor; a misbehaving runner reports no progress. */
+  private double sampleRunnerProgress() {
+    try {
+      QueryProgress progress = runner.progress();
+      return progress == null ? 0D : progress.fractionDone();
+    } catch (RuntimeException e) {
+      return 0D;
+    }
   }
 
   /**

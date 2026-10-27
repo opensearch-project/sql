@@ -8,8 +8,10 @@ package org.opensearch.sql.opensearch.client;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import javax.annotation.Nullable;
 import org.opensearch.action.search.CreatePitRequest;
 import org.opensearch.action.search.DeletePitRequest;
+import org.opensearch.sql.opensearch.executor.progress.SourceProgress;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
@@ -62,6 +64,18 @@ public interface OpenSearchClient {
    * @return search response
    */
   OpenSearchResponse search(OpenSearchRequest request);
+
+  /**
+   * Perform search query in the search request and report its progress to {@code progress}. Clients
+   * that cannot observe search progress ignore it.
+   *
+   * @param request search request
+   * @param progress receives the progress of each search; {@code null} to report nothing
+   * @return search response
+   */
+  default OpenSearchResponse search(OpenSearchRequest request, @Nullable SourceProgress progress) {
+    return search(request);
+  }
 
   /**
    * Get the combination of the indices and the alias.
