@@ -23,6 +23,7 @@ setup:
             plugins.calcite.enabled: true
             # Without this a Calcite failure is silently answered by the v2 engine, which never prunes.
             plugins.calcite.fallback.allowed: false
+            plugins.query.pruning.enabled: true
   - do:
       allowed_warnings:
         - 'index template [pruning-it] has index patterns [pruning-it-*] matching patterns from existing older templates [global] with patterns (global => [*]); this template [pruning-it] will take precedence during new index creation'
@@ -60,7 +61,7 @@ teardown:
         ignore: 404
   - do:
       indices.delete:
-        index: 'pruning-it-*,pruning-mixed-*,pruning-nomap-*'
+        index: 'pruning-it-*,pruning-time-*,pruning-timestamp-*,pruning-mixed-*,pruning-nomap-*'
         ignore_unavailable: true
   - do:
       indices.delete_index_template:
@@ -94,6 +95,80 @@ teardown:
         pruning-it-2026-01: {total: {search: {point_in_time_total: 0}}}
         pruning-it-2026-02: {total: {search: {point_in_time_total: 1}}}
         pruning-it-2026-03: {total: {search: {point_in_time_total: 0}}}
+
+---
+"Prunes a range on timestamp":
+  - do:
+      indices.create:
+        index: pruning-timestamp-a
+        body:
+          settings: {number_of_shards: 1, number_of_replicas: 0, max_result_window: 2}
+          mappings: {properties: {timestamp: {type: date}, body: {type: keyword}}}
+  - do:
+      indices.create:
+        index: pruning-timestamp-b
+        body:
+          settings: {number_of_shards: 1, number_of_replicas: 0, max_result_window: 2}
+          mappings: {properties: {timestamp: {type: date}, body: {type: keyword}}}
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "pruning-timestamp-a"}}'
+          - '{"timestamp": "2026-01-15T12:00:00Z", "body": "january"}'
+          - '{"index": {"_index": "pruning-timestamp-b"}}'
+          - '{"timestamp": "2026-02-15T12:00:00Z", "body": "february"}'
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: "source=pruning-timestamp-* | where `timestamp` >= '2026-02-01 00:00:00' and `timestamp` <= '2026-02-28 23:59:59' | fields body | head 5"
+  - match: {datarows: [["february"]]}
+  - do:
+      delete_all_pits: {}
+  - do:
+      indices.stats: {index: 'pruning-timestamp-*', metric: search, filter_path: 'indices.*.total.search.point_in_time_total'}
+  - match:
+      indices:
+        pruning-timestamp-a: {total: {search: {point_in_time_total: 0}}}
+        pruning-timestamp-b: {total: {search: {point_in_time_total: 1}}}
+
+---
+"Prunes a range on time":
+  - do:
+      indices.create:
+        index: pruning-time-a
+        body:
+          settings: {number_of_shards: 1, number_of_replicas: 0, max_result_window: 2}
+          mappings: {properties: {time: {type: date}, body: {type: keyword}}}
+  - do:
+      indices.create:
+        index: pruning-time-b
+        body:
+          settings: {number_of_shards: 1, number_of_replicas: 0, max_result_window: 2}
+          mappings: {properties: {time: {type: date}, body: {type: keyword}}}
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "pruning-time-a"}}'
+          - '{"time": "2026-01-15T12:00:00Z", "body": "january"}'
+          - '{"index": {"_index": "pruning-time-b"}}'
+          - '{"time": "2026-02-15T12:00:00Z", "body": "february"}'
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: "source=pruning-time-* | where `time` >= '2026-02-01 00:00:00' and `time` <= '2026-02-28 23:59:59' | fields body | head 5"
+  - match: {datarows: [["february"]]}
+  - do:
+      delete_all_pits: {}
+  - do:
+      indices.stats: {index: 'pruning-time-*', metric: search, filter_path: 'indices.*.total.search.point_in_time_total'}
+  - match:
+      indices:
+        pruning-time-a: {total: {search: {point_in_time_total: 0}}}
+        pruning-time-b: {total: {search: {point_in_time_total: 1}}}
 
 ---
 "Prunes to both indices in range":
@@ -202,7 +277,7 @@ teardown:
   - match: {datarows: [["february"]]}
 
 ---
-"Declines to prune a data stream":
+"Prunes data streams matched by a wildcard or exact name":
   - do:
       allowed_warnings:
         - 'index template [pruning-ds] has index patterns [pruning-ds-*] matching patterns from existing older templates [global] with patterns (global => [*]); this template [pruning-ds] will take precedence during new index creation'
@@ -219,35 +294,78 @@ teardown:
             mappings:
               properties:
                 "@timestamp": {type: date}
-                body: {type: text}
+                body: {type: keyword}
   - do:
-      indices.create_data_stream: {name: pruning-ds-logs}
+      indices.create_data_stream: {name: pruning-ds-a}
+  - do:
+      indices.create_data_stream: {name: pruning-ds-b}
   - do:
       bulk:
-        index: pruning-ds-logs
+        index: pruning-ds-a
         refresh: true
         body:
           - '{"create": {}}'
-          - '{"@timestamp": "2026-01-15T12:00:00Z", "body": "january"}'
+          - '{"@timestamp": "2026-01-15T12:05:00Z", "body": "january-a"}'
   - do:
-      indices.rollover: {alias: pruning-ds-logs}
+      indices.rollover: {alias: pruning-ds-a}
   - do:
       bulk:
-        index: pruning-ds-logs
+        index: pruning-ds-a
         refresh: true
         body:
           - '{"create": {}}'
-          - '{"@timestamp": "2026-03-15T12:00:00Z", "body": "march"}'
+          - '{"@timestamp": "2026-02-15T12:05:00Z", "body": "february-a"}'
+  - do:
+      bulk:
+        index: pruning-ds-b
+        refresh: true
+        body:
+          - '{"create": {}}'
+          - '{"@timestamp": "2026-02-15T12:05:00Z", "body": "february-b"}'
+  - do:
+      indices.rollover: {alias: pruning-ds-a}
+  - do:
+      indices.rollover: {alias: pruning-ds-b}
+  - do:
+      bulk:
+        index: pruning-ds-a
+        refresh: true
+        body:
+          - '{"create": {}}'
+          - '{"@timestamp": "2026-03-15T12:05:00Z", "body": "march-a"}'
+  - do:
+      bulk:
+        index: pruning-ds-b
+        refresh: true
+        body:
+          - '{"create": {}}'
+          - '{"@timestamp": "2026-03-15T12:05:00Z", "body": "march-b"}'
+
+  # max_result_window=2 makes head 5 use PIT. The two write backings should open it.
   - do:
       headers: {Content-Type: 'application/json'}
       ppl:
         body:
-          query: "source=pruning-ds-* | where @timestamp >= '2026-01-01 00:00:00' and @timestamp <= '2026-01-31 23:59:59' | head 5"
+          query: "source=pruning-ds-* | where @timestamp >= '2026-03-15 12:00:00' and @timestamp <= '2026-03-15 12:15:00' | sort body | fields body | head 5"
+  - match: {datarows: [["march-a"], ["march-b"]]}
   - do:
       delete_all_pits: {}
   - do:
       indices.stats: {index: 'pruning-ds-*', metric: search, filter_path: '_all.total.search.point_in_time_total'}
   - match: {_all.total.search.point_in_time_total: 2}
+
+  # An explicit data stream name has no wildcard but still expands to its backings.
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: "source=pruning-ds-a | where @timestamp >= '2026-03-15 12:00:00' and @timestamp <= '2026-03-15 12:15:00' | fields body | head 5"
+  - match: {datarows: [["march-a"]]}
+  - do:
+      delete_all_pits: {}
+  - do:
+      indices.stats: {index: 'pruning-ds-*', metric: search, filter_path: '_all.total.search.point_in_time_total'}
+  - match: {_all.total.search.point_in_time_total: 3}
 
 ---
 "A backfilled document stored outside its month is still returned":
