@@ -7,7 +7,6 @@ package org.opensearch.sql.expression.function.CollectionUDF;
 
 import static org.apache.calcite.sql.type.SqlTypeUtil.createArrayType;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -95,42 +94,15 @@ public class ArrayFunctionImpl extends ImplementorUDF {
   }
 
   /**
-   * The asList will generate the List<Object>. We need to convert internally, otherwise, the
-   * calcite will directly cast like DOUBLE -> INTEGER, which throw error. Null elements are
-   * preserved in the array.
+   * The asList will generate the List<Object>. We need to convert internally, otherwise, Avatica's
+   * array accessor casts each element to the declared element class, so a Byte cell in an INTEGER
+   * array throws. Null elements are preserved in the array.
    */
   public static Object internalCast(Object... args) {
     List<Object> originalList = (List<Object>) args[0];
     SqlTypeName targetType = (SqlTypeName) args[args.length - 1];
     List<Object> result;
     switch (targetType) {
-      case DECIMAL:
-        result =
-            originalList.stream()
-                .map(
-                    num -> {
-                      if (num == null) {
-                        return null;
-                      } else if (num instanceof BigDecimal) {
-                        return (BigDecimal) num;
-                      } else {
-                        return BigDecimal.valueOf(((Number) num).doubleValue());
-                      }
-                    })
-                .collect(Collectors.toList());
-        break;
-      case DOUBLE:
-        result =
-            originalList.stream()
-                .map(i -> i == null ? null : (Object) ((Number) i).doubleValue())
-                .collect(Collectors.toList());
-        break;
-      case FLOAT:
-        result =
-            originalList.stream()
-                .map(i -> i == null ? null : (Object) ((Number) i).floatValue())
-                .collect(Collectors.toList());
-        break;
       case VARCHAR, CHAR:
         result =
             originalList.stream()
@@ -138,7 +110,10 @@ public class ArrayFunctionImpl extends ImplementorUDF {
                 .collect(Collectors.toList());
         break;
       default:
-        result = originalList;
+        result =
+            originalList.stream()
+                .map(i -> MVAppendCore.coerce(i, targetType))
+                .collect(Collectors.toList());
     }
     return result;
   }

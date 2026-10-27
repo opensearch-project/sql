@@ -174,7 +174,7 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
     createRoleWithPermissions(
         ALLOWED_ROLE,
         TEST_INDEX,
-        new String[] {"cluster:admin/opensearch/ppl", "cluster:admin/opensearch/sql"},
+        new String[] {"cluster:admin/opensearch/ppl"},
         new String[] {
           "indices:data/read*", "indices:admin/mappings/get", "indices:monitor/settings/get"
         });
@@ -184,7 +184,7 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
     createRoleWithPermissions(
         DENIED_ROLE,
         "some_other_index",
-        new String[] {"cluster:admin/opensearch/ppl", "cluster:admin/opensearch/sql"},
+        new String[] {"cluster:admin/opensearch/ppl"},
         new String[] {
           "indices:data/read*", "indices:admin/mappings/get", "indices:monitor/settings/get"
         });
@@ -194,7 +194,7 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
     createRoleWithPermissions(
         SEARCH_ONLY_ROLE,
         TEST_INDEX,
-        new String[] {"cluster:admin/opensearch/ppl", "cluster:admin/opensearch/sql"},
+        new String[] {"cluster:admin/opensearch/ppl"},
         new String[] {
           "indices:data/read/search",
           "indices:data/read/search*",
@@ -209,7 +209,7 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
     createRoleWithPermissions(
         WILDCARD_ROLE,
         "analytics_security*",
-        new String[] {"cluster:admin/opensearch/ppl", "cluster:admin/opensearch/sql"},
+        new String[] {"cluster:admin/opensearch/ppl"},
         new String[] {
           "indices:data/read*", "indices:admin/mappings/get", "indices:monitor/settings/get"
         });
@@ -219,7 +219,7 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
     createRoleWithPermissions(
         ALIAS_ROLE,
         TEST_ALIAS,
-        new String[] {"cluster:admin/opensearch/ppl", "cluster:admin/opensearch/sql"},
+        new String[] {"cluster:admin/opensearch/ppl"},
         new String[] {
           "indices:data/read*", "indices:admin/mappings/get", "indices:monitor/settings/get"
         });
@@ -229,7 +229,7 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
     createRoleWithPermissions(
         EXACT_PERM_ROLE,
         TEST_INDEX,
-        new String[] {"cluster:admin/opensearch/ppl", "cluster:admin/opensearch/sql"},
+        new String[] {"cluster:admin/opensearch/ppl"},
         new String[] {
           "indices:data/read/analytics/query",
           "indices:admin/mappings/get",
@@ -252,7 +252,7 @@ public class AnalyticsEngineSecurityIT extends SecurityTestBase {
     createRoleWithPermissions(
         MULTI_ALIAS_ROLE,
         "analytics_security*",
-        new String[] {"cluster:admin/opensearch/ppl", "cluster:admin/opensearch/sql"},
+        new String[] {"cluster:admin/opensearch/ppl"},
         new String[] {
           "indices:data/read*", "indices:admin/mappings/get", "indices:monitor/settings/get"
         });

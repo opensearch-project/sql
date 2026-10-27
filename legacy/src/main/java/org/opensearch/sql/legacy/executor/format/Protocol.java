@@ -78,8 +78,22 @@ public class Protocol {
 
   public Protocol(Exception e) {
     this.formatType = null;
-    this.status = ERROR_STATUS;
+    this.status = determineErrorStatus(e);
     this.error = ErrorMessageFactory.createErrorMessage(e, status);
+  }
+
+  private static int determineErrorStatus(Exception e) {
+    // OpenSearchException has its own status (e.g. SearchPhaseExecutionException is 400)
+    if (e instanceof org.opensearch.OpenSearchException) {
+      org.opensearch.OpenSearchException osException = (org.opensearch.OpenSearchException) e;
+      return osException.status() != null ? osException.status().getStatus() : ERROR_STATUS;
+    }
+    // Client errors (bad query, unsupported features) -> 400
+    if (e instanceof UnsupportedOperationException || e instanceof IllegalArgumentException) {
+      return 400;
+    }
+    // Server errors -> 500
+    return ERROR_STATUS;
   }
 
   private ResultSet loadResultSetForCursor(Client client, Object queryResult) {

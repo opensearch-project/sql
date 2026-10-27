@@ -5,16 +5,21 @@
 
 package org.opensearch.sql.opensearch.client;
 
+import static org.opensearch.action.search.SearchRequest.DEFAULT_INDICES_OPTIONS;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.opensearch.OpenSearchSecurityException;
@@ -28,12 +33,11 @@ import org.opensearch.action.search.*;
 import org.opensearch.cluster.metadata.AliasMetadata;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.tasks.TaskId;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.IndexSettings;
 import org.opensearch.sql.calcite.CalcitePlanContext;
-import org.opensearch.sql.common.error.ErrorCode;
-import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
@@ -41,6 +45,8 @@ import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.sql.opensearch.response.ShardStats;
 import org.opensearch.tasks.CancellableTask;
+import org.opensearch.transport.RemoteClusterAware;
+import org.opensearch.transport.RemoteClusterService;
 import org.opensearch.transport.client.node.NodeClient;
 
 /** OpenSearch connection by node client. */
@@ -49,12 +55,25 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   public static final Function<String, Predicate<String>> ALL_FIELDS =
       (anyIndex -> (anyField -> true));
 
+  /**
+   * Thread-context key where the security plugin stores the request's user (the value of
+   * ConfigConstants.OPENSEARCH_SECURITY_USER_INFO_THREAD_CONTEXT in opensearch-commons).
+   */
+  private static final String SECURITY_USER_INFO = "_opendistro_security_user_info";
+
+  /** Longest wait for a remote cluster's mappings or settings. */
+  private static final TimeValue REMOTE_METADATA_TIMEOUT = TimeValue.timeValueSeconds(10);
+
   /** Node client provided by OpenSearch container. */
   private final NodeClient client;
 
+  /** Resolves "cluster:index" names; only asked for when a name has a cluster prefix. */
+  private final Supplier<RemoteClusterService> remoteClusters;
+
   /** Constructor of OpenSearchNodeClient. */
-  public OpenSearchNodeClient(NodeClient client) {
+  public OpenSearchNodeClient(NodeClient client, Supplier<RemoteClusterService> remoteClusters) {
     this.client = client;
+    this.remoteClusters = remoteClusters;
   }
 
   @Override
@@ -94,6 +113,19 @@ public class OpenSearchNodeClient implements OpenSearchClient {
    */
   @Override
   public Map<String, IndexMapping> getIndexMappings(String... indexExpression) {
+    IndexGroups groups = groupByCluster(indexExpression);
+    if (groups.remote().isEmpty()) {
+      return localIndexMappings(indexExpression);
+    }
+    Map<String, IndexMapping> mappings = new HashMap<>();
+    if (groups.local().length > 0) {
+      mappings.putAll(localIndexMappings(groups.local()));
+    }
+    mappings.putAll(readRemote(groups).mappings());
+    return mappings;
+  }
+
+  private Map<String, IndexMapping> localIndexMappings(String... indexExpression) {
     try {
       GetMappingsResponse mappingsResponse =
           client.admin().indices().prepareGetMappings(indexExpression).setLocal(true).get();
@@ -105,19 +137,9 @@ public class OpenSearchNodeClient implements OpenSearchClient {
               Collectors.toUnmodifiableMap(
                   Map.Entry::getKey, cursor -> new IndexMapping(cursor.getValue())));
     } catch (IndexNotFoundException e) {
-      // Re-throw directly to be treated as client error finally
-      throw ErrorReport.wrap(e)
-          .code(ErrorCode.INDEX_NOT_FOUND)
-          .location("while fetching index mappings")
-          .context("index_name", indexExpression[0])
-          .build();
+      throw IndexMappingErrors.indexNotFound(e, indexExpression[0]);
     } catch (OpenSearchSecurityException e) {
-      // Re-throw with permission denied code
-      throw ErrorReport.wrap(e)
-          .code(ErrorCode.PERMISSION_DENIED)
-          .location("while fetching index mappings")
-          .context("index_name", indexExpression[0])
-          .build();
+      throw IndexMappingErrors.permissionDenied(e, indexExpression[0]);
     } catch (Exception e) {
       throw new IllegalStateException(
           "Failed to read mapping for index pattern ["
@@ -136,6 +158,62 @@ public class OpenSearchNodeClient implements OpenSearchClient {
    */
   @Override
   public Map<String, Integer> getIndexMaxResultWindows(String... indexExpression) {
+    IndexGroups groups = groupByCluster(indexExpression);
+    if (groups.remote().isEmpty()) {
+      return localIndexMaxResultWindows(indexExpression);
+    }
+    Map<String, Integer> windows = new HashMap<>();
+    if (groups.local().length > 0) {
+      windows.putAll(localIndexMaxResultWindows(groups.local()));
+    }
+    // Read with the mappings and cached together, so this is a cache hit after getIndexMappings.
+    windows.putAll(readRemote(groups).windows());
+    return windows;
+  }
+
+  /**
+   * The remote indices' mappings and settings, read from each remote cluster and cached. If every
+   * remote cluster was skipped but local indices remain, the remotes add nothing and the local
+   * indices answer alone, as in a search. With no local indices there are no fields to query, so it
+   * is an error.
+   */
+  private RemoteMappingsReader.RemoteMetadata readRemote(IndexGroups groups) {
+    try {
+      return new RemoteMappingsReader(client, remoteClusters.get(), REMOTE_METADATA_TIMEOUT)
+          .read(
+              client.threadPool().getThreadContext().getTransient(SECURITY_USER_INFO),
+              groups.remote());
+    } catch (RemoteMappingsReader.AllClustersSkipped e) {
+      if (groups.local().length == 0) {
+        throw IndexMappingErrors.allClustersSkipped(e.getMessage(), e.indexNames);
+      }
+      return new RemoteMappingsReader.RemoteMetadata(Map.of(), Map.of());
+    }
+  }
+
+  /** Local index names, and remote cluster alias to the index names asked of it. */
+  private record IndexGroups(String[] local, Map<String, String[]> remote) {}
+
+  /**
+   * Groups an expression by cluster. A name is remote only if its prefix is a registered remote
+   * cluster (or a pattern matching one), as for search, so a local date-math name containing ':'
+   * stays local.
+   */
+  private IndexGroups groupByCluster(String... indexExpression) {
+    if (Arrays.stream(indexExpression)
+        .noneMatch(name -> name.indexOf(RemoteClusterAware.REMOTE_CLUSTER_INDEX_SEPARATOR) >= 0)) {
+      return new IndexGroups(indexExpression, Map.of());
+    }
+    Map<String, String[]> byCluster = new LinkedHashMap<>();
+    remoteClusters
+        .get()
+        .groupIndices(DEFAULT_INDICES_OPTIONS, indexExpression, index -> false)
+        .forEach((clusterAlias, indices) -> byCluster.put(clusterAlias, indices.indices()));
+    String[] local = byCluster.remove(RemoteClusterService.LOCAL_CLUSTER_GROUP_KEY);
+    return new IndexGroups(local == null ? new String[0] : local, byCluster);
+  }
+
+  private Map<String, Integer> localIndexMaxResultWindows(String... indexExpression) {
     try {
       GetSettingsResponse settingsResponse =
           client.admin().indices().prepareGetSettings(indexExpression).setLocal(true).get();

@@ -10,7 +10,7 @@ parser grammar OpenSearchPPLParser;
 options { tokenVocab = OpenSearchPPLLexer; }
 
 root
-   : pplStatement? EOF
+   : pplStatement EOF
    ;
 
 // statement

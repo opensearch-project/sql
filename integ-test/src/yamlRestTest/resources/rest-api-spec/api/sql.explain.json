@@ -1,0 +1,22 @@
+{
+  "sql.explain": {
+    "documentation": {
+      "url": "https://github.com/opensearch-project/sql/blob/main/docs/user/index.rst",
+      "description": "OpenSearch SQL Reference Manual"
+    },
+    "stability" : "stable",
+    "url": {
+      "paths": [
+        {
+          "path" : "/_plugins/_sql/_explain",
+          "methods" : ["POST"]
+        }
+      ]
+    },
+    "params": {},
+    "body": {
+      "description": "SQL Explain Query",
+      "required":true
+    }
+  }
+}

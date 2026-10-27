@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.job;
 
+import java.lang.ref.WeakReference;
 import java.time.Duration;
 import java.util.Objects;
 import org.apache.logging.log4j.LogManager;
@@ -51,12 +52,15 @@ public final class RetentionPolicy {
   }
 
   private void scheduleEviction(QueryJob job, Duration ttl) {
+    QueryJobId id = job.id();
+    // The eviction timer must not retain a deleted job until TTL.
+    WeakReference<QueryJob> retained = new WeakReference<>(job);
     try {
       threadPool.schedule(
           () -> {
-            boolean removed = store.remove(job.id(), job);
-            if (removed) {
-              LOG.debug("Evicted terminal query job [{}] after TTL", job.id().encode());
+            QueryJob current = retained.get();
+            if (current != null && store.remove(id, current)) {
+              LOG.debug("Evicted terminal query job [{}] after TTL", id.encode());
             }
           },
           TimeValue.timeValueMillis(ttl.toMillis()),

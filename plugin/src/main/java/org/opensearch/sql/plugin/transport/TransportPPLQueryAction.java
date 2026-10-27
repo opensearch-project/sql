@@ -54,6 +54,7 @@ import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.monitor.profile.ProfileScope;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
+import org.opensearch.sql.opensearch.client.RemoteClusterServiceProvider;
 import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
 import org.opensearch.sql.opensearch.executor.tracing.TracingPhaseListener;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
@@ -120,13 +121,16 @@ public class TransportPPLQueryAction
       EngineExtensionsHolder extensionsHolder,
       Tracer tracer,
       OpenSearchQueryJobService queryJobService,
-      OpenSearchSecurityAdapter securityAdapter) {
+      OpenSearchSecurityAdapter securityAdapter,
+      RemoteClusterServiceProvider remoteClusters) {
     super(PPLQueryAction.NAME, transportService, actionFilters, TransportPPLQueryRequest::new);
     this.clientRef = client;
     this.clusterServiceRef = clusterService;
     this.transportServiceRef = transportService;
     this.queryJobService = queryJobService;
     this.securityAdapter = securityAdapter;
+    // The plugin's components are created before any TransportService exists; fill it here.
+    remoteClusters.set(transportService.getRemoteClusterService());
 
     ModulesBuilder modules = new ModulesBuilder();
     modules.add(new OpenSearchPluginModule(extensionsHolder.engines(), tracer));
@@ -136,6 +140,7 @@ public class TransportPPLQueryAction
     modules.add(
         b -> {
           b.bind(NodeClient.class).toInstance(client);
+          b.bind(RemoteClusterServiceProvider.class).toInstance(remoteClusters);
           b.bind(org.opensearch.sql.common.setting.Settings.class).toInstance(pluginSettings);
           b.bind(DataSourceService.class).toInstance(dataSourceService);
           b.bind(ClusterService.class).toInstance(clusterService);
@@ -468,7 +473,7 @@ public class TransportPPLQueryAction
         // completion is not the query's end: a record stamped from it would carry near-zero
         // latency and reference child searches that have not run yet. Left out of Top N until the
         // job path reports for itself.
-        submitAsync(pplService, transformedRequest, clearingListener, queryInsightsSink);
+        submitAsync(task, pplService, transformedRequest, clearingListener, queryInsightsSink);
       } else if (pplQueryTask != null && isQueryInsightsRecordingEnabled()) {
         // Query Insights is set up only on this execute route: explain, analyze, and the analytics
         // engine run no search, so stamping their child searches would orphan them under a parent
@@ -504,12 +509,22 @@ public class TransportPPLQueryAction
   }
 
   private void submitAsync(
+      Task task,
       PPLService pplService,
       PPLQueryRequest transformedRequest,
       ActionListener<TransportPPLQueryResponse> listener,
       Consumer<QueryInsightsMetadata> queryInsightsSink) {
+    if (!(task instanceof PPLQueryTask pplQueryTask)) {
+      throw new IllegalArgumentException("Async PPL queries require a cancellable PPLQueryTask");
+    }
+    Runnable cancelExecution = () -> pplQueryTask.cancel("async PPL query cancelled");
     QueryRunner runner =
-        new PPLQueryRunner(pplService, transformedRequest, queryInsightsSink, Clock.systemUTC());
+        new PPLQueryRunner(
+            pplService,
+            transformedRequest,
+            queryInsightsSink,
+            Clock.systemUTC(),
+            cancelExecution);
     ThreadContext threadContext = clientRef.threadPool().getThreadContext();
     ActionListener<TransportPPLQueryResponse> ctxListener =
         ContextPreservingActionListener.wrapPreservingContext(listener, threadContext);

@@ -61,8 +61,7 @@ public class SQLCursorPermissionsIT extends SQLIntegTestCase {
             """
             {
               "cluster_permissions": [
-                "cluster:admin/opensearch/ppl",
-                "cluster:admin/opensearch/sql"
+                "cluster:admin/opensearch/ppl"
               ],
               "index_permissions": [{
                 "index_patterns": [

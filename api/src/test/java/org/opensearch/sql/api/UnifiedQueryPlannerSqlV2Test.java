@@ -35,7 +35,8 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
           protected Map<String, Table> getTableMap() {
             return Map.of(
                 "employees", createEmployeesTable(),
-                "departments", createDepartmentsTable());
+                "departments", createDepartmentsTable(),
+                "logs", createLogsTable());
           }
         };
 
@@ -50,6 +51,16 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
         .row(new Object[] {1, "Engineering"})
         .row(new Object[] {2, "Sales"})
         .row(new Object[] {3, "Marketing"})
+        .build();
+  }
+
+  /** A table with an OpenSearch metadata field next to two ordinary fields. */
+  private Table createLogsTable() {
+    return SimpleTable.builder()
+        .col("id", INTEGER)
+        .col("msg", VARCHAR)
+        .col("_id", VARCHAR)
+        .row(new Object[] {1, "a", "id-1"})
         .build();
   }
 
@@ -214,6 +225,17 @@ public class UnifiedQueryPlannerSqlV2Test extends UnifiedQueryTestBase {
               LogicalProject(dept_name=[$1])
                 LogicalTableScan(table=[[catalog, departments]])
             """);
+  }
+
+  @Test
+  public void testUnionAllSelectStarAfterExplicitColumns() {
+    // The explicit columns of the first input must not keep the second input's SELECT * from
+    // removing its metadata fields, otherwise the inputs have different column counts.
+    givenQuery(
+            """
+            SELECT id, msg FROM catalog.logs UNION ALL SELECT * FROM catalog.logs
+            """)
+        .assertFields("id", "msg");
   }
 
   @Test

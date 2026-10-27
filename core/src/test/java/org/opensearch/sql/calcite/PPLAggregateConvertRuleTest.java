@@ -6,9 +6,12 @@
 package org.opensearch.sql.calcite;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
@@ -40,6 +43,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.calcite.plan.rule.OpenSearchRules;
 import org.opensearch.sql.calcite.plan.rule.PPLAggregateConvertRule;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelBuilder;
+import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 
 @ExtendWith(MockitoExtension.class)
 public class PPLAggregateConvertRuleTest {
@@ -112,5 +116,78 @@ public class PPLAggregateConvertRuleTest {
         .when(mockedCall)
         .transformTo(any());
     OpenSearchRules.AGGREGATE_CONVERT_RULE.apply(mockedCall, aggregate, project);
+  }
+
+  @Test
+  public void testRuleMatchWithWideningCast() {
+    // PPL widens narrow-int arithmetic operands: sum(a + 10) on a SMALLINT field becomes
+    // CHECKED_LONG_SUM(CAST($0 AS BIGINT) + 10). The cast must not block the rewrite.
+    RelDataType smallint = TYPE_FACTORY.createSqlType(SqlTypeName.SMALLINT);
+    when(input.getRowType())
+        .thenReturn(TYPE_FACTORY.createStructType(List.of(smallint, type), List.of("a", "b")));
+    relBuilder.push(input);
+    RexNode field = new RexInputRef(0, smallint);
+    RexNode arg =
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.PLUS,
+            List.of(rexBuilder.makeCast(type, field), rexBuilder.makeLiteral(10, type)));
+    LogicalAggregate aggregate =
+        (LogicalAggregate)
+            relBuilder
+                .aggregate(
+                    relBuilder.groupKey(1),
+                    ImmutableList.of(
+                        relBuilder.aggregateCall(PPLBuiltinOperators.CHECKED_LONG_SUM, field),
+                        relBuilder.aggregateCall(PPLBuiltinOperators.CHECKED_LONG_SUM, arg)))
+                .build();
+    LogicalProject project = (LogicalProject) aggregate.getInput();
+    assertTrue(PPLAggregateConvertRule.Config.containsCallWithNumber(project));
+
+    doAnswer(
+            invocation -> {
+              RelNode rel = invocation.getArgument(0);
+              assertTrue(
+                  RelOptUtil.areRowTypesEqual(rel.getRowType(), aggregate.getRowType(), false));
+              // The cast is dropped so both sums collapse into one pushable SUM on the raw field
+              assertEquals(
+                  "LogicalProject(b=[$0], $f1=[$1], $f2=[+($1, *($2, 10))])\n"
+                      + "  LogicalAggregate(group=[{1}], agg#0=[CHECKED_LONG_SUM($0)],"
+                      + " null_COUNT=[COUNT($0)])\n"
+                      + "    LogicalProject(a=[$0], b=[$1])\n",
+                  rel.explain().replaceAll("\\r\\n", "\n"));
+              return null;
+            })
+        .when(mockedCall)
+        .transformTo(any());
+    OpenSearchRules.AGGREGATE_CONVERT_RULE.apply(mockedCall, aggregate, project);
+    verify(mockedCall).transformTo(any());
+  }
+
+  @Test
+  public void testNarrowingCastNotMatched() {
+    relBuilder.push(input);
+    RexNode arg =
+        rexBuilder.makeCall(
+            SqlStdOperatorTable.PLUS,
+            List.of(
+                rexBuilder.makeCast(
+                    TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER), new RexInputRef(0, type)),
+                rexBuilder.makeLiteral(10, type)));
+    LogicalAggregate aggregate =
+        (LogicalAggregate)
+            relBuilder
+                .aggregate(
+                    relBuilder.groupKey(1),
+                    ImmutableList.of(
+                        relBuilder.aggregateCall(PPLBuiltinOperators.CHECKED_LONG_SUM, arg)))
+                .build();
+    assertEquals(
+        "LogicalAggregate(group=[{0}], agg#0=[CHECKED_LONG_SUM($1)])\n"
+            + "  LogicalProject(b=[$1], $f2=[+(CAST($0):INTEGER NOT NULL, 10:BIGINT)])\n",
+        aggregate.explain().replaceAll("\\r\\n", "\n"));
+    LogicalProject project = (LogicalProject) aggregate.getInput();
+    assertFalse(PPLAggregateConvertRule.Config.containsCallWithNumber(project));
+    OpenSearchRules.AGGREGATE_CONVERT_RULE.apply(mockedCall, aggregate, project);
+    verify(mockedCall, never()).transformTo(any());
   }
 }

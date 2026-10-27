@@ -5,12 +5,19 @@
 
 package org.opensearch.sql.plugin.rest;
 
+import java.sql.SQLException;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.opensearch.OpenSearchException;
+import org.opensearch.action.search.SearchPhaseExecutionException;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.error.ErrorReport;
+import org.opensearch.sql.common.error.StageErrorHandler;
 import org.opensearch.sql.datasources.exceptions.DataSourceClientException;
+import org.opensearch.sql.exception.NonFallbackCalciteException;
 import org.opensearch.sql.exception.QueryEngineException;
 import org.opensearch.sql.opensearch.response.error.ErrorMessageFactory;
 
@@ -27,13 +34,29 @@ import org.opensearch.sql.opensearch.response.error.ErrorMessageFactory;
  *       error payload the sync path would have returned.
  * </ul>
  *
- * <p>The status-mapping logic is intentionally identical to what {@link RestPPLQueryAction} used to
- * carry privately: {@link ErrorReport} unwraps to its cause, {@link OpenSearchException}
- * contributes its own status, a known client-error type maps to 400, everything else maps to 500.
- * Preserving this mapping is required for sync REST behavior to stay byte-identical after the
- * refactor.
+ * <p>The status mapping is checked in this order:
+ *
+ * <ol>
+ *   <li>an {@link ErrorReport} unwraps to its cause;
+ *   <li>an {@link OpenSearchException}, on top or with only {@code SEARCH_FAILURE_WRAPPERS} above
+ *       it, contributes its own status. A {@link SearchPhaseExecutionException} whose chain {@link
+ *       StageErrorHandler#isCodegenFailure(Throwable)} matches maps to 500 instead;
+ *   <li>otherwise the top exception's own type decides, and a known client-error type maps to 400;
+ *   <li>everything else maps to 500.
+ * </ol>
  */
 public final class SyncErrorReportRenderer {
+
+  // The wrappers a failed search arrives in. The first fetch, and any fetch under a blocking
+  // operator, runs inside executeQuery and arrives in all four. A later fetch runs inside
+  // ResultSet.next() and arrives without RuntimeException and SQLException. Matched by exact
+  // class, so a subclass such as the IllegalStateException from getIndexMappings stops the walk.
+  private static final Set<Class<?>> SEARCH_FAILURE_WRAPPERS =
+      Set.of(
+          RuntimeException.class, // OpenSearchExecutionEngine.execute, and any other plain wrap
+          SQLException.class, // Avatica, around a failure inside executeQuery
+          NonFallbackCalciteException.class, // BackgroundSearchScanner, also a client-error type
+          ExecutionException.class); // the background fetch's CompletableFuture
 
   private SyncErrorReportRenderer() {}
 
@@ -45,8 +68,18 @@ public final class SyncErrorReportRenderer {
     if (throwable instanceof ErrorReport report) {
       return statusCodeFor(report.getCause());
     }
-    if (throwable instanceof OpenSearchException openSearchException) {
-      return openSearchException.status().getStatus();
+    Throwable firstNonWrapper =
+        ExceptionUtils.getThrowableList(throwable).stream()
+            .filter(t -> !SEARCH_FAILURE_WRAPPERS.contains(t.getClass()))
+            .findFirst()
+            .orElse(null);
+    if (firstNonWrapper instanceof OpenSearchException openSearchCause) {
+      // A failed search runs only while the query executes, so this check stands in for the stage
+      // check isCodegenFailure leaves to its caller.
+      return openSearchCause instanceof SearchPhaseExecutionException
+              && StageErrorHandler.isCodegenFailure(throwable)
+          ? 500
+          : openSearchCause.status().getStatus();
     }
     if (isClientError(throwable)) {
       return 400;

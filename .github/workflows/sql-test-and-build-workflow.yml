@@ -106,7 +106,7 @@ jobs:
       - name: Build and Test
         run: |
           if [ "${{ matrix.test-type }}" = "unit" ]; then
-            ./gradlew --continue build -x spotlessCheck -x integTest -x tracingIntegTest -x yamlRestTest -x doctest
+            ./gradlew --continue build jacocoAggregatedReport -x spotlessCheck -x integTest -x tracingIntegTest -x yamlRestTest -x doctest
           elif [ "${{ matrix.test-type }}" = "integration" ]; then
             ./gradlew --continue integTest tracingIntegTest yamlRestTest
           else
@@ -124,7 +124,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: jacoco-coverage-reports
-          path: '**/build/reports/jacoco/test/jacocoTestReport.xml'
+          path: build/reports/jacoco/jacocoAggregatedReport/jacocoAggregatedReport.xml
           retention-days: 1
           if-no-files-found: error
 

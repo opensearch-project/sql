@@ -11,6 +11,7 @@ import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
 import org.apache.calcite.linq4j.tree.Expression;
 import org.apache.calcite.linq4j.tree.Expressions;
+import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.data.model.ExprValue;
@@ -63,11 +64,12 @@ public class EnhancedCoalesceFunction extends ImplementorUDF {
     return switch (typeName) {
       case "INTEGER" -> tryConvert(() -> ExprValueUtils.integerValue(value.integerValue()), value);
       case "BIGINT" -> tryConvert(() -> ExprValueUtils.longValue(value.longValue()), value);
-      case "SMALLINT", "TINYINT" ->
-          tryConvert(() -> ExprValueUtils.integerValue(value.integerValue()), value);
-      case "DOUBLE" -> tryConvert(() -> ExprValueUtils.doubleValue(value.doubleValue()), value);
-      case "FLOAT", "REAL" ->
-          tryConvert(() -> ExprValueUtils.floatValue(value.floatValue()), value);
+      case "SMALLINT" -> tryConvert(() -> ExprValueUtils.shortValue(value.shortValue()), value);
+      case "TINYINT" -> tryConvert(() -> ExprValueUtils.byteValue(value.byteValue()), value);
+      // Calcite's FLOAT is double precision, and REAL is single precision
+      case "DOUBLE", "FLOAT" ->
+          tryConvert(() -> ExprValueUtils.doubleValue(value.doubleValue()), value);
+      case "REAL" -> tryConvert(() -> ExprValueUtils.floatValue(value.floatValue()), value);
       case "BOOLEAN" -> tryConvert(() -> ExprValueUtils.booleanValue(value.booleanValue()), value);
       case "VARCHAR", "CHAR" ->
           tryConvert(() -> ExprValueUtils.stringValue(String.valueOf(value.value())), value);
@@ -92,12 +94,18 @@ public class EnhancedCoalesceFunction extends ImplementorUDF {
   public SqlReturnTypeInference getReturnTypeInference() {
     return opBinding -> {
       var operandTypes = opBinding.collectOperandTypes();
+      var typeFactory = opBinding.getTypeFactory();
 
       // Let Calcite determine the least restrictive common type
-      var commonType = opBinding.getTypeFactory().leastRestrictive(operandTypes);
-      return commonType != null
-          ? commonType
-          : opBinding.getTypeFactory().createSqlType(SqlTypeName.VARCHAR);
+      var commonType = typeFactory.leastRestrictive(operandTypes);
+      if (commonType != null) {
+        return commonType;
+      }
+      // Fall back to VARCHAR, nullable unless an operand is NOT NULL as in Calcite's COALESCE,
+      // so IS NULL on the result is not folded to false
+      boolean nullable = operandTypes.stream().allMatch(RelDataType::isNullable);
+      return typeFactory.createTypeWithNullability(
+          typeFactory.createSqlType(SqlTypeName.VARCHAR), nullable);
     };
   }
 

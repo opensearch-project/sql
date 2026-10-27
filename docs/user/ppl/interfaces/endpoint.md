@@ -671,14 +671,14 @@ Parameters:
 | Field | Type | Default | Limit | Description |
 |---|---|---|---|---|
 | `wait_for_completion_timeout` | time value string (e.g. `"5s"`, `"0"`) | `30s` when either async field is present | `0s` – `60s` (inclusive); values outside the range are rejected with `400`. | Maximum time the submit response will wait for the query to finish. For complex queries, the submit response may take slightly longer than this value. |
-| `keep_alive` | time value string (e.g. `"5m"`) | `5m` | `> 0`, `≤ 24h`; values outside the range are rejected with `400`. | How long a terminal result is retained after completion. A subsequent GET on the id succeeds within this window and returns `404` afterwards. |
+| `keep_alive` | time value string (e.g. `"5m"`) | `5m` | `> 0`, `≤ 24h`; values outside the range are rejected with `400`. | How long a terminal result is retained after completion. A subsequent GET on the id succeeds within this window and returns `404` afterwards, or as soon as the job is deleted. |
 
 ### Limitations
 
 - Async submit is only available for standard PPL queries. The following request shapes always run synchronously and ignore `wait_for_completion_timeout` / `keep_alive`: the `/_plugins/_ppl/_explain` endpoint, requests with `"profile": true`, and non-JSON response formats (`format=csv`, `format=raw`, `format=viz`).
-- Results are retained in memory on the owner node for the duration of `keep_alive`. Set it as low as practical for your polling cadence; the default is `5m`.
-- Submitting an async query requires `cluster:admin/opensearch/ppl`; fetching requires `cluster:admin/opensearch/ql/async_query/result`. Users on custom roles must be granted both — a submit without the fetch grant produces an id that returns `403` on GET.
-- Cancellation through `DELETE /_plugins/_async_query/{id}` is not yet supported for PPL jobs.
+- Results are retained in memory on the owner node for the duration of `keep_alive`, unless the job is deleted first. Set it as low as practical for your polling cadence; the default is `5m`.
+- Submitting an async query requires `cluster:admin/opensearch/ppl`; fetching requires `cluster:admin/opensearch/ql/async_query/result`; deleting requires `cluster:admin/opensearch/ql/async_query/delete`. Users on custom roles must be granted each action they use — a submit without the fetch grant produces an id that returns `403` on GET.
+- When the security plugin is enabled, only the user who submitted a query can fetch or delete it; other users receive `403`.
 
 ### Example
 
@@ -751,3 +751,17 @@ Both terminal states return HTTP `200`. The body shape differs by state:
 ```
 
 The GET HTTP status is `200` whenever the poll itself succeeds. `404` from GET means the id is unknown or has expired beyond `keep_alive`; `403` means the caller is not the job's owner.
+
+To cancel a running query or discard a retained result, send `DELETE /_plugins/_async_query/{id}`. The job is removed, so a later GET or DELETE on the id returns `404`. A successful request returns `200` with the job's final status: `CANCELLED` if the query was still running, which also stops its execution, or the existing `SUCCEEDED` or `FAILED` status if it had already finished. An unknown, expired, or already-deleted id returns `404`.
+
+```
+DELETE /_plugins/_async_query/<id>
+```
+
+Example response for a query that was still running:
+
+```json
+{
+  "status": "CANCELLED"
+}
+```

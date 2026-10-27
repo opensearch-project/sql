@@ -21,14 +21,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.node.DiscoveryNodes;
+import org.opensearch.ResourceNotFoundException;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.io.stream.BytesStreamOutput;
+import org.opensearch.core.common.transport.TransportAddress;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.job.QueryJobId;
-import org.opensearch.sql.spark.asyncquery.exceptions.AsyncQueryNotFoundException;
 import org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionRequest;
 import org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionResponse;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.RemoteTransportException;
 import org.opensearch.transport.TransportException;
 import org.opensearch.transport.TransportRequestOptions;
 import org.opensearch.transport.TransportResponseHandler;
@@ -60,7 +62,7 @@ class AsyncQueryOwnerRoutingTest {
 
     ArgumentCaptor<Exception> failure = ArgumentCaptor.forClass(Exception.class);
     verify(listener).onFailure(failure.capture());
-    assertEquals(AsyncQueryNotFoundException.class, failure.getValue().getClass());
+    assertEquals(ResourceNotFoundException.class, failure.getValue().getClass());
     assertEquals("QueryId: " + JOB_ID.encode() + " not found", failure.getValue().getMessage());
     verifyNoInteractions(transportService);
   }
@@ -92,6 +94,46 @@ class AsyncQueryOwnerRoutingTest {
     handler.handleException(failure);
 
     verify(listener).onFailure(failure);
+  }
+
+  @Test
+  void forwardedCauseThatIsNotAnExceptionIsWrappedInRuntimeException() {
+    TransportResponseHandler<GetAsyncQueryResultActionResponse> handler =
+        forwardToPresentOwner(new GetAsyncQueryResultActionRequest(JOB_ID.encode()));
+    // ExceptionsHelper.unwrapCause can return a Throwable that is not an Exception (e.g. an
+    // Error nested inside a wrapper). ActionListener#onFailure takes Exception, so the routing
+    // helper wraps the stray Throwable in a RuntimeException so it still surfaces to the client.
+    AssertionError cause = new AssertionError("non-exception cause");
+    RemoteTransportException wrapper =
+        new RemoteTransportException(
+            "owner-node",
+            new TransportAddress(java.net.InetAddress.getLoopbackAddress(), 9300),
+            ACTION_NAME,
+            cause);
+
+    handler.handleException(wrapper);
+
+    ArgumentCaptor<Exception> captor = ArgumentCaptor.forClass(Exception.class);
+    verify(listener).onFailure(captor.capture());
+    assertEquals(RuntimeException.class, captor.getValue().getClass());
+    assertEquals(cause, captor.getValue().getCause());
+  }
+
+  @Test
+  void forwardedRemoteTransportExceptionIsUnwrappedBeforeReturningToListener() {
+    TransportResponseHandler<GetAsyncQueryResultActionResponse> handler =
+        forwardToPresentOwner(new GetAsyncQueryResultActionRequest(JOB_ID.encode()));
+    ResourceNotFoundException cause = new ResourceNotFoundException("owner-side 404");
+    RemoteTransportException wrapper =
+        new RemoteTransportException(
+            "owner-node",
+            new TransportAddress(java.net.InetAddress.getLoopbackAddress(), 9300),
+            ACTION_NAME,
+            cause);
+
+    handler.handleException(wrapper);
+
+    verify(listener).onFailure(cause);
   }
 
   private TransportResponseHandler<GetAsyncQueryResultActionResponse> forwardToPresentOwner(

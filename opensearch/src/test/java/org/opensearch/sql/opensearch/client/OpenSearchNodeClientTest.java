@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Answers.RETURNS_DEEP_STUBS;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -29,11 +30,13 @@ import java.net.URL;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.lucene.search.TotalHits;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -43,6 +46,7 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.action.OriginalIndices;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
@@ -51,6 +55,7 @@ import org.opensearch.action.admin.indices.get.GetIndexResponse;
 import org.opensearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.opensearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.opensearch.action.search.*;
+import org.opensearch.action.search.SearchRequest;
 import org.opensearch.cluster.metadata.AliasMetadata;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.MappingMetadata;
@@ -81,6 +86,8 @@ import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
+import org.opensearch.transport.RemoteClusterService;
+import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
 @ExtendWith(MockitoExtension.class)
@@ -104,9 +111,11 @@ class OpenSearchNodeClientTest {
 
   private OpenSearchClient client;
 
+  private final RemoteClusterServiceProvider remoteClusters = new RemoteClusterServiceProvider();
+
   @BeforeEach
   void setUp() {
-    this.client = new OpenSearchNodeClient(nodeClient);
+    this.client = new OpenSearchNodeClient(nodeClient, remoteClusters);
   }
 
   @Test
@@ -580,6 +589,154 @@ class OpenSearchNodeClientTest {
         () -> assertTrue(exception.getMessage().contains("logs-2024")),
         () -> assertTrue(exception.getMessage().contains("metrics-2024")),
         () -> assertTrue(exception.getMessage().contains(underlyingError)));
+  }
+
+  /** Names without a cluster prefix take the local path and never need the remote service. */
+  @Test
+  void get_index_mappings_of_local_names_does_not_resolve_remote_clusters() {
+    // The provider is never filled here: asking it would throw.
+    mockNodeClientIndicesMappings("logs", "");
+
+    assertEquals(Set.of("logs"), client.getIndexMappings("logs").keySet());
+  }
+
+  @Test
+  void get_index_mappings_merges_local_and_remote_indices() {
+    givenRemoteClusters(Map.of("", new String[] {"logs"}, "cape", new String[] {"logs-*"}));
+    mockNodeClientIndicesMappings("logs", "");
+    givenRemoteIndex("cape", "logs-1", 50000);
+
+    assertEquals(
+        Set.of("logs", "cape:logs-1"), client.getIndexMappings("logs", "cape:logs-*").keySet());
+  }
+
+  @Test
+  void get_index_max_result_windows_merges_local_and_remote_indices() throws IOException {
+    givenRemoteClusters(Map.of("", new String[] {"accounts"}, "cape", new String[] {"logs-*"}));
+    mockNodeClientSettings(
+        "accounts",
+        Resources.toString(Resources.getResource(TEST_MAPPING_SETTINGS_FILE), Charsets.UTF_8));
+    givenRemoteIndex("cape", "logs-1", 50000);
+
+    assertEquals(
+        Map.of("accounts", 100, "cape:logs-1", 50000),
+        client.getIndexMaxResultWindows("accounts", "cape:logs-*"));
+  }
+
+  /** Skipped remotes add nothing when local indices are named too, as in a search. */
+  @Test
+  void get_index_mappings_answers_from_local_indices_when_every_remote_is_skipped() {
+    RemoteClusterService remotes =
+        givenRemoteClusters(Map.of("", new String[] {"logs"}, "dead", new String[] {"logs-*"}));
+    mockNodeClientIndicesMappings("logs", "");
+    Client remote = mock(Client.class, RETURNS_DEEP_STUBS);
+    when(nodeClient.getRemoteClusterClient("dead")).thenReturn(remote);
+    when(remote
+            .admin()
+            .indices()
+            .prepareGetMappings(any(String[].class))
+            .setLocal(true)
+            .get(any(TimeValue.class)))
+        .thenThrow(new IllegalStateException("Unable to open any proxy connections"));
+    when(remotes.isSkipUnavailable("dead")).thenReturn(true);
+
+    assertEquals(Set.of("logs"), client.getIndexMappings("logs", "dead:logs-*").keySet());
+  }
+
+  /** A name repeated in the expression is read as usual, as on the local-only path. */
+  @Test
+  void get_index_mappings_accepts_a_repeated_local_name_with_remote_names() {
+    givenRemoteClusters(Map.of("", new String[] {"logs", "logs"}, "cape", new String[] {"logs-*"}));
+    MappingMetadata logs = mock(MappingMetadata.class);
+    when(logs.getSourceAsMap()).thenReturn(Map.of());
+    // Matches any number of names, so the repeated "logs" reaches GetMappings as given.
+    when(nodeClient
+            .admin()
+            .indices()
+            .prepareGetMappings(any(String[].class))
+            .setLocal(anyBoolean())
+            .get()
+            .mappings())
+        .thenReturn(Map.of("logs", logs));
+    givenRemoteIndex("cape", "logs-1", 10000);
+
+    assertEquals(
+        Set.of("logs", "cape:logs-1"),
+        client.getIndexMappings("logs", "logs", "cape:logs-*").keySet());
+  }
+
+  /** With no local indices, every remote skipped leaves no fields to query: an error. */
+  @Test
+  void get_index_mappings_fails_when_every_remote_is_skipped_and_no_local_index_is_named() {
+    RemoteClusterService remotes = givenRemoteClusters(Map.of("dead", new String[] {"logs-*"}));
+    Client remote = mock(Client.class, RETURNS_DEEP_STUBS);
+    when(nodeClient.getRemoteClusterClient("dead")).thenReturn(remote);
+    when(remote
+            .admin()
+            .indices()
+            .prepareGetMappings(any(String[].class))
+            .setLocal(true)
+            .get(any(TimeValue.class)))
+        .thenThrow(new IllegalStateException("Unable to open any proxy connections"));
+    when(remotes.isSkipUnavailable("dead")).thenReturn(true);
+
+    ErrorReport report =
+        assertThrows(ErrorReport.class, () -> client.getIndexMappings("dead:logs-*"));
+    assertEquals(
+        "Remote cluster [dead] is unavailable and was skipped (skip_unavailable is true)",
+        report.getCause().getMessage());
+  }
+
+  /** A ':' whose prefix is not a registered cluster, as in date math, stays a local name. */
+  @Test
+  void get_index_mappings_keeps_an_unregistered_prefix_local() {
+    String dateMath = "<logs-{now/d{yyyy.MM.dd|+12:00}}>";
+    givenRemoteClusters(Map.of("", new String[] {dateMath}));
+    mockNodeClientIndicesMappings("logs-2026.10.08", "");
+
+    assertEquals(Set.of("logs-2026.10.08"), client.getIndexMappings(dateMath).keySet());
+    verify(nodeClient, never()).getRemoteClusterClient(any());
+  }
+
+  @AfterEach
+  void resetRemoteCache() {
+    RemoteMappingsReader.clear();
+  }
+
+  private RemoteClusterService givenRemoteClusters(Map<String, String[]> indicesByCluster) {
+    RemoteClusterService remotes = mock(RemoteClusterService.class);
+    Map<String, OriginalIndices> groups = new java.util.LinkedHashMap<>();
+    indicesByCluster.forEach(
+        (alias, indices) ->
+            groups.put(alias, new OriginalIndices(indices, SearchRequest.DEFAULT_INDICES_OPTIONS)));
+    when(remotes.groupIndices(eq(SearchRequest.DEFAULT_INDICES_OPTIONS), any(), any()))
+        .thenReturn(groups);
+    remoteClusters.set(remotes);
+    return remotes;
+  }
+
+  private void givenRemoteIndex(String alias, String index, int maxResultWindow) {
+    Client remote = mock(Client.class, RETURNS_DEEP_STUBS);
+    when(nodeClient.getRemoteClusterClient(alias)).thenReturn(remote);
+    when(remote
+            .admin()
+            .indices()
+            .prepareGetMappings(any(String[].class))
+            .setLocal(true)
+            .get(any(TimeValue.class)))
+        .thenReturn(
+            new GetMappingsResponse(
+                Map.of(
+                    index,
+                    new MappingMetadata(
+                        "_doc", Map.of("properties", Map.of("f", Map.of("type", "keyword")))))));
+    when(remote.admin().indices().getSettings(any()).actionGet(any(TimeValue.class)))
+        .thenReturn(
+            new GetSettingsResponse(
+                Map.of(
+                    index,
+                    Settings.builder().put("index.max_result_window", maxResultWindow).build()),
+                Map.of()));
   }
 
   public void mockNodeClientIndicesMappings(String indexName, String mappings) {

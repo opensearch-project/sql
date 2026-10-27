@@ -14,7 +14,9 @@ import static org.mockito.Mockito.mock;
 
 import java.time.Clock;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
@@ -44,7 +46,8 @@ public class PPLQueryRunnerTest {
             service,
             new PPLQueryRequest("source=logs", null, "/_plugins/_ppl", "jdbc"),
             s -> {},
-            Clock.systemUTC());
+            Clock.systemUTC(),
+            () -> {});
     QueryResult result = runner.run().toCompletableFuture().get();
     assertTrue(result instanceof QueryResult.Rows);
     assertEquals(response.getSchema(), ((QueryResult.Rows) result).schema());
@@ -68,7 +71,8 @@ public class PPLQueryRunnerTest {
             service,
             new PPLQueryRequest("source=logs", null, "/_plugins/_ppl", "jdbc"),
             s -> {},
-            Clock.systemUTC());
+            Clock.systemUTC(),
+            () -> {});
     ExecutionException e =
         assertThrows(ExecutionException.class, () -> runner.run().toCompletableFuture().get());
     assertEquals("boom", e.getCause().getMessage());
@@ -81,8 +85,55 @@ public class PPLQueryRunnerTest {
             mock(PPLService.class),
             new PPLQueryRequest("source=logs", null, "/_plugins/_ppl", "jdbc"),
             s -> {},
-            Clock.systemUTC());
+            Clock.systemUTC(),
+            () -> {});
     runner.run();
     assertThrows(IllegalStateException.class, runner::run);
+  }
+
+  @Test
+  public void cancel_stopsExecutionOnceAndCancelsFuture() {
+    AtomicInteger stops = new AtomicInteger();
+    PPLQueryRunner runner =
+        new PPLQueryRunner(
+            mock(PPLService.class),
+            new PPLQueryRequest("source=logs", null, "/_plugins/_ppl", "jdbc"),
+            s -> {},
+            Clock.systemUTC(),
+            stops::incrementAndGet);
+    var future = runner.run().toCompletableFuture();
+
+    runner.cancel();
+    runner.cancel();
+
+    assertEquals(1, stops.get());
+    assertThrows(CancellationException.class, future::join);
+  }
+
+  @Test
+  public void cancel_afterCompletionDoesNotStopExecution() {
+    PPLService service = mock(PPLService.class);
+    doAnswer(
+            invocation -> {
+              ResponseListener<QueryResponse> listener = invocation.getArgument(1);
+              listener.onResponse(new QueryResponse(new Schema(List.of()), List.of(), Cursor.None));
+              return null;
+            })
+        .when(service)
+        .execute(any(PPLQueryRequest.class), any(), any(), any());
+    AtomicInteger stops = new AtomicInteger();
+    PPLQueryRunner runner =
+        new PPLQueryRunner(
+            service,
+            new PPLQueryRequest("source=logs", null, "/_plugins/_ppl", "jdbc"),
+            s -> {},
+            Clock.systemUTC(),
+            stops::incrementAndGet);
+    QueryResult result = runner.run().toCompletableFuture().join();
+
+    runner.cancel();
+
+    assertEquals(0, stops.get());
+    assertTrue(result instanceof QueryResult.Rows);
   }
 }

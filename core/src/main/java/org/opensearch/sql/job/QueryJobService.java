@@ -52,4 +52,17 @@ public interface QueryJobService {
    * @throws QueryJobForbiddenException when the caller is not the owner
    */
   QueryJobStatus cancel(QueryJobId id, Principal caller);
+
+  /**
+   * Removes the job from the store, then cancels it if it has not finished, and returns its final
+   * snapshot: {@link QueryJobState#CANCELLED} for a job that was still running, otherwise the
+   * existing terminal state. The removal races against concurrent deletes and retention eviction,
+   * so exactly one caller succeeds; afterwards {@link #get} and {@code delete} for the ID throw
+   * {@link QueryJobNotFoundException}.
+   *
+   * @throws QueryJobNotFoundException when the ID does not resolve on this node, including when a
+   *     concurrent delete or retention eviction removed the job first
+   * @throws QueryJobForbiddenException when the caller is not the owner; the job is not removed
+   */
+  QueryJobStatus delete(QueryJobId id, Principal caller);
 }
