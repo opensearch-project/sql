@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.plugin.transport;
 
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -18,9 +17,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Base64;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Before;
 import org.junit.Test;
@@ -48,7 +45,7 @@ public class QueryInsightsReporterTest {
    */
   private static final String GOLDEN_BASE64 =
       "AQNQUEwQUFBMOm5vZGUtMToxMjM0NQZub2RlLTElc291cmNlPXRhYmxlIHwgd2hlcmUgaWRlbnRpZmllciA+ICoqKo"
-          + "DQlf+8MYgIwMjmxgLwzaunAQIGZW50aXR5CWVtcGxveWVlcxphZG1pbnx8YWxsX2FjY2Vzc3xfX3VzZXJfXwE=";
+          + "DQlf+8MYgIwMjmxgLwzaunARphZG1pbnx8YWxsX2FjY2Vzc3xfX3VzZXJfXwE=";
 
   private TransportService transportService;
   private DiscoveryNode localNode;
@@ -76,7 +73,7 @@ public class QueryInsightsReporterTest {
         .sendRequest(eq(localNode), any(String.class), any(), any());
   }
 
-  /** Fixed inputs covering every field, including a multi-index list and a user string. */
+  /** Fixed inputs covering every field, including a user string. */
   private void reportSample() {
     QueryInsightsReporter.report(
         transportService,
@@ -89,7 +86,6 @@ public class QueryInsightsReporterTest {
         1032L,
         685_352_000L,
         350_938_864L,
-        Arrays.asList("entity", "employees"),
         "admin||all_access|__user__",
         true);
   }
@@ -120,12 +116,6 @@ public class QueryInsightsReporterTest {
       assertEquals(1032L, in.readVLong()); // latencyMillis
       assertEquals(685_352_000L, in.readVLong()); // cpuNanos
       assertEquals(350_938_864L, in.readVLong()); // memoryBytes
-      int indexCount = in.readVInt();
-      String[] indices = new String[indexCount];
-      for (int i = 0; i < indexCount; i++) {
-        indices[i] = in.readString();
-      }
-      assertArrayEquals(new String[] {"entity", "employees"}, indices);
       assertEquals("admin||all_access|__user__", in.readString()); // userInfo
       assertTrue(in.readBoolean()); // failed
       assertEquals("trailing bytes would be misread by the consumer", 0, in.available());
@@ -141,7 +131,7 @@ public class QueryInsightsReporterTest {
   @Test
   public void nullsBecomeEmptyStringsAndNegativesClampToZero() throws IOException {
     QueryInsightsReporter.report(
-        transportService, localNode, null, null, null, null, 5L, -1L, -2L, -3L, null, null, false);
+        transportService, localNode, null, null, null, null, 5L, -1L, -2L, -3L, null, false);
     try (StreamInput in = captured.get().bytes().streamInput()) {
       in.readVInt();
       assertEquals("", in.readString());
@@ -152,39 +142,8 @@ public class QueryInsightsReporterTest {
       assertEquals(0L, in.readVLong());
       assertEquals(0L, in.readVLong());
       assertEquals(0L, in.readVLong());
-      assertEquals(0, in.readVInt()); // null index list -> empty
       assertEquals("", in.readString());
       assertFalse(in.readBoolean());
-    }
-  }
-
-  @Test
-  public void nullIndexEntryBecomesEmptyString() throws IOException {
-    QueryInsightsReporter.report(
-        transportService,
-        localNode,
-        "PPL",
-        "m",
-        "n",
-        "q",
-        1L,
-        1L,
-        1L,
-        1L,
-        Arrays.asList("a", null, "b"),
-        "",
-        false);
-    try (StreamInput in = captured.get().bytes().streamInput()) {
-      in.readVInt();
-      for (int i = 0; i < 4; i++) {
-        in.readString();
-      }
-      for (int i = 0; i < 4; i++) {
-        in.readVLong();
-      }
-      assertEquals(3, in.readVInt());
-      assertEquals(
-          List.of("a", "", "b"), List.of(in.readString(), in.readString(), in.readString()));
     }
   }
 

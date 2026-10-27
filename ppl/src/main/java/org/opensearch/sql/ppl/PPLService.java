@@ -9,7 +9,6 @@ import static org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import static org.opensearch.sql.executor.execution.QueryPlanFactory.NO_CONSUMER_RESPONSE_LISTENER;
 
 import com.google.common.base.Strings;
-import java.util.List;
 import java.util.function.Consumer;
 import lombok.extern.log4j.Log4j2;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -32,7 +31,6 @@ import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.ppl.parser.AstBuilder;
 import org.opensearch.sql.ppl.parser.AstStatementBuilder;
 import org.opensearch.sql.ppl.utils.PPLQueryDataAnonymizer;
-import org.opensearch.sql.ppl.utils.PPLQueryIndexExtractor;
 
 /** PPLService. */
 @Log4j2
@@ -79,7 +77,7 @@ public class PPLService {
     execute(request, queryListener, explainListener, NO_QUERY_INSIGHTS_SINK);
   }
 
-  /** Variant that hands query-insights metadata (anonymized query + indices) to {@code sink}. */
+  /** Variant that hands query-insights metadata for the parsed query to {@code sink}. */
   public void execute(
       PPLQueryRequest request,
       ResponseListener<QueryResponse> queryListener,
@@ -103,7 +101,7 @@ public class PPLService {
     explain(request, listener, NO_QUERY_INSIGHTS_SINK);
   }
 
-  /** Variant that hands query-insights metadata (anonymized query + indices) to {@code sink}. */
+  /** Variant that hands query-insights metadata for the parsed query to {@code sink}. */
   public void explain(
       PPLQueryRequest request,
       ResponseListener<ExplainResponse> listener,
@@ -125,7 +123,7 @@ public class PPLService {
     analyze(request, listener, NO_QUERY_INSIGHTS_SINK);
   }
 
-  /** Variant that hands query-insights metadata (anonymized query + indices) to {@code sink}. */
+  /** Variant that hands query-insights metadata for the parsed query to {@code sink}. */
   public void analyze(
       PPLQueryRequest request,
       ResponseListener<AnalyzeResponse> listener,
@@ -177,8 +175,8 @@ public class PPLService {
 
   /**
    * Parses the request once and collects the query-insights metadata from the AST it produced, so
-   * the recorded query text and source indices are the ones that execute. The caller supplies the
-   * statement-builder context because each route configures it differently.
+   * the metadata describes the statement that executes. The caller supplies the statement-builder
+   * context because each route configures it differently.
    */
   private Prepared prepare(
       PPLQueryRequest request, AstStatementBuilder.StatementBuilderContext context) {
@@ -203,9 +201,7 @@ public class PPLService {
     }
     log.info("[{}] Incoming request {}", QueryContext.getRequestId(), anonymized);
     return new Prepared(
-        statement,
-        new QueryInsightsMetadata(
-            anonymized, extractIndexNames(statement), statement instanceof Explain));
+        statement, new QueryInsightsMetadata(anonymized, statement instanceof Explain));
   }
 
   /** Explain format requested on the URL, or null when none was given. */
@@ -216,26 +212,5 @@ public class PPLService {
     }
     return org.opensearch.sql.protocol.response.format.Format.ofExplain(request.getFormat())
         .orElse(null);
-  }
-
-  /**
-   * Best-effort source index names from an already-parsed statement (unwrapping an {@code explain}
-   * to its inner query); empty on any failure.
-   *
-   * <p>Package-private so the fallbacks can be tested: neither is reachable through the public API,
-   * because the parser only ever yields a {@link Query} or an {@link Explain} wrapping one.
-   */
-  static List<String> extractIndexNames(Statement statement) {
-    try {
-      Statement inner =
-          statement instanceof Explain ? ((Explain) statement).getStatement() : statement;
-      if (inner instanceof Query query) {
-        return PPLQueryIndexExtractor.extractIndexNames(query.getPlan());
-      }
-      return List.of();
-    } catch (Exception e) {
-      log.debug("[{}] Failed to extract PPL index names", QueryContext.getRequestId(), e);
-      return List.of();
-    }
   }
 }

@@ -11,7 +11,6 @@ import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
 import java.time.Clock;
-import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
@@ -294,7 +293,7 @@ public class TransportPPLQueryAction
    * Whether a finished task should produce a Top N record. Decided from what the metadata sink
    * captured rather than from the route, because the route cannot see either case: {@code explain}
    * is valid inside the query text (not just on {@code /_explain}), and a query that fails to parse
-   * never reaches the sink at all, so it has no query text or indices to report.
+   * never reaches the sink at all, so there is no parsed query to report.
    *
    * <p>A nested query is also skipped: its child searches carry the outer query's marker, so a
    * record built from this task's own id would advertise a marker no child references, and the
@@ -332,7 +331,6 @@ public class TransportPPLQueryAction
       // when stamping failed, which the reporter sends as an empty marker.
       String parentMarker = pplQueryTask.getQueryInsightsParentMarker();
 
-      List<String> indices = pplQueryTask.getQueryInsightsIndices();
       String userInfo = pplQueryTask.getQueryInsightsUserInfo();
       boolean failed = pplQueryTask.isQueryInsightsFailed();
 
@@ -347,7 +345,6 @@ public class TransportPPLQueryAction
           latencyMillis,
           cpuNanos,
           memoryBytes,
-          indices,
           userInfo,
           failed);
     } catch (Exception e) {
@@ -453,7 +450,6 @@ public class TransportPPLQueryAction
             rootSpan.addAttribute("db.query.text", metadata.anonymizedQuery());
             if (pplQueryTask != null) {
               pplQueryTask.setQueryInsightsAnonymizedQuery(metadata.anonymizedQuery());
-              pplQueryTask.setQueryInsightsIndices(metadata.indices());
               pplQueryTask.setQueryInsightsExplain(metadata.explain());
             }
           };
@@ -520,11 +516,7 @@ public class TransportPPLQueryAction
     Runnable cancelExecution = () -> pplQueryTask.cancel("async PPL query cancelled");
     QueryRunner runner =
         new PPLQueryRunner(
-            pplService,
-            transformedRequest,
-            queryInsightsSink,
-            Clock.systemUTC(),
-            cancelExecution);
+            pplService, transformedRequest, queryInsightsSink, Clock.systemUTC(), cancelExecution);
     ThreadContext threadContext = clientRef.threadPool().getThreadContext();
     ActionListener<TransportPPLQueryResponse> ctxListener =
         ContextPreservingActionListener.wrapPreservingContext(listener, threadContext);

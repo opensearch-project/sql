@@ -33,12 +33,6 @@ public class AppendPipe extends UnresolvedPlan {
     return this;
   }
 
-  /** {@inheritDoc} Adds the appended sub-pipeline, which is not a child. */
-  @Override
-  public List<UnresolvedPlan> getSources() {
-    return this.subQuery == null ? ImmutableList.of() : ImmutableList.of(this.subQuery);
-  }
-
   @Override
   public List<UnresolvedPlan> getChild() {
     return this.child == null ? ImmutableList.of() : ImmutableList.of(this.child);

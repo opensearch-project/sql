@@ -43,8 +43,8 @@ public final class PPLQueryRunner implements QueryRunner {
   /**
    * @param pplService live PPL service; not owned by the runner
    * @param request rich PPL request; carries include_metadata, time_bounds, format, etc.
-   * @param queryInsightsSink receives the PII-scrubbed query text and the indices it reads; supply
-   *     {@link PPLService#NO_QUERY_INSIGHTS_SINK} when no telemetry is wanted
+   * @param queryInsightsSink receives the PII-scrubbed query text and whether it is an explain;
+   *     supply {@link PPLService#NO_QUERY_INSIGHTS_SINK} when no telemetry is wanted
    * @param clock time source; used to measure {@code tookMillis}
    * @param cancelExecution stops the engine's in-flight execution; invoked at most once, only when
    *     {@link #cancel()} wins against completion

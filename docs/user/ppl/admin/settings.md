@@ -482,7 +482,7 @@ Expected output:
 
 ### Description
 
-This setting controls whether completed PPL queries are recorded into Query Insights Top N. When enabled, the PPL plugin reports each finished PPL query (with its resolved indices, latency, CPU, memory, and — on a security-enabled cluster — the requesting user) to the Query Insights plugin, and tags the child DSL searches a PPL query spawns so they appear as sub-queries.
+This setting controls whether completed PPL queries are recorded into Query Insights Top N. When enabled, the PPL plugin reports each finished PPL query (with its latency, CPU, memory, and — on a security-enabled cluster — the requesting user) to the Query Insights plugin, and tags the child DSL searches a PPL query spawns so they appear as sub-queries.
 
 1. The default value is false (opt-in).
 2. This setting is node scope, matching the rest of the `search.insights.top_queries.*` family.

@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.plugin.transport;
 
-import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.Version;
@@ -52,7 +51,6 @@ public final class QueryInsightsReporter {
       long latencyMillis,
       long cpuNanos,
       long memoryBytes,
-      List<String> indices,
       String userInfo,
       boolean failed) {
     try {
@@ -66,13 +64,6 @@ public final class QueryInsightsReporter {
       out.writeVLong(Math.max(0L, latencyMillis));
       out.writeVLong(Math.max(0L, cpuNanos));
       out.writeVLong(Math.max(0L, memoryBytes));
-
-      final List<String> safeIndices = indices == null ? List.of() : indices;
-      out.writeVInt(safeIndices.size());
-      for (final String index : safeIndices) {
-        out.writeString(index == null ? "" : index);
-      }
-
       out.writeString(userInfo == null ? "" : userInfo);
       out.writeBoolean(failed);
 

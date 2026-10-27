@@ -7,7 +7,6 @@ package org.opensearch.sql.plugin.transport;
 
 import com.sun.management.ThreadMXBean;
 import java.lang.management.ManagementFactory;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,9 +25,6 @@ public class PPLQueryTask extends CancellableTask implements ThreadResourceAccou
 
   /** Security {@code _opendistro_security_user_info} string; null when unsecured. */
   private volatile String queryInsightsUserInfo;
-
-  /** Source index name(s) resolved from the AST; empty when unresolved. */
-  private volatile List<String> queryInsightsIndices = List.of();
 
   /** Anonymized query text ({@code PPLQueryDataAnonymizer}); null when anonymization didn't run. */
   private volatile String queryInsightsAnonymizedQuery;
@@ -77,14 +73,6 @@ public class PPLQueryTask extends CancellableTask implements ThreadResourceAccou
 
   public String getQueryInsightsUserInfo() {
     return queryInsightsUserInfo;
-  }
-
-  public void setQueryInsightsIndices(List<String> indices) {
-    this.queryInsightsIndices = indices == null ? List.of() : indices;
-  }
-
-  public List<String> getQueryInsightsIndices() {
-    return queryInsightsIndices;
   }
 
   public void setQueryInsightsAnonymizedQuery(String anonymizedQuery) {
