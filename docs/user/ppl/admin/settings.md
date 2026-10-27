@@ -490,6 +490,8 @@ This setting controls whether completed PPL queries are recorded into Query Insi
 
 Note on query text and user identity: the record stores the query as it was submitted, including any literal values in it, the same way Query Insights stores the source of a DSL search. When a security plugin is installed, the record also includes the requesting user (username, roles, backend roles). Who can see these in Top N results is governed by the Query Insights plugin's own RBAC filter, `search.insights.top_queries.filter_by_mode` — default `none` (no per-user filtering), `username` (a user sees only their own queries; admins see all), or `backend_roles`. Set it to `username` or `backend_roles` if other users' queries and identities should not be visible to every Top N reader.
 
+Note on CPU and memory: the record reads them from the PPL task's resource stats (the same values `_tasks` shows), which OpenSearch records only while the cluster setting `task_resource_tracking.enabled` is on (the default). With it off, a PPL record reports 0 CPU and 0 memory.
+
 Note: This setting is **registered by the Query Insights plugin** (it belongs to the `search.insights.top_queries.*` family), not by the PPL plugin. The PPL plugin reads its value to decide whether to report. It therefore only takes effect when the Query Insights plugin is installed; when Query Insights is absent the setting is unregistered and PPL reporting is a no-op.
 
 ### Example

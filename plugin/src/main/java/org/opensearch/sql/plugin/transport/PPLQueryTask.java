@@ -5,20 +5,15 @@
 
 package org.opensearch.sql.plugin.transport;
 
-import com.sun.management.ThreadMXBean;
-import java.lang.management.ManagementFactory;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.LongAdder;
 import org.opensearch.core.tasks.TaskId;
 import org.opensearch.sql.opensearch.executor.ThreadResourceAccounting;
 import org.opensearch.tasks.CancellableTask;
+import org.opensearch.tasks.TaskResourceTrackingService;
 
 public class PPLQueryTask extends CancellableTask implements ThreadResourceAccounting {
-
-  /** Null when the JVM can't report per-thread CPU and allocation; accounting is then a no-op. */
-  private static final ThreadMXBean THREAD_MX_BEAN = resolveThreadMXBean();
 
   // The fields below are captured on the request thread and read later by the report listener
   // (which runs on a different thread), for the Query Insights record.
@@ -31,6 +26,9 @@ public class PPLQueryTask extends CancellableTask implements ThreadResourceAccou
 
   /** Whether the query failed; recorded so a failed PPL query is flagged in Top N. */
   private volatile boolean queryInsightsFailed = false;
+
+  /** Milliseconds from the task's start to its response; -1 until the response is sent. */
+  private volatile long queryInsightsLatencyMillis = -1L;
 
   /** Whether the statement is an {@code explain}, which plans but runs no search. */
   private volatile boolean queryInsightsExplain = false;
@@ -48,11 +46,11 @@ public class PPLQueryTask extends CancellableTask implements ThreadResourceAccou
    */
   private volatile String queryInsightsParentMarker;
 
-  /** Whether this query's thread usage is measured; off unless Query Insights will report it. */
-  private volatile boolean resourceAccountingEnabled = false;
-
-  private final LongAdder cpuNanos = new LongAdder();
-  private final LongAdder allocatedBytes = new LongAdder();
+  /**
+   * Core's tracking service, which the engine's thread scopes report to; null (scopes are no-ops)
+   * on every route but execute: explain, analyze, async submission and the analytics engine.
+   */
+  private volatile TaskResourceTrackingService resourceTracking;
 
   /** Threads with an open scope, so a nested scope on the same thread isn't counted twice. */
   private final Set<Long> accountedThreads = ConcurrentHashMap.newKeySet();
@@ -115,70 +113,74 @@ public class PPLQueryTask extends CancellableTask implements ThreadResourceAccou
     return queryInsightsFailed;
   }
 
-  public void setResourceAccountingEnabled(boolean enabled) {
-    this.resourceAccountingEnabled = enabled && THREAD_MX_BEAN != null;
+  public void setQueryInsightsLatencyMillis(long latencyMillis) {
+    this.queryInsightsLatencyMillis = latencyMillis;
   }
 
-  /** CPU time used on the SQL plugin's threads; child searches are measured by core. */
-  public long getCpuNanos() {
-    return cpuNanos.sum();
-  }
-
-  /** Bytes allocated on the SQL plugin's threads; child searches are measured by core. */
-  public long getAllocatedBytes() {
-    return allocatedBytes.sum();
+  public long getQueryInsightsLatencyMillis() {
+    return queryInsightsLatencyMillis;
   }
 
   /**
-   * Measures the current thread until the scope closes. The scope also holds the task's
-   * resource-tracking thread count, so the completion listener the Query Insights report hangs off
-   * fires only after every scope has recorded its usage. Nothing is written to the task's {@code
-   * resource_stats}, so {@code _tasks} output and {@code task_resource_tracking.enabled} are
-   * untouched.
+   * Has the engine's thread scopes report to {@code service}. Set on the execute routes, where the
+   * engine runs the query; other routes leave the scopes as no-ops.
+   */
+  public void setResourceTracking(TaskResourceTrackingService service) {
+    this.resourceTracking = service;
+  }
+
+  /**
+   * CPU time core tracked on this task: the engine's threads, plus any work core's task-aware pools
+   * ran for it. Child searches are tracked on their own tasks, so they are not included.
+   */
+  public long getCpuNanos() {
+    return getTotalResourceStats().getCpuTimeInNanos();
+  }
+
+  /** Bytes allocated by the threads core tracked on this task; see {@link #getCpuNanos()}. */
+  public long getAllocatedBytes() {
+    return getTotalResourceStats().getMemoryInBytes();
+  }
+
+  /**
+   * Tracked like a search task, so core's {@code startTracking} registers it when {@code
+   * task_resource_tracking.enabled} is on and the JVM can measure threads. Otherwise the tracking
+   * service ignores the engine's scopes, so the cluster setting decides whether anything is
+   * recorded.
+   */
+  @Override
+  public boolean supportsResourceTracking() {
+    return true;
+  }
+
+  /**
+   * Tracks the current thread against this task until the scope closes, through core's tracking
+   * service: the usage lands in the task's {@code resource_stats}, so {@code _tasks} and Live
+   * Queries show it while the query runs (list tasks refreshes threads still working). A tracked
+   * thread also holds the task's resource-tracking count, so the completion listener the Query
+   * Insights report hangs off fires only after every scope has recorded its usage.
    */
   @Override
   public Scope enterThread() {
-    if (!resourceAccountingEnabled) {
+    final TaskResourceTrackingService service = resourceTracking;
+    if (service == null) {
       return Scope.NOOP;
     }
     final Thread thread = Thread.currentThread();
     final long threadId = thread.threadId();
+    // Core rejects a second start on a thread it is already tracking for this task.
     if (!accountedThreads.add(threadId)) {
       return Scope.NOOP;
     }
-    incrementResourceTrackingThreads();
-    final long cpuStart = THREAD_MX_BEAN.getCurrentThreadCpuTime();
-    final long allocatedStart = THREAD_MX_BEAN.getCurrentThreadAllocatedBytes();
+    service.taskExecutionStartedOnThread(getId(), threadId);
     return () -> {
       assert Thread.currentThread() == thread : "scope closed on a different thread";
       try {
-        addDelta(cpuNanos, cpuStart, THREAD_MX_BEAN.getCurrentThreadCpuTime());
-        addDelta(allocatedBytes, allocatedStart, THREAD_MX_BEAN.getCurrentThreadAllocatedBytes());
+        service.taskExecutionFinishedOnThread(getId(), threadId);
       } finally {
         accountedThreads.remove(threadId);
-        decrementResourceTrackingThreads();
       }
     };
-  }
-
-  /** The bean returns -1 when the measurement is unsupported or disabled; record nothing then. */
-  private static void addDelta(LongAdder total, long start, long end) {
-    if (start >= 0 && end >= start) {
-      total.add(end - start);
-    }
-  }
-
-  private static ThreadMXBean resolveThreadMXBean() {
-    try {
-      if (ManagementFactory.getThreadMXBean() instanceof ThreadMXBean bean
-          && bean.isCurrentThreadCpuTimeSupported()
-          && bean.isThreadAllocatedMemorySupported()) {
-        return bean;
-      }
-    } catch (Exception e) {
-      // Fall through: accounting stays off.
-    }
-    return null;
   }
 
   @Override

@@ -108,6 +108,7 @@ public class TransportPPLQueryAction
   private final TransportService transportServiceRef;
   private final QueryJobService queryJobService;
   private final SecurityAdapter securityAdapter;
+  private final TaskResourceTrackingService taskResourceTrackingService;
 
   @Inject
   public TransportPPLQueryAction(
@@ -121,13 +122,15 @@ public class TransportPPLQueryAction
       Tracer tracer,
       OpenSearchQueryJobService queryJobService,
       OpenSearchSecurityAdapter securityAdapter,
-      RemoteClusterServiceProvider remoteClusters) {
+      RemoteClusterServiceProvider remoteClusters,
+      TaskResourceTrackingService taskResourceTrackingService) {
     super(PPLQueryAction.NAME, transportService, actionFilters, TransportPPLQueryRequest::new);
     this.clientRef = client;
     this.clusterServiceRef = clusterService;
     this.transportServiceRef = transportService;
     this.queryJobService = queryJobService;
     this.securityAdapter = securityAdapter;
+    this.taskResourceTrackingService = taskResourceTrackingService;
     // The plugin's components are created before any TransportService exists; fill it here.
     remoteClusters.set(transportService.getRemoteClusterService());
 
@@ -248,18 +251,14 @@ public class TransportPPLQueryAction
   }
 
   /**
-   * Whether to measure this query's thread usage. Follows core's {@code
-   * task_resource_tracking.enabled}: with it off, core doesn't measure the child searches either,
-   * so measuring only the PPL threads would produce a partial total. Treated as off if unreadable.
+   * Has the engine's thread scopes track this query's threads through core, so its CPU and memory
+   * show in {@code _tasks} (and Live Queries) while it runs and in its Top N record after. Core
+   * records nothing unless it registered the task, which it does only when {@code
+   * task_resource_tracking.enabled} is on, the same switch that governs the child searches.
    */
-  private boolean isTaskResourceTrackingEnabled() {
-    try {
-      return clusterServiceRef
-          .getClusterSettings()
-          .get(TaskResourceTrackingService.TASK_RESOURCE_TRACKING_ENABLED);
-    } catch (Exception e) {
-      LOG.debug("Failed to read task_resource_tracking.enabled; not measuring PPL threads", e);
-      return false;
+  private void trackEngineThreads(PPLQueryTask pplQueryTask) {
+    if (pplQueryTask != null) {
+      pplQueryTask.setResourceTracking(taskResourceTrackingService);
     }
   }
 
@@ -317,9 +316,13 @@ public class TransportPPLQueryAction
       long cpuNanos = pplQueryTask.getCpuNanos();
       long memoryBytes = pplQueryTask.getAllocatedBytes();
 
-      // Wall-clock latency (monotonic); the profile total collapses to ~0 across the finish thread.
-      long latencyMillis =
-          Math.max(0L, (System.nanoTime() - pplQueryTask.getStartTimeNanos()) / 1_000_000L);
+      // Taken when the response was sent (see recordCompletion), not now: this runs once the last
+      // thread scope closes, which a lookahead search still running on the background pool can
+      // hold open well past the response.
+      long latencyMillis = pplQueryTask.getQueryInsightsLatencyMillis();
+      if (latencyMillis < 0) {
+        latencyMillis = elapsedMillis(pplQueryTask);
+      }
 
       // Start time, not report time: Query Insights stamps a search record with the request's
       // start (SearchRequest#getOrCreateAbsoluteStartMillis). Stamping completion here would put a
@@ -411,7 +414,7 @@ public class TransportPPLQueryAction
     ActionListener<TransportPPLQueryResponse> clearingListener =
         wrapWithProfilingClear(tracedListener);
     // Read back later by writeQueryInsightsRecord, which runs after this listener completes.
-    clearingListener = markFailedOnFailure(clearingListener, pplQueryTask);
+    clearingListener = recordCompletion(clearingListener, pplQueryTask);
 
     try {
       // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices.
@@ -487,14 +490,14 @@ public class TransportPPLQueryAction
         // plain DSL search) with this query's marker. Child searches still see it: the executor
         // captures the thread context when the work is scheduled, which happens inside this block.
         try (ThreadContext.StoredContext ignored = threadContext.newStoredContext(true)) {
-          // Measure thread usage only on this route, where a record consumes it. Every other route
-          // leaves accounting off, so the engine's scopes are no-ops there.
-          pplQueryTask.setResourceAccountingEnabled(isTaskResourceTrackingEnabled());
+          trackEngineThreads(pplQueryTask);
           stampQueryInsightsParentHeader(pplQueryTask);
           registerQueryInsightsReport(pplQueryTask);
           executePplQuery(pplService, transformedRequest, callerListener, queryInsightsSink);
         }
       } else {
+        // Tracked without Query Insights recording too: _tasks and Live Queries read the task.
+        trackEngineThreads(pplQueryTask);
         executePplQuery(pplService, transformedRequest, clearingListener, queryInsightsSink);
       }
     } catch (Exception e) {
@@ -694,8 +697,11 @@ public class TransportPPLQueryAction
         queryInsightsSink);
   }
 
-  /** Returns {@code delegate} unchanged when there is no PPL task to mark. */
-  private ActionListener<TransportPPLQueryResponse> markFailedOnFailure(
+  /**
+   * Records on the task how the query ended and its latency as the response goes out, for the Query
+   * Insights record written later. Returns {@code delegate} unchanged when there is no PPL task.
+   */
+  private ActionListener<TransportPPLQueryResponse> recordCompletion(
       ActionListener<TransportPPLQueryResponse> delegate, PPLQueryTask pplQueryTask) {
     if (pplQueryTask == null) {
       return delegate;
@@ -703,15 +709,25 @@ public class TransportPPLQueryAction
     return new ActionListener<>() {
       @Override
       public void onResponse(TransportPPLQueryResponse response) {
+        pplQueryTask.setQueryInsightsLatencyMillis(elapsedMillis(pplQueryTask));
         delegate.onResponse(response);
       }
 
       @Override
       public void onFailure(Exception e) {
+        pplQueryTask.setQueryInsightsLatencyMillis(elapsedMillis(pplQueryTask));
         pplQueryTask.setQueryInsightsFailed(true);
         delegate.onFailure(e);
       }
     };
+  }
+
+  /**
+   * Wall-clock (monotonic) time since the task started. The profile total is not used: it collapses
+   * to ~0 across the thread that finishes the query.
+   */
+  private static long elapsedMillis(PPLQueryTask pplQueryTask) {
+    return Math.max(0L, (System.nanoTime() - pplQueryTask.getStartTimeNanos()) / 1_000_000L);
   }
 
   private ActionListener<TransportPPLQueryResponse> wrapWithProfilingClear(

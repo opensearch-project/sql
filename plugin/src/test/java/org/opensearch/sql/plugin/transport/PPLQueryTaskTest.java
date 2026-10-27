@@ -6,14 +6,21 @@
 package org.opensearch.sql.plugin.transport;
 
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
+import org.opensearch.common.settings.ClusterSettings;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.NotifyOnceListener;
 import org.opensearch.core.tasks.TaskId;
 import org.opensearch.sql.opensearch.executor.ThreadResourceAccounting;
 import org.opensearch.tasks.Task;
+import org.opensearch.tasks.TaskResourceTrackingService;
+import org.opensearch.threadpool.ThreadPool;
 
 public class PPLQueryTaskTest {
 
@@ -77,41 +84,89 @@ public class PPLQueryTaskTest {
         Map.of());
   }
 
+  /** Core's tracking service as a node builds it, with {@code task_resource_tracking.enabled}. */
+  private static TaskResourceTrackingService trackingService(boolean enabled) {
+    Settings settings =
+        Settings.builder()
+            .put(TaskResourceTrackingService.TASK_RESOURCE_TRACKING_ENABLED.getKey(), enabled)
+            .build();
+    ThreadPool threadPool = mock(ThreadPool.class);
+    when(threadPool.getThreadContext()).thenReturn(new ThreadContext(Settings.EMPTY));
+    return new TaskResourceTrackingService(
+        settings,
+        new ClusterSettings(settings, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS),
+        threadPool);
+  }
+
+  /** A task as the execute route leaves it: registered by core, scopes wired to the service. */
+  private PPLQueryTask trackedTask(TaskResourceTrackingService service) {
+    PPLQueryTask task = newTask();
+    // What TransportAction.execute does before the action runs; a no-op when tracking is off.
+    service.startTracking(task).close();
+    task.setResourceTracking(service);
+    return task;
+  }
+
   @Test
-  public void testAccountingOffByDefault() {
+  public void testTrackedLikeASearchTask() {
+    assertTrue(newTask().supportsResourceTracking());
+  }
+
+  @Test
+  public void testScopesAreNoOpsOnRoutesThatRunNoQuery() {
     PPLQueryTask task = newTask();
     assertSame(ThreadResourceAccounting.Scope.NOOP, task.enterThread());
-    // Never touches core's tracking, so _tasks resource_stats stays empty.
-    assertFalse(task.supportsResourceTracking());
     assertTrue(task.getResourceStats().isEmpty());
   }
 
   @Test
-  public void testAccountingRecordsUsageWithoutTouchingResourceStats() {
-    PPLQueryTask task = newTask();
-    task.setResourceAccountingEnabled(true);
+  public void testScopeRecordsThreadUsageInResourceStats() {
+    PPLQueryTask task = trackedTask(trackingService(true));
     try (ThreadResourceAccounting.Scope ignored = task.enterThread()) {
       burnCpu();
     }
-    assertTrue(task.getCpuNanos() > 0);
-    assertTrue(task.getAllocatedBytes() > 0);
-    assertFalse(task.supportsResourceTracking());
-    assertTrue(task.getResourceStats().isEmpty());
+    // The task's resource_stats, which _tasks and Live Queries read; the record reads the same.
+    assertTrue(task.getTotalResourceStats().getCpuTimeInNanos() > 0);
+    assertTrue(task.getTotalResourceStats().getMemoryInBytes() > 0);
+    assertEquals(task.getTotalResourceStats().getCpuTimeInNanos(), task.getCpuNanos());
+    assertEquals(task.getTotalResourceStats().getMemoryInBytes(), task.getAllocatedBytes());
   }
 
   @Test
-  public void testNestedScopeOnSameThreadIsNotCountedTwice() {
-    PPLQueryTask task = newTask();
-    task.setResourceAccountingEnabled(true);
+  public void testOpenScopeShowsOnRefresh() {
+    // List tasks refreshes threads still working, so a query's usage shows before its scope ends.
+    TaskResourceTrackingService service = trackingService(true);
+    PPLQueryTask task = trackedTask(service);
+    try (ThreadResourceAccounting.Scope ignored = task.enterThread()) {
+      burnCpu();
+      service.refreshResourceStats(task);
+      assertTrue(task.getTotalResourceStats().getCpuTimeInNanos() > 0);
+    }
+  }
+
+  @Test
+  public void testNothingRecordedWhenTaskResourceTrackingIsOff() {
+    PPLQueryTask task = trackedTask(trackingService(false));
+    try (ThreadResourceAccounting.Scope ignored = task.enterThread()) {
+      burnCpu();
+    }
+    assertTrue(task.getResourceStats().isEmpty());
+    assertEquals(0L, task.getCpuNanos());
+  }
+
+  @Test
+  public void testNestedScopeOnSameThreadIsNotTrackedTwice() {
+    PPLQueryTask task = trackedTask(trackingService(true));
     try (ThreadResourceAccounting.Scope outer = task.enterThread()) {
+      // Core rejects a second start on a thread it already tracks for the task.
       assertSame(ThreadResourceAccounting.Scope.NOOP, task.enterThread());
     }
+    assertEquals(1, task.getResourceStats().get(Thread.currentThread().threadId()).size());
   }
 
   @Test
   public void testReportWaitsForOpenScopes() {
-    PPLQueryTask task = newTask();
-    task.setResourceAccountingEnabled(true);
+    PPLQueryTask task = trackedTask(trackingService(true));
     AtomicInteger fired = new AtomicInteger();
     assertTrue(
         task.addResourceTrackingCompletionListener(

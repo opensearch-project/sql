@@ -10,9 +10,8 @@ package org.opensearch.sql.opensearch.executor;
  *
  * <p>Core's task resource tracking only brackets threads on its task-aware pools, which a plugin
  * pool cannot opt into, so the engine brackets its own threads instead. It does so through this
- * interface rather than {@code Task.startThreadResourceTracking}, so nothing is written into the
- * task's {@code resource_stats}: whether and how to measure is the task's decision, not the
- * engine's.
+ * interface rather than calling core directly: whether and how a stretch of work is measured is the
+ * task's decision, not the engine's.
  */
 public interface ThreadResourceAccounting {
 
