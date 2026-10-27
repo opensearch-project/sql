@@ -24,13 +24,14 @@ import org.opensearch.search.aggregations.bucket.composite.InternalComposite;
  * <ul>
  *   <li>A single-request source (plain search or non-composite aggregation) reports the fraction of
  *       shards that finished the query phase of its in-flight request.
- *   <li>A paged source (PIT search or composite aggregation) reports units read over the estimated
- *       total. Units are hits for PIT and bucket document counts for composite. The estimate is the
- *       response's total hits, capped by the row limit for PIT. When the total is only a lower
- *       bound, the estimate grows with the units read, so no exact hit count is required.
+ *   <li>A PIT search reports hits read over the response's total hits, capped by the row limit.
+ *       When the total is only a lower bound, the estimate grows with the hits read, so no exact
+ *       hit count is required.
+ *   <li>A composite aggregation reports bucket document counts over an exact total hit count.
+ *       Aggregations usually report only a lower bound, and then it reports buckets read over the
+ *       row limit, which bounds the buckets the scan returns.
  *   <li>Before a paged source's first response, its finished shards count toward the first page,
- *       which is at least {@code page size / row limit} of the scan because the scan never returns
- *       more rows than the limit.
+ *       which is at least {@code page size / row limit} of the rows the scan returns.
  * </ul>
  *
  * <p>Thread-safe: shard callbacks arrive on transport threads while the scan reads responses.
@@ -39,12 +40,14 @@ public final class SourceProgress {
 
   private boolean complete;
   private boolean paged;
+  private boolean composite;
   private long rowLimit = Long.MAX_VALUE;
-  private boolean rowLimitApplies = true;
   private int responses;
   private double firstPageShare;
   private long unitsRead;
   private long lastPageUnits;
+  private long bucketsRead;
+  private long lastPageBuckets;
   private long totalUnits = -1L;
   private boolean totalExact;
   private int totalShards;
@@ -66,7 +69,9 @@ public final class SourceProgress {
       lastPageUnits = 0L;
       totalUnits = -1L;
       totalExact = false;
-      rowLimitApplies = true;
+      composite = false;
+      bucketsRead = 0L;
+      lastPageBuckets = 0L;
     }
   }
 
@@ -103,11 +108,12 @@ public final class SourceProgress {
                 .toList();
     long units;
     if (!composites.isEmpty()) {
-      // The row limit counts buckets, not the documents measured here.
-      rowLimitApplies = false;
+      composite = true;
+      lastPageBuckets = composites.stream().mapToLong(agg -> agg.getBuckets().size()).sum();
+      bucketsRead += lastPageBuckets;
       units =
           composites.stream()
-              .flatMap(composite -> composite.getBuckets().stream())
+              .flatMap(agg -> agg.getBuckets().stream())
               .mapToLong(InternalComposite.InternalBucket::getDocCount)
               .sum();
     } else {
@@ -143,11 +149,16 @@ public final class SourceProgress {
     if (responses == 0) {
       return inFlight * firstPageShare;
     }
-    long estimate = estimate();
+    if (composite && !totalExact) {
+      return ratio(bucketsRead + inFlight * lastPageBuckets, rowLimit);
+    }
+    return ratio(unitsRead + inFlight * lastPageUnits, estimate());
+  }
+
+  private static double ratio(double done, long estimate) {
     if (estimate <= 0L) {
       return 0D;
     }
-    double done = unitsRead + inFlight * lastPageUnits;
     return Math.min(1D, done / Math.max(estimate, done));
   }
 
@@ -156,7 +167,8 @@ public final class SourceProgress {
         totalUnits < 0L || !totalExact
             ? Math.max(totalUnits, unitsRead + lastPageUnits)
             : totalUnits;
-    return rowLimitApplies ? Math.min(bound, rowLimit) : bound;
+    // The row limit counts PIT hits, not the document counts measured for composite.
+    return composite ? bound : Math.min(bound, rowLimit);
   }
 
   private synchronized void beginRequest(boolean paged, int pageSize) {

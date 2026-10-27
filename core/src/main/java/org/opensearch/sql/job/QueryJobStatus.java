@@ -35,26 +35,6 @@ public record QueryJobStatus(
     Optional<QueryResult> result,
     QueryProgress progress) {
 
-  /** Creates a snapshot whose progress is derived from {@code state}. */
-  public QueryJobStatus(
-      QueryJobId id,
-      QueryJobState state,
-      long submittedAtMillis,
-      OptionalLong startedAtMillis,
-      OptionalLong completedAtMillis,
-      Optional<QueryFailure> failure,
-      Optional<QueryResult> result) {
-    this(
-        id,
-        state,
-        submittedAtMillis,
-        startedAtMillis,
-        completedAtMillis,
-        failure,
-        result,
-        state == QueryJobState.SUCCEEDED ? QueryProgress.DONE : QueryProgress.NONE);
-  }
-
   /**
    * Validates the snapshot invariants at construction time so that any {@code QueryJobStatus}
    * observed elsewhere is guaranteed self-consistent.

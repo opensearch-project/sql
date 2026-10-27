@@ -397,7 +397,8 @@ class AsyncQueryExecutorServiceRoutingTest {
         state == QueryJobState.PENDING ? OptionalLong.empty() : OptionalLong.of(1),
         state.isTerminal() ? OptionalLong.of(2) : OptionalLong.empty(),
         failure,
-        result);
+        result,
+        state == QueryJobState.SUCCEEDED ? QueryProgress.DONE : QueryProgress.NONE);
   }
 
   private void assertEmptyResults(AsyncQueryExecutionResponse response) {

@@ -160,6 +160,17 @@ class SourceProgressTest {
   }
 
   @Test
+  void compositePaging_withLowerBoundTotal_readsBucketsOverRowLimit() {
+    SourceProgress progress = new SourceProgress();
+    progress.start(20);
+    listenerOf(progress, compositeSearch());
+    progress.onResponse(
+        compositeResponse(10_000, TotalHits.Relation.GREATER_THAN_OR_EQUAL_TO, 30L, 10L));
+    // The total is a lower bound, so progress is buckets read over the row limit: 2 of 20.
+    assertEquals(0.1D, progress.fractionDone(), DELTA);
+  }
+
+  @Test
   void complete_reportsOne() {
     SourceProgress progress = new SourceProgress();
     listenerOf(progress, pitSearch());
@@ -224,6 +235,11 @@ class SourceProgressTest {
   }
 
   private static SearchResponse compositeResponse(long total, long... docCounts) {
+    return compositeResponse(total, TotalHits.Relation.EQUAL_TO, docCounts);
+  }
+
+  private static SearchResponse compositeResponse(
+      long total, TotalHits.Relation relation, long... docCounts) {
     List<InternalComposite.InternalBucket> buckets =
         java.util.Arrays.stream(docCounts)
             .mapToObj(
@@ -239,9 +255,7 @@ class SourceProgressTest {
     SearchResponse response = mock(SearchResponse.class);
     when(response.getAggregations()).thenReturn(new Aggregations(List.of(composite)));
     when(response.getHits())
-        .thenReturn(
-            new SearchHits(
-                new SearchHit[0], new TotalHits(total, TotalHits.Relation.EQUAL_TO), 0F));
+        .thenReturn(new SearchHits(new SearchHit[0], new TotalHits(total, relation), 0F));
     return response;
   }
 }

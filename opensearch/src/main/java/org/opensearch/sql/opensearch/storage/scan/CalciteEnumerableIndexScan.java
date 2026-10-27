@@ -109,8 +109,11 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
             OpenSearchRelOptUtil.replaceDot(getCluster().getTypeFactory(), getRowType()),
             pref.preferArray());
 
-    // Register before execution so query progress counts every scan from the first search.
-    progress = QueryProgressTracker.current().map(QueryProgressTracker::addSource).orElse(null);
+    // Register before execution so query progress counts every scan from the first search. A scan
+    // the planner shares across the plan is implemented once per use but is one source.
+    if (progress == null) {
+      progress = QueryProgressTracker.current().map(QueryProgressTracker::addSource).orElse(null);
+    }
     Expression scanOperator = implementor.stash(this, CalciteEnumerableIndexScan.class);
     return implementor.result(physType, Blocks.toBlock(Expressions.call(scanOperator, "scan")));
   }

@@ -162,12 +162,17 @@ public final class QueryJob {
     return out.thenApply(value -> value == expired ? running() : value).minimalCompletionStage();
   }
 
-  private QueryResult.Running running() {
+  /**
+   * Builds the response for an expired wait budget. A job that succeeded after the budget expired
+   * returns its result instead of a {@code RUNNING} response.
+   */
+  private QueryResult running() {
     double sample = sampleRunnerProgress();
     synchronized (this) {
-      // The job may have succeeded after the budget expired; a RUNNING response stays below 1.0.
-      double fraction = Math.min(MAX_RUNNING_FRACTION, progress(sample).fractionDone());
-      return new QueryResult.Running(id, new QueryProgress(fraction));
+      if (state == QueryJobState.SUCCEEDED && result.isPresent()) {
+        return result.get();
+      }
+      return new QueryResult.Running(id, progress(sample));
     }
   }
 
