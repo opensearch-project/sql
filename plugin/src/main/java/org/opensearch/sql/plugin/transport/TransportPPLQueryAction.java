@@ -21,6 +21,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.json.JSONString;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.ContextPreservingActionListener;
@@ -379,11 +380,20 @@ public class TransportPPLQueryAction
     return new JSONObject()
         .put("id", running.id().encode())
         .put("status", "RUNNING")
-        .put("progress", new JSONObject().put("fraction_done", running.progress().fractionDone()))
+        .put("progress", new JSONObject().put("fraction_done", fractionDone(running)))
         .put("schema", new JSONArray())
         .put("datarows", new JSONArray())
         .put("total", 0)
         .toString();
+  }
+
+  /**
+   * Renders {@code fraction_done} as the GET body does: org.json drops the {@code .0} of a whole
+   * number, which Gson keeps.
+   */
+  private static JSONString fractionDone(org.opensearch.sql.job.QueryResult.Running running) {
+    String value = Double.toString(running.progress().fractionDone());
+    return () -> value;
   }
 
   private ResponseListener<AnalyzeResponse> createAnalyzeResponseListener(

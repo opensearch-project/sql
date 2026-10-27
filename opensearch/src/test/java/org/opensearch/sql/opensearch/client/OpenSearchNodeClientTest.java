@@ -362,7 +362,9 @@ class OpenSearchNodeClientTest {
     SearchRequest tracked = new SearchRequest("test");
     when(nodeClient.search(tracked).actionGet()).thenReturn(searchResponse);
     SourceProgress progress = mock(SourceProgress.class);
-    when(progress.track(any())).thenReturn(tracked);
+    SourceProgress.Tracked handle = mock(SourceProgress.Tracked.class);
+    when(handle.request()).thenReturn(tracked);
+    when(progress.track(any())).thenReturn(handle);
 
     OpenSearchQueryRequest request =
         OpenSearchQueryRequest.of(
@@ -370,7 +372,21 @@ class OpenSearchNodeClientTest {
     client.search(request, progress);
 
     verify(progress).track(any());
-    verify(progress).onResponse(searchResponse);
+    verify(handle).onResponse(searchResponse);
+  }
+
+  @Test
+  void search_ignoresProgressTrackingFailures() {
+    SearchResponse searchResponse = mock(SearchResponse.class);
+    when(searchResponse.getHits()).thenReturn(SearchHits.empty());
+    when(nodeClient.search(any()).actionGet()).thenReturn(searchResponse);
+    SourceProgress progress = mock(SourceProgress.class);
+    when(progress.track(any())).thenThrow(new IllegalStateException("progress bug"));
+
+    OpenSearchQueryRequest request =
+        OpenSearchQueryRequest.of(
+            new OpenSearchRequest.IndexName("test"), new SearchSourceBuilder(), factory, List.of());
+    assertNotNull(client.search(request, progress));
   }
 
   @Test

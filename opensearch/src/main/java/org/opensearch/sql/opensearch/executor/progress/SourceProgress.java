@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.opensearch.executor.progress;
 
+import static org.opensearch.search.internal.SearchContext.DEFAULT_TRACK_TOTAL_HITS_UP_TO;
+
 import java.util.List;
 import java.util.Map;
 import org.apache.lucene.search.TotalHits;
@@ -26,60 +28,37 @@ import org.opensearch.search.aggregations.bucket.composite.InternalComposite;
  *       shards that finished the query phase of its in-flight request.
  *   <li>A PIT search reports hits read over the total hits, capped by the row limit.
  *   <li>A composite aggregation reports bucket document counts over the total hits.
- *   <li>The first page of a paged source asks for the total hit count it needs: exact for
- *       composite, whose pages visit every matching document anyway, and up to the row limit for
- *       PIT, so the count costs no more than the rows the scan reads. PIT pages read one snapshot,
- *       so later pages need no count. Without the total, PIT falls back to an estimate that grows
- *       with the hits read, and composite to buckets read over the row limit.
+ *   <li>The first page of a paged source asks for the total hit count it can afford: exact for
+ *       composite, whose pages visit every matching document anyway, and for a PIT scan with no row
+ *       limit, which reads every match anyway. A PIT scan with a row limit keeps the default
+ *       threshold, so it costs no more than a synchronous scan. PIT pages read one snapshot, so
+ *       later pages need no count. Without the total, PIT falls back to an estimate that grows with
+ *       the hits read, and composite to buckets read over the row limit.
  *   <li>Before a paged source's first response, its finished shards count toward the first page,
  *       which is at least {@code page size / row limit} of the rows the scan returns.
  * </ul>
  *
- * <p>Thread-safe: shard callbacks arrive on transport threads while the scan reads responses.
+ * <p>Each pass over the scan (a scan may be iterated again, e.g. the inner side of a nested-loop
+ * join) has its own state, so a late response from an earlier pass cannot change the current one.
+ * Thread-safe: shard callbacks arrive on transport threads while the scan reads responses.
  */
 public final class SourceProgress {
 
   private boolean complete;
-  private boolean paged;
-  private boolean composite;
-  private long rowLimit = Long.MAX_VALUE;
-  private int responses;
-  private double firstPageShare;
-  private long unitsRead;
-  private long lastPageUnits;
-  private long bucketsRead;
-  private long lastPageBuckets;
-  private long totalUnits = -1L;
-  private boolean totalExact;
-  private int totalShards;
-  private int finishedShards;
+  private Pass pass = new Pass(Long.MAX_VALUE);
 
   SourceProgress() {}
 
-  /**
-   * Starts one pass over the scan with the largest number of rows it returns. A scan iterated again
-   * (e.g. the inner side of a nested-loop join) starts a fresh estimate; a finished source stays
-   * finished.
-   */
+  /** Starts a pass over the scan with the largest number of rows it returns. */
   public synchronized void start(long rowLimit) {
-    this.rowLimit = Math.max(0L, rowLimit);
-    if (!complete) {
-      responses = 0;
-      firstPageShare = 0D;
-      unitsRead = 0L;
-      lastPageUnits = 0L;
-      totalUnits = -1L;
-      totalExact = false;
-      composite = false;
-      bucketsRead = 0L;
-      lastPageBuckets = 0L;
-    }
+    pass = new Pass(Math.max(0L, rowLimit));
   }
 
-  /** Returns a copy of {@code request} whose search task reports shard progress to this source. */
-  public SearchRequest track(SearchRequest request) {
-    boolean firstPage = beginRequest(isPaged(request), pageSize(request));
-    ShardListener listener = new ShardListener();
+  /** Returns a copy of {@code request} whose search reports its progress to the current pass. */
+  public synchronized Tracked track(SearchRequest request) {
+    Pass current = pass;
+    boolean firstPage = current.beginRequest(isPaged(request), pageSize(request));
+    ShardListener listener = new ShardListener(current);
     SearchRequest tracked =
         new SearchRequest(request) {
           @Override
@@ -96,47 +75,11 @@ public final class SourceProgress {
         };
     if (firstPage) {
       // Copy the source: the scan reuses its own builder for later pages.
-      tracked.source(request.source().shallowCopy().trackTotalHitsUpTo(totalHitsToTrack(request)));
+      tracked.source(
+          request.source().shallowCopy().trackTotalHitsUpTo(current.totalHitsToTrack(request)));
     }
     // The copy constructor does not carry the search pipeline.
-    return tracked.pipeline(request.pipeline());
-  }
-
-  /** Records the units and total hits of one completed search response. */
-  public synchronized void onResponse(SearchResponse response) {
-    List<InternalComposite> composites =
-        response.getAggregations() == null
-            ? List.of()
-            : response.getAggregations().asList().stream()
-                .filter(InternalComposite.class::isInstance)
-                .map(InternalComposite.class::cast)
-                .toList();
-    long units;
-    if (!composites.isEmpty()) {
-      composite = true;
-      lastPageBuckets = composites.stream().mapToLong(agg -> agg.getBuckets().size()).sum();
-      bucketsRead += lastPageBuckets;
-      units =
-          composites.stream()
-              .flatMap(agg -> agg.getBuckets().stream())
-              .mapToLong(InternalComposite.InternalBucket::getDocCount)
-              .sum();
-    } else {
-      units = response.getHits() == null ? 0L : response.getHits().getHits().length;
-    }
-    TotalHits total = response.getHits() == null ? null : response.getHits().getTotalHits();
-    // Only the first page asks for a count; later pages report the default lower bound.
-    if (total != null && !totalExact) {
-      totalUnits = Math.max(totalUnits, total.value());
-      totalExact =
-          total.relation() == TotalHits.Relation.EQUAL_TO
-              || (!composite && total.value() >= rowLimit);
-    }
-    responses++;
-    unitsRead += units;
-    lastPageUnits = units;
-    totalShards = 0;
-    finishedShards = 0;
+    return new Tracked(tracked.pipeline(request.pipeline()), current);
   }
 
   /** Marks the scan as finished; it reports {@code 1.0} from now on. */
@@ -146,21 +89,134 @@ public final class SourceProgress {
 
   /** Returns this source's progress in {@code [0.0, 1.0]}. */
   public synchronized double fractionDone() {
-    if (complete) {
-      return 1D;
+    return complete ? 1D : pass.fractionDone();
+  }
+
+  /** A search request bound to the pass it was sent in. */
+  public final class Tracked {
+    private final SearchRequest request;
+    private final Pass pass;
+
+    private Tracked(SearchRequest request, Pass pass) {
+      this.request = request;
+      this.pass = pass;
     }
-    double inFlight = totalShards > 0 ? (double) finishedShards / totalShards : 0D;
-    if (!paged) {
-      // A single-request source sends no further search after its response.
-      return responses > 0 ? 1D : inFlight;
+
+    /** The request to send in place of the original. */
+    public SearchRequest request() {
+      return request;
     }
-    if (responses == 0) {
-      return inFlight * firstPageShare;
+
+    /** Records the units and total hits of the response to {@link #request()}. */
+    public void onResponse(SearchResponse response) {
+      synchronized (SourceProgress.this) {
+        pass.onResponse(response);
+      }
     }
-    if (composite && !totalExact) {
-      return ratio(bucketsRead + inFlight * lastPageBuckets, rowLimit);
+  }
+
+  /** State of one pass over the scan; guarded by the enclosing {@link SourceProgress}. */
+  private static final class Pass {
+    private final long rowLimit;
+    private boolean paged;
+    private boolean composite;
+    private int responses;
+    private double firstPageShare;
+    private long unitsRead;
+    private long lastPageUnits;
+    private long bucketsRead;
+    private long lastPageBuckets;
+    private long totalUnits = -1L;
+    private boolean totalExact;
+    private int totalShards;
+    private int finishedShards;
+
+    private Pass(long rowLimit) {
+      this.rowLimit = rowLimit;
     }
-    return ratio(unitsRead + inFlight * lastPageUnits, estimate());
+
+    /** Returns whether this request is the first page of a paged pass. */
+    private boolean beginRequest(boolean paged, int pageSize) {
+      this.paged |= paged;
+      if (responses == 0 && pageSize > 0 && rowLimit > 0L) {
+        firstPageShare = Math.min(1D, (double) pageSize / rowLimit);
+      }
+      totalShards = 0;
+      finishedShards = 0;
+      return paged && responses == 0;
+    }
+
+    private int totalHitsToTrack(SearchRequest request) {
+      return composite(request) != null || rowLimit >= Integer.MAX_VALUE
+          ? Integer.MAX_VALUE
+          : DEFAULT_TRACK_TOTAL_HITS_UP_TO;
+    }
+
+    private void onResponse(SearchResponse response) {
+      List<InternalComposite> composites =
+          response.getAggregations() == null
+              ? List.of()
+              : response.getAggregations().asList().stream()
+                  .filter(InternalComposite.class::isInstance)
+                  .map(InternalComposite.class::cast)
+                  .toList();
+      long units;
+      if (!composites.isEmpty()) {
+        composite = true;
+        lastPageBuckets = composites.stream().mapToLong(agg -> agg.getBuckets().size()).sum();
+        bucketsRead += lastPageBuckets;
+        units =
+            composites.stream()
+                .flatMap(agg -> agg.getBuckets().stream())
+                .mapToLong(InternalComposite.InternalBucket::getDocCount)
+                .sum();
+      } else {
+        units = response.getHits() == null ? 0L : response.getHits().getHits().length;
+      }
+      TotalHits total = response.getHits() == null ? null : response.getHits().getTotalHits();
+      // Only the first page asks for a count; later pages report the default lower bound.
+      if (total != null && !totalExact) {
+        totalUnits = Math.max(totalUnits, total.value());
+        totalExact =
+            total.relation() == TotalHits.Relation.EQUAL_TO
+                || (!composite && total.value() >= rowLimit);
+      }
+      responses++;
+      unitsRead += units;
+      lastPageUnits = units;
+      totalShards = 0;
+      finishedShards = 0;
+    }
+
+    private double fractionDone() {
+      double inFlight = totalShards > 0 ? (double) finishedShards / totalShards : 0D;
+      if (!paged) {
+        // A single-request source sends no further search after its response.
+        return responses > 0 ? 1D : inFlight;
+      }
+      if (responses == 0) {
+        return inFlight * firstPageShare;
+      }
+      if (composite && !totalExact) {
+        return ratio(bucketsRead + inFlight * lastPageBuckets, rowLimit);
+      }
+      return ratio(unitsRead + inFlight * lastPageUnits, estimate());
+    }
+
+    private long estimate() {
+      long bound = totalExact ? totalUnits : Math.max(totalUnits, unitsRead + lastPageUnits);
+      // The row limit counts PIT hits, not the document counts measured for composite.
+      return composite ? bound : Math.min(bound, rowLimit);
+    }
+
+    private void onShards(int total, int skipped) {
+      totalShards = total;
+      finishedShards = Math.min(total, skipped);
+    }
+
+    private void onShardDone() {
+      finishedShards = Math.min(totalShards, finishedShards + 1);
+    }
   }
 
   private static double ratio(double done, long estimate) {
@@ -168,39 +224,6 @@ public final class SourceProgress {
       return 0D;
     }
     return Math.min(1D, done / Math.max(estimate, done));
-  }
-
-  private long estimate() {
-    long bound = totalExact ? totalUnits : Math.max(totalUnits, unitsRead + lastPageUnits);
-    // The row limit counts PIT hits, not the document counts measured for composite.
-    return composite ? bound : Math.min(bound, rowLimit);
-  }
-
-  /** Returns whether this request is the first page of a paged pass. */
-  private synchronized boolean beginRequest(boolean paged, int pageSize) {
-    this.paged |= paged;
-    if (responses == 0 && pageSize > 0 && rowLimit > 0L) {
-      firstPageShare = Math.min(1D, (double) pageSize / rowLimit);
-    }
-    totalShards = 0;
-    finishedShards = 0;
-    return paged && responses == 0;
-  }
-
-  private synchronized void onShards(int total, int skipped) {
-    totalShards = total;
-    finishedShards = Math.min(total, skipped);
-  }
-
-  private synchronized void onShardDone() {
-    finishedShards = Math.min(totalShards, finishedShards + 1);
-  }
-
-  /** Exact for composite; up to the row limit for PIT, which never reads more hits. */
-  private synchronized int totalHitsToTrack(SearchRequest request) {
-    return composite(request) != null
-        ? Integer.MAX_VALUE
-        : (int) Math.min(Integer.MAX_VALUE, rowLimit);
   }
 
   private static boolean isPaged(SearchRequest request) {
@@ -218,7 +241,7 @@ public final class SourceProgress {
   }
 
   private static CompositeAggregationBuilder composite(SearchRequest request) {
-    if (request.source().aggregations() == null) {
+    if (request.source() == null || request.source().aggregations() == null) {
       return null;
     }
     return request.source().aggregations().getAggregatorFactories().stream()
@@ -230,6 +253,11 @@ public final class SourceProgress {
 
   /** Counts shards that finished the query phase; skipped shards count as finished. */
   final class ShardListener extends SearchProgressListener {
+    private final Pass pass;
+
+    private ShardListener(Pass pass) {
+      this.pass = pass;
+    }
 
     @Override
     protected void onListShards(
@@ -237,17 +265,23 @@ public final class SourceProgress {
         List<SearchShard> skippedShards,
         SearchResponse.Clusters clusters,
         boolean fetchPhase) {
-      onShards(shards.size() + skippedShards.size(), skippedShards.size());
+      synchronized (SourceProgress.this) {
+        pass.onShards(shards.size() + skippedShards.size(), skippedShards.size());
+      }
     }
 
     @Override
     protected void onQueryResult(int shardIndex) {
-      onShardDone();
+      synchronized (SourceProgress.this) {
+        pass.onShardDone();
+      }
     }
 
     @Override
     protected void onQueryFailure(int shardIndex, SearchShardTarget shardTarget, Exception exc) {
-      onShardDone();
+      synchronized (SourceProgress.this) {
+        pass.onShardDone();
+      }
     }
   }
 }

@@ -45,7 +45,7 @@ class SourceProgressTest {
     listener.onQueryFailure(1, null, new RuntimeException());
     assertEquals(0.75D, progress.fractionDone(), DELTA);
 
-    progress.onResponse(hitsResponse(4, 4, TotalHits.Relation.EQUAL_TO));
+    respond(hitsResponse(4, 4, TotalHits.Relation.EQUAL_TO));
     assertEquals(1D, progress.fractionDone(), DELTA);
   }
 
@@ -69,7 +69,7 @@ class SourceProgressTest {
     // The first page is 10 of at most 100 rows, half of its shards have finished.
     assertEquals(0.05D, progress.fractionDone(), DELTA);
 
-    progress.onResponse(hitsResponse(10, 40, TotalHits.Relation.EQUAL_TO));
+    respond(hitsResponse(10, 40, TotalHits.Relation.EQUAL_TO));
     assertEquals(0.25D, progress.fractionDone(), DELTA);
 
     SourceProgress.ShardListener second = listenerOf(progress, pitSearch());
@@ -77,7 +77,7 @@ class SourceProgressTest {
     second.onQueryResult(0);
     assertEquals(0.375D, progress.fractionDone(), DELTA);
 
-    progress.onResponse(hitsResponse(10, 40, TotalHits.Relation.EQUAL_TO));
+    respond(hitsResponse(10, 40, TotalHits.Relation.EQUAL_TO));
     assertEquals(0.5D, progress.fractionDone(), DELTA);
   }
 
@@ -86,7 +86,7 @@ class SourceProgressTest {
     SourceProgress progress = new SourceProgress();
     progress.start(20);
     listenerOf(progress, pitSearch());
-    progress.onResponse(hitsResponse(10, 1_000, TotalHits.Relation.EQUAL_TO));
+    respond(hitsResponse(10, 1_000, TotalHits.Relation.EQUAL_TO));
     assertEquals(0.5D, progress.fractionDone(), DELTA);
   }
 
@@ -95,10 +95,10 @@ class SourceProgressTest {
     SourceProgress progress = new SourceProgress();
     progress.start(1_000_000);
     listenerOf(progress, pitSearch());
-    progress.onResponse(hitsResponse(5, 10, TotalHits.Relation.GREATER_THAN_OR_EQUAL_TO));
+    respond(hitsResponse(5, 10, TotalHits.Relation.GREATER_THAN_OR_EQUAL_TO));
     assertEquals(0.5D, progress.fractionDone(), DELTA);
     listenerOf(progress, pitSearch());
-    progress.onResponse(hitsResponse(5, 10, TotalHits.Relation.GREATER_THAN_OR_EQUAL_TO));
+    respond(hitsResponse(5, 10, TotalHits.Relation.GREATER_THAN_OR_EQUAL_TO));
     // The lower bound is reached, so the estimate is one page beyond what was read.
     assertEquals(10D / 15D, progress.fractionDone(), DELTA);
   }
@@ -108,7 +108,7 @@ class SourceProgressTest {
     SourceProgress progress = new SourceProgress();
     progress.start(1);
     listenerOf(progress, compositeSearch());
-    progress.onResponse(compositeResponse(100, 30L, 10L));
+    respond(compositeResponse(100, 30L, 10L));
     assertEquals(0.4D, progress.fractionDone(), DELTA);
   }
 
@@ -143,7 +143,7 @@ class SourceProgressTest {
     SourceProgress progress = new SourceProgress();
     progress.start(100);
     listenerOf(progress, pitSearch());
-    progress.onResponse(hitsResponse(10, 40, TotalHits.Relation.EQUAL_TO));
+    respond(hitsResponse(10, 40, TotalHits.Relation.EQUAL_TO));
     assertEquals(0.25D, progress.fractionDone(), DELTA);
 
     progress.start(100);
@@ -155,18 +155,19 @@ class SourceProgressTest {
   }
 
   @Test
-  void track_countsPitTotalUpToRowLimitOnFirstPageOnly() {
+  void track_keepsDefaultPitCountWithRowLimitOnFirstPageOnly() {
     SourceProgress progress = new SourceProgress();
     progress.start(100);
     SearchRequest first = pitSearch();
-    SearchRequest trackedFirst = progress.track(first);
-    assertEquals(100, trackedFirst.source().trackTotalHitsUpTo().intValue());
+    listenerOf(progress, first);
+    SearchRequest trackedFirst = lastTracked.request();
+    assertEquals(10_000, trackedFirst.source().trackTotalHitsUpTo().intValue());
     assertNull(first.source().trackTotalHitsUpTo(), "the scan's own builder is not changed");
 
-    progress.onResponse(hitsResponse(10, 40, TotalHits.Relation.EQUAL_TO));
+    respond(hitsResponse(10, 40, TotalHits.Relation.EQUAL_TO));
     SearchRequest second = pitSearch();
-    assertSame(second.source(), progress.track(second).source());
-    assertNull(new SourceProgress().track(plainSearch()).source().trackTotalHitsUpTo());
+    assertSame(second.source(), progress.track(second).request().source());
+    assertNull(new SourceProgress().track(plainSearch()).request().source().trackTotalHitsUpTo());
   }
 
   @Test
@@ -175,7 +176,7 @@ class SourceProgressTest {
     progress.start(100);
     assertEquals(
         Integer.MAX_VALUE,
-        progress.track(compositeSearch()).source().trackTotalHitsUpTo().intValue());
+        progress.track(compositeSearch()).request().source().trackTotalHitsUpTo().intValue());
   }
 
   @Test
@@ -183,9 +184,9 @@ class SourceProgressTest {
     SourceProgress progress = new SourceProgress();
     progress.start(1_000_000);
     listenerOf(progress, pitSearch());
-    progress.onResponse(hitsResponse(10, 40, TotalHits.Relation.EQUAL_TO));
+    respond(hitsResponse(10, 40, TotalHits.Relation.EQUAL_TO));
     listenerOf(progress, pitSearch());
-    progress.onResponse(hitsResponse(10, 10, TotalHits.Relation.GREATER_THAN_OR_EQUAL_TO));
+    respond(hitsResponse(10, 10, TotalHits.Relation.GREATER_THAN_OR_EQUAL_TO));
     assertEquals(0.5D, progress.fractionDone(), DELTA);
   }
 
@@ -194,14 +195,37 @@ class SourceProgressTest {
     SourceProgress progress = new SourceProgress();
     progress.start(20);
     listenerOf(progress, pitSearch());
-    progress.onResponse(hitsResponse(10, 20, TotalHits.Relation.GREATER_THAN_OR_EQUAL_TO));
+    respond(hitsResponse(10, 20, TotalHits.Relation.GREATER_THAN_OR_EQUAL_TO));
     assertEquals(0.5D, progress.fractionDone(), DELTA);
+  }
+
+  @Test
+  void track_countsUnboundedPitTotalExactly() {
+    SourceProgress progress = new SourceProgress();
+    progress.start(Integer.MAX_VALUE);
+    assertEquals(
+        Integer.MAX_VALUE,
+        progress.track(pitSearch()).request().source().trackTotalHitsUpTo().intValue());
+  }
+
+  @Test
+  void lateResponseOfEarlierPass_doesNotChangeCurrentPass() {
+    SourceProgress progress = new SourceProgress();
+    progress.start(100);
+    listenerOf(progress, pitSearch());
+    SourceProgress.Tracked earlier = lastTracked;
+    progress.start(100);
+    earlier.onResponse(hitsResponse(10, 40, TotalHits.Relation.EQUAL_TO));
+    assertEquals(0D, progress.fractionDone(), DELTA);
+    // The new pass still treats its first request as the first page.
+    assertEquals(
+        10_000, progress.track(pitSearch()).request().source().trackTotalHitsUpTo().intValue());
   }
 
   @Test
   void track_keepsSearchPipeline() {
     SearchRequest request = plainSearch().pipeline("my_pipeline");
-    assertEquals("my_pipeline", new SourceProgress().track(request).pipeline());
+    assertEquals("my_pipeline", new SourceProgress().track(request).request().pipeline());
   }
 
   @Test
@@ -209,8 +233,7 @@ class SourceProgressTest {
     SourceProgress progress = new SourceProgress();
     progress.start(20);
     listenerOf(progress, compositeSearch());
-    progress.onResponse(
-        compositeResponse(10_000, TotalHits.Relation.GREATER_THAN_OR_EQUAL_TO, 30L, 10L));
+    respond(compositeResponse(10_000, TotalHits.Relation.GREATER_THAN_OR_EQUAL_TO, 30L, 10L));
     // The total is a lower bound, so progress is buckets read over the row limit: 2 of 20.
     assertEquals(0.1D, progress.fractionDone(), DELTA);
   }
@@ -227,7 +250,7 @@ class SourceProgressTest {
   void track_returnsCopyAndLeavesOtherTasksUntouched() {
     SourceProgress progress = new SourceProgress();
     SearchRequest original = plainSearch();
-    SearchRequest tracked = progress.track(original);
+    SearchRequest tracked = progress.track(original).request();
     assertNotSame(original, tracked);
     assertSame(original.source(), tracked.source());
     SearchTask untracked =
@@ -235,13 +258,20 @@ class SourceProgressTest {
     assertNotSame(SourceProgress.ShardListener.class, untracked.getProgressListener().getClass());
   }
 
-  private static SourceProgress.ShardListener listenerOf(
-      SourceProgress progress, SearchRequest request) {
+  private SourceProgress.Tracked lastTracked;
+
+  private SourceProgress.ShardListener listenerOf(SourceProgress progress, SearchRequest request) {
+    lastTracked = progress.track(request);
     SearchTask task =
-        progress
-            .track(request)
+        lastTracked
+            .request()
             .createTask(1L, "transport", "search", TaskId.EMPTY_TASK_ID, Collections.emptyMap());
     return (SourceProgress.ShardListener) task.getProgressListener();
+  }
+
+  /** Delivers {@code response} for the most recent tracked request. */
+  private void respond(SearchResponse response) {
+    lastTracked.onResponse(response);
   }
 
   private static List<SearchShard> shards(int count) {

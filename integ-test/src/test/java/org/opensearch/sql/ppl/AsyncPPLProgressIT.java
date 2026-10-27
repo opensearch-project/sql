@@ -118,11 +118,12 @@ public class AsyncPPLProgressIT extends PPLIntegTestCase {
   }
 
   private JSONObject submit(String query) throws IOException {
-    JSONObject response =
-        new JSONObject(
-            postPpl(
-                client(),
-                new JSONObject().put("query", query).put("wait_for_completion_timeout", "0")));
+    String body =
+        postPpl(
+            client(), new JSONObject().put("query", query).put("wait_for_completion_timeout", "0"));
+    // Rendered as a double, like the GET body, even when it is a whole number.
+    Assert.assertTrue(body, body.matches("(?s).*\"fraction_done\"\\s*:\\s*\\d+\\.\\d+.*"));
+    JSONObject response = new JSONObject(body);
     Assert.assertEquals("RUNNING", response.getString("status"));
     return response;
   }

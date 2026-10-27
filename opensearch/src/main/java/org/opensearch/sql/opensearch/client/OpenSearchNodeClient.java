@@ -256,12 +256,13 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   public OpenSearchResponse search(OpenSearchRequest request, @Nullable SourceProgress progress) {
     return request.search(
         req -> {
-          SearchRequest tracked = trackProgress(req, progress);
-          applyParentTask(tracked);
-          SearchResponse response = client.search(tracked).actionGet();
-          if (progress != null) {
+          SourceProgress.Tracked tracked = trackProgress(req, progress);
+          SearchRequest toSend = tracked == null ? req : tracked.request();
+          applyParentTask(toSend);
+          SearchResponse response = client.search(toSend).actionGet();
+          if (tracked != null) {
             try {
-              progress.onResponse(response);
+              tracked.onResponse(response);
             } catch (RuntimeException e) {
               LOG.debug("Failed to record search progress", e);
             }
@@ -272,15 +273,17 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   }
 
   /** Progress is best-effort: a failure to track it leaves the search untracked. */
-  private static SearchRequest trackProgress(SearchRequest req, @Nullable SourceProgress progress) {
+  @Nullable
+  private static SourceProgress.Tracked trackProgress(
+      SearchRequest req, @Nullable SourceProgress progress) {
     if (progress == null) {
-      return req;
+      return null;
     }
     try {
       return progress.track(req);
     } catch (RuntimeException e) {
       LOG.debug("Failed to track search progress", e);
-      return req;
+      return null;
     }
   }
 

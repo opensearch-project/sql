@@ -180,6 +180,9 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
 
   @Override
   public void reset() {
+    if (progress != null) {
+      progress.start(maxResponseSize);
+    }
     bgScanner.reset(request);
     iterator = bgScanner.fetchNextBatch(request).iterator();
     queryCount = 0;
