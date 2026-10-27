@@ -131,6 +131,12 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
     return scan(null);
   }
 
+  /** A root scan has no generated code, so it registers its progress source when executed. */
+  @Override
+  public Enumerable<@Nullable Object> scanAsRoot() {
+    return scan(QueryProgressTracker.current().map(QueryProgressTracker::addSource).orElse(null));
+  }
+
   /** Scans the index, reporting each pass to {@code progress} when it is non-null. */
   public Enumerable<@Nullable Object> scan(@Nullable SourceProgress progress) {
     return new AbstractEnumerable<>() {

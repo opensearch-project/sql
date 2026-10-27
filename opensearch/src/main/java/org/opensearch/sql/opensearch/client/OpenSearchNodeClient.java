@@ -23,6 +23,8 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
@@ -53,6 +55,8 @@ import org.opensearch.transport.client.node.NodeClient;
 
 /** OpenSearch connection by node client. */
 public class OpenSearchNodeClient implements OpenSearchClient {
+
+  private static final Logger LOG = LogManager.getLogger(OpenSearchNodeClient.class);
 
   public static final Function<String, Predicate<String>> ALL_FIELDS =
       (anyIndex -> (anyField -> true));
@@ -252,15 +256,32 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   public OpenSearchResponse search(OpenSearchRequest request, @Nullable SourceProgress progress) {
     return request.search(
         req -> {
-          SearchRequest tracked = progress == null ? req : progress.track(req);
+          SearchRequest tracked = trackProgress(req, progress);
           applyParentTask(tracked);
           SearchResponse response = client.search(tracked).actionGet();
           if (progress != null) {
-            progress.onResponse(response);
+            try {
+              progress.onResponse(response);
+            } catch (RuntimeException e) {
+              LOG.debug("Failed to record search progress", e);
+            }
           }
           return response;
         },
         req -> client.searchScroll(req).actionGet());
+  }
+
+  /** Progress is best-effort: a failure to track it leaves the search untracked. */
+  private static SearchRequest trackProgress(SearchRequest req, @Nullable SourceProgress progress) {
+    if (progress == null) {
+      return req;
+    }
+    try {
+      return progress.track(req);
+    } catch (RuntimeException e) {
+      LOG.debug("Failed to track search progress", e);
+      return req;
+    }
   }
 
   private void applyParentTask(SearchRequest req) {

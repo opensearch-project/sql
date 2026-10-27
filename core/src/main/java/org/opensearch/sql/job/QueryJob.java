@@ -156,13 +156,18 @@ public final class QueryJob {
     if (millis <= 0L) {
       out.complete(running());
     } else {
-      CompletableFuture.delayedExecutor(millis, TimeUnit.MILLISECONDS, Runnable::run)
-          .execute(
+      // A timer future, not a bare delayed task, so an early outcome cancels the scheduled task
+      // instead of keeping the job and its result reachable until the budget expires.
+      CompletableFuture<Void> timer = new CompletableFuture<>();
+      timer
+          .completeOnTimeout(null, millis, TimeUnit.MILLISECONDS)
+          .thenRun(
               () -> {
                 if (!out.isDone()) {
                   out.complete(running());
                 }
               });
+      out.whenComplete((value, throwable) -> timer.cancel(false));
     }
     return out.minimalCompletionStage();
   }

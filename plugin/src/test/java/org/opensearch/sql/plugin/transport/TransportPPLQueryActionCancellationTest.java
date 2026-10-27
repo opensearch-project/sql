@@ -99,7 +99,9 @@ public class TransportPPLQueryActionCancellationTest {
     when(jobs.submit(any(), eq(Principal.UNSECURED), any(), any()))
         .thenReturn(
             CompletableFuture.completedFuture(
-                new QueryResult.Running(new QueryJobId("owner-node", "query-context"))));
+                new QueryResult.Running(
+                    new QueryJobId("owner-node", "query-context"),
+                    org.opensearch.sql.job.QueryProgress.NONE)));
 
     submit(task);
 

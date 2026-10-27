@@ -723,7 +723,7 @@ If the query is still running when the wait expires, the response is:
 }
 ```
 
-`progress.fraction_done` is a best-effort estimate of the work done, derived from the shards and pages the query's index scans have completed. It is always within `[0.0, 1.0]` and never decreases between polls. It stays below `1.0` while the job is `RUNNING`, is `1.0` once the job `SUCCEEDED`, and keeps its last running value when the job `FAILED`. A query that reads no index through the Calcite engine (for example, one that falls back to the legacy engine) reports `0.0` until it finishes. Queries that finish inside the submit wait return the synchronous response, which has no `progress` field.
+`progress.fraction_done` is a best-effort estimate of the work done, derived from the shards and pages the query's index scans have completed. It is always within `[0.0, 1.0]` and never decreases between polls. It stays below `1.0` while the job is `RUNNING`, is `1.0` once the job `SUCCEEDED`, and keeps its last running value when the job `FAILED`. Progress counts only index scans run by the Calcite engine: a query with no such scan reports `0.0` until it finishes, a query that falls back to the legacy engine keeps the value it reached before the fallback, and `graphlookup` traversals are not counted. Queries that finish inside the submit wait return the synchronous response, which has no `progress` field.
 
 The client then polls `GET /_plugins/_async_query/{id}` until it returns a terminal status (`SUCCEEDED` or `FAILED`):
 

@@ -64,10 +64,6 @@ public sealed interface QueryResult
       Objects.requireNonNull(progress, "progress must not be null");
     }
 
-    public Running(QueryJobId id) {
-      this(id, QueryProgress.NONE);
-    }
-
     @Override
     public long tookMillis() {
       return 0L;

@@ -65,6 +65,21 @@ public class AsyncPPLProgressIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void rootScanProgressIsBoundedMonotonicAndOneOnSuccess() throws Exception {
+    // A fully pushed scan is the plan root and runs without generated code.
+    JSONObject submit = submit("source=" + INDEX + " | fields n");
+    List<Double> running = new ArrayList<>(List.of(fraction(submit)));
+    JSONObject terminal = pollRecordingProgress(submit.getString("id"), running);
+
+    Assert.assertEquals("SUCCEEDED", terminal.getString("status"));
+    Assert.assertEquals(1D, fraction(terminal), 0D);
+    assertBoundedAndMonotonic(running);
+    Assert.assertTrue(
+        "a 1,000-page root scan must report progress before it finishes: " + running,
+        running.stream().anyMatch(value -> value > 0D));
+  }
+
+  @Test
   public void multiSourceProgressIsBoundedMonotonicAndOneOnSuccess() throws Exception {
     String query =
         STREAMSTATS_QUERY + " | append [ source=" + TEST_INDEX_ACCOUNT + " | stats count() as c ]";

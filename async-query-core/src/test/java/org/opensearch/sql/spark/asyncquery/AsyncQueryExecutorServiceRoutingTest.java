@@ -212,7 +212,9 @@ class AsyncQueryExecutorServiceRoutingTest {
   @Test
   void runningMarkerIsNotRenderedAsFinalRows() {
     stubSnapshot(
-        QueryJobState.SUCCEEDED, Optional.of(new QueryResult.Running(JOB_ID)), Optional.empty());
+        QueryJobState.SUCCEEDED,
+        Optional.of(new QueryResult.Running(JOB_ID, QueryProgress.NONE)),
+        Optional.empty());
 
     AsyncQueryExecutionResponse response = fetch();
 
