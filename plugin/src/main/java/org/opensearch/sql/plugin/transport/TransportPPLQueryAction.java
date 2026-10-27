@@ -300,7 +300,7 @@ public class TransportPPLQueryAction
    * children's cost would be counted against both records.
    */
   static boolean shouldReportToQueryInsights(PPLQueryTask pplQueryTask) {
-    return pplQueryTask.getQueryInsightsAnonymizedQuery() != null
+    return pplQueryTask.getQueryInsightsQueryText() != null
         && !pplQueryTask.isQueryInsightsExplain()
         && !pplQueryTask.isQueryInsightsNested();
   }
@@ -312,7 +312,7 @@ public class TransportPPLQueryAction
     }
     try {
       String nodeId = clusterServiceRef.localNode().getId();
-      String queryText = pplQueryTask.getQueryInsightsAnonymizedQuery();
+      String queryText = pplQueryTask.getQueryInsightsQueryText();
 
       long cpuNanos = pplQueryTask.getCpuNanos();
       long memoryBytes = pplQueryTask.getAllocatedBytes();
@@ -449,7 +449,9 @@ public class TransportPPLQueryAction
           metadata -> {
             rootSpan.addAttribute("db.query.text", metadata.anonymizedQuery());
             if (pplQueryTask != null) {
-              pplQueryTask.setQueryInsightsAnonymizedQuery(metadata.anonymizedQuery());
+              // The record keeps the query as written, literals included, as Query Insights does
+              // for a DSL search's source; the span above stays anonymized.
+              pplQueryTask.setQueryInsightsQueryText(transformedRequest.getRequest());
               pplQueryTask.setQueryInsightsExplain(metadata.explain());
             }
           };

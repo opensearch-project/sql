@@ -26,8 +26,8 @@ public class PPLQueryTask extends CancellableTask implements ThreadResourceAccou
   /** Security {@code _opendistro_security_user_info} string; null when unsecured. */
   private volatile String queryInsightsUserInfo;
 
-  /** Anonymized query text ({@code PPLQueryDataAnonymizer}); null when anonymization didn't run. */
-  private volatile String queryInsightsAnonymizedQuery;
+  /** The query text as submitted; null until the query has parsed. */
+  private volatile String queryInsightsQueryText;
 
   /** Whether the query failed; recorded so a failed PPL query is flagged in Top N. */
   private volatile boolean queryInsightsFailed = false;
@@ -75,12 +75,12 @@ public class PPLQueryTask extends CancellableTask implements ThreadResourceAccou
     return queryInsightsUserInfo;
   }
 
-  public void setQueryInsightsAnonymizedQuery(String anonymizedQuery) {
-    this.queryInsightsAnonymizedQuery = anonymizedQuery;
+  public void setQueryInsightsQueryText(String queryText) {
+    this.queryInsightsQueryText = queryText;
   }
 
-  public String getQueryInsightsAnonymizedQuery() {
-    return queryInsightsAnonymizedQuery;
+  public String getQueryInsightsQueryText() {
+    return queryInsightsQueryText;
   }
 
   public void setQueryInsightsExplain(boolean explain) {

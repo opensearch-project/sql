@@ -159,7 +159,7 @@ public class PPLQueryTaskTest {
     // "explain source=t | ..." reaches the execute route because isExplainRequest() only looks at
     // the path, so the sink's flag is what keeps it out of Top N.
     PPLQueryTask task = newTask();
-    task.setQueryInsightsAnonymizedQuery("explain source=table | fields identifier");
+    task.setQueryInsightsQueryText("explain source=table | fields identifier");
     task.setQueryInsightsExplain(true);
     assertFalse(TransportPPLQueryAction.shouldReportToQueryInsights(task));
   }
@@ -174,7 +174,7 @@ public class PPLQueryTaskTest {
   public void testRuntimeFailureAfterPlanningIsReported() {
     // Planning succeeded, so the metadata is present; a later execution failure must still report.
     PPLQueryTask task = newTask();
-    task.setQueryInsightsAnonymizedQuery("source=table | where identifier > ***");
+    task.setQueryInsightsQueryText("source=table | where identifier > 42");
     task.setQueryInsightsFailed(true);
     assertTrue(TransportPPLQueryAction.shouldReportToQueryInsights(task));
   }
@@ -184,7 +184,7 @@ public class PPLQueryTaskTest {
     // An outer marker was already in the context, so the child searches rolled up into that query.
     // Reporting here would advertise a marker no child references and double count their cost.
     PPLQueryTask task = newTask();
-    task.setQueryInsightsAnonymizedQuery("source=table | where identifier > ***");
+    task.setQueryInsightsQueryText("source=table | where identifier > 42");
     task.setQueryInsightsNested(true);
     assertFalse(TransportPPLQueryAction.shouldReportToQueryInsights(task));
   }
@@ -203,7 +203,7 @@ public class PPLQueryTaskTest {
   public void testNonNestedQueryIsReportedByDefault() {
     // Guards the default: a plain query must not be mistaken for a nested one.
     PPLQueryTask task = newTask();
-    task.setQueryInsightsAnonymizedQuery("source=table | where identifier > ***");
+    task.setQueryInsightsQueryText("source=table | where identifier > 42");
     assertFalse("nested must default to false", task.isQueryInsightsNested());
     assertTrue(TransportPPLQueryAction.shouldReportToQueryInsights(task));
   }
