@@ -29,7 +29,8 @@ import org.opensearch.client.ResponseListener;
 import org.opensearch.sql.plugin.transport.PPLQueryAction;
 
 /**
- * PPL queries refused by a saturated SQL worker pool fail with {@code 429} (#5801).
+ * PPL queries refused by a saturated {@code sql-worker} or {@code sql-complex-worker} pool fail
+ * with {@code 429} (#5801), sync and async.
  *
  * <p>Runs on the dedicated single-node {@code workerPoolSaturationIT} cluster, whose {@code
  * sql-worker} and {@code sql-complex-worker} pools each have one thread and a one-slot queue, so
@@ -37,9 +38,9 @@ import org.opensearch.sql.plugin.transport.PPLQueryAction;
  */
 public class WorkerPoolSaturationIT extends PPLIntegTestCase {
 
+  private static final String WORKER_POOL = "sql-worker";
   private static final String COMPLEX_POOL = "sql-complex-worker";
-  private static final String SATURATED =
-      "[sql-complex-worker] thread pool is saturated; retry later";
+  private static final String COMPLEX_POOL_ENABLED = "plugins.sql.complex_worker_pool.enabled";
 
   /** Ten thousand serial searches: outlasts every saturation check, stops promptly on cancel. */
   private static final String SLOW_INDEX = "worker_pool_saturation_slow_fixture";
@@ -60,6 +61,7 @@ public class WorkerPoolSaturationIT extends PPLIntegTestCase {
 
   @After
   public void cleanUp() throws Exception {
+    setComplexPoolEnabled(null);
     // Cancel the sync queries' tasks, then drop the requests.
     client().performRequest(new Request("POST", "/_tasks/_cancel?actions=" + PPLQueryAction.NAME));
     busy.forEach(Cancellable::cancel);
@@ -76,51 +78,94 @@ public class WorkerPoolSaturationIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void syncQueryRefusedBySaturatedPoolFailsWith429() throws Exception {
-    saturateComplexPool();
+  public void syncQueryRefusedBySaturatedWorkerPoolFailsWith429() throws Exception {
+    // Without the complex pool the whole query runs on sql-worker.
+    setComplexPoolEnabled(false);
+    saturate(WORKER_POOL);
 
-    ResponseException e =
-        Assert.assertThrows(
-            ResponseException.class,
-            () -> postPpl(client(), new JSONObject().put("query", SLOW_QUERY)));
-
-    Assert.assertEquals(429, e.getResponse().getStatusLine().getStatusCode());
-    Assert.assertTrue(errorBody(e).contains(SATURATED));
+    assertSyncRefusedBy(WORKER_POOL);
   }
 
   @Test
-  public void asyncQueryRefusedBySaturatedPoolFailsWith429() throws Exception {
-    saturateComplexPool();
+  public void asyncQueryRefusedBySaturatedWorkerPoolFailsWith429() throws Exception {
+    setComplexPoolEnabled(false);
+    saturate(WORKER_POOL);
+
+    // sql-worker refuses the query as it is submitted, so the submit itself fails.
+    ResponseException e = Assert.assertThrows(ResponseException.class, this::submitAsync);
+    Assert.assertEquals(429, e.getResponse().getStatusLine().getStatusCode());
+    Assert.assertTrue(errorBody(e).contains(saturated(WORKER_POOL)));
+  }
+
+  @Test
+  public void syncQueryRefusedBySaturatedComplexPoolFailsWith429() throws Exception {
+    saturate(COMPLEX_POOL);
+
+    assertSyncRefusedBy(COMPLEX_POOL);
+  }
+
+  @Test
+  public void asyncQueryRefusedBySaturatedComplexPoolFailsWith429() throws Exception {
+    saturate(COMPLEX_POOL);
 
     // The pool refuses it after planning, so it fails inline with 429 or, once its id was
     // returned, ends FAILED.
     JSONObject async;
     try {
-      async =
-          new JSONObject(
-              postPpl(
-                  client(),
-                  new JSONObject()
-                      .put("query", STREAMSTATS_QUERY)
-                      .put("wait_for_completion_timeout", "0")));
+      async = new JSONObject(submitAsync());
     } catch (ResponseException e) {
       Assert.assertEquals(429, e.getResponse().getStatusLine().getStatusCode());
-      Assert.assertTrue(errorBody(e).contains(SATURATED));
+      Assert.assertTrue(errorBody(e).contains(saturated(COMPLEX_POOL)));
       return;
     }
     jobIds.add(async.getString("id"));
     JSONObject terminal = pollUntilTerminal(client(), async.getString("id"), 30_000);
     Assert.assertEquals("FAILED", terminal.getString("status"));
-    Assert.assertTrue(terminal.getJSONObject("error").toString().contains(SATURATED));
+    Assert.assertTrue(terminal.getJSONObject("error").toString().contains(saturated(COMPLEX_POOL)));
   }
 
-  /** Fills the complex pool's thread and queue slot with sync queries. */
-  private void saturateComplexPool() throws Exception {
+  private void assertSyncRefusedBy(String pool) {
+    ResponseException e =
+        Assert.assertThrows(
+            ResponseException.class,
+            () -> postPpl(client(), new JSONObject().put("query", SLOW_QUERY)));
+    Assert.assertEquals(429, e.getResponse().getStatusLine().getStatusCode());
+    try {
+      Assert.assertTrue(errorBody(e).contains(saturated(pool)));
+    } catch (IOException io) {
+      throw new AssertionError(io);
+    }
+  }
+
+  private String submitAsync() throws IOException {
+    return postPpl(
+        client(),
+        new JSONObject().put("query", STREAMSTATS_QUERY).put("wait_for_completion_timeout", "0"));
+  }
+
+  /** Fills the pool's thread and queue slot with sync queries. */
+  private void saturate(String pool) throws Exception {
     String nodeId = localNodeId(client());
     busy.add(startSync(SLOW_QUERY));
-    awaitPoolBusy(client(), nodeId, COMPLEX_POOL, 1, 0);
+    awaitPoolBusy(client(), nodeId, pool, 1, 0);
     busy.add(startSync(SLOW_QUERY));
-    awaitPoolBusy(client(), nodeId, COMPLEX_POOL, 1, 1);
+    awaitPoolBusy(client(), nodeId, pool, 1, 1);
+  }
+
+  private static String saturated(String pool) {
+    return "[" + pool + "] thread pool is saturated; retry later";
+  }
+
+  private void setComplexPoolEnabled(Boolean enabled) throws IOException {
+    Request request = new Request("PUT", "/_cluster/settings");
+    request.setJsonEntity(
+        new JSONObject()
+            .put(
+                "transient",
+                new JSONObject()
+                    .put(COMPLEX_POOL_ENABLED, enabled == null ? JSONObject.NULL : enabled))
+            .toString());
+    client().performRequest(request);
   }
 
   /** Starts a sync query without waiting for it. */
