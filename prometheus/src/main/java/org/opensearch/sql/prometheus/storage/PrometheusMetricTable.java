@@ -11,6 +11,14 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.Nonnull;
 import lombok.Getter;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptTable;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.schema.TranslatableTable;
+import org.apache.calcite.schema.impl.AbstractTable;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.planner.logical.LogicalPlan;
@@ -21,16 +29,22 @@ import org.opensearch.sql.prometheus.planner.logical.PrometheusLogicalPlanOptimi
 import org.opensearch.sql.prometheus.request.PrometheusQueryRequest;
 import org.opensearch.sql.prometheus.request.system.PrometheusDescribeMetricRequest;
 import org.opensearch.sql.prometheus.storage.implementor.PrometheusDefaultImplementor;
+import org.opensearch.sql.prometheus.storage.scan.CalciteLogicalPrometheusScan;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /**
  * Prometheus table (metric) implementation. This can be constructed from a metric Name or from
  * PrometheusQueryRequest In case of query_range table function.
+ *
+ * <p>Implements both the V2 engine's {@link Table} interface and Calcite's {@link
+ * TranslatableTable} interface, enabling this table to participate in Calcite query plans with
+ * pushdown of time range filters and label matchers to PromQL, while retaining V2 engine
+ * compatibility.
  */
-public class PrometheusMetricTable implements Table {
+public class PrometheusMetricTable extends AbstractTable implements TranslatableTable, Table {
 
-  private final PrometheusClient prometheusClient;
+  @Getter private final PrometheusClient prometheusClient;
 
   @Getter private final String metricName;
 
@@ -99,5 +113,22 @@ public class PrometheusMetricTable implements Table {
     } else {
       return null;
     }
+  }
+
+  // ---- Calcite TranslatableTable implementation ----
+
+  @Override
+  public RelDataType getRowType(RelDataTypeFactory relDataTypeFactory) {
+    return OpenSearchTypeFactory.convertSchema(this);
+  }
+
+  /**
+   * Creates a logical scan node for this Prometheus metric that supports pushdown of time range
+   * filters and label matchers into the PromQL query.
+   */
+  @Override
+  public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable relOptTable) {
+    final RelOptCluster cluster = context.getCluster();
+    return new CalciteLogicalPrometheusScan(cluster, relOptTable, this);
   }
 }
