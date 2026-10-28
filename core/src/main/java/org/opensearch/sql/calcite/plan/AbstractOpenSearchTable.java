@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.plan;
 
+import java.util.List;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.schema.TranslatableTable;
@@ -21,5 +22,12 @@ public abstract class AbstractOpenSearchTable extends AbstractTable
   @Override
   public RelDataType getRowType(RelDataTypeFactory relDataTypeFactory) {
     return OpenSearchTypeFactory.convertSchema(this);
+  }
+
+  /**
+   * Write-lowering rules a write node registers itself when the pipeline has no OpenSearch scan.
+   */
+  public java.util.List<org.apache.calcite.plan.RelOptRule> getWriteConversionRules() {
+    return List.of();
   }
 }
