@@ -8,6 +8,8 @@ To send query request to PPL plugin, you MUST use HTTP POST request. POST reques
 ### Description  
 
 You can send HTTP POST request to endpoint **/_plugins/_ppl** with your query in request body.
+
+When the SQL worker thread pools on the node are full, the query fails with `429` and the message `thread pool is saturated; retry later`. Retry the query later.
 ### Example  
   
 ```bash ppl
@@ -679,6 +681,7 @@ Parameters:
 - Results are retained in memory on the owner node for the duration of `keep_alive`, unless the job is deleted first. Set it as low as practical for your polling cadence; the default is `5m`.
 - Submitting an async query requires `cluster:admin/opensearch/ppl`; fetching requires `cluster:admin/opensearch/ql/async_query/result`; deleting requires `cluster:admin/opensearch/ql/async_query/delete`. Users on custom roles must be granted each action they use — a submit without the fetch grant produces an id that returns `403` on GET.
 - When the security plugin is enabled, only the user who submitted a query can fetch or delete it; other users receive `403`.
+- When the SQL worker thread pools on the node are full, the submit fails with `429`. If the query's id was already returned, GET reports it `FAILED` with the same error.
 
 ### Example
 
