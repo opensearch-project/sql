@@ -79,7 +79,7 @@ public class WorkerPoolSaturationIT extends PPLIntegTestCase {
 
   @Test
   public void syncQueryRefusedBySaturatedWorkerPoolFailsWith429() throws Exception {
-    // Without the complex pool the whole query runs on sql-worker.
+    // With the complex pool off, the whole query runs on sql-worker.
     setComplexPoolEnabled(false);
     saturate(WORKER_POOL);
 
@@ -91,7 +91,8 @@ public class WorkerPoolSaturationIT extends PPLIntegTestCase {
     setComplexPoolEnabled(false);
     saturate(WORKER_POOL);
 
-    // sql-worker refuses the query as it is submitted, so the submit itself fails.
+    // sql-worker refuses the query on the submitting thread, before the submit returns, so the
+    // submit itself fails with 429.
     ResponseException e = Assert.assertThrows(ResponseException.class, this::submitAsync);
     Assert.assertEquals(429, e.getResponse().getStatusLine().getStatusCode());
     Assert.assertTrue(errorBody(e).contains(saturated(WORKER_POOL)));
@@ -108,8 +109,9 @@ public class WorkerPoolSaturationIT extends PPLIntegTestCase {
   public void asyncQueryRefusedBySaturatedComplexPoolFailsWith429() throws Exception {
     saturate(COMPLEX_POOL);
 
-    // The pool refuses it after planning, so it fails inline with 429 or, once its id was
-    // returned, ends FAILED.
+    // sql-complex-worker refuses the query on another thread, after sql-worker has planned it.
+    // The submit usually returns an id first and the job then ends FAILED; if the refusal comes
+    // first, the submit itself fails with 429.
     JSONObject async;
     try {
       async = new JSONObject(submitAsync());
@@ -143,7 +145,7 @@ public class WorkerPoolSaturationIT extends PPLIntegTestCase {
         new JSONObject().put("query", STREAMSTATS_QUERY).put("wait_for_completion_timeout", "0"));
   }
 
-  /** Fills the pool's thread and queue slot with sync queries. */
+  /** Fills the pool's one thread and one queue slot with slow sync queries. */
   private void saturate(String pool) throws Exception {
     String nodeId = localNodeId(client());
     busy.add(startSync(SLOW_QUERY));
