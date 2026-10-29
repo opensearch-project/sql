@@ -9,6 +9,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.AdditionalMatchers.aryEq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.plugin.rest.RestUnifiedQueryAction.FORWARDED_CLUSTER_SETTINGS;
@@ -22,6 +25,7 @@ import org.opensearch.analytics.EngineContextProvider;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexMetadata;
+import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
@@ -40,6 +44,7 @@ public class RestUnifiedQueryActionTest {
 
   private ClusterService clusterService;
   private Metadata metadata;
+  private IndexNameExpressionResolver indexNameExpressionResolver;
   private org.opensearch.sql.common.setting.Settings pluginSettings;
   private RestUnifiedQueryAction action;
 
@@ -48,6 +53,7 @@ public class RestUnifiedQueryActionTest {
     clusterService = mock(ClusterService.class);
     ClusterState clusterState = mock(ClusterState.class);
     metadata = mock(Metadata.class);
+    indexNameExpressionResolver = mock(IndexNameExpressionResolver.class);
     when(clusterService.state()).thenReturn(clusterState);
     when(clusterState.metadata()).thenReturn(metadata);
     // isAnalyticsIndex short-circuits on the cluster.pluggable.dataformat setting; the per-index
@@ -61,6 +67,7 @@ public class RestUnifiedQueryActionTest {
         new RestUnifiedQueryAction(
             mock(NodeClient.class),
             clusterService,
+            indexNameExpressionResolver,
             executor,
             mock(EngineContextProvider.class),
             pluginSettings,
@@ -79,6 +86,82 @@ public class RestUnifiedQueryActionTest {
     assertTrue(action.isAnalyticsIndex("source = parquet_logs | fields ts", QueryType.PPL));
     assertTrue(
         action.isAnalyticsIndex("source = opensearch.parquet_logs | fields ts", QueryType.PPL));
+  }
+
+  @Test
+  public void aliasResolvingToMultiplePluggableIndicesRoutesToAnalytics() {
+    registerIndex(
+        "parquet_logs-000001",
+        Settings.builder()
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_ENABLED_SETTING.getKey(), true)
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_VALUE_SETTING.getKey(), "composite")
+            .build());
+    registerIndex(
+        "parquet_logs-000002",
+        Settings.builder()
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_ENABLED_SETTING.getKey(), true)
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_VALUE_SETTING.getKey(), "composite")
+            .build());
+    registerExpression("parquet_logs", "parquet_logs-000001", "parquet_logs-000002");
+
+    assertTrue(action.isAnalyticsIndex("source = parquet_logs | fields ts", QueryType.PPL));
+    assertTrue(action.isAnalyticsIndex("SELECT * FROM parquet_logs", QueryType.SQL));
+  }
+
+  @Test
+  public void wildcardResolvingToPluggableIndicesRoutesToAnalyticsForPplAndSql() {
+    registerCompositeIndex("parquet_logs-000001");
+    registerCompositeIndex("parquet_logs-000002");
+    registerExpression("parquet_logs-*", "parquet_logs-000001", "parquet_logs-000002");
+
+    assertTrue(action.isAnalyticsIndex("source = parquet_logs-* | fields ts", QueryType.PPL));
+    assertTrue(action.isAnalyticsIndex("SELECT * FROM `parquet_logs-*`", QueryType.SQL));
+  }
+
+  @Test
+  public void commaSeparatedPluggableSourcesRouteToAnalytics() {
+    registerCompositeIndex("parquet_logs-a");
+    registerCompositeIndex("parquet_logs-b");
+    registerExpressions(
+        new String[] {"parquet_logs-a", "parquet_logs-b"}, "parquet_logs-a", "parquet_logs-b");
+
+    assertTrue(
+        action.isAnalyticsIndex(
+            "source = parquet_logs-a, parquet_logs-b | fields ts", QueryType.PPL));
+  }
+
+  @Test
+  public void dataStreamResolvingToPluggableBackingIndicesRoutesToAnalytics() {
+    registerCompositeIndex(".ds-parquet-logs-2026.10.29-000001");
+    registerExpression("parquet-logs", ".ds-parquet-logs-2026.10.29-000001");
+
+    assertTrue(action.isAnalyticsIndex("source = parquet-logs | fields ts", QueryType.PPL));
+  }
+
+  @Test
+  public void mixedWildcardAndCommaSourcesRouteToDefaultPath() {
+    registerCompositeIndex("parquet_logs");
+    registerIndex("lucene_logs", Settings.EMPTY);
+    registerExpression("logs-*", "parquet_logs", "lucene_logs");
+    registerExpressions(
+        new String[] {"parquet_logs", "lucene_logs"}, "parquet_logs", "lucene_logs");
+
+    assertFalse(action.isAnalyticsIndex("source = logs-* | fields ts", QueryType.PPL));
+    assertFalse(
+        action.isAnalyticsIndex("source = parquet_logs, lucene_logs | fields ts", QueryType.PPL));
+  }
+
+  @Test
+  public void emptyMissingAndFailedResolutionsRouteToDefaultPath() {
+    registerExpression("no-match-*");
+    registerExpression("missing_metadata", "removed-index");
+    when(indexNameExpressionResolver.concreteIndexNames(
+            any(ClusterState.class), any(), eq(true), aryEq(new String[] {"bad-expression"})))
+        .thenThrow(new IllegalArgumentException("bad expression"));
+
+    assertFalse(action.isAnalyticsIndex("source = no-match-* | fields ts", QueryType.PPL));
+    assertFalse(action.isAnalyticsIndex("source = missing_metadata | fields ts", QueryType.PPL));
+    assertFalse(action.isAnalyticsIndex("source = bad-expression | fields ts", QueryType.PPL));
   }
 
   @Test
@@ -385,5 +468,25 @@ public class RestUnifiedQueryActionTest {
     IndexMetadata indexMetadata = mock(IndexMetadata.class);
     when(indexMetadata.getSettings()).thenReturn(settings);
     when(metadata.index(name)).thenReturn(indexMetadata);
+    registerExpression(name, name);
+  }
+
+  private void registerCompositeIndex(String name) {
+    registerIndex(
+        name,
+        Settings.builder()
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_ENABLED_SETTING.getKey(), true)
+            .put(IndexSettings.PLUGGABLE_DATAFORMAT_VALUE_SETTING.getKey(), "composite")
+            .build());
+  }
+
+  private void registerExpression(String expression, String... concreteNames) {
+    registerExpressions(concreteNames, expression);
+  }
+
+  private void registerExpressions(String[] concreteNames, String... expressions) {
+    when(indexNameExpressionResolver.concreteIndexNames(
+            any(ClusterState.class), any(), eq(true), aryEq(expressions)))
+        .thenReturn(concreteNames);
   }
 }
