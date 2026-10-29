@@ -34,7 +34,7 @@ public final class PPLQueryRunner implements QueryRunner {
 
   private final PPLService pplService;
   private final PPLQueryRequest request;
-  private final Consumer<String> anonymizedQuerySink;
+  private final Consumer<QueryInsightsMetadata> queryInsightsSink;
   private final Clock clock;
   private final Runnable cancelExecution;
   private final AtomicBoolean started = new AtomicBoolean();
@@ -43,8 +43,8 @@ public final class PPLQueryRunner implements QueryRunner {
   /**
    * @param pplService live PPL service; not owned by the runner
    * @param request rich PPL request; carries include_metadata, time_bounds, format, etc.
-   * @param anonymizedQuerySink receives the PII-scrubbed query text; supply {@link
-   *     PPLService#NO_ANONYMIZED_QUERY_SINK} when no telemetry is wanted
+   * @param queryInsightsSink receives the PII-scrubbed query text and whether it is an explain;
+   *     supply {@link PPLService#NO_QUERY_INSIGHTS_SINK} when no telemetry is wanted
    * @param clock time source; used to measure {@code tookMillis}
    * @param cancelExecution stops the engine's in-flight execution; invoked at most once, only when
    *     {@link #cancel()} wins against completion
@@ -53,13 +53,13 @@ public final class PPLQueryRunner implements QueryRunner {
   public PPLQueryRunner(
       PPLService pplService,
       PPLQueryRequest request,
-      Consumer<String> anonymizedQuerySink,
+      Consumer<QueryInsightsMetadata> queryInsightsSink,
       Clock clock,
       Runnable cancelExecution) {
     this.pplService = Objects.requireNonNull(pplService, "pplService must not be null");
     this.request = Objects.requireNonNull(request, "request must not be null");
-    this.anonymizedQuerySink =
-        Objects.requireNonNull(anonymizedQuerySink, "anonymizedQuerySink must not be null");
+    this.queryInsightsSink =
+        Objects.requireNonNull(queryInsightsSink, "queryInsightsSink must not be null");
     this.clock = Objects.requireNonNull(clock, "clock must not be null");
     this.cancelExecution =
         Objects.requireNonNull(cancelExecution, "cancelExecution must not be null");
@@ -95,7 +95,7 @@ public final class PPLQueryRunner implements QueryRunner {
             future.completeExceptionally(e);
           }
         },
-        anonymizedQuerySink);
+        queryInsightsSink);
     return future;
   }
 

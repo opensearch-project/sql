@@ -23,6 +23,7 @@ import org.opensearch.sql.monitor.profile.ProfileContext;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
+import org.opensearch.sql.opensearch.executor.ThreadResourceAccounting;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.tasks.CancellableTask;
@@ -129,7 +130,8 @@ public class BackgroundSearchScanner {
   /**
    * Executes a search on the background thread with the worker thread's context restored. Restores
    * both the profiling context and the cancellable task so the request is tagged with the ppl task
-   * as its parent (see {@link #cancellableTask}).
+   * as its parent (see {@link #cancellableTask}). The thread's own work is accounted to the query
+   * too: core measures the search's tasks, but not this plugin pool's thread.
    */
   private OpenSearchResponse backgroundSearch(ProfileContext ctx, OpenSearchRequest request) {
     boolean restored = false;
@@ -137,7 +139,7 @@ public class BackgroundSearchScanner {
       OpenSearchQueryManager.setCancellableTask(cancellableTask);
       restored = true;
     }
-    try {
+    try (ThreadResourceAccounting.Scope ignored = ThreadResourceAccounting.enter(cancellableTask)) {
       return QueryProfiling.withCurrentContext(ctx, () -> client.search(request));
     } finally {
       if (restored) {

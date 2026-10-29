@@ -15,11 +15,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
@@ -31,6 +33,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.Warning;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
+import org.opensearch.sql.opensearch.executor.ThreadResourceAccounting;
 import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
@@ -224,6 +227,37 @@ class BackgroundSearchScannerTest {
         seenOnBackgroundThread.get(),
         "The cancellable task must be visible on the background search thread so applyParentTask"
             + " can tag the search request with the ppl task as parent");
+  }
+
+  @Test
+  void accountsBackgroundSearchThreadToTheQuerysTask() {
+    // Core measures the search's own tasks but not this plugin pool's thread, so the thread's
+    // work is measured for the query, from before the search starts until it returns.
+    CancellableTask task =
+        mock(CancellableTask.class, withSettings().extraInterfaces(ThreadResourceAccounting.class));
+    Thread caller = Thread.currentThread();
+    List<String> events = new CopyOnWriteArrayList<>();
+    when(((ThreadResourceAccounting) task).enterThread())
+        .thenAnswer(
+            invocation -> {
+              events.add(Thread.currentThread() == caller ? "enter on caller" : "enter");
+              return (ThreadResourceAccounting.Scope) () -> events.add("close");
+            });
+    OpenSearchQueryManager.setCancellableTask(task);
+    // Scanner captures the task at construction time (on this worker thread).
+    scanner = new BackgroundSearchScanner(client, 10, 10);
+    OpenSearchResponse response = mockResponse(false, false, 5);
+    when(client.search(request))
+        .thenAnswer(
+            invocation -> {
+              events.add("search");
+              return response;
+            });
+
+    scanner.startScanning(request);
+    scanner.fetchNextBatch(request);
+
+    assertEquals(List.of("enter", "search", "close"), events);
   }
 
   @Test

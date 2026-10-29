@@ -116,7 +116,7 @@ public class TransportPPLQueryActionCancellationTest {
     PPLQueryRequest request =
         new PPLQueryRequest("source=test", new JSONObject(), "/_plugins/_ppl", "jdbc");
     submitAsync.invoke(
-        action, task, pplService, request, listener, PPLService.NO_ANONYMIZED_QUERY_SINK);
+        action, task, pplService, request, listener, PPLService.NO_QUERY_INSIGHTS_SINK);
   }
 
   private void setField(String name, Object value) throws Exception {
