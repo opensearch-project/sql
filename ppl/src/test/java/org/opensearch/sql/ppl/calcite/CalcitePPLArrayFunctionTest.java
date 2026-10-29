@@ -662,4 +662,65 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testArrayWithSmallintAndIntLiteral() {
+    // EMPNO is SMALLINT
+    String ppl = "source=EMP | eval x = array(EMPNO, 1) | head 1 | fields x";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "x=[7369, 1]\n";
+    verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testArrayWithSmallintAndTinyint() {
+    // EMPNO is SMALLINT and DEPTNO is TINYINT
+    String ppl = "source=EMP | eval x = array(EMPNO, DEPTNO) | head 1 | fields x";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "x=[7369, 20]\n";
+    verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testArrayWithIntAndBigint() {
+    // PPL long is Calcite BIGINT
+    String ppl =
+        "source=EMP | eval x = array(cast(EMPNO as int), cast(DEPTNO as long)) | head 1 | fields x";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "x=[7369, 20]\n";
+    verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testArrayWithRealAndIntLiteral() {
+    // PPL float is Calcite REAL
+    String ppl = "source=EMP | eval x = array(cast(EMPNO as float), 1) | head 1 | fields x";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "x=[7369.0, 1.0]\n";
+    verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testArrayWithRealAndFloatLiteral() {
+    // PPL float is Calcite REAL, and the float literal is Calcite FLOAT
+    String ppl = "source=EMP | eval x = array(cast(EMPNO as float), 2.5F) | head 1 | fields x";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "x=[7369.0, 2.5]\n";
+    verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testMvappendWithRealAndFloatLiteral() {
+    // PPL float is Calcite REAL, and the float literal is Calcite FLOAT
+    String ppl = "source=EMP | eval x = mvappend(cast(EMPNO as float), 2.5F) | head 1 | fields x";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "x=[7369.0, 2.5]\n";
+    verifyResult(root, expectedResult);
+  }
 }
