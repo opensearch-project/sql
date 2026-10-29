@@ -294,6 +294,38 @@ class OpenSearchNodeClientTest {
   }
 
   @Test
+  void empty_mapping_exception_date_math_produces_compatible_mapping_message() {
+    ErrorReport report = OpenSearchClient.emptyMappingException("<logs-{now/d}>");
+    assertAll(
+        () -> assertEquals(ErrorCode.INDEX_NOT_FOUND, report.getCode()),
+        () -> assertTrue(report.getDetails().contains("compatible mapping")));
+  }
+
+  @Test
+  void empty_mapping_exception_exclusion_produces_compatible_mapping_message() {
+    ErrorReport report = OpenSearchClient.emptyMappingException("-logs-old");
+    assertAll(
+        () -> assertEquals(ErrorCode.INDEX_NOT_FOUND, report.getCode()),
+        () -> assertTrue(report.getDetails().contains("compatible mapping")));
+  }
+
+  @Test
+  void empty_mapping_exception_all_alias_produces_compatible_mapping_message() {
+    ErrorReport report = OpenSearchClient.emptyMappingException("_all");
+    assertAll(
+        () -> assertEquals(ErrorCode.INDEX_NOT_FOUND, report.getCode()),
+        () -> assertTrue(report.getDetails().contains("compatible mapping")));
+  }
+
+  @Test
+  void empty_mapping_exception_null_element_is_ignored_when_checking_for_pattern() {
+    ErrorReport report = OpenSearchClient.emptyMappingException((String) null);
+    assertAll(
+        () -> assertEquals(ErrorCode.INDEX_NOT_FOUND, report.getCode()),
+        () -> assertFalse(report.getDetails().contains("compatible mapping")));
+  }
+
+  @Test
   void empty_mapping_exception_multi_arg_literals_produces_index_not_found_message() {
     ErrorReport report = OpenSearchClient.emptyMappingException("index-a", "index-b");
     assertAll(
