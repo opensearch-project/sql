@@ -661,52 +661,34 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return OpenSearchConstants.METADATAFIELD_TYPE_MAP.containsKey(fieldName);
   }
 
-  /** See logic in {@link org.opensearch.sql.analysis.symbol.SymbolTable#lookupAllFields} */
+  /**
+   * See logic in {@link org.opensearch.sql.analysis.symbol.SymbolTable#lookupAllFields}.
+   *
+   * <p>Single pass over field ordinals: index patterns with dynamic sub-fields can yield 100k+
+   * columns, so resolving each field by name ({@code RelBuilder#field(String)} is a linear scan) or
+   * removing from a list per field makes this quadratic.
+   */
   private static void tryToRemoveNestedFields(CalcitePlanContext context) {
-    Set<String> allFields = new HashSet<>(context.relBuilder.peek().getRowType().getFieldNames());
-    List<RexNode> duplicatedNestedFields =
-        allFields.stream()
-            .filter(
-                field -> {
-                  int lastDot = field.lastIndexOf(".");
-                  return -1 != lastDot && allFields.contains(field.substring(0, lastDot));
-                })
-            .map(field -> (RexNode) context.relBuilder.field(field))
-            .toList();
-    if (!duplicatedNestedFields.isEmpty()) {
-      // This is a workaround to avoid the bug in Calcite:
+    List<String> fieldNames = context.relBuilder.peek().getRowType().getFieldNames();
+    Set<String> allFields = new HashSet<>(fieldNames);
+    List<RexNode> keptFields = new ArrayList<>(fieldNames.size());
+    for (int i = 0; i < fieldNames.size(); i++) {
+      String field = fieldNames.get(i);
+      int lastDot = field.lastIndexOf('.');
+      if (lastDot == -1 || !allFields.contains(field.substring(0, lastDot))) {
+        keptFields.add(context.relBuilder.field(i));
+      }
+    }
+    if (keptFields.size() < fieldNames.size()) {
+      // Project with force=true to work around a Calcite bug:
       // In {@link RelBuilder#project_(Iterable, Iterable, Iterable, boolean, Iterable)},
       // the check `RexUtil.isIdentity(nodeList, inputRowType)` will pass when the input
       // and the output nodeList refer to the same fields, even if the field name list
       // is different. As a result, renaming operation will not be applied. This makes
       // the logical plan for the flatten command incorrect, where the operation is
       // equivalent to renaming the flattened sub-fields. E.g. emp.name -> name.
-      forceProjectExcept(context.relBuilder, duplicatedNestedFields);
+      context.relBuilder.project(keptFields, ImmutableList.of(), true);
     }
-  }
-
-  /**
-   * Project except with force.
-   *
-   * <p>This method is copied from {@link RelBuilder#projectExcept(Iterable)} and modified with the
-   * force flag in project set to true. It is subject to future changes in Calcite.
-   *
-   * @param relBuilder RelBuilder
-   * @param expressions Expressions to exclude from the project
-   */
-  private static void forceProjectExcept(RelBuilder relBuilder, Iterable<RexNode> expressions) {
-    List<RexNode> allExpressions = new ArrayList<>(relBuilder.fields());
-    Set<RexNode> excludeExpressions = new HashSet<>();
-    for (RexNode excludeExp : expressions) {
-      if (!excludeExpressions.add(excludeExp)) {
-        throw new IllegalArgumentException(
-            "Input list contains duplicates. Expression " + excludeExp + " exists multiple times.");
-      }
-      if (!allExpressions.remove(excludeExp)) {
-        throw new IllegalArgumentException("Expression " + excludeExp.toString() + " not found.");
-      }
-    }
-    relBuilder.project(allExpressions, ImmutableList.of(), true);
   }
 
   /**
