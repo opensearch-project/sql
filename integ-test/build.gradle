@@ -499,6 +499,18 @@ testClusters {
         plugin ":opensearch-sql-plugin"
         setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
     }
+    // Dedicated single-node cluster for SQL worker pool saturation. One thread and one queue slot
+    // per SQL pool make worker-pool saturation deterministic.
+    workerPoolSaturationIT {
+        testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
+        plugin ":opensearch-sql-plugin"
+        setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
+        setting 'thread_pool.sql-worker.size', '1'
+        setting 'thread_pool.sql-worker.queue_size', '1'
+        setting 'thread_pool.sql-complex-worker.size', '1'
+        setting 'thread_pool.sql-complex-worker.queue_size', '1'
+    }
     tracingIntegTest {
         testDistribution = 'archive'
         plugin(getJobSchedulerPlugin())
@@ -803,6 +815,27 @@ task asyncMultiNodeIT(type: RestIntegTestTask) {
 // (needs a 2-node cluster) and would never actually run.
 check.dependsOn asyncMultiNodeIT
 
+task workerPoolSaturationIT(type: RestIntegTestTask) {
+    useCluster testClusters.workerPoolSaturationIT
+
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+
+    systemProperty 'tests.security.manager', 'false'
+    systemProperty 'project.root', project.projectDir.absolutePath
+    systemProperty 'defaultQuerySizeLimit', '10000'
+    systemProperty 'defaultQueryBucketSize', '1000'
+    systemProperty 'defaultMaxResultWindow', '10000'
+    doFirst {
+        systemProperty 'cluster.debug', getDebug()
+    }
+
+    filter {
+        includeTestsMatching 'org.opensearch.sql.ppl.WorkerPoolSaturationIT'
+    }
+}
+
+check.dependsOn workerPoolSaturationIT
+
 task integTestWithSecurity(type: RestIntegTestTask) {
     useCluster testClusters.integTestWithSecurity
     useCluster testClusters.remoteIntegTestWithSecurity
@@ -965,6 +998,8 @@ integTest {
 
     // Run on dedicated two-node cluster via :integ-test:asyncMultiNodeIT.
     exclude 'org/opensearch/sql/ppl/AsyncPPLMultiNodeRoutingIT.class'
+    // Runs on the dedicated workerPoolSaturationIT cluster.
+    exclude 'org/opensearch/sql/ppl/WorkerPoolSaturationIT.class'
 
     // Exclude tests that require the analytics engine plugin stack (run separately via dedicated tasks)
     exclude 'org/opensearch/sql/analytics/AnalyticsEngineProfileIT.class'
@@ -1628,6 +1663,8 @@ task integTestRemote(type: RestIntegTestTask) {
     // AsyncPPLSecurityIT needs two local nodes for owner forwarding; integTestRemote runs
     // against an externally supplied cluster that is not guaranteed to have two.
     exclude 'org/opensearch/sql/security/AsyncPPLSecurityIT.class'
+    // Runs on the dedicated workerPoolSaturationIT cluster.
+    exclude 'org/opensearch/sql/ppl/WorkerPoolSaturationIT.class'
     exclude 'org/opensearch/sql/legacy/ExplainIT.class'
     exclude 'org/opensearch/sql/legacy/PrettyFormatterIT.class'
     exclude 'org/opensearch/sql/legacy/TermQueryExplainIT.class'

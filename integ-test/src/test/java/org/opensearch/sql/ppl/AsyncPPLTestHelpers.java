@@ -120,11 +120,19 @@ public final class AsyncPPLTestHelpers {
 
   /** Bulk-loads {@link #INDEX} with {@value #DOCS} docs if it isn't already present. */
   public static void createIndex(RestClient admin) throws IOException {
-    if (admin.performRequest(new Request("HEAD", "/" + INDEX)).getStatusLine().getStatusCode()
+    createIndex(admin, INDEX, DOCS);
+  }
+
+  /**
+   * Bulk-loads {@code index} with {@code docs} docs if it isn't already present. A full scan pages
+   * {@value #MAX_RESULT_WINDOW} docs per search, so its running time grows with {@code docs}.
+   */
+  public static void createIndex(RestClient admin, String index, int docs) throws IOException {
+    if (admin.performRequest(new Request("HEAD", "/" + index)).getStatusLine().getStatusCode()
         == 200) {
       return;
     }
-    Request create = new Request("PUT", "/" + INDEX);
+    Request create = new Request("PUT", "/" + index);
     create.setJsonEntity(
         String.format(
             Locale.ROOT,
@@ -134,14 +142,14 @@ public final class AsyncPPLTestHelpers {
             MAX_RESULT_WINDOW));
     admin.performRequest(create);
     int chunk = 1_000;
-    for (int offset = 0; offset < DOCS; offset += chunk) {
+    for (int offset = 0; offset < docs; offset += chunk) {
       StringBuilder bulk = new StringBuilder(chunk * 30);
-      for (int i = 0; i < chunk && offset + i < DOCS; i++) {
+      for (int i = 0; i < chunk && offset + i < docs; i++) {
         bulk.append("{\"index\":{}}\n{\"n\":").append(offset + i).append("}\n");
       }
       Request bulkRequest =
           new Request(
-              "POST", "/" + INDEX + "/_bulk" + (offset + chunk >= DOCS ? "?refresh=true" : ""));
+              "POST", "/" + index + "/_bulk" + (offset + chunk >= docs ? "?refresh=true" : ""));
       bulkRequest.setJsonEntity(bulk.toString());
       admin.performRequest(bulkRequest);
     }
@@ -190,6 +198,29 @@ public final class AsyncPPLTestHelpers {
             + " pits="
             + openPits(owner));
     return null; // unreachable
+  }
+
+  /** Waits until {@code pool} on {@code nodeId} reports at least the given active and queued. */
+  public static void awaitPoolBusy(
+      RestClient owner, String nodeId, String pool, int minActive, int minQueued) throws Exception {
+    long deadline = System.currentTimeMillis() + START_DEADLINE_MILLIS;
+    Map<String, Integer> counts = poolStats(owner, nodeId).get(pool);
+    while (counts.get("active") < minActive || counts.get("queue") < minQueued) {
+      if (System.currentTimeMillis() > deadline) {
+        Assert.fail(
+            pool
+                + " never reached active>="
+                + minActive
+                + " queue>="
+                + minQueued
+                + " within "
+                + START_DEADLINE_MILLIS
+                + "ms: "
+                + counts);
+      }
+      Thread.sleep(10);
+      counts = poolStats(owner, nodeId).get(pool);
+    }
   }
 
   /** Waits until every SQL pool's active + queue reaches zero. */

@@ -1,0 +1,192 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.ppl;
+
+import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.STREAMSTATS_QUERY;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.awaitPoolBusy;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.awaitPoolsIdle;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.deleteAsyncQuery;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.localNodeId;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.pollUntilTerminal;
+import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.postPpl;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import org.json.JSONObject;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Test;
+import org.opensearch.client.Cancellable;
+import org.opensearch.client.Request;
+import org.opensearch.client.Response;
+import org.opensearch.client.ResponseException;
+import org.opensearch.client.ResponseListener;
+import org.opensearch.sql.plugin.transport.PPLQueryAction;
+
+/**
+ * PPL queries refused by a saturated {@code sql-worker} or {@code sql-complex-worker} pool fail
+ * with {@code 429} (#5801), sync and async.
+ *
+ * <p>Runs on the dedicated single-node {@code workerPoolSaturationIT} cluster, whose {@code
+ * sql-worker} and {@code sql-complex-worker} pools each have one thread and a one-slot queue, so
+ * saturation is deterministic.
+ */
+public class WorkerPoolSaturationIT extends PPLIntegTestCase {
+
+  private static final String WORKER_POOL = "sql-worker";
+  private static final String COMPLEX_POOL = "sql-complex-worker";
+  private static final String COMPLEX_POOL_ENABLED = "plugins.sql.complex_worker_pool.enabled";
+
+  /** Ten thousand serial searches: outlasts every saturation check, stops promptly on cancel. */
+  private static final String SLOW_INDEX = "worker_pool_saturation_slow_fixture";
+
+  private static final String SLOW_QUERY =
+      "source=" + SLOW_INDEX + " | streamstats count() as c | stats max(c) as total";
+
+  private final List<Cancellable> busy = new ArrayList<>();
+  private final List<String> jobIds = new ArrayList<>();
+
+  @Override
+  protected void init() throws Exception {
+    super.init();
+    enableCalcite();
+    AsyncPPLTestHelpers.createIndex(client());
+    AsyncPPLTestHelpers.createIndex(client(), SLOW_INDEX, 100_000);
+  }
+
+  @After
+  public void cleanUp() throws Exception {
+    setComplexPoolEnabled(null);
+    // Cancel the sync queries' tasks, then drop the requests.
+    client().performRequest(new Request("POST", "/_tasks/_cancel?actions=" + PPLQueryAction.NAME));
+    busy.forEach(Cancellable::cancel);
+    busy.clear();
+    for (String id : jobIds) {
+      try {
+        deleteAsyncQuery(client(), id);
+      } catch (ResponseException e) {
+        // Already deleted, evicted, or failed inline.
+      }
+    }
+    jobIds.clear();
+    awaitPoolsIdle(client(), localNodeId(client()));
+  }
+
+  @Test
+  public void syncQueryRefusedBySaturatedWorkerPoolFailsWith429() throws Exception {
+    // With the complex pool off, the whole query runs on sql-worker.
+    setComplexPoolEnabled(false);
+    saturate(WORKER_POOL);
+
+    assertSyncRefusedBy(WORKER_POOL);
+  }
+
+  @Test
+  public void asyncQueryRefusedBySaturatedWorkerPoolFailsWith429() throws Exception {
+    setComplexPoolEnabled(false);
+    saturate(WORKER_POOL);
+
+    // sql-worker refuses the query on the submitting thread, before the submit returns, so the
+    // submit itself fails with 429.
+    ResponseException e = Assert.assertThrows(ResponseException.class, this::submitAsync);
+    Assert.assertEquals(429, e.getResponse().getStatusLine().getStatusCode());
+    Assert.assertTrue(errorBody(e).contains(saturated(WORKER_POOL)));
+  }
+
+  @Test
+  public void syncQueryRefusedBySaturatedComplexPoolFailsWith429() throws Exception {
+    saturate(COMPLEX_POOL);
+
+    assertSyncRefusedBy(COMPLEX_POOL);
+  }
+
+  @Test
+  public void asyncQueryRefusedBySaturatedComplexPoolFailsWith429() throws Exception {
+    saturate(COMPLEX_POOL);
+
+    // sql-complex-worker refuses the query on another thread, after sql-worker has planned it.
+    // The submit usually returns an id first and the job then ends FAILED; if the refusal comes
+    // first, the submit itself fails with 429.
+    JSONObject async;
+    try {
+      async = new JSONObject(submitAsync());
+    } catch (ResponseException e) {
+      Assert.assertEquals(429, e.getResponse().getStatusLine().getStatusCode());
+      Assert.assertTrue(errorBody(e).contains(saturated(COMPLEX_POOL)));
+      return;
+    }
+    jobIds.add(async.getString("id"));
+    JSONObject terminal = pollUntilTerminal(client(), async.getString("id"), 30_000);
+    Assert.assertEquals("FAILED", terminal.getString("status"));
+    Assert.assertTrue(terminal.getJSONObject("error").toString().contains(saturated(COMPLEX_POOL)));
+  }
+
+  private void assertSyncRefusedBy(String pool) {
+    ResponseException e =
+        Assert.assertThrows(
+            ResponseException.class,
+            () -> postPpl(client(), new JSONObject().put("query", SLOW_QUERY)));
+    Assert.assertEquals(429, e.getResponse().getStatusLine().getStatusCode());
+    try {
+      Assert.assertTrue(errorBody(e).contains(saturated(pool)));
+    } catch (IOException io) {
+      throw new AssertionError(io);
+    }
+  }
+
+  private String submitAsync() throws IOException {
+    return postPpl(
+        client(),
+        new JSONObject().put("query", STREAMSTATS_QUERY).put("wait_for_completion_timeout", "0"));
+  }
+
+  /** Fills the pool's one thread and one queue slot with slow sync queries. */
+  private void saturate(String pool) throws Exception {
+    String nodeId = localNodeId(client());
+    busy.add(startSync(SLOW_QUERY));
+    awaitPoolBusy(client(), nodeId, pool, 1, 0);
+    busy.add(startSync(SLOW_QUERY));
+    awaitPoolBusy(client(), nodeId, pool, 1, 1);
+  }
+
+  private static String saturated(String pool) {
+    return "[" + pool + "] thread pool is saturated; retry later";
+  }
+
+  private void setComplexPoolEnabled(Boolean enabled) throws IOException {
+    Request request = new Request("PUT", "/_cluster/settings");
+    request.setJsonEntity(
+        new JSONObject()
+            .put(
+                "transient",
+                new JSONObject()
+                    .put(COMPLEX_POOL_ENABLED, enabled == null ? JSONObject.NULL : enabled))
+            .toString());
+    client().performRequest(request);
+  }
+
+  /** Starts a sync query without waiting for it. */
+  private Cancellable startSync(String query) {
+    Request request = new Request("POST", "/_plugins/_ppl");
+    request.setJsonEntity(new JSONObject().put("query", query).toString());
+    return client()
+        .performRequestAsync(
+            request,
+            new ResponseListener() {
+              @Override
+              public void onSuccess(Response response) {}
+
+              @Override
+              public void onFailure(Exception exception) {}
+            });
+  }
+
+  private static String errorBody(ResponseException e) throws IOException {
+    return getResponseBody(e.getResponse(), true);
+  }
+}

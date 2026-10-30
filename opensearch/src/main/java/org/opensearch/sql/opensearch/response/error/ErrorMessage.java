@@ -46,8 +46,11 @@ public class ErrorMessage {
         return reason;
       }
     }
-    return status == RestStatus.BAD_REQUEST.getStatus()
-        ? "Invalid Query"
+    if (status == RestStatus.BAD_REQUEST.getStatus()) {
+      return "Invalid Query";
+    }
+    return status == RestStatus.TOO_MANY_REQUESTS.getStatus()
+        ? "Too Many Requests"
         : "There was internal problem at backend";
   }
 
