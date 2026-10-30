@@ -12,7 +12,10 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 public class MergeRuleHelper {
   private static final List<MergeRule> RULES =
       List.of(
-          new DeepMergeRule(), new TextKeywordConflictRule(), new LatestRule() // must come last
+          new DeepMergeRule(),
+          new TextKeywordConflictRule(),
+          new ObjectScalarConflictRule(),
+          new LatestRule() // must come last
           );
 
   public static MergeRule selectRule(OpenSearchDataType source, OpenSearchDataType target) {
