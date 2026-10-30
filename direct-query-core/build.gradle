@@ -64,7 +64,7 @@ task junit4(type: Test) {
 }
 
 jacocoTestReport {
-    dependsOn test, junit4
+    dependsOn test, junit4, processResources
     executionData test, junit4
     reports {
         html.required = true
