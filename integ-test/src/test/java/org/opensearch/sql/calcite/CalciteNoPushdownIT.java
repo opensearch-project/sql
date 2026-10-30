@@ -41,6 +41,7 @@ import org.opensearch.sql.ppl.PPLIntegTestCase;
   ForeachFieldJsonIT.class,
   CalciteFieldsCommandIT.class,
   CalciteFillNullCommandIT.class,
+  CalciteFlatObjectIT.class,
   CalciteFlattenCommandIT.class,
   CalciteFlattenDocValueIT.class,
   CalciteGeoIpFunctionsIT.class,
