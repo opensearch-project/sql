@@ -10,9 +10,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.data.model.ExprValueUtils.nullValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 
+import java.util.AbstractMap;
+import java.util.AbstractSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.opensearch.data.utils.ObjectContent;
@@ -154,6 +158,60 @@ class FlatObjectValuesTest {
       assertEquals(26, deepestKey(25).split("\\.").length);
       FlatObjectValues.setMaxDepth(3);
       assertEquals(4, deepestKey(25).split("\\.").length);
+    } finally {
+      FlatObjectValues.setMaxDepth(FlatObjectValues.DEFAULT_MAX_DEPTH);
+    }
+  }
+
+  /** A map that moves the cap once it has handed out its first entry. */
+  private static Map<String, Object> movesTheCapAfterTheFirstEntry(
+      Map<String, Object> entries, int newDepth) {
+    return new AbstractMap<>() {
+      @Override
+      public Set<Entry<String, Object>> entrySet() {
+        return new AbstractSet<>() {
+          @Override
+          public Iterator<Entry<String, Object>> iterator() {
+            Iterator<Entry<String, Object>> delegate = entries.entrySet().iterator();
+            return new Iterator<>() {
+              private int handedOut = 0;
+
+              @Override
+              public boolean hasNext() {
+                return delegate.hasNext();
+              }
+
+              @Override
+              public Entry<String, Object> next() {
+                if (handedOut++ == 1) {
+                  FlatObjectValues.setMaxDepth(newDepth);
+                }
+                return delegate.next();
+              }
+            };
+          }
+
+          @Override
+          public int size() {
+            return entries.size();
+          }
+        };
+      }
+    };
+  }
+
+  // The first subtree is folded before the second entry is pulled, so a cap read per node rather
+  // than per document would apply a different one to each.
+  @Test
+  void theCapIsReadOncePerDocument() {
+    Map<String, Object> subtree = Map.of("l2", Map.of("l1", Map.of("l0", Map.of("leaf", "v"))));
+    Map<String, Object> entries = new LinkedHashMap<>();
+    entries.put("a", subtree);
+    entries.put("b", subtree);
+    try {
+      FlatObjectValues.setMaxDepth(10);
+      ExprValue value = flatten(movesTheCapAfterTheFirstEntry(entries, 1));
+      assertEquals(Set.of("a.l2.l1.l0.leaf", "b.l2.l1.l0.leaf"), value.tupleValue().keySet());
     } finally {
       FlatObjectValues.setMaxDepth(FlatObjectValues.DEFAULT_MAX_DEPTH);
     }
