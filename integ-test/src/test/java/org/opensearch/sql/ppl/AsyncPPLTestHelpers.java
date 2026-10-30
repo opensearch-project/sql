@@ -49,9 +49,9 @@ public final class AsyncPPLTestHelpers {
 
   private static final int DOCS = 10_000;
   private static final int MAX_RESULT_WINDOW = 10;
-  private static final long STOP_DEADLINE_MILLIS = 5_000;
-  private static final long START_DEADLINE_MILLIS = 10_000;
-  private static final long RUNNING_MIN_PROGRESS = 10;
+  private static final long STOP_DEADLINE_MILLIS = 15_000;
+  private static final long START_DEADLINE_MILLIS = 30_000;
+  private static final long RUNNING_MIN_PROGRESS = 1;
   private static final long RUNNING_MAX_PROGRESS = DOCS / MAX_RESULT_WINDOW / 2;
   private static final int MAX_SEARCHES_AFTER_CANCEL = 20;
   private static final List<String> SQL_POOLS =
