@@ -1157,3 +1157,19 @@ Join types ``inner``, ``left``, ``outer`` (alias of ``left``), ``semi`` and ``an
 1. The default value is false since 3.3.0.
 2. This setting is node scope.
 3. This setting can be updated dynamically.
+
+search.allow_expensive_queries
+==============================
+
+Version
+-------
+3.10
+
+Description
+-----------
+
+This is an OpenSearch setting rather than a plugin setting, and it is not registered by the plugin. A predicate the index cannot answer -- equality on a ``text`` field with no ``keyword`` sub-field, for instance -- is planned as a ``script`` query, which is one of the query types OpenSearch classifies as expensive and refuses while this setting is ``false``. The plugin reads it when planning and leaves such a predicate to be evaluated above the scan instead, so the query answers correctly, reading more documents than it would otherwise. The rest of the predicate is still pushed down.
+
+1. The default value is true, and is OpenSearch's.
+2. This setting is node scope.
+3. This setting can be updated dynamically.

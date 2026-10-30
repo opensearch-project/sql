@@ -29,6 +29,7 @@ import org.opensearch.cluster.ClusterName;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.core.common.unit.ByteSizeValue;
+import org.opensearch.search.SearchService;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.utils.DeserializationFilterUtil;
 
@@ -61,6 +62,40 @@ class OpenSearchSettingsTest {
     OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
     ByteSizeValue sizeValue = settings.getSettingValue(Settings.Key.QUERY_MEMORY_LIMIT);
     assertEquals(sizeValue, new ByteSizeValue(20));
+  }
+
+  @Test
+  void allowExpensiveQueriesFollowsTheClusterSetting() {
+    when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
+    when(clusterSettings.get(SearchService.ALLOW_EXPENSIVE_QUERIES)).thenReturn(false);
+    when(clusterSettings.get(
+            not(
+                or(
+                    eq(ClusterName.CLUSTER_NAME_SETTING),
+                    eq(SearchService.ALLOW_EXPENSIVE_QUERIES)))))
+        .thenReturn(null);
+    OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
+
+    assertEquals(false, settings.getSettingValue(Settings.Key.ALLOW_EXPENSIVE_QUERIES));
+  }
+
+  @Test
+  void allowExpensiveQueriesDefaultsToTrue() {
+    when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
+    when(clusterSettings.get(not((eq(ClusterName.CLUSTER_NAME_SETTING))))).thenReturn(null);
+    OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
+
+    assertEquals(true, settings.getSettingValue(Settings.Key.ALLOW_EXPENSIVE_QUERIES));
+  }
+
+  /** It belongs to OpenSearch; registering it again would fail the node on startup. */
+  @Test
+  void allowExpensiveQueriesIsNotRegisteredAsAPluginSetting() {
+    assertFalse(
+        OpenSearchSettings.pluginSettings().contains(SearchService.ALLOW_EXPENSIVE_QUERIES));
+    assertFalse(
+        OpenSearchSettings.pluginNonDynamicSettings()
+            .contains(SearchService.ALLOW_EXPENSIVE_QUERIES));
   }
 
   @Test
