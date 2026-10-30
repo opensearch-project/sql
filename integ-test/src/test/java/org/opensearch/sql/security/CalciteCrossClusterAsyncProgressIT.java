@@ -76,6 +76,20 @@ public class CalciteCrossClusterAsyncProgressIT extends CrossClusterTestBase {
   }
 
   @Test
+  public void remoteSingleRequestAggregationCompletes() throws Exception {
+    // Remote shards run under ccs_minimize_roundtrips, so they report no per-shard progress here;
+    // the source moves from 0 to done when the response arrives.
+    String query = "source=" + TEST_INDEX_ACCOUNT_REMOTE + " | stats avg(age) as a";
+    List<Double> running = new ArrayList<>();
+    JSONObject terminal = runAsync(query, running);
+
+    Assert.assertEquals("SUCCEEDED", terminal.getString("status"));
+    Assert.assertEquals(1D, fraction(terminal), 0D);
+    assertSameRows(query, terminal);
+    assertBoundedAndMonotonic(running);
+  }
+
+  @Test
   public void localAndRemoteSourceMatchesSync() throws Exception {
     String query =
         "source=" + TEST_INDEX_ACCOUNT + "," + TEST_INDEX_ACCOUNT_REMOTE + " | stats count() as c";
