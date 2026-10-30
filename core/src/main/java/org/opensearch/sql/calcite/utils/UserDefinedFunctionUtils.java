@@ -340,4 +340,16 @@ public class UserDefinedFunctionUtils {
     operandsWithProperties.addFirst(properties);
     return Collections.unmodifiableList(operandsWithProperties);
   }
+
+  /**
+   * Converts a UDF argument to {@code int}, failing when it is outside the int range. PPL widens
+   * integer arithmetic to BIGINT (#5603), so UDF methods take {@code long} and convert with this
+   * helper. The error matches the one Calcite raises when it casts BIGINT to INTEGER.
+   */
+  public static int toIntArg(long value) {
+    if (value != (int) value) {
+      throw new ArithmeticException("Value " + value + " out of range");
+    }
+    return (int) value;
+  }
 }

@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.expression.function.udf;
 
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.toIntArg;
+
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -110,7 +112,7 @@ public class SpanFunction extends ImplementorUDF {
             (ScalarFunctionImpl)
                 ScalarFunctionImpl.create(
                     Types.lookupMethod(
-                        SpanFunction.class, methodName, String.class, int.class, String.class));
+                        SpanFunction.class, methodName, String.class, long.class, String.class));
         return function.getImplementor().implement(translator, call, RexImpTable.NullAs.NULL);
       }
       throw new IllegalArgumentException(
@@ -123,9 +125,10 @@ public class SpanFunction extends ImplementorUDF {
   @Strict
   public static Object evalDate(
       @Parameter(name = "value") String value,
-      @Parameter(name = "interval") int interval,
+      @Parameter(name = "interval") long interval,
       @Parameter(name = "unit") String unit) {
-    ExprValue exprInterval = ExprValueUtils.fromObjectValue(interval, ExprCoreType.INTEGER);
+    ExprValue exprInterval =
+        ExprValueUtils.fromObjectValue(toIntArg(interval), ExprCoreType.INTEGER);
     ExprValue exprValue = ExprValueUtils.fromObjectValue(value, ExprCoreType.DATE);
     Rounding<?> rounding = new DateRounding(exprInterval, unit);
     return rounding.round(exprValue).valueForCalcite();
@@ -134,9 +137,10 @@ public class SpanFunction extends ImplementorUDF {
   @Strict
   public static Object evalTime(
       @Parameter(name = "value") String value,
-      @Parameter(name = "interval") int interval,
+      @Parameter(name = "interval") long interval,
       @Parameter(name = "unit") String unit) {
-    ExprValue exprInterval = ExprValueUtils.fromObjectValue(interval, ExprCoreType.INTEGER);
+    ExprValue exprInterval =
+        ExprValueUtils.fromObjectValue(toIntArg(interval), ExprCoreType.INTEGER);
     ExprValue exprValue = ExprValueUtils.fromObjectValue(value, ExprCoreType.TIME);
     Rounding<?> rounding = new TimeRounding(exprInterval, unit);
     return rounding.round(exprValue).valueForCalcite();
@@ -145,9 +149,10 @@ public class SpanFunction extends ImplementorUDF {
   @Strict
   public static Object evalTimestamp(
       @Parameter(name = "value") String value,
-      @Parameter(name = "interval") int interval,
+      @Parameter(name = "interval") long interval,
       @Parameter(name = "unit") String unit) {
-    ExprValue exprInterval = ExprValueUtils.fromObjectValue(interval, ExprCoreType.INTEGER);
+    ExprValue exprInterval =
+        ExprValueUtils.fromObjectValue(toIntArg(interval), ExprCoreType.INTEGER);
     ExprValue exprValue = ExprValueUtils.fromObjectValue(value, ExprCoreType.TIMESTAMP);
     Rounding<?> rounding = new TimestampRounding(exprInterval, unit);
     return rounding.round(exprValue).valueForCalcite();
