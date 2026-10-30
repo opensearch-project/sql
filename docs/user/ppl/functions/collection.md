@@ -307,7 +307,7 @@ fetched rows / total rows = 1/1
 
 **Usage**: `mvjoin(array, delimiter)`
 
-Joins string array elements into a single string, separated by the specified delimiter. `NULL` elements are excluded from the output. Only string arrays are supported.
+Joins string array elements into a single string, separated by the specified delimiter. `NULL` elements are excluded from the output. Only string arrays are supported: arrays whose elements are not strings are rejected with an error. To join other types, cast the elements to strings first, for example with `cast(... as string)`.
 
 **Parameters**:
 
@@ -357,6 +357,26 @@ fetched rows / total rows = 1/1
 |-------------|
 | Amber, Duke |
 +-------------+
+```
+
+The following example casts numbers to strings before joining them:
+
+```ppl
+source=people
+| eval result = mvjoin(array(cast(1 as string), cast(2 as string), cast(3 as string)), ',')
+| fields result
+| head 1
+```
+  
+The query returns the following results:
+  
+```text
+fetched rows / total rows = 1/1
++--------+
+| result |
+|--------|
+| 1,2,3  |
++--------+
 ```
   
 ## MVAPPEND

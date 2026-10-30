@@ -320,6 +320,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.calcite.utils.PlanUtils;
 import org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils;
@@ -909,6 +910,27 @@ public class PPLFuncImpTable {
       return widened;
     }
 
+    /**
+     * Rejects arrays whose element type is known and is not a string. Character types (which
+     * include the VARCHAR-backed date, time and timestamp types), {@code ANY} and {@code NULL}
+     * element types are accepted.
+     *
+     * @throws IllegalArgumentException so that the caller reports a client error (400)
+     */
+    private static void requireStringArrayElements(final RelDataType arrayType) {
+      final RelDataType elementType = arrayType.getComponentType();
+      if (elementType == null
+          || SqlTypeUtil.isCharacter(elementType)
+          || elementType.getSqlTypeName() == SqlTypeName.ANY
+          || elementType.getSqlTypeName() == SqlTypeName.NULL) {
+        return;
+      }
+      throw new IllegalArgumentException(
+          String.format(
+              "MVJOIN only supports string arrays, but got an array of %s",
+              OpenSearchTypeFactory.convertRelDataTypeToExprType(elementType)));
+    }
+
     private static boolean referencesLambdaParameter(RexNode node) {
       if (node instanceof RexLambdaRef) {
         return true;
@@ -1247,8 +1269,19 @@ public class PPLFuncImpTable {
                   builder.makeCast(TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, true), source),
           PPLTypeChecker.family(SqlTypeFamily.ANY));
 
-      // Register MVJOIN to use Calcite's ARRAY_JOIN
-      registerOperator(MVJOIN, SqlLibraryOperators.ARRAY_JOIN);
+      // Register MVJOIN to use Calcite's ARRAY_JOIN. The family type checker compares only the
+      // top-level ARRAY family, so the element type is checked here, during analysis, instead of
+      // failing at run time inside SqlFunctions.arrayToString.
+      register(
+          MVJOIN,
+          (final RexBuilder builder, final RexNode... args) -> {
+            requireStringArrayElements(args[0].getType());
+            return builder.makeCall(SqlLibraryOperators.ARRAY_JOIN, args);
+          },
+          wrapSqlOperandTypeChecker(
+              SqlLibraryOperators.ARRAY_JOIN.getOperandTypeChecker(),
+              SqlLibraryOperators.ARRAY_JOIN.getName(),
+              false));
 
       // Register SPLIT with custom logic for empty delimiter
       // Case 1: Delimiter is not empty string, use SPLIT
