@@ -56,6 +56,14 @@ public interface OpenSearchClient {
   Map<String, Integer> getIndexMaxResultWindows(String... indexExpression);
 
   /**
+   * Fetch index.max_inner_result_window settings according to index expression given.
+   *
+   * @param indexExpression index expression
+   * @return map from index name to its max inner result window
+   */
+  Map<String, Integer> getIndexMaxInnerResultWindows(String... indexExpression);
+
+  /**
    * Perform search query in the search request.
    *
    * @param request search request

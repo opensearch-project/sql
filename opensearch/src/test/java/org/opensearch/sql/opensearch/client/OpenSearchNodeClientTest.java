@@ -308,6 +308,31 @@ class OpenSearchNodeClientTest {
     assertThrows(IllegalStateException.class, () -> client.getIndexMaxResultWindows(indexName));
   }
 
+  @Test
+  void get_index_max_inner_result_windows() {
+    mockNodeClientSettings(
+        "accounts", Settings.builder().put("index.max_inner_result_window", 1000).build());
+
+    assertEquals(Map.of("accounts", 1000), client.getIndexMaxInnerResultWindows("accounts"));
+  }
+
+  @Test
+  void get_index_max_inner_result_windows_with_default_settings() throws IOException {
+    mockNodeClientSettings(
+        "accounts",
+        Resources.toString(Resources.getResource(TEST_MAPPING_SETTINGS_FILE), Charsets.UTF_8));
+
+    assertEquals(Map.of("accounts", 100), client.getIndexMaxInnerResultWindows("accounts"));
+  }
+
+  @Test
+  void get_index_max_inner_result_windows_with_IOException() {
+    when(nodeClient.admin().indices()).thenThrow(RuntimeException.class);
+
+    assertThrows(
+        IllegalStateException.class, () -> client.getIndexMaxInnerResultWindows("accounts"));
+  }
+
   /** Jacoco enforce this constant lambda be tested. */
   @Test
   void test_all_fields_predicate() {
@@ -623,6 +648,25 @@ class OpenSearchNodeClientTest {
         client.getIndexMaxResultWindows("accounts", "cape:logs-*"));
   }
 
+  @Test
+  void get_index_max_inner_result_windows_merges_local_and_remote_indices() throws IOException {
+    givenRemoteClusters(Map.of("", new String[] {"accounts"}, "cape", new String[] {"logs-*"}));
+    mockNodeClientSettings(
+        "accounts",
+        Resources.toString(Resources.getResource(TEST_MAPPING_SETTINGS_FILE), Charsets.UTF_8));
+    givenRemoteIndex(
+        "cape",
+        "logs-1",
+        Settings.builder()
+            .put("index.max_result_window", 50000)
+            .put("index.max_inner_result_window", 5000)
+            .build());
+
+    assertEquals(
+        Map.of("accounts", 100, "cape:logs-1", 5000),
+        client.getIndexMaxInnerResultWindows("accounts", "cape:logs-*"));
+  }
+
   /** Skipped remotes add nothing when local indices are named too, as in a search. */
   @Test
   void get_index_mappings_answers_from_local_indices_when_every_remote_is_skipped() {
@@ -716,6 +760,11 @@ class OpenSearchNodeClientTest {
   }
 
   private void givenRemoteIndex(String alias, String index, int maxResultWindow) {
+    givenRemoteIndex(
+        alias, index, Settings.builder().put("index.max_result_window", maxResultWindow).build());
+  }
+
+  private void givenRemoteIndex(String alias, String index, Settings settings) {
     Client remote = mock(Client.class, RETURNS_DEEP_STUBS);
     when(nodeClient.getRemoteClusterClient(alias)).thenReturn(remote);
     when(remote
@@ -731,12 +780,7 @@ class OpenSearchNodeClientTest {
                     new MappingMetadata(
                         "_doc", Map.of("properties", Map.of("f", Map.of("type", "keyword")))))));
     when(remote.admin().indices().getSettings(any()).actionGet(any(TimeValue.class)))
-        .thenReturn(
-            new GetSettingsResponse(
-                Map.of(
-                    index,
-                    Settings.builder().put("index.max_result_window", maxResultWindow).build()),
-                Map.of()));
+        .thenReturn(new GetSettingsResponse(Map.of(index, settings), Map.of()));
   }
 
   public void mockNodeClientIndicesMappings(String indexName, String mappings) {
@@ -761,13 +805,15 @@ class OpenSearchNodeClientTest {
   }
 
   private void mockNodeClientSettings(String indexName, String indexMetadata) throws IOException {
+    mockNodeClientSettings(
+        indexName, IndexMetadata.fromXContent(createParser(indexMetadata)).getSettings());
+  }
+
+  private void mockNodeClientSettings(String indexName, Settings settings) {
     GetSettingsResponse mockResponse = mock(GetSettingsResponse.class);
     when(nodeClient.admin().indices().prepareGetSettings(any()).setLocal(anyBoolean()).get())
         .thenReturn(mockResponse);
-    Map<String, Settings> metadata =
-        Map.of(indexName, IndexMetadata.fromXContent(createParser(indexMetadata)).getSettings());
-
-    when(mockResponse.getIndexToSettings()).thenReturn(metadata);
+    when(mockResponse.getIndexToSettings()).thenReturn(Map.of(indexName, settings));
   }
 
   private XContentParser createParser(String mappings) throws IOException {
