@@ -998,6 +998,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         context.relBuilder.peek().getRowType().getFieldNames().stream()
             .filter(fieldName -> !isMetadataField(fieldName))
             .toList();
+    for (String fieldName : fieldNames) {
+      RelDataType type = context.relBuilder.field(fieldName).getType();
+      if (OpenSearchTypeFactory.getContainerTypeName(type) != null) {
+        throw fieldTypeError("transpose", fieldName, "scalar fields", type)
+            .suggestion(
+                "Use the fields command before transpose to keep only scalar fields, such as the"
+                    + " subfields of an object field.")
+            .build();
+      }
+    }
 
     RelBuilder b = context.relBuilder;
     RexBuilder rx = context.rexBuilder;
@@ -3858,6 +3868,24 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return rexNode.getType().getSqlTypeName().getFamily() == SqlTypeFamily.NUMERIC;
   }
 
+  /** Start the TYPE_ERROR report for a field whose type the command cannot take */
+  private static ErrorReport.Builder fieldTypeError(
+      String command, String fieldName, String requirement, RelDataType type) {
+    return ErrorReport.wrap(
+            new SemanticCheckException(
+                StringUtils.format(
+                    "%s requires %s, but [%s] is %s",
+                    command,
+                    requirement,
+                    fieldName,
+                    OpenSearchTypeFactory.convertRelDataTypeToExprType(type))))
+        .code(ErrorCode.TYPE_ERROR)
+        .stage(QueryProcessingStage.ANALYZING)
+        .location("while checking the field type for " + command)
+        .context("command", command)
+        .context("field", fieldName);
+  }
+
   /** Check if a field name represents a numeric field in the RelNode */
   private boolean isNumericFieldName(String fieldName, RelNode relNode) {
     try {
@@ -4357,6 +4385,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         .forEach(
             trendlineComputation -> {
               RexNode field = rexVisitor.analyze(trendlineComputation.getDataField(), context);
+              if (!isNumericField(field, context)) {
+                String fieldName =
+                    StringUtils.unquoteIdentifier(
+                        trendlineComputation.getDataField().getField().toString());
+                throw fieldTypeError("trendline", fieldName, "a numeric field", field.getType())
+                    .build();
+              }
               context.relBuilder.filter(context.relBuilder.isNotNull(field));
 
               WindowFrame windowFrame =
@@ -4477,25 +4512,30 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     // 2. Get the field to expand and an optional alias.
     Field arrayField = expand.getField();
+    String fieldName = StringUtils.unquoteIdentifier(arrayField.getField().toString());
     RexNode resolved = rexVisitor.analyze(arrayField, context);
     if (!(resolved instanceof RexInputRef)) {
       // Anything that is not a column of the input -- a leaf of an object or a flat_object field,
       // an expression -- has no column to correlate the expansion with. Raised the way the
       // mvexpand check below does, rather than as the ClassCastException the cast used to throw.
-      String name = StringUtils.unquoteIdentifier(arrayField.getField().toString());
       throw ErrorReport.wrap(
-              new IllegalArgumentException(StringUtils.format("Cannot expand [%s]", name)))
+              new IllegalArgumentException(StringUtils.format("Cannot expand [%s]", fieldName)))
           .code(ErrorCode.UNSUPPORTED_OPERATION)
           .stage(QueryProcessingStage.ANALYZING)
           .location("while resolving the field for expand")
           .context("command", "expand")
-          .context("field", name)
+          .context("field", fieldName)
           .suggestion(
               "expand takes a field of the index, not a value computed from one. Expand the field"
                   + " itself, or project the value first.")
           .build();
     }
     RexInputRef arrayFieldRex = (RexInputRef) resolved;
+    RelDataType fieldType = arrayFieldRex.getType();
+    // Unlike mvexpand, which passes a scalar through unchanged, expand takes only an array.
+    if (!(SqlTypeUtil.isArray(fieldType) || SqlTypeUtil.isMultiset(fieldType))) {
+      throw fieldTypeError("expand", fieldName, "an array field", fieldType).build();
+    }
     String alias = expand.getAlias();
 
     buildExpandRelNode(arrayFieldRex, arrayField.getField().toString(), alias, null, context);
@@ -4910,11 +4950,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     Set<String> fieldsToReplace =
         node.getFieldList().stream().map(f -> f.getField().toString()).collect(Collectors.toSet());
 
-    // Validate that all fields to replace exist by calling field() on each
-    // This leverages relBuilder.field()'s built-in validation which throws
-    // IllegalArgumentException if any field doesn't exist
-    for (String fieldToReplace : fieldsToReplace) {
-      context.relBuilder.field(fieldToReplace);
+    // Check each field to replace in query order, so the error names the first bad one.
+    // relBuilder.field() throws IllegalArgumentException for a missing field. The date, time,
+    // timestamp and binary types of an index mapping are VARCHAR underneath, so they pass the
+    // string check and have their string form replaced.
+    for (Field field : node.getFieldList()) {
+      String fieldToReplace = field.getField().toString();
+      RelDataType type = context.relBuilder.field(fieldToReplace).getType();
+      if (!SqlTypeUtil.isCharacter(type)) {
+        throw fieldTypeError("replace", fieldToReplace, "a string field", type).build();
+      }
     }
 
     List<RexNode> projectList = new ArrayList<>();
