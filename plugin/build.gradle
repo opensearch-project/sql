@@ -105,6 +105,8 @@ configurations.all {
     resolutionStrategy.force 'commons-codec:commons-codec:1.13'
     resolutionStrategy.force "com.google.guava:guava:${guava_version}"
     resolutionStrategy.force 'com.google.guava:failureaccess:1.0.2'
+    // align Guava 33.7.2's jspecify with other transitive requests under strict conflict resolution
+    resolutionStrategy.force 'org.jspecify:jspecify:1.0.1'
     resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${versions.jackson}"
     resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-smile:${versions.jackson}"
     resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${versions.jackson}"

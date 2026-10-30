@@ -169,6 +169,8 @@ configurations.all {
     resolutionStrategy.force "org.slf4j:slf4j-api:1.7.36"
     resolutionStrategy.force "com.amazonaws:aws-java-sdk-core:${aws_java_sdk_version}"
     resolutionStrategy.force "com.google.guava:guava:${guava_version}"
+    // align Guava 33.7.2's jspecify with other transitive requests under strict conflict resolution
+    resolutionStrategy.force 'org.jspecify:jspecify:1.0.1'
 }
 
 dependencies {
