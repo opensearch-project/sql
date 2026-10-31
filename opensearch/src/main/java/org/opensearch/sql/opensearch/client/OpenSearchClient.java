@@ -8,8 +8,10 @@ package org.opensearch.sql.opensearch.client;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import javax.annotation.Nullable;
 import org.opensearch.action.search.CreatePitRequest;
 import org.opensearch.action.search.DeletePitRequest;
+import org.opensearch.sql.opensearch.executor.progress.SourceProgress;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
@@ -62,6 +64,11 @@ public interface OpenSearchClient {
    * @return search response
    */
   OpenSearchResponse search(OpenSearchRequest request);
+
+  /** Same as {@link #search(OpenSearchRequest)}, reporting to {@code progress} if non-null. */
+  default OpenSearchResponse search(OpenSearchRequest request, @Nullable SourceProgress progress) {
+    return search(request);
+  }
 
   /**
    * Get the combination of the indices and the alias.

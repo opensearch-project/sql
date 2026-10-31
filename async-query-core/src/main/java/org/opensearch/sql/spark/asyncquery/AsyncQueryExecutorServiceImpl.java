@@ -228,7 +228,14 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
       QueryResult result = status.result().get();
       if (result instanceof QueryResult.Rows rows) {
         return new AsyncQueryExecutionResponse(
-            status.state().name(), rows.schema(), rows.rows(), null, null, null);
+            status.state().name(),
+            rows.schema(),
+            rows.rows(),
+            null,
+            null,
+            null,
+            null,
+            status.progress());
       }
       if (result instanceof QueryResult.Explain explain) {
         return new AsyncQueryExecutionResponse(
@@ -251,9 +258,10 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
           status.failure().map(QueryFailure::reason).orElse("query execution failed"),
           null,
           null,
-          details);
+          details,
+          status.progress());
     }
     return new AsyncQueryExecutionResponse(
-        status.state().name(), EMPTY_SCHEMA, List.of(), null, null, null);
+        status.state().name(), EMPTY_SCHEMA, List.of(), null, null, null, null, status.progress());
   }
 }

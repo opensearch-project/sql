@@ -56,6 +56,23 @@ public class AsyncQueryResultResponseFormatterTest {
   }
 
   @Test
+  void formatRunningJobEmitsProgress() {
+    AsyncQueryResult response =
+        new AsyncQueryResult(
+            "RUNNING",
+            schema,
+            java.util.List.of(),
+            null,
+            null,
+            null,
+            new org.opensearch.sql.job.QueryProgress(0.25D));
+    AsyncQueryResultResponseFormatter formatter = new AsyncQueryResultResponseFormatter(COMPACT);
+    assertEquals(
+        "{\"status\":\"RUNNING\",\"progress\":{\"fraction_done\":0.25}}",
+        formatter.format(response));
+  }
+
+  @Test
   void formatAsyncQueryError() {
     AsyncQueryResult response = new AsyncQueryResult("FAILED", null, null, "foo");
     AsyncQueryResultResponseFormatter formatter = new AsyncQueryResultResponseFormatter(COMPACT);

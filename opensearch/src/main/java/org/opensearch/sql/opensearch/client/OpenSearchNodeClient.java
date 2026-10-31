@@ -22,6 +22,9 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
@@ -39,6 +42,7 @@ import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.IndexSettings;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
+import org.opensearch.sql.opensearch.executor.progress.SourceProgress;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
@@ -51,6 +55,8 @@ import org.opensearch.transport.client.node.NodeClient;
 
 /** OpenSearch connection by node client. */
 public class OpenSearchNodeClient implements OpenSearchClient {
+
+  private static final Logger LOG = LogManager.getLogger(OpenSearchNodeClient.class);
 
   public static final Function<String, Predicate<String>> ALL_FIELDS =
       (anyIndex -> (anyField -> true));
@@ -243,12 +249,42 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   /** TODO: Scroll doesn't work for aggregation. Support aggregation later. */
   @Override
   public OpenSearchResponse search(OpenSearchRequest request) {
+    return search(request, null);
+  }
+
+  @Override
+  public OpenSearchResponse search(OpenSearchRequest request, @Nullable SourceProgress progress) {
     return request.search(
         req -> {
-          applyParentTask(req);
-          return client.search(req).actionGet();
+          SourceProgress.Tracked tracked = trackProgress(req, progress);
+          SearchRequest toSend = tracked == null ? req : tracked.request();
+          applyParentTask(toSend);
+          SearchResponse response = client.search(toSend).actionGet();
+          if (tracked != null) {
+            try {
+              tracked.onResponse(response);
+            } catch (RuntimeException e) {
+              LOG.debug("Failed to record search progress", e);
+            }
+          }
+          return response;
         },
         req -> client.searchScroll(req).actionGet());
+  }
+
+  /** Progress is best-effort and must not fail the search. */
+  @Nullable
+  private static SourceProgress.Tracked trackProgress(
+      SearchRequest req, @Nullable SourceProgress progress) {
+    if (progress == null) {
+      return null;
+    }
+    try {
+      return progress.track(req);
+    } catch (RuntimeException e) {
+      LOG.debug("Failed to track search progress", e);
+      return null;
+    }
   }
 
   private void applyParentTask(SearchRequest req) {

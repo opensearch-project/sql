@@ -25,4 +25,9 @@ public interface QueryRunner {
 
   /** Requests cooperative cancellation. Safe to call from any state. */
   void cancel();
+
+  /** Current progress estimate; called from any thread, so it must not block. */
+  default QueryProgress progress() {
+    return QueryProgress.NONE;
+  }
 }
