@@ -46,12 +46,14 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
+import org.opensearch.identity.PluginSubject;
 import org.opensearch.indices.SystemIndexDescriptor;
 import org.opensearch.jobscheduler.spi.JobSchedulerExtension;
 import org.opensearch.jobscheduler.spi.ScheduledJobParser;
 import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.ExtensiblePlugin;
+import org.opensearch.plugins.IdentityAwarePlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.plugins.ScriptPlugin;
 import org.opensearch.plugins.SystemIndexPlugin;
@@ -104,6 +106,7 @@ import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.plugin.RestSqlAction;
 import org.opensearch.sql.legacy.plugin.RestSqlStatsAction;
 import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
+import org.opensearch.sql.opensearch.client.PluginClient;
 import org.opensearch.sql.opensearch.client.RemoteClusterServiceProvider;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
@@ -157,7 +160,8 @@ public class SQLPlugin extends Plugin
         ScriptPlugin,
         SystemIndexPlugin,
         JobSchedulerExtension,
-        ExtensiblePlugin {
+        ExtensiblePlugin,
+        IdentityAwarePlugin {
 
   private static final Logger LOGGER = LogManager.getLogger(SQLPlugin.class);
 
@@ -201,6 +205,7 @@ public class SQLPlugin extends Plugin
   private org.opensearch.sql.common.setting.Settings pluginSettings;
 
   private NodeClient client;
+  private PluginClient pluginClient;
 
   /**
    * Filled by {@link org.opensearch.sql.plugin.transport.TransportPPLQueryAction}, the first holder
@@ -436,10 +441,12 @@ public class SQLPlugin extends Plugin
     this.clusterService = clusterService;
     this.pluginSettings = new OpenSearchSettings(clusterService.getClusterSettings());
     this.client = (NodeClient) client;
+    this.pluginClient = new PluginClient(client);
 
     publishRestCommandRegistries();
 
     this.dataSourceService = createDataSourceService();
+    // Runs before assignSubject, which PluginClient would reject; the default is never stored.
     dataSourceService.createDataSource(defaultOpenSearchDataSourceMetadata());
     LocalClusterState.state().setClusterService(clusterService);
     LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
@@ -449,6 +456,7 @@ public class SQLPlugin extends Plugin
     modules.add(
         b -> {
           b.bind(NodeClient.class).toInstance((NodeClient) client);
+          b.bind(PluginClient.class).toInstance(pluginClient);
           b.bind(org.opensearch.sql.common.setting.Settings.class).toInstance(pluginSettings);
           b.bind(DataSourceService.class).toInstance(dataSourceService);
           b.bind(ClusterService.class).toInstance(clusterService);
@@ -461,7 +469,7 @@ public class SQLPlugin extends Plugin
         new ClusterManagerEventListener(
             clusterService,
             threadPool,
-            client,
+            pluginClient,
             Clock.systemUTC(),
             OpenSearchSettings.SESSION_INDEX_TTL_SETTING,
             OpenSearchSettings.RESULT_INDEX_TTL_SETTING,
@@ -578,7 +586,7 @@ public class SQLPlugin extends Plugin
     }
     DataSourceMetadataStorage dataSourceMetadataStorage =
         new OpenSearchDataSourceMetadataStorage(
-            client,
+            pluginClient,
             clusterService,
             new EncryptorImpl(masterKey),
             (OpenSearchSettings) pluginSettings);
@@ -595,6 +603,16 @@ public class SQLPlugin extends Plugin
             .build(),
         dataSourceMetadataStorage,
         dataSourceUserAuthorizationHelper);
+  }
+
+  /**
+   * Gives the plugin client the subject core assigns, with or without the security plugin.
+   *
+   * @param pluginSubject the subject the plugin's own index access runs as
+   */
+  @Override
+  public void assignSubject(PluginSubject pluginSubject) {
+    this.pluginClient.setSubject(pluginSubject);
   }
 
   @Override
