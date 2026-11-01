@@ -12,6 +12,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 import org.opensearch.OpenSearchTimeoutException;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.core.concurrency.OpenSearchRejectedExecutionException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryManager;
@@ -102,7 +103,12 @@ public class OpenSearchQueryManager implements QueryManager {
               }
             });
 
-    threadPool.schedule(wrappedTask, new TimeValue(0), SQL_WORKER_THREAD_POOL_NAME);
+    try {
+      // The executor runs the task in this thread's ThreadContext.
+      threadPool.executor(SQL_WORKER_THREAD_POOL_NAME).execute(wrappedTask);
+    } catch (OpenSearchRejectedExecutionException e) {
+      throw new WorkerPoolSaturatedException(SQL_WORKER_THREAD_POOL_NAME);
+    }
   }
 
   private Runnable withCurrentContext(final Runnable task) {

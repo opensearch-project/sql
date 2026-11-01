@@ -10,6 +10,8 @@ import static org.opensearch.sql.calcite.plan.OpenSearchConstants.IMPLICIT_FIELD
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -26,83 +28,88 @@ import org.opensearch.sql.opensearch.request.OpenSearchRequest.IndexName;
 import org.opensearch.transport.client.node.NodeClient;
 
 /**
- * Prunes a wildcard index expression down to the concrete indices that can match the query's
- * filter, ahead of operations that do no pruning of their own, such as PIT creation.
+ * Prunes an index expression down to the concrete indices that can match the query's filter, ahead
+ * of operations that do no pruning of their own, such as PIT creation.
  */
 @Log4j2
 @RequiredArgsConstructor
 public class IndexPruner {
 
   /** Bounds each probe. Generous because a fallback can fail the query, not merely slow it. */
-  private static final TimeValue PROBE_TIMEOUT = TimeValue.timeValueSeconds(10);
+  private static final TimeValue PROBE_TIMEOUT = TimeValue.timeValueSeconds(30);
+
+  private static final Set<String> IMPLICIT_TIME_FIELDS =
+      Set.of(IMPLICIT_FIELD_TIMESTAMP, "timestamp", "time");
 
   /** Both probes are transport actions, so only the node client can issue them. */
   private final NodeClient node;
 
   /**
-   * Returns the index expression to read. When pruning is safe and narrows the read, that is the
-   * list of indices which can match the filter. Otherwise, and on any probe failure, it is the
-   * expression the query named.
+   * Returns the index expression to read. When pruning is safe, that is the list of indices which
+   * can match the filter. Otherwise, and on any probe failure, it is the expression the query
+   * named.
    *
    * @param indexName index expression the query named
    * @param filter filter pushed down to the search, or null when there is none
    * @return expression to read, never null
    */
   public IndexName prune(IndexName indexName, QueryBuilder filter) {
-    return prune(indexName, filter, IMPLICIT_FIELD_TIMESTAMP);
+    return doPrune(indexName, filter, IMPLICIT_TIME_FIELDS);
   }
 
   /**
-   * As {@link #prune(IndexName, QueryBuilder)}, but ranged on {@code timeField} rather than {@code
-   * @timestamp}. A request-level time range names its own field.
+   * As {@link #prune(IndexName, QueryBuilder)}, but only considers a range on {@code timeField}. A
+   * request-level time range names its own field.
    *
    * @param timeField field a range must be on for the expression to be prunable
    * @return expression to read, never null
    */
   public IndexName prune(IndexName indexName, QueryBuilder filter, String timeField) {
+    return doPrune(indexName, filter, Set.of(timeField));
+  }
+
+  private IndexName doPrune(
+      IndexName indexName, QueryBuilder filter, Set<String> candidateTimeFields) {
     try {
+      Optional<String> timeField = findTimeRangeField(filter, candidateTimeFields);
       IndexExpression indexExpr = new IndexExpression(indexName, node);
-      if (!isPrunable(indexExpr, containsTimeRange(filter, timeField))) {
+      if (timeField.isEmpty() || !isPrunable(indexExpr)) {
         log.info("Index pruning skipped: {}", indexExpr);
         return indexName;
       }
 
-      String[] candidates = indexExpr.probeMatching(filter, timeField).getIndices();
-      if (0 < candidates.length && indexExpr.isPrunedBy(candidates.length)) {
+      String[] candidates = indexExpr.probeMatching(filter, timeField.get()).getIndices();
+      if (candidates.length > 0) {
         return new IndexName(String.join(",", candidates));
       }
-      log.info(
-          "Index pruning declined: {} of {} indices matched",
-          candidates.length,
-          indexExpr.resolved.getIndices().size());
+      log.info("Index pruning declined: field caps returned no candidate indices");
     } catch (Exception e) {
       log.warn("Index pruning failed; querying the full index expression", e);
     }
     return indexName;
   }
 
-  private static boolean isPrunable(IndexExpression expression, boolean hasTimeRange) {
-    return expression.hasWildcard()
-        && hasTimeRange
-        // Last: these resolve the expression. An alias may carry a filter that substituting its
-        // concrete indices would drop.
-        && !expression.hasAlias()
-        && !expression.hasDataStream();
+  private static boolean isPrunable(IndexExpression expression) {
+    return (expression.hasWildcard() || expression.hasDataStream())
+        // An alias may carry a filter or routing that substituting concrete indices would drop.
+        && !expression.hasAlias();
   }
 
-  static boolean containsTimeRange(QueryBuilder query, String timeField) {
+  static Optional<String> findTimeRangeField(QueryBuilder query, Set<String> candidateTimeFields) {
     if (query instanceof RangeQueryBuilder range) {
-      return timeField.equals(range.fieldName());
+      String field = range.fieldName();
+      return candidateTimeFields.contains(field) ? Optional.of(field) : Optional.empty();
     }
     if (query instanceof BoolQueryBuilder bool) {
       return Stream.of(bool.must(), bool.filter(), bool.should())
           .flatMap(List::stream)
-          .anyMatch(clause -> containsTimeRange(clause, timeField));
+          .flatMap(clause -> findTimeRangeField(clause, candidateTimeFields).stream())
+          .findFirst();
     }
     if (query instanceof ConstantScoreQueryBuilder constantScore) {
-      return containsTimeRange(constantScore.innerQuery(), timeField);
+      return findTimeRangeField(constantScore.innerQuery(), candidateTimeFields);
     }
-    return false;
+    return Optional.empty();
   }
 
   /** The index expression a query named, resolving itself the first time it is asked to. */
@@ -127,10 +134,6 @@ public class IndexPruner {
 
     boolean hasDataStream() {
       return !resolved().getDataStreams().isEmpty();
-    }
-
-    boolean isPrunedBy(int candidateCount) {
-      return candidateCount < resolved().getIndices().size();
     }
 
     FieldCapabilitiesResponse probeMatching(QueryBuilder filter, String timeField) {

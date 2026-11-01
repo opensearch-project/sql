@@ -269,4 +269,34 @@ public class CalcitePPLEnhancedCoalesceTest extends CalcitePPLAbstractTest {
         "SELECT `EMPNO`, COALESCE(42, NULL) `result`\n" + "FROM `scott`.`EMP`\n" + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testCoalesceOnSmallintField() {
+    // MGR is SMALLINT
+    String ppl = "source=EMP | eval x = coalesce(MGR) | head 1 | fields x";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "x=7902\n";
+    verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testCoalesceOnTinyintField() {
+    // DEPTNO is TINYINT
+    String ppl = "source=EMP | eval x = coalesce(DEPTNO) | head 1 | fields x";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "x=20\n";
+    verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testCoalesceOnRealAndFloatLiteral() {
+    // PPL float is Calcite REAL, and the float literal makes the result Calcite FLOAT
+    String ppl = "source=EMP | eval x = coalesce(cast(EMPNO as float), 2.5F) | head 1 | fields x";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "x=7369.0\n";
+    verifyResult(root, expectedResult);
+  }
 }

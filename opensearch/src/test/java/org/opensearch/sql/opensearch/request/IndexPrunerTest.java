@@ -25,6 +25,8 @@ import static org.opensearch.sql.calcite.plan.OpenSearchConstants.IMPLICIT_FIELD
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -58,27 +60,32 @@ class IndexPrunerTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("filters")
-    void shouldSeeATimestampRangeOnlyWhereTheProbeCanUseIt(
-        String shape, QueryBuilder filter, boolean expected) {
-      assertEquals(expected, IndexPruner.containsTimeRange(filter, IMPLICIT_FIELD_TIMESTAMP));
+    void shouldFindTimeRangeFieldOnlyWhereTheProbeCanUseIt(
+        String shape, QueryBuilder filter, String expected) {
+      assertEquals(
+          Optional.ofNullable(expected),
+          IndexPruner.findTimeRangeField(
+              filter, Set.of(IMPLICIT_FIELD_TIMESTAMP, "timestamp", "time")));
     }
 
     private static Stream<Arguments> filters() {
       return Stream.of(
-          arguments("bare range on the timestamp", timeRange(), true),
-          arguments("range under must", boolQuery().must(timeRange()), true),
-          arguments("range under filter", boolQuery().filter(timeRange()), true),
-          arguments("range under should", boolQuery().should(timeRange()), true),
-          arguments("range under constant_score", constantScoreQuery(timeRange()), true),
-          arguments("no filter at all", null, false),
-          arguments("filter carrying no range", queryStringQuery("error"), false),
-          arguments("range on another field", rangeQuery("status").gte(200), false),
+          arguments("bare range on the timestamp", timeRange(), "@timestamp"),
+          arguments("range on timestamp", timeRange("timestamp"), "timestamp"),
+          arguments("range on time", timeRange("time"), "time"),
+          arguments("range under must", boolQuery().must(timeRange()), "@timestamp"),
+          arguments("range under filter", boolQuery().filter(timeRange()), "@timestamp"),
+          arguments("range under should", boolQuery().should(timeRange()), "@timestamp"),
+          arguments("range under constant_score", constantScoreQuery(timeRange()), "@timestamp"),
+          arguments("no filter at all", null, null),
+          arguments("filter carrying no range", queryStringQuery("error"), null),
+          arguments("range on another field", rangeQuery("status").gte(200), null),
           arguments(
               "range under should beside another clause",
               boolQuery().should(timeRange()).should(rangeQuery("status").gte(200)),
-              true),
+              "@timestamp"),
           // A negated clause cannot prove a shard disjoint, so it must not count.
-          arguments("range under must_not", boolQuery().mustNot(timeRange()), false));
+          arguments("range under must_not", boolQuery().mustNot(timeRange()), null));
     }
   }
 
@@ -86,8 +93,10 @@ class IndexPrunerTest {
   class GateRejections {
 
     @Test
-    void shouldNotPruneWhenExpressionHasNoWildcard() {
-      givenIndexExpression("logs-2024", timeRange()).shouldNotPrune().shouldNotProbe();
+    void shouldNotPruneWhenExpressionIsOneConcreteIndex() {
+      givenIndexExpression(indices("logs-2024"), timeRange())
+          .shouldNotPrune()
+          .shouldNotProbeForMatches();
     }
 
     @Test
@@ -101,28 +110,21 @@ class IndexPrunerTest {
 
     @Test
     void shouldPruneToTheMatchingIndices() {
-      givenIndexExpression(indices("logs-*", 3), timeRange())
+      givenIndexExpression(indices("logs-*"), timeRange())
           .whenMatching("logs-e", "logs-f")
           .shouldPruneTo("logs-e,logs-f");
     }
 
     @Test
     void shouldNotPruneWhenNoIndexMatches() {
-      givenIndexExpression(indices("logs-*", 3), timeRange()).whenMatching().shouldNotPrune();
+      givenIndexExpression(indices("logs-*"), timeRange()).whenMatching().shouldNotPrune();
     }
 
     @Test
-    void shouldNotPruneWhenEveryIndexMatches() {
-      givenIndexExpression(indices("logs-*", 2), timeRange())
-          .whenMatching("logs-a", "logs-b")
-          .shouldNotPrune();
-    }
-
-    @Test
-    void shouldNotPruneWhenMoreIndicesMatchThanResolved() {
-      givenIndexExpression(indices("logs-*", 3), timeRange())
-          .whenMatching("logs-a", "logs-b", "logs-c", "logs-d")
-          .shouldNotPrune();
+    void shouldPreserveRemoteQualifiedNamesFromFieldCaps() {
+      givenIndexExpression(ds("remote:logs-*"), timeRange())
+          .whenMatching("remote:.ds-logs-a-000003", "remote:.ds-logs-b-000003")
+          .shouldPruneTo("remote:.ds-logs-a-000003,remote:.ds-logs-b-000003");
     }
   }
 
@@ -137,8 +139,17 @@ class IndexPrunerTest {
     }
 
     @Test
-    void shouldNotPruneWhenExpressionResolvesToADataStream() {
-      givenIndexExpression(ds("logs-*"), timeRange()).shouldNotPrune().shouldNotProbeForMatches();
+    void shouldPruneMultipleDataStreamsByBackingIndex() {
+      givenIndexExpression(ds("logs-*"), timeRange())
+          .whenMatching(".ds-logs-a-000003", ".ds-logs-b-000003")
+          .shouldPruneTo(".ds-logs-a-000003,.ds-logs-b-000003");
+    }
+
+    @Test
+    void shouldPruneAnExplicitDataStreamNameByBackingIndex() {
+      givenIndexExpression(ds("logs-a"), timeRange())
+          .whenMatching(".ds-logs-a-000003")
+          .shouldPruneTo(".ds-logs-a-000003");
     }
   }
 
@@ -154,9 +165,7 @@ class IndexPrunerTest {
 
     @Test
     void shouldNotPruneWhenTheMatchProbeFails() {
-      givenIndexExpression(indices("logs-*", 3), timeRange())
-          .whenMatchProbeFails()
-          .shouldNotPrune();
+      givenIndexExpression(indices("logs-*"), timeRange()).whenMatchProbeFails().shouldNotPrune();
     }
   }
 
@@ -168,7 +177,7 @@ class IndexPrunerTest {
       QueryBuilder filter = timeRange();
       ArgumentCaptor<FieldCapabilitiesRequest> captor =
           ArgumentCaptor.forClass(FieldCapabilitiesRequest.class);
-      givenIndexExpression(indices("logs-*", 3), filter)
+      givenIndexExpression(indices("logs-*"), filter)
           .whenMatching("logs-a")
           .shouldPruneTo("logs-a");
       verify(node).fieldCaps(captor.capture());
@@ -185,7 +194,7 @@ class IndexPrunerTest {
     void shouldProbeEveryNameOfACommaSeparatedExpression() {
       ArgumentCaptor<FieldCapabilitiesRequest> captor =
           ArgumentCaptor.forClass(FieldCapabilitiesRequest.class);
-      givenIndexExpression(indices("logs-a-*,logs-b-*", 3), timeRange())
+      givenIndexExpression(indices("logs-a-*,logs-b-*"), timeRange())
           .whenMatching("logs-a-1")
           .shouldPruneTo("logs-a-1");
       verify(node).fieldCaps(captor.capture());
@@ -199,7 +208,7 @@ class IndexPrunerTest {
 
     @Test
     void shouldPruneOnTheBoundsOwnRangeWithNoPushedDownFilter() {
-      givenIndexExpression(indices("logs-*", 3), timeRange("@timestamp"), "@timestamp")
+      givenIndexExpression(indices("logs-*"), timeRange("@timestamp"), "@timestamp")
           .whenMatching("logs-a")
           .shouldPruneTo("logs-a");
     }
@@ -209,7 +218,7 @@ class IndexPrunerTest {
     void shouldProbeTheBoundsOwnTimeField() {
       ArgumentCaptor<FieldCapabilitiesRequest> captor =
           ArgumentCaptor.forClass(FieldCapabilitiesRequest.class);
-      givenIndexExpression(indices("logs-*", 3), timeRange("event_time"), "event_time")
+      givenIndexExpression(indices("logs-*"), timeRange("event_time"), "event_time")
           .whenMatching("logs-a")
           .shouldPruneTo("logs-a");
       verify(node).fieldCaps(captor.capture());
@@ -223,7 +232,7 @@ class IndexPrunerTest {
       ArgumentCaptor<FieldCapabilitiesRequest> captor =
           ArgumentCaptor.forClass(FieldCapabilitiesRequest.class);
       QueryBuilder range = timeRange("@timestamp");
-      givenIndexExpression(indices("logs-*", 3), range, "@timestamp")
+      givenIndexExpression(indices("logs-*"), range, "@timestamp")
           .whenMatching("logs-a")
           .shouldPruneTo("logs-a");
       verify(node).fieldCaps(captor.capture());
@@ -233,9 +242,9 @@ class IndexPrunerTest {
 
     @Test
     void shouldNotPruneAConcreteExpression() {
-      givenIndexExpression("logs-2024", timeRange("@timestamp"), "@timestamp")
+      givenIndexExpression(indices("logs-2024"), timeRange("@timestamp"), "@timestamp")
           .shouldNotPrune()
-          .shouldNotProbe();
+          .shouldNotProbeForMatches();
     }
 
     @Test
@@ -246,15 +255,15 @@ class IndexPrunerTest {
     }
 
     @Test
-    void shouldNotPruneADataStream() {
+    void shouldPruneADataStreamOnRequestBounds() {
       givenIndexExpression(ds("logs-*"), timeRange("@timestamp"), "@timestamp")
-          .shouldNotPrune()
-          .shouldNotProbeForMatches();
+          .whenMatching(".ds-logs-a-000003", ".ds-logs-b-000003")
+          .shouldPruneTo(".ds-logs-a-000003,.ds-logs-b-000003");
     }
 
     @Test
     void shouldNotPruneWhenTheProbeFails() {
-      givenIndexExpression(indices("logs-*", 3), timeRange("@timestamp"), "@timestamp")
+      givenIndexExpression(indices("logs-*"), timeRange("@timestamp"), "@timestamp")
           .whenMatchProbeFails()
           .shouldNotPrune();
     }
@@ -269,8 +278,7 @@ class IndexPrunerTest {
     return rangeQuery(field).gte("now-15m").lte("now");
   }
 
-  /** What the resolve probe reports for an expression. */
-  private record Resolution(String expression, int indexCount, Shape shape) {
+  private record Resolution(String expression, Shape shape) {
     private enum Shape {
       INDICES,
       ALIAS,
@@ -279,20 +287,20 @@ class IndexPrunerTest {
     }
   }
 
-  private static Resolution indices(String expression, int indexCount) {
-    return new Resolution(expression, indexCount, Resolution.Shape.INDICES);
+  private static Resolution indices(String expression) {
+    return new Resolution(expression, Resolution.Shape.INDICES);
   }
 
   private static Resolution alias(String expression) {
-    return new Resolution(expression, 0, Resolution.Shape.ALIAS);
+    return new Resolution(expression, Resolution.Shape.ALIAS);
   }
 
   private static Resolution ds(String expression) {
-    return new Resolution(expression, 0, Resolution.Shape.DATA_STREAM);
+    return new Resolution(expression, Resolution.Shape.DATA_STREAM);
   }
 
   private static Resolution unresolvable(String expression) {
-    return new Resolution(expression, 0, Resolution.Shape.FAILURE);
+    return new Resolution(expression, Resolution.Shape.FAILURE);
   }
 
   /** An expression the gates reject, so nothing is ever resolved. */
@@ -322,20 +330,14 @@ class IndexPrunerTest {
       case DATA_STREAM -> {
         whenResolved();
         when(resolveResponse.getAliases()).thenReturn(List.of());
-        when(resolveResponse.getDataStreams())
+        lenient()
+            .when(resolveResponse.getDataStreams())
             .thenReturn(List.of(mock(ResolveIndexAction.ResolvedDataStream.class)));
       }
       case INDICES -> {
         whenResolved();
         when(resolveResponse.getAliases()).thenReturn(List.of());
-        when(resolveResponse.getDataStreams()).thenReturn(List.of());
-        // Lenient because the count is read only once a match list exists, so a test whose probe
-        // throws or matches nothing never consumes it.
-        lenient()
-            .when(resolveResponse.getIndices())
-            .thenReturn(
-                Collections.nCopies(
-                    resolution.indexCount(), mock(ResolveIndexAction.ResolvedIndex.class)));
+        lenient().when(resolveResponse.getDataStreams()).thenReturn(List.of());
       }
     }
     return new Fixture(resolution.expression(), filter, (String) null);

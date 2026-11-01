@@ -7,9 +7,13 @@ package org.opensearch.sql.plugin.transport;
 
 import java.util.Map;
 import org.opensearch.core.tasks.TaskId;
+import org.opensearch.sql.opensearch.executor.progress.ProgressTrackingTask;
+import org.opensearch.sql.opensearch.executor.progress.QueryProgressTracker;
 import org.opensearch.tasks.CancellableTask;
 
-public class PPLQueryTask extends CancellableTask {
+public class PPLQueryTask extends CancellableTask implements ProgressTrackingTask {
+
+  private volatile QueryProgressTracker progressTracker;
 
   public PPLQueryTask(
       long id,
@@ -24,5 +28,16 @@ public class PPLQueryTask extends CancellableTask {
   @Override
   public boolean shouldCancelChildrenOnCancellation() {
     return true;
+  }
+
+  /** Called only for async submissions. */
+  public QueryProgressTracker trackProgress() {
+    progressTracker = new QueryProgressTracker();
+    return progressTracker;
+  }
+
+  @Override
+  public QueryProgressTracker progressTracker() {
+    return progressTracker;
   }
 }

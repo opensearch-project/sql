@@ -8,6 +8,7 @@ package org.opensearch.sql.opensearch.storage.scan;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import javax.annotation.Nullable;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.apache.calcite.linq4j.Enumerator;
@@ -19,6 +20,7 @@ import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
+import org.opensearch.sql.opensearch.executor.progress.SourceProgress;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.tasks.CancellableTask;
 
@@ -60,6 +62,8 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
 
   private CancellableTask cancellableTask;
 
+  @Nullable private final SourceProgress progress;
+
   public OpenSearchIndexEnumerator(
       OpenSearchClient client,
       List<String> fields,
@@ -67,7 +71,8 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
       int maxResultWindow,
       int queryBucketSize,
       OpenSearchRequest request,
-      ResourceMonitor monitor) {
+      ResourceMonitor monitor,
+      @Nullable SourceProgress progress) {
     org.opensearch.sql.monitor.ResourceStatus status = monitor.getStatus();
     if (!status.isHealthy()) {
       throw new NonFallbackCalciteException(
@@ -83,7 +88,12 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
     this.maxResponseSize = maxResponseSize;
     this.monitor = monitor;
     this.client = client;
-    this.bgScanner = new BackgroundSearchScanner(client, maxResultWindow, queryBucketSize);
+    this.progress = progress;
+    if (progress != null) {
+      progress.start(maxResponseSize);
+    }
+    this.bgScanner =
+        new BackgroundSearchScanner(client, maxResultWindow, queryBucketSize, progress);
     this.bgScanner.startScanning(request);
     this.cancellableTask = OpenSearchQueryManager.getCancellableTask();
   }
@@ -115,6 +125,7 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   @Override
   public boolean moveNext() {
     if (queryCount >= maxResponseSize) {
+      markComplete();
       return false;
     }
 
@@ -144,12 +155,22 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
       queryCount++;
       return true;
     } else {
+      markComplete();
       return false;
+    }
+  }
+
+  private void markComplete() {
+    if (progress != null) {
+      progress.complete();
     }
   }
 
   @Override
   public void reset() {
+    if (progress != null) {
+      progress.start(maxResponseSize);
+    }
     bgScanner.reset(request);
     iterator = bgScanner.fetchNextBatch(request).iterator();
     queryCount = 0;
@@ -157,6 +178,7 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
 
   @Override
   public void close() {
+    // Not marked complete: failing and fallback queries close their scans too.
     iterator = Collections.emptyIterator();
     queryCount = 0;
     bgScanner.close();

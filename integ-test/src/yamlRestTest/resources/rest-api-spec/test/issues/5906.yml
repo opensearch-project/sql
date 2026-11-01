@@ -1,0 +1,110 @@
+# Issue #5906: a wildcard matches multiple rolled-over data streams with a PPL timestamp range
+# in a stats values query. The basic pruning checks live in ppl/index_pruning.yml.
+
+setup:
+  - skip:
+      features:
+        - headers
+        - allowed_warnings
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+            plugins.calcite.fallback.allowed: false
+            plugins.query.pruning.enabled: true
+  - do:
+      allowed_warnings:
+        - 'index template [pruning-5906] has index patterns [pruning-5906-*] matching patterns from existing older templates [global] with patterns (global => [*]); this template [pruning-5906] will take precedence during new index creation'
+      indices.put_index_template:
+        name: pruning-5906
+        body:
+          index_patterns: ['pruning-5906-*']
+          priority: 500
+          data_stream: {}
+          template:
+            settings:
+              number_of_shards: 1
+              number_of_replicas: 0
+              max_result_window: 2
+            mappings:
+              properties:
+                "@timestamp": {type: date}
+                body: {type: keyword}
+  - do:
+      indices.create_data_stream: {name: pruning-5906-a}
+  - do:
+      indices.create_data_stream: {name: pruning-5906-b}
+  - do:
+      bulk:
+        index: pruning-5906-a
+        refresh: true
+        body:
+          - '{"create": {}}'
+          - '{"@timestamp": "2026-01-15T12:05:00Z", "body": "january-a"}'
+  - do:
+      indices.rollover: {alias: pruning-5906-a}
+  - do:
+      bulk:
+        index: pruning-5906-a
+        refresh: true
+        body:
+          - '{"create": {}}'
+          - '{"@timestamp": "2026-02-15T12:05:00Z", "body": "february-a"}'
+  - do:
+      bulk:
+        index: pruning-5906-b
+        refresh: true
+        body:
+          - '{"create": {}}'
+          - '{"@timestamp": "2026-02-15T12:05:00Z", "body": "february-b"}'
+  - do:
+      indices.rollover: {alias: pruning-5906-a}
+  - do:
+      indices.rollover: {alias: pruning-5906-b}
+  - do:
+      bulk:
+        index: pruning-5906-a
+        refresh: true
+        body:
+          - '{"create": {}}'
+          - '{"@timestamp": "2026-03-15T12:05:00Z", "body": "march-a"}'
+  - do:
+      bulk:
+        index: pruning-5906-b
+        refresh: true
+        body:
+          - '{"create": {}}'
+          - '{"@timestamp": "2026-03-15T12:05:00Z", "body": "march-b"}'
+
+---
+teardown:
+  - do:
+      indices.delete_data_stream:
+        name: 'pruning-5906-*'
+        ignore: 404
+  - do:
+      indices.delete_index_template:
+        name: pruning-5906
+        ignore: 404
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: null
+            plugins.calcite.fallback.allowed: null
+            plugins.query.pruning.enabled: null
+
+---
+"Stats values over multiple data streams":
+  - do:
+      headers: {Content-Type: 'application/json'}
+      ppl:
+        body:
+          query: "source=pruning-5906-* | where @timestamp >= '2026-03-15 12:00:00' and @timestamp <= '2026-03-15 12:15:00' | stats values(body) as bodies | eval n = array_length(bodies) | fields n"
+  - match: {datarows: [[2]]}
+  - do:
+      delete_all_pits: {}
+  - do:
+      indices.stats: {index: 'pruning-5906-*', metric: search, filter_path: '_all.total.search.point_in_time_total'}
+  - match: {_all.total.search.point_in_time_total: 2}

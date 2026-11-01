@@ -58,7 +58,16 @@ public class PercentileApproxFunction
       case BIGINT:
         long longRet = (long) retValue;
         return longRet;
-      case FLOAT:
+      case SMALLINT:
+        short shortRet = (short) retValue;
+        return shortRet;
+      case TINYINT:
+        byte byteRet = (byte) retValue;
+        return byteRet;
+      // Calcite's FLOAT is double precision, and REAL is single precision
+      case DOUBLE, FLOAT:
+        return retValue;
+      case REAL:
         float floatRet = (float) retValue;
         return floatRet;
       default:

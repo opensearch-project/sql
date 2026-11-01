@@ -281,9 +281,10 @@ public class ArrayFunctionImplTest {
     assertNotNull(result);
     List<?> list = (List<?>) result;
     assertEquals(3, list.size());
-    assertEquals(1.5f, list.get(0));
+    // Calcite FLOAT is double precision, so float elements widen to double
+    assertEquals(1.5, list.get(0));
     assertNull(list.get(1), "Null should be preserved during FLOAT type conversion");
-    assertEquals(2.7f, list.get(2));
+    assertEquals((double) 2.7f, list.get(2));
   }
 
   @Test
