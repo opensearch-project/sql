@@ -121,7 +121,7 @@ teardown:
       features:
         - headers
   # Query a wildcard pattern that matches no indices. The plugin should return HTTP 404
-  # with error.code=INDEX_NOT_FOUND and a details message that mentions the pattern and
+  # with INDEX_NOT_FOUND in the body and a details message that mentions the pattern and
   # advises the user to check mapping compatibility.
   - do:
       catch: missing
@@ -130,9 +130,10 @@ teardown:
       ppl:
         body:
           query: source=no_such_index_errmsg_test_* | fields age
-  - match: { error.code: "INDEX_NOT_FOUND" }
+  - match: { "$body": "/INDEX_NOT_FOUND/" }
   - match: { "$body": "/no_such_index_errmsg_test_/" }
-  - match: { "$body": "/compatible mapping/" }
+  # The runner compiles regexes in extended mode (literal spaces ignored), so use "." for the space.
+  - match: { "$body": "/compatible.mapping/" }
 
 ---
 "Test exact index name not found returns 404 without compatible mapping hint":
@@ -148,5 +149,5 @@ teardown:
       ppl:
         body:
           query: source=no_such_index_errmsg_exact | fields age
-  - match: { error.code: "INDEX_NOT_FOUND" }
+  - match: { "$body": "/INDEX_NOT_FOUND/" }
   - match: { "$body": "/no_such_index_errmsg_exact/" }
