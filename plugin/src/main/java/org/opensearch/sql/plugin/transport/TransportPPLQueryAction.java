@@ -318,7 +318,7 @@ public class TransportPPLQueryAction
       throw new IllegalArgumentException("Async PPL queries require a cancellable PPLQueryTask");
     }
     Runnable cancelExecution = () -> pplQueryTask.cancel("async PPL query cancelled");
-    QueryProgressTracker progressTracker = pplQueryTask.trackProgress();
+    QueryProgressTracker progressTracker = QueryProgressTracker.attach(pplQueryTask);
     QueryRunner runner =
         new PPLQueryRunner(
             pplService,
