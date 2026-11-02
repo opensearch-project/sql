@@ -7,7 +7,6 @@ package org.opensearch.sql.plugin.transport;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -175,7 +174,7 @@ public class TransportPPLQueryActionQueryInsightsTest {
     recording(true);
     engine(
         (listener, queryTask) -> {
-          burnCpu();
+          CpuBurner.burn();
           listener.onResponse(emptyResponse());
         });
 
@@ -263,7 +262,7 @@ public class TransportPPLQueryActionQueryInsightsTest {
     recording(true);
     engine(
         (listener, queryTask) -> {
-          burnCpu();
+          CpuBurner.burn();
           listener.onFailure(new IllegalStateException("boom"));
         });
 
@@ -282,7 +281,7 @@ public class TransportPPLQueryActionQueryInsightsTest {
     recording(false);
     engine(
         (listener, queryTask) -> {
-          burnCpu();
+          CpuBurner.burn();
           listener.onResponse(emptyResponse());
         });
 
@@ -460,14 +459,6 @@ public class TransportPPLQueryActionQueryInsightsTest {
 
   private static QueryResponse emptyResponse() {
     return new QueryResponse(new Schema(List.of()), List.of(), Cursor.None);
-  }
-
-  private static void burnCpu() {
-    long x = 0;
-    for (int i = 0; i < 1_000_000; i++) {
-      x += Integer.toString(i).hashCode();
-    }
-    assertNotEquals(42, x);
   }
 
   private void registerMetricIfAbsent(MetricName name) {
