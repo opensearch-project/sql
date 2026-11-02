@@ -21,7 +21,7 @@ import org.opensearch.sql.executor.pagination.Cursor;
  * <p>{@link Rows} and {@link Explain} are engine-produced payloads stored in {@link
  * QueryJobStatus#result()}. {@link Running} is produced only at the submit-time wait boundary when
  * the {@code wait_for_completion_timeout} budget expires; it is never persisted on a {@code
- * QueryJobStatus} and carries just the id the client polls with.
+ * QueryJobStatus} and carries the id the client polls with, the progress, and the rows so far.
  */
 public sealed interface QueryResult
     permits QueryResult.Rows, QueryResult.Explain, QueryResult.Running {

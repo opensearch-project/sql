@@ -357,19 +357,24 @@ public class TransportPPLQueryAction
                 cause instanceof Exception ex ? ex : new RuntimeException(cause));
             return;
           }
-          switch (result) {
-            case org.opensearch.sql.job.QueryResult.Rows rows -> {
-              ExecutionEngine.QueryResponse response =
-                  new ExecutionEngine.QueryResponse(rows.schema(), rows.rows(), rows.cursor());
-              response.setWarnings(rows.warnings());
-              responseListener.onResponse(response);
+          // A throw here would be lost in this callback and leave the request unanswered.
+          try {
+            switch (result) {
+              case org.opensearch.sql.job.QueryResult.Rows rows -> {
+                ExecutionEngine.QueryResponse response =
+                    new ExecutionEngine.QueryResponse(rows.schema(), rows.rows(), rows.cursor());
+                response.setWarnings(rows.warnings());
+                responseListener.onResponse(response);
+              }
+              case org.opensearch.sql.job.QueryResult.Explain explain -> {
+                createExplainResponseListener(transformedRequest, ctxListener)
+                    .onResponse(explain.response());
+              }
+              case org.opensearch.sql.job.QueryResult.Running running ->
+                  ctxListener.onResponse(new TransportPPLQueryResponse(formatRunning(running)));
             }
-            case org.opensearch.sql.job.QueryResult.Explain explain -> {
-              createExplainResponseListener(transformedRequest, ctxListener)
-                  .onResponse(explain.response());
-            }
-            case org.opensearch.sql.job.QueryResult.Running running ->
-                ctxListener.onResponse(new TransportPPLQueryResponse(formatRunning(running)));
+          } catch (RuntimeException e) {
+            responseListener.onFailure(e);
           }
         });
   }

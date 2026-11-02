@@ -16,6 +16,8 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Active object that carries one query through the lifecycle state machine.
@@ -41,6 +43,8 @@ import java.util.function.Function;
  * through {@link #await(Duration)} and {@link #onTerminal(Runnable)}.
  */
 public final class QueryJob {
+
+  private static final Logger LOG = LogManager.getLogger(QueryJob.class);
 
   static final double MAX_RUNNING_FRACTION = 0.95D;
 
@@ -319,6 +323,7 @@ public final class QueryJob {
       Optional<QueryResult.Rows> current = runner.currentResult();
       return current == null ? Optional.empty() : current;
     } catch (RuntimeException e) {
+      LOG.debug("Failed to read the rows of a running query job", e);
       return Optional.empty();
     }
   }
@@ -334,6 +339,7 @@ public final class QueryJob {
       QueryProgress progress = runner.progress();
       return progress == null ? 0D : progress.fractionDone();
     } catch (RuntimeException e) {
+      LOG.debug("Failed to read the progress of a running query job", e);
       return 0D;
     }
   }

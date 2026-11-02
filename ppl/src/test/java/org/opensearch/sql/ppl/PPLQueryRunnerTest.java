@@ -130,21 +130,24 @@ public class PPLQueryRunnerTest {
   }
 
   @Test
-  public void close_dropsProgressAndCurrentResult() {
+  public void close_dropsEverythingThatReachesTheEngine() {
     Optional<QueryResult.Rows> rows =
         Optional.of(new QueryResult.Rows(new Schema(List.of()), List.of(), null, null, 0));
+    AtomicInteger cancels = new AtomicInteger();
     PPLQueryRunner runner =
         new PPLQueryRunner(
             mock(PPLService.class),
             new PPLQueryRequest("source=logs", null, "/_plugins/_ppl", "jdbc"),
             s -> {},
             Clock.systemUTC(),
-            () -> {},
+            cancels::incrementAndGet,
             () -> new QueryProgress(0.5D),
             () -> rows);
     runner.close();
+    runner.cancel();
     assertEquals(QueryProgress.NONE, runner.progress());
     assertEquals(Optional.empty(), runner.currentResult());
+    assertEquals(0, cancels.get());
   }
 
   @Test

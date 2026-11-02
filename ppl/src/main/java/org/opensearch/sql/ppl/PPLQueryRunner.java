@@ -39,7 +39,7 @@ public final class PPLQueryRunner implements QueryRunner {
   private final PPLQueryRequest request;
   private final Consumer<String> anonymizedQuerySink;
   private final Clock clock;
-  private final Runnable cancelExecution;
+  private volatile Runnable cancelExecution;
   private volatile Supplier<QueryProgress> progress;
   private volatile Supplier<Optional<QueryResult.Rows>> currentResult;
   private final AtomicBoolean started = new AtomicBoolean();
@@ -120,11 +120,15 @@ public final class PPLQueryRunner implements QueryRunner {
     return currentResult.get();
   }
 
-  /** Drops the suppliers, and with them the engine's progress and buffered rows. */
+  /**
+   * Drops everything that reaches the engine's progress and buffered rows, including the
+   * cancellation hook, which holds the query task. Cancelling a terminal job is a no-op anyway.
+   */
   @Override
   public void close() {
     progress = () -> QueryProgress.NONE;
     currentResult = Optional::empty;
+    cancelExecution = () -> {};
   }
 
   @Override
