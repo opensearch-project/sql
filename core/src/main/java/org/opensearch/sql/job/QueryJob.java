@@ -115,8 +115,9 @@ public final class QueryJob {
 
   /** Returns an immutable snapshot of the job's current state. */
   public QueryJobStatus status() {
-    double sample = sampleRunnerProgress();
+    // Rows first: progress read afterwards covers at least the work behind those rows.
     Optional<QueryResult.Rows> current = sampleCurrentResult();
+    double sample = sampleRunnerProgress();
     synchronized (this) {
       return new QueryJobStatus(
           id,
@@ -176,8 +177,9 @@ public final class QueryJob {
   }
 
   private QueryResult.Running running() {
-    double sample = sampleRunnerProgress();
+    // Rows first: progress read afterwards covers at least the work behind those rows.
     Optional<QueryResult.Rows> current = sampleCurrentResult();
+    double sample = sampleRunnerProgress();
     synchronized (this) {
       double fraction = Math.min(MAX_RUNNING_FRACTION, progress(sample).fractionDone());
       return new QueryResult.Running(id, new QueryProgress(fraction), runningOnly(current));

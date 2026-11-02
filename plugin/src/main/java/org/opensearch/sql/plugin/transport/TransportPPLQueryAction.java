@@ -357,26 +357,39 @@ public class TransportPPLQueryAction
                 cause instanceof Exception ex ? ex : new RuntimeException(cause));
             return;
           }
-          // A throw here would be lost in this callback and leave the request unanswered.
-          try {
-            switch (result) {
-              case org.opensearch.sql.job.QueryResult.Rows rows -> {
-                ExecutionEngine.QueryResponse response =
-                    new ExecutionEngine.QueryResponse(rows.schema(), rows.rows(), rows.cursor());
-                response.setWarnings(rows.warnings());
-                responseListener.onResponse(response);
-              }
-              case org.opensearch.sql.job.QueryResult.Explain explain -> {
-                createExplainResponseListener(transformedRequest, ctxListener)
-                    .onResponse(explain.response());
-              }
-              case org.opensearch.sql.job.QueryResult.Running running ->
-                  ctxListener.onResponse(new TransportPPLQueryResponse(formatRunning(running)));
+          switch (result) {
+            case org.opensearch.sql.job.QueryResult.Rows rows -> {
+              ExecutionEngine.QueryResponse response =
+                  new ExecutionEngine.QueryResponse(rows.schema(), rows.rows(), rows.cursor());
+              response.setWarnings(rows.warnings());
+              responseListener.onResponse(response);
             }
-          } catch (RuntimeException e) {
-            responseListener.onFailure(e);
+            case org.opensearch.sql.job.QueryResult.Explain explain -> {
+              createExplainResponseListener(transformedRequest, ctxListener)
+                  .onResponse(explain.response());
+            }
+            case org.opensearch.sql.job.QueryResult.Running running ->
+                // A wait timeout completes on the JVM-wide timer thread; format the rows elsewhere.
+                clientRef
+                    .threadPool()
+                    .generic()
+                    .execute(() -> respondRunning(running, ctxListener, responseListener));
           }
         });
+  }
+
+  private static void respondRunning(
+      org.opensearch.sql.job.QueryResult.Running running,
+      ActionListener<TransportPPLQueryResponse> listener,
+      ResponseListener<ExecutionEngine.QueryResponse> failureListener) {
+    String body;
+    try {
+      body = formatRunning(running);
+    } catch (RuntimeException e) {
+      failureListener.onFailure(e);
+      return;
+    }
+    listener.onResponse(new TransportPPLQueryResponse(body));
   }
 
   /** Rendered by the GET formatter, so submit and GET bodies of a running job match. */
@@ -398,7 +411,10 @@ public class TransportPPLQueryAction
                 null,
                 running.progress(),
                 running.id().encode(),
-                List.of()));
+                running
+                    .current()
+                    .map(org.opensearch.sql.job.QueryResult.Rows::warnings)
+                    .orElse(List.of())));
   }
 
   private ResponseListener<AnalyzeResponse> createAnalyzeResponseListener(

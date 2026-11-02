@@ -68,6 +68,9 @@ public class TransportPPLQueryActionCancellationTest {
     ThreadPool pool = mock(ThreadPool.class);
     when(client.threadPool()).thenReturn(pool);
     when(pool.getThreadContext()).thenReturn(threadContext);
+    when(pool.generic())
+        .thenReturn(
+            org.opensearch.common.util.concurrent.OpenSearchExecutors.newDirectExecutorService());
     submitAsync =
         TransportPPLQueryAction.class.getDeclaredMethod(
             "submitAsync",

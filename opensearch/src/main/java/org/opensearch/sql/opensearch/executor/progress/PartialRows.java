@@ -11,6 +11,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionEngine.Schema;
+import org.opensearch.sql.executor.Warning;
 import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.job.QueryResult;
 
@@ -23,6 +24,7 @@ public final class PartialRows {
   private final List<ExprValue> rows = new ArrayList<>();
   private Function<List<ExprValue>, Schema> schemaOf;
   private Schema schema;
+  private List<Warning> warnings = List.of();
   private QueryResult.Rows last;
 
   /** Starts collecting; {@code schemaOf} builds the schema from the rows so far. */
@@ -34,6 +36,14 @@ public final class PartialRows {
   public synchronized void add(ExprValue row) {
     if (schemaOf != null) {
       rows.add(row);
+    }
+  }
+
+  /** The warnings so far, e.g. that a shard did not answer, so running rows are not complete. */
+  public synchronized void warnings(List<Warning> warnings) {
+    if (schemaOf != null && !warnings.equals(this.warnings)) {
+      this.warnings = List.copyOf(warnings);
+      last = null;
     }
   }
 
@@ -54,7 +64,7 @@ public final class PartialRows {
         // Fixed once there is a row: only the first row decides runtime-typed columns.
         schema = schemaOf.apply(copy);
       }
-      last = new QueryResult.Rows(schema, copy, Cursor.None, List.of(), 0);
+      last = new QueryResult.Rows(schema, copy, Cursor.None, warnings, 0);
     }
     return Optional.of(last);
   }
@@ -62,6 +72,7 @@ public final class PartialRows {
   private void reset() {
     rows.clear();
     schema = null;
+    warnings = List.of();
     last = null;
   }
 }

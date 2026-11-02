@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionEngine.Schema;
+import org.opensearch.sql.executor.Warning;
 import org.opensearch.sql.job.QueryResult;
 
 class PartialRowsTest {
@@ -66,6 +67,17 @@ class PartialRowsTest {
     rows.add(integerValue(2));
     assertEquals(2, rows.snapshot().orElseThrow().rows().size());
     assertEquals(List.of(1), schemaCalls);
+  }
+
+  @Test
+  void snapshotCarriesWarningsSoFar() {
+    Warning warning = new Warning(Warning.TYPE_PARTIAL_RESULT, "shard", null);
+    PartialRows rows = new PartialRows();
+    rows.open(values -> SCHEMA);
+    rows.add(integerValue(1));
+    assertEquals(List.of(), rows.snapshot().orElseThrow().warnings());
+    rows.warnings(List.of(warning));
+    assertEquals(List.of(warning), rows.snapshot().orElseThrow().warnings());
   }
 
   @Test

@@ -477,6 +477,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       values.add(tuple);
       if (partialRows != null) {
         partialRows.add(tuple);
+        partialRows.warnings(CalcitePlanContext.peekWarnings());
       }
     }
 

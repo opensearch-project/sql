@@ -267,6 +267,12 @@ public class CalcitePlanContext {
     pendingWarnings.get().add(warning);
   }
 
+  /** The warnings collected so far for the current query, de-duplicated, without clearing them. */
+  public static List<Warning> peekWarnings() {
+    List<Warning> warnings = pendingWarnings.get();
+    return warnings.isEmpty() ? List.of() : warnings.stream().distinct().toList();
+  }
+
   /**
    * Returns and clears the warnings collected for the current query, de-duplicated by value. The
    * planner may fire a rule that raises a warning more than once for equivalent plan alternatives,

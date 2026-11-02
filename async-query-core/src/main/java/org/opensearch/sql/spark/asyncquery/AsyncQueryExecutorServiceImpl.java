@@ -273,6 +273,6 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
         null,
         null,
         status.progress(),
-        List.of());
+        status.current().map(QueryResult.Rows::warnings).orElse(List.of()));
   }
 }

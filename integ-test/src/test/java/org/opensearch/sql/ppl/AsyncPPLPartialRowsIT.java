@@ -6,7 +6,6 @@
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.INDEX;
-import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.OVERFLOW_QUERY;
 import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.getAsyncQuery;
 import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.postPpl;
 
@@ -122,12 +121,18 @@ public class AsyncPPLPartialRowsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void failureReturnsNoRows() throws Exception {
+  public void failureAfterRowsReturnsNoRows() throws Exception {
+    // Overflows on a late row, after earlier rows have been published.
+    String query =
+        "source=" + INDEX + " | eval x = if(n > 9000, n * 9223372036854775807, n) | fields x";
     List<JSONObject> running = new ArrayList<>();
-    JSONObject terminal = run(OVERFLOW_QUERY, running);
+    JSONObject terminal = run(query, running);
 
     Assert.assertEquals("FAILED", terminal.getString("status"));
-    Assert.assertFalse(terminal.has("datarows"));
+    Assert.assertFalse("a failed job returns no rows", terminal.has("datarows"));
+    Assert.assertTrue(
+        "rows must have been visible before the failure: " + sizes(running),
+        running.stream().anyMatch(r -> rows(r).length() > 0));
   }
 
   /** Submits with a zero wait and polls until terminal, collecting every RUNNING response. */
