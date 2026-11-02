@@ -9,8 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.withSettings;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -38,17 +36,15 @@ class QueryProgressTrackerTest {
   }
 
   @Test
-  void current_readsTrackerFromProgressTrackingTask() {
-    QueryProgressTracker tracker = new QueryProgressTracker();
-    CancellableTask task =
-        mock(CancellableTask.class, withSettings().extraInterfaces(ProgressTrackingTask.class));
-    when(((ProgressTrackingTask) task).progressTracker()).thenReturn(tracker);
+  void current_readsTrackerAttachedToTheTask() {
+    CancellableTask task = mock(CancellableTask.class);
+    QueryProgressTracker tracker = QueryProgressTracker.attach(task);
     OpenSearchQueryManager.setCancellableTask(task);
     assertSame(tracker, QueryProgressTracker.current().orElseThrow());
   }
 
   @Test
-  void current_isEmptyWithoutProgressTrackingTask() {
+  void current_isEmptyWithoutAttachedTracker() {
     assertTrue(QueryProgressTracker.current().isEmpty());
     OpenSearchQueryManager.setCancellableTask(mock(CancellableTask.class));
     assertTrue(QueryProgressTracker.current().isEmpty());
