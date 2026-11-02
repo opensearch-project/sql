@@ -34,14 +34,28 @@ import org.opensearch.sql.opensearch.data.utils.ObjectContent;
 public class FlatObjectValues {
 
   /**
-   * Depth guard. A flat_object exists so that documents can escape the mapping depth limit, so
-   * nothing upstream bounds this recursion -- the depth comes from the document, not the mapping.
-   * The cap is the default of {@code index.mapping.depth.limit}, which is the depth a mapped object
-   * is allowed, so a flat_object is read as deeply as one. Nothing is dropped at the cap: the
-   * object that would have been descended into is kept as one leaf, holding its own JSON as the
-   * value.
+   * Default depth guard. A flat_object exists so that documents can escape the mapping depth limit,
+   * so the depth comes from the document, not the mapping. The default is the default of {@code
+   * index.mapping.depth.limit}, which is the depth a mapped object is allowed, so a flat_object is
+   * read as deeply as one. Nothing is dropped at the cap: the object that would have been descended
+   * into is kept as one leaf, holding its own JSON as the value.
    */
-  static final int MAX_DEPTH = 20;
+  public static final int DEFAULT_MAX_DEPTH = 20;
+
+  /**
+   * The depth guard in effect, set from {@code plugins.query.flat_object.max_depth}. It is static
+   * because a pushed-down script flattens on the data node, where nothing of the query's settings
+   * reaches it; every node holds the cluster setting and keeps this in step with it, as OpenSearch
+   * does for {@code indices.query.bool.max_clause_count}.
+   *
+   * <p>Read once per document and passed down the recursion, so an update cannot split one.
+   */
+  private static volatile int maxDepth = DEFAULT_MAX_DEPTH;
+
+  /** Sets the depth guard; called with the setting's value at startup and on every update. */
+  public static void setMaxDepth(int depth) {
+    maxDepth = depth;
+  }
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -54,7 +68,7 @@ public class FlatObjectValues {
    *     mappings)
    */
   public static ExprValue flatten(Content content) {
-    LinkedHashMap<String, List<String>> leaves = collect(content);
+    LinkedHashMap<String, List<String>> leaves = collect(content, maxDepth);
     return leaves == null ? ExprNullValue.of() : ExprTupleValue.fromExprValueMap(render(leaves));
   }
 
@@ -68,7 +82,7 @@ public class FlatObjectValues {
    * @return the leaves by dotted path, or null if the value is neither an object nor an array
    */
   public static @Nullable Map<String, String> flattenToText(Object source) {
-    LinkedHashMap<String, List<String>> leaves = collect(new ObjectContent(source));
+    LinkedHashMap<String, List<String>> leaves = collect(new ObjectContent(source), maxDepth);
     if (leaves == null) {
       return null;
     }
@@ -78,18 +92,18 @@ public class FlatObjectValues {
   }
 
   /** The leaves a value holds, by dotted path; null when it is neither an object nor an array. */
-  private static @Nullable LinkedHashMap<String, List<String>> collect(Content content) {
+  private static @Nullable LinkedHashMap<String, List<String>> collect(Content content, int cap) {
     if (content == null || content.isNull()) {
       return null;
     }
     LinkedHashMap<String, List<String>> leaves = new LinkedHashMap<>();
     if (content.isObject()) {
-      flattenInto(content, "", leaves, 0);
+      flattenInto(content, "", leaves, 0, cap);
     } else if (content.isArray()) {
       // OpenSearch accepts an array at the top level and folds every element's paths into the same
       // terms, so the elements merge into one map here too -- including an element that is itself
       // an array, which the index flattens just the same.
-      flattenRoot(content, leaves);
+      flattenRoot(content, leaves, cap);
     } else {
       return null;
     }
@@ -97,27 +111,28 @@ public class FlatObjectValues {
   }
 
   /** Every object reachable through the arrays at the root, merged into one map. */
-  private static void flattenRoot(Content content, LinkedHashMap<String, List<String>> leaves) {
+  private static void flattenRoot(
+      Content content, LinkedHashMap<String, List<String>> leaves, int cap) {
     content
         .array()
         .forEachRemaining(
             element -> {
               if (element.isObject()) {
-                flattenInto(element, "", leaves, 0);
+                flattenInto(element, "", leaves, 0, cap);
               } else if (element.isArray()) {
-                flattenRoot(element, leaves);
+                flattenRoot(element, leaves, cap);
               }
             });
   }
 
   private static void flattenInto(
-      Content content, String prefix, LinkedHashMap<String, List<String>> out, int depth) {
+      Content content, String prefix, LinkedHashMap<String, List<String>> out, int depth, int cap) {
     content
         .map()
         .forEachRemaining(
             entry -> {
               String key = prefix.isEmpty() ? entry.getKey() : prefix + "." + entry.getKey();
-              fold(entry.getValue(), key, out, depth);
+              fold(entry.getValue(), key, out, depth, cap);
             });
   }
 
@@ -128,13 +143,13 @@ public class FlatObjectValues {
    * and {@code {"a": {"b": 1}, "a.b": 2}} all reach the same shape the index holds.
    */
   private static void fold(
-      Content value, String key, LinkedHashMap<String, List<String>> out, int depth) {
-    if (value.isObject() && depth < MAX_DEPTH) {
-      flattenInto(value, key, out, depth + 1);
+      Content value, String key, LinkedHashMap<String, List<String>> out, int depth, int cap) {
+    if (value.isObject() && depth < cap) {
+      flattenInto(value, key, out, depth + 1, cap);
       return;
     }
     if (value.isArray()) {
-      value.array().forEachRemaining(element -> fold(element, key, out, depth));
+      value.array().forEachRemaining(element -> fold(element, key, out, depth, cap));
       return;
     }
     add(out, key, token(value));

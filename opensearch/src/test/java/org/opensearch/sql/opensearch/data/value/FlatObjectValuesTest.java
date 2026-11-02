@@ -10,9 +10,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.data.model.ExprValueUtils.nullValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 
+import java.util.AbstractMap;
+import java.util.AbstractSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.opensearch.data.utils.ObjectContent;
@@ -127,19 +131,89 @@ class FlatObjectValuesTest {
     assertEquals(nullValue(), flatten(5));
   }
 
-  // A flat_object exists so documents can escape the mapping depth limit, so nothing upstream
-  // bounds the recursion: levels past the cap are kept as one leaf rather than dropped.
-  @Test
-  void depthIsCapped() {
-    Map<String, Object> deepest = Map.of("leaf", "v");
-    Map<String, Object> source = deepest;
-    for (int i = 0; i < 25; i++) {
+  private static String deepestKey(int levels) {
+    Map<String, Object> source = Map.of("leaf", "v");
+    for (int i = 0; i < levels; i++) {
       source = Map.of("l" + i, source);
     }
     ExprValue value = flatten(source);
     assertEquals(1, value.tupleValue().size());
-    String key = value.tupleValue().keySet().iterator().next();
-    // MAX_DEPTH levels are descended, so the key is that many prefixes plus the leaf's own name
-    assertEquals(FlatObjectValues.MAX_DEPTH + 1, key.split("\\.").length);
+    return value.tupleValue().keySet().iterator().next();
+  }
+
+  // A flat_object exists so documents can escape the mapping depth limit, so the depth comes from
+  // the document: levels past the cap are kept as one leaf rather than dropped.
+  @Test
+  void depthIsCapped() {
+    // the cap's levels are descended, so the key is that many prefixes plus the leaf's own name
+    assertEquals(FlatObjectValues.DEFAULT_MAX_DEPTH + 1, deepestKey(25).split("\\.").length);
+  }
+
+  // plugins.query.flat_object.max_depth moves the cap both ways
+  @Test
+  void depthCapFollowsTheSetting() {
+    try {
+      // raised past the document's depth: the leaf is reached under its full path
+      FlatObjectValues.setMaxDepth(30);
+      assertEquals(26, deepestKey(25).split("\\.").length);
+      FlatObjectValues.setMaxDepth(3);
+      assertEquals(4, deepestKey(25).split("\\.").length);
+    } finally {
+      FlatObjectValues.setMaxDepth(FlatObjectValues.DEFAULT_MAX_DEPTH);
+    }
+  }
+
+  /** A map that moves the cap once it has handed out its first entry. */
+  private static Map<String, Object> movesTheCapAfterTheFirstEntry(
+      Map<String, Object> entries, int newDepth) {
+    return new AbstractMap<>() {
+      @Override
+      public Set<Entry<String, Object>> entrySet() {
+        return new AbstractSet<>() {
+          @Override
+          public Iterator<Entry<String, Object>> iterator() {
+            Iterator<Entry<String, Object>> delegate = entries.entrySet().iterator();
+            return new Iterator<>() {
+              private int handedOut = 0;
+
+              @Override
+              public boolean hasNext() {
+                return delegate.hasNext();
+              }
+
+              @Override
+              public Entry<String, Object> next() {
+                if (handedOut++ == 1) {
+                  FlatObjectValues.setMaxDepth(newDepth);
+                }
+                return delegate.next();
+              }
+            };
+          }
+
+          @Override
+          public int size() {
+            return entries.size();
+          }
+        };
+      }
+    };
+  }
+
+  // The first subtree is folded before the second entry is pulled, so a cap read per node rather
+  // than per document would apply a different one to each.
+  @Test
+  void theCapIsReadOncePerDocument() {
+    Map<String, Object> subtree = Map.of("l2", Map.of("l1", Map.of("l0", Map.of("leaf", "v"))));
+    Map<String, Object> entries = new LinkedHashMap<>();
+    entries.put("a", subtree);
+    entries.put("b", subtree);
+    try {
+      FlatObjectValues.setMaxDepth(10);
+      ExprValue value = flatten(movesTheCapAfterTheFirstEntry(entries, 1));
+      assertEquals(Set.of("a.l2.l1.l0.leaf", "b.l2.l1.l0.leaf"), value.tupleValue().keySet());
+    } finally {
+      FlatObjectValues.setMaxDepth(FlatObjectValues.DEFAULT_MAX_DEPTH);
+    }
   }
 }

@@ -31,6 +31,7 @@ import org.opensearch.index.IndexSettings;
 import org.opensearch.search.aggregations.MultiBucketConsumerService;
 import org.opensearch.sql.common.antlr.AstBuildGuard;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.opensearch.data.value.FlatObjectValues;
 import org.opensearch.sql.utils.DeserializationFilterUtil;
 
 /** Setting implementation on OpenSearch. */
@@ -391,6 +392,14 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<Integer> FLAT_OBJECT_MAX_DEPTH_SETTING =
+      Setting.intSetting(
+          Key.FLAT_OBJECT_MAX_DEPTH.getKeyValue(),
+          FlatObjectValues.DEFAULT_MAX_DEPTH,
+          1,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   public static final Setting<Boolean> SQL_COMPLEX_WORKER_POOL_ENABLED_SETTING =
       Setting.boolSetting(
           Key.SQL_COMPLEX_WORKER_POOL_ENABLED.getKeyValue(),
@@ -688,6 +697,12 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.FLAT_OBJECT_MAX_DEPTH,
+        FLAT_OBJECT_MAX_DEPTH_SETTING,
+        new Updater(Key.FLAT_OBJECT_MAX_DEPTH));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.SQL_COMPLEX_WORKER_POOL_ENABLED,
         SQL_COMPLEX_WORKER_POOL_ENABLED_SETTING,
         new Updater(Key.SQL_COMPLEX_WORKER_POOL_ENABLED));
@@ -790,6 +805,7 @@ public class OpenSearchSettings extends Settings {
         .add(SESSION_INACTIVITY_TIMEOUT_MILLIS_SETTING)
         .add(STREAMING_JOB_HOUSEKEEPER_INTERVAL_SETTING)
         .add(FIELD_TYPE_TOLERANCE_SETTING)
+        .add(FLAT_OBJECT_MAX_DEPTH_SETTING)
         .add(SQL_COMPLEX_WORKER_POOL_ENABLED_SETTING)
         .build();
   }

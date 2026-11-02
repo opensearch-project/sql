@@ -48,6 +48,7 @@ public abstract class Settings {
 
     /** Query Settings. */
     FIELD_TYPE_TOLERANCE("plugins.query.field_type_tolerance"),
+    FLAT_OBJECT_MAX_DEPTH("plugins.query.flat_object.max_depth"),
 
     /** Common Settings for SQL and PPL. */
     QUERY_MEMORY_LIMIT("plugins.query.memory_limit"),
