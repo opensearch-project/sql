@@ -93,6 +93,52 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
     }
   }
 
+  /** rex max_match path (RexExtractMultiFunction) must also be bounded. */
+  @Test
+  @Timeout(30)
+  public void testRexMaxMatchCatastrophicPatternIsRejectedQuickly() throws IOException {
+    try {
+      executeQuery(
+          String.format(
+              "source=%s | rex field=msg \\\"(?<g>(.*a){8})b\\\" max_match=5 | fields g",
+              REDOS_INDEX));
+      fail("Expected the catastrophic regex to be rejected by the backtracking guard");
+    } catch (Exception e) {
+      assertTrue(
+          "Expected a ReDoS-guard error, got: " + e.getMessage(),
+          e.getMessage().contains("too many characters"));
+    }
+  }
+
+  /**
+   * rex offset_field path (RexOffsetFunction, which compiled the pattern directly) must be bounded.
+   */
+  @Test
+  @Timeout(30)
+  public void testRexOffsetFieldCatastrophicPatternIsRejectedQuickly() throws IOException {
+    try {
+      executeQuery(
+          String.format(
+              "source=%s | rex field=msg \\\"(?<g>(.*a){8})b\\\" offset_field=off | fields g, off",
+              REDOS_INDEX));
+      fail("Expected the catastrophic regex to be rejected by the backtracking guard");
+    } catch (Exception e) {
+      assertTrue(
+          "Expected a ReDoS-guard error, got: " + e.getMessage(),
+          e.getMessage().contains("too many characters"));
+    }
+  }
+
+  /** The guard must be transparent: a legitimate rex extraction still works. */
+  @Test
+  public void testRexLegitimatePatternStillWorks() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | rex field=msg \\\"(?<g>a+)\\\" | fields g", REDOS_INDEX));
+    assertEquals(1, result.getJSONArray("datarows").length());
+    assertEquals("a".repeat(60), result.getJSONArray("datarows").getJSONArray(0).get(0));
+  }
+
   @Test
   public void testRexErrorNoNamedGroups() throws IOException {
     try {
