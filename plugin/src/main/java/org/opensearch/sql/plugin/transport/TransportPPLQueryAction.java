@@ -372,9 +372,11 @@ public class TransportPPLQueryAction
                 clientRef
                     .threadPool()
                     .generic()
-                    .execute(() -> respondRunning(running, ctxListener, responseListener));
+                    .execute(() -> respondRunning(running, ctxListener));
               } catch (RuntimeException e) {
-                responseListener.onFailure(e);
+                // The job runs on; the client must still get its id to poll or cancel it.
+                ctxListener.onResponse(
+                    new TransportPPLQueryResponse(formatRunning(running, false)));
               }
             }
           }
@@ -383,22 +385,24 @@ public class TransportPPLQueryAction
 
   private static void respondRunning(
       org.opensearch.sql.job.QueryResult.Running running,
-      ActionListener<TransportPPLQueryResponse> listener,
-      ResponseListener<ExecutionEngine.QueryResponse> failureListener) {
+      ActionListener<TransportPPLQueryResponse> listener) {
     String body;
     try {
-      body = formatRunning(running);
+      body = formatRunning(running, true);
     } catch (RuntimeException e) {
-      failureListener.onFailure(e);
-      return;
+      // The job runs on; the client must still get its id to poll or cancel it.
+      body = formatRunning(running, false);
     }
     listener.onResponse(new TransportPPLQueryResponse(body));
   }
 
   /** Rendered by the GET formatter, so submit and GET bodies of a running job match. */
-  private static String formatRunning(org.opensearch.sql.job.QueryResult.Running running) {
+  private static String formatRunning(
+      org.opensearch.sql.job.QueryResult.Running running, boolean withRows) {
     org.opensearch.sql.job.QueryResult.Rows current =
-        running.current().orElse(org.opensearch.sql.job.QueryResult.Rows.EMPTY);
+        withRows
+            ? running.current().orElse(org.opensearch.sql.job.QueryResult.Rows.EMPTY)
+            : org.opensearch.sql.job.QueryResult.Rows.EMPTY;
     return new AsyncQueryResultResponseFormatter(JsonResponseFormatter.Style.PRETTY)
         .format(
             AsyncQueryResult.forQueryJob(

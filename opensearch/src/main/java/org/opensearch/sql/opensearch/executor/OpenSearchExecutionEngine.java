@@ -477,11 +477,12 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       ExprValue tuple = ExprTupleValue.fromExprValueMap(row);
       values.add(tuple);
       if (partialRows != null) {
-        partialRows.add(tuple);
+        // Warnings first, so a row is never visible without the warnings raised fetching it.
         if (CalcitePlanContext.warningCount() != warningsPublished) {
           warningsPublished = CalcitePlanContext.warningCount();
           partialRows.warnings(CalcitePlanContext.peekWarnings());
         }
+        partialRows.add(tuple);
       }
     }
 

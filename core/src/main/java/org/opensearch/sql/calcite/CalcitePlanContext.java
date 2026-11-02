@@ -284,11 +284,7 @@ public class CalcitePlanContext {
    * so identical warnings are collapsed to one.
    */
   public static List<Warning> drainWarnings() {
-    List<Warning> warnings = pendingWarnings.get();
-    if (warnings.isEmpty()) {
-      return List.of();
-    }
-    List<Warning> drained = warnings.stream().distinct().toList();
+    List<Warning> drained = peekWarnings();
     pendingWarnings.remove();
     return drained;
   }
