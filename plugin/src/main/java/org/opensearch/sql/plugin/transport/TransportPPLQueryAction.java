@@ -367,14 +367,13 @@ public class TransportPPLQueryAction
                   .onResponse(explain.response());
             }
             case org.opensearch.sql.job.QueryResult.Running running -> {
-              // A wait timeout completes on the JVM-wide timer thread; format the rows elsewhere.
+              // Wait timeouts complete on the JVM-wide timer thread; format elsewhere.
               try {
                 clientRef
                     .threadPool()
                     .generic()
                     .execute(() -> respondRunning(running, ctxListener));
               } catch (RuntimeException e) {
-                // The job runs on; the client must still get its id to poll or cancel it.
                 ctxListener.onResponse(
                     new TransportPPLQueryResponse(formatRunning(running, false)));
               }
@@ -390,13 +389,13 @@ public class TransportPPLQueryAction
     try {
       body = formatRunning(running, true);
     } catch (RuntimeException e) {
-      // The job runs on; the client must still get its id to poll or cancel it.
+      // The job keeps running, so still return its id.
       body = formatRunning(running, false);
     }
     listener.onResponse(new TransportPPLQueryResponse(body));
   }
 
-  /** Rendered by the GET formatter, so submit and GET bodies of a running job match. */
+  /** Same formatter as GET, so the bodies match. */
   private static String formatRunning(
       org.opensearch.sql.job.QueryResult.Running running, boolean withRows) {
     org.opensearch.sql.job.QueryResult.Rows current =

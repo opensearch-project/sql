@@ -54,7 +54,7 @@ public class AsyncPPLPartialRowsIT extends PPLIntegTestCase {
 
   @Test
   public void compositePagesBecomeVisible() throws Exception {
-    // Small composite pages, so the aggregation takes many pages.
+    // Small pages, so the aggregation spans many.
     updateClusterSettings(
         new SQLIntegTestCase.ClusterSetting("persistent", "plugins.query.buckets", "100"));
     try {
@@ -74,13 +74,12 @@ public class AsyncPPLPartialRowsIT extends PPLIntegTestCase {
 
   @Test
   public void blockingPlanReturnsRowsOnlyAfterReadingAllInput() throws Exception {
-    // eventstats needs every row before it can emit any.
     String query = "source=" + INDEX + " | eventstats max(n) as mx | fields n, mx";
     List<JSONObject> running = new ArrayList<>();
     JSONObject terminal = run(query, running);
 
     assertMatchesSync(query, terminal, running);
-    // Rows may stream out once eventstats has read its whole input, never before.
+    // eventstats emits only after reading all input.
     for (JSONObject response : running) {
       if (rows(response).length() > 0) {
         Assert.assertEquals(
@@ -135,7 +134,6 @@ public class AsyncPPLPartialRowsIT extends PPLIntegTestCase {
         running.stream().anyMatch(r -> rows(r).length() > 0));
   }
 
-  /** Submits with a zero wait and polls until terminal, collecting every RUNNING response. */
   private JSONObject run(String query, List<JSONObject> running) throws Exception {
     JSONObject submit =
         new JSONObject(
@@ -157,10 +155,7 @@ public class AsyncPPLPartialRowsIT extends PPLIntegTestCase {
     throw new AssertionError("async job did not finish: " + sizes(running));
   }
 
-  /**
-   * The final result equals sync, and every running response is a complete view whose rows are a
-   * prefix of the final rows, with the final schema once it has rows.
-   */
+  /** The final result equals sync, and each running response is a prefix of it. */
   private void assertMatchesSync(String query, JSONObject terminal, List<JSONObject> running)
       throws IOException {
     Assert.assertEquals("SUCCEEDED", terminal.getString("status"));

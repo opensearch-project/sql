@@ -41,10 +41,8 @@ public class AsyncQueryExecutionResponse {
   /** {@code null} on the Spark path. */
   private final QueryProgress progress;
 
-  /** Warnings of a successful query job; empty on the Spark path. */
   private final List<Warning> warnings;
 
-  /** Whether this response comes from a query job rather than the Spark path. */
   private final boolean queryJob;
 
   /** Spark-shaped constructor; keeps callers that never populate structured error details. */
@@ -81,7 +79,6 @@ public class AsyncQueryExecutionResponse {
     this.queryJob = false;
   }
 
-  /** A query-job response. */
   public AsyncQueryExecutionResponse(
       String status,
       ExecutionEngine.Schema schema,

@@ -35,7 +35,6 @@ public class AsyncQueryResult extends QueryResult {
   /** {@code null} on the Spark path. */
   @Getter private final QueryProgress progress;
 
-  /** Polling id, set only on the submit response of a running query job. */
   @Getter private final String id;
 
   @Getter private final boolean queryJob;
@@ -65,7 +64,7 @@ public class AsyncQueryResult extends QueryResult {
     this.queryJob = false;
   }
 
-  /** A query-job response; only PPL submits query jobs, so it renders as the sync PPL response. */
+  /** Query jobs are PPL, so they render as the sync PPL response. */
   public static AsyncQueryResult forQueryJob(
       String status,
       ExecutionEngine.Schema schema,

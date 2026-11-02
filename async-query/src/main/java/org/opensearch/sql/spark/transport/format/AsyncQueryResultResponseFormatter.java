@@ -50,7 +50,6 @@ public class AsyncQueryResultResponseFormatter extends JsonResponseFormatter<Asy
     String status = response.getStatus();
     // "SUCCESS" is the legacy Spark job-run state; "SUCCEEDED" is the neutral QueryJobState name
     // emitted by the id-shape routing path (issue #5765).
-    // A running query job carries the rows produced so far.
     boolean runningJob = response.isQueryJob() && "RUNNING".equals(status);
     if ("success".equalsIgnoreCase(status) || "succeeded".equalsIgnoreCase(status) || runningJob) {
       json.total(response.size()).size(response.size());
@@ -109,7 +108,6 @@ public class AsyncQueryResultResponseFormatter extends JsonResponseFormatter<Asy
     private Integer total;
     private Integer size;
 
-    /** Present only when non-empty, as on the sync response. */
     private final List<Warning> warnings;
 
     /**

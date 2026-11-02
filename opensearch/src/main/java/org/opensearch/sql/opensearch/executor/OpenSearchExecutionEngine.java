@@ -364,7 +364,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
         });
   }
 
-  /** The rows may never become the result: the query fails or falls back to another engine. */
+  /** The rows may never become the result. */
   private static void discardPartialRows() {
     QueryProgressTracker.current().ifPresent(tracker -> tracker.partialRows().discard());
   }
@@ -452,8 +452,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     for (int i = 1; i <= columnCount; i++) {
       columnNames.add(metaData.getColumnName(i));
     }
-    // Async queries publish each row as it is read. Timewrap reshapes all rows at the end, so a
-    // prefix of its rows is not a prefix of its result.
+    // Timewrap reshapes rows at the end, so its rows so far are not a prefix of its result.
     PartialRows partialRows =
         TimewrapPivot.isTimewrap()
             ? null
@@ -477,7 +476,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       ExprValue tuple = ExprTupleValue.fromExprValueMap(row);
       values.add(tuple);
       if (partialRows != null) {
-        // Warnings first, so a row is never visible without the warnings raised fetching it.
+        // Warnings first, so a row is never shown without them.
         if (CalcitePlanContext.warningCount() != warningsPublished) {
           warningsPublished = CalcitePlanContext.warningCount();
           partialRows.warnings(CalcitePlanContext.peekWarnings());

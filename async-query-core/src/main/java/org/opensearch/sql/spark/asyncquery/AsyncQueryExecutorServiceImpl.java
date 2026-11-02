@@ -263,7 +263,6 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
           status.progress(),
           List.of());
     }
-    // RUNNING carries the rows produced so far, if any.
     QueryResult.Rows current = status.current().orElse(QueryResult.Rows.EMPTY);
     return new AsyncQueryExecutionResponse(
         status.state().name(),

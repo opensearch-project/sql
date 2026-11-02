@@ -33,7 +33,6 @@ public sealed interface QueryResult
       Schema schema, List<ExprValue> rows, Cursor cursor, List<Warning> warnings, long tookMillis)
       implements QueryResult {
 
-    /** No columns and no rows, e.g. a running job that has produced nothing yet. */
     public static final Rows EMPTY =
         new Rows(new Schema(List.of()), List.of(), Cursor.None, List.of(), 0);
 
@@ -58,10 +57,7 @@ public sealed interface QueryResult
     }
   }
 
-  /**
-   * Wait budget expired; the client polls {@link #id()} to observe the terminal outcome. {@code
-   * current} holds the rows produced so far, if any.
-   */
+  /** Wait budget expired; the client polls {@link #id()} to observe the terminal outcome. */
   record Running(QueryJobId id, QueryProgress progress, Optional<Rows> current)
       implements QueryResult {
 

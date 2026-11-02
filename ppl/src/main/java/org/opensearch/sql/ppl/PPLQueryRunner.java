@@ -120,10 +120,7 @@ public final class PPLQueryRunner implements QueryRunner {
     return currentResult.get();
   }
 
-  /**
-   * Drops everything that reaches the engine's progress and buffered rows, including the
-   * cancellation hook, which holds the query task. Cancelling a terminal job is a no-op anyway.
-   */
+  /** Also drops the cancel hook, which holds the query task. */
   @Override
   public void close() {
     progress = () -> QueryProgress.NONE;

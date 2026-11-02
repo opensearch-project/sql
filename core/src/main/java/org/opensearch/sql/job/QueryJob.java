@@ -115,7 +115,7 @@ public final class QueryJob {
 
   /** Returns an immutable snapshot of the job's current state. */
   public QueryJobStatus status() {
-    // Rows first: progress read afterwards covers at least the work behind those rows.
+    // Rows first, so progress covers them.
     Optional<QueryResult.Rows> current = sampleCurrentResult();
     double sample = sampleRunnerProgress();
     synchronized (this) {
@@ -177,7 +177,6 @@ public final class QueryJob {
   }
 
   private QueryResult.Running running() {
-    // Rows first: progress read afterwards covers at least the work behind those rows.
     Optional<QueryResult.Rows> current = sampleCurrentResult();
     double sample = sampleRunnerProgress();
     synchronized (this) {
@@ -309,12 +308,10 @@ public final class QueryJob {
     return new QueryProgress(runningFraction);
   }
 
-  /** Caller holds the monitor. */
   private Optional<QueryResult.Rows> runningOnly(Optional<QueryResult.Rows> current) {
     return state == QueryJobState.RUNNING ? current : Optional.empty();
   }
 
-  /** Called outside the monitor; the runner is foreign code. */
   private Optional<QueryResult.Rows> sampleCurrentResult() {
     synchronized (this) {
       if (state != QueryJobState.RUNNING) {
@@ -359,12 +356,11 @@ public final class QueryJob {
     }
   }
 
-  /** The job no longer samples the runner once terminal, so it can release what it holds. */
   private void safeCloseRunner() {
     try {
       runner.close();
     } catch (RuntimeException ignored) {
-      // Best-effort, like cancellation.
+      // Best-effort.
     }
   }
 

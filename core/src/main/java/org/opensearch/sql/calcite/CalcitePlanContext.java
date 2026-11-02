@@ -267,12 +267,12 @@ public class CalcitePlanContext {
     pendingWarnings.get().add(warning);
   }
 
-  /** How many warnings have been recorded for the current query, including duplicates. */
+  /** Warnings recorded so far, including duplicates. */
   public static int warningCount() {
     return pendingWarnings.get().size();
   }
 
-  /** The warnings collected so far for the current query, de-duplicated, without clearing them. */
+  /** Like {@link #drainWarnings()}, without clearing. */
   public static List<Warning> peekWarnings() {
     List<Warning> warnings = pendingWarnings.get();
     return warnings.isEmpty() ? List.of() : warnings.stream().distinct().toList();

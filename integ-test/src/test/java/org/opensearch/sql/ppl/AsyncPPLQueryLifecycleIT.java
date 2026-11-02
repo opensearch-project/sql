@@ -364,7 +364,6 @@ public class AsyncPPLQueryLifecycleIT extends PPLIntegTestCase {
     JSONObject fetched = pollUntilTerminal(client(), queryId, 30_000);
 
     Assert.assertEquals("SUCCEEDED", fetched.getString("status"));
-    // Same PPL type names as the sync response above.
     verifySchema(fetched, schema("c", "bigint"));
     verifyDataRows(fetched, rows(1000));
     verifyNumOfRows(fetched, 1);

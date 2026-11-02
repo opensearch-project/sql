@@ -32,14 +32,11 @@ public interface QueryRunner {
     return QueryProgress.NONE;
   }
 
-  /** Rows produced so far, each a final row of the result; called from any thread. */
+  /** Rows produced so far; called from any thread, so it must not block. */
   default Optional<QueryResult.Rows> currentResult() {
     return Optional.empty();
   }
 
-  /**
-   * Releases what the runner holds for {@link #progress()} and {@link #currentResult()}. Called
-   * once the job is terminal, while its result may still be retained; must be idempotent.
-   */
+  /** Called once the job is terminal, to release what the runner holds; idempotent. */
   default void close() {}
 }
