@@ -64,7 +64,7 @@ teardown:
   - match: { "$body": "/SemanticCheckException/" }
   - match: { "$body": "/TYPE_ERROR/" }
   - match: { "$body": "/analyzing/" }
-  - match: { "$body": "/replace\\s+requires\\s+a\\s+string\\s+field,\\s+but\\s+\\[n\\]\\s+is\\s+LONG/" }
+  - match: { "$body": "/replace\\s+requires\\s+a\\s+string\\s+field,\\s+but\\s+\\[n\\]\\s+is\\s+BIGINT/" }
 
 ---
 "replace on an object field is rejected while analyzing":

@@ -1019,7 +1019,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     for (String fieldName : fieldNames) {
       RelDataType type = context.relBuilder.field(fieldName).getType();
       if (OpenSearchTypeFactory.getContainerTypeName(type) != null) {
-        throw fieldTypeError("transpose", fieldName, "scalar fields", type)
+        throw fieldTypeError("transpose", fieldName, "scalar fields", type, context)
             .suggestion(
                 "Use the fields command before transpose to keep only scalar fields, such as the"
                     + " subfields of an object field.")
@@ -3886,9 +3886,16 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     return rexNode.getType().getSqlTypeName().getFamily() == SqlTypeFamily.NUMERIC;
   }
 
-  /** Start the TYPE_ERROR report for a field whose type the command cannot take */
+  /**
+   * Start the TYPE_ERROR report for a field whose type the command cannot take. The type takes its
+   * response schema name in upper case, so BIGINT for a long field.
+   */
   private static ErrorReport.Builder fieldTypeError(
-      String command, String fieldName, String requirement, RelDataType type) {
+      String command,
+      String fieldName,
+      String requirement,
+      RelDataType type,
+      CalcitePlanContext context) {
     return ErrorReport.wrap(
             new SemanticCheckException(
                 StringUtils.format(
@@ -3896,7 +3903,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                     command,
                     requirement,
                     fieldName,
-                    OpenSearchTypeFactory.convertRelDataTypeToExprType(type))))
+                    OpenSearchTypeFactory.getLegacyTypeName(type, context.queryType))))
         .code(ErrorCode.TYPE_ERROR)
         .stage(QueryProcessingStage.ANALYZING)
         .location("while checking the field type for " + command)
@@ -4407,7 +4414,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
                 String fieldName =
                     StringUtils.unquoteIdentifier(
                         trendlineComputation.getDataField().getField().toString());
-                throw fieldTypeError("trendline", fieldName, "a numeric field", field.getType())
+                throw fieldTypeError(
+                        "trendline", fieldName, "a numeric field", field.getType(), context)
                     .build();
               }
               context.relBuilder.filter(context.relBuilder.isNotNull(field));
@@ -4552,7 +4560,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     RelDataType fieldType = arrayFieldRex.getType();
     // Unlike mvexpand, which passes a scalar through unchanged, expand takes only an array.
     if (!(SqlTypeUtil.isArray(fieldType) || SqlTypeUtil.isMultiset(fieldType))) {
-      throw fieldTypeError("expand", fieldName, "an array field", fieldType).build();
+      throw fieldTypeError("expand", fieldName, "an array field", fieldType, context).build();
     }
     String alias = expand.getAlias();
 
@@ -4976,7 +4984,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
       String fieldToReplace = field.getField().toString();
       RelDataType type = context.relBuilder.field(fieldToReplace).getType();
       if (!SqlTypeUtil.isCharacter(type)) {
-        throw fieldTypeError("replace", fieldToReplace, "a string field", type).build();
+        throw fieldTypeError("replace", fieldToReplace, "a string field", type, context).build();
       }
     }
 

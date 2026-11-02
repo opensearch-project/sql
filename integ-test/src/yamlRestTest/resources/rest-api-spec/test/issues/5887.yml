@@ -69,7 +69,7 @@ teardown:
   - match: { "$body": "/SemanticCheckException/" }
   - match: { "$body": "/TYPE_ERROR/" }
   - match: { "$body": "/analyzing/" }
-  - match: { "$body": "/expand\\s+requires\\s+an\\s+array\\s+field,\\s+but\\s+\\[n\\]\\s+is\\s+LONG/" }
+  - match: { "$body": "/expand\\s+requires\\s+an\\s+array\\s+field,\\s+but\\s+\\[n\\]\\s+is\\s+BIGINT/" }
 
 ---
 "expand on a keyword field is rejected while analyzing":

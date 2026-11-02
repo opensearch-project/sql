@@ -124,7 +124,7 @@ public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
     // JOB is a string, DEPTNO and MGR are numeric, so the error names DEPTNO
     String ppl = "source=EMP | replace \"CLERK\" WITH \"EMPLOYEE\" IN JOB, DEPTNO, MGR";
     ErrorReport e = assertThrows(ErrorReport.class, () -> getRelNode(ppl));
-    assertThat(e.getMessage(), is("replace requires a string field, but [DEPTNO] is BYTE"));
+    assertThat(e.getMessage(), is("replace requires a string field, but [DEPTNO] is TINYINT"));
   }
 
   @Test
