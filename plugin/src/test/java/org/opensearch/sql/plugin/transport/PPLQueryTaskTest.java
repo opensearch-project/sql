@@ -123,7 +123,7 @@ public class PPLQueryTaskTest {
   public void testScopeRecordsThreadUsageInResourceStats() {
     PPLQueryTask task = trackedTask(trackingService(true));
     try (ThreadResourceAccounting.Scope ignored = task.enterThread()) {
-      burnCpu();
+      CpuBurner.burn();
     }
     // The task's resource_stats, which _tasks and Live Queries read; the record reads the same.
     assertTrue(task.getTotalResourceStats().getCpuTimeInNanos() > 0);
@@ -138,7 +138,7 @@ public class PPLQueryTaskTest {
     TaskResourceTrackingService service = trackingService(true);
     PPLQueryTask task = trackedTask(service);
     try (ThreadResourceAccounting.Scope ignored = task.enterThread()) {
-      burnCpu();
+      CpuBurner.burn();
       service.refreshResourceStats(task);
       assertTrue(task.getTotalResourceStats().getCpuTimeInNanos() > 0);
     }
@@ -148,7 +148,7 @@ public class PPLQueryTaskTest {
   public void testNothingRecordedWhenTaskResourceTrackingIsOff() {
     PPLQueryTask task = trackedTask(trackingService(false));
     try (ThreadResourceAccounting.Scope ignored = task.enterThread()) {
-      burnCpu();
+      CpuBurner.burn();
     }
     assertTrue(task.getResourceStats().isEmpty());
     assertEquals(0L, task.getCpuNanos());
@@ -187,14 +187,6 @@ public class PPLQueryTaskTest {
 
     scope.close();
     assertEquals(1, fired.get());
-  }
-
-  private static void burnCpu() {
-    long x = 0;
-    for (int i = 0; i < 1_000_000; i++) {
-      x += Integer.toString(i).hashCode();
-    }
-    assertNotEquals(42, x);
   }
 
   @Test
