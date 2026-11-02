@@ -7,6 +7,7 @@ package org.opensearch.sql.job;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
@@ -53,12 +54,17 @@ public sealed interface QueryResult
     }
   }
 
-  /** Wait budget expired; the client polls {@link #id()} to observe the terminal outcome. */
-  record Running(QueryJobId id, QueryProgress progress) implements QueryResult {
+  /**
+   * Wait budget expired; the client polls {@link #id()} to observe the terminal outcome. {@code
+   * current} holds the rows produced so far, if any.
+   */
+  record Running(QueryJobId id, QueryProgress progress, Optional<Rows> current)
+      implements QueryResult {
 
     public Running {
       Objects.requireNonNull(id, "id must not be null");
       Objects.requireNonNull(progress, "progress must not be null");
+      Objects.requireNonNull(current, "current must not be null");
     }
 
     @Override

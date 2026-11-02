@@ -65,11 +65,44 @@ public class AsyncQueryResultResponseFormatterTest {
             null,
             null,
             null,
-            new org.opensearch.sql.job.QueryProgress(0.25D));
+            new org.opensearch.sql.job.QueryProgress(0.25D),
+            null,
+            java.util.List.of());
     AsyncQueryResultResponseFormatter formatter = new AsyncQueryResultResponseFormatter(COMPACT);
     assertEquals(
-        "{\"status\":\"RUNNING\",\"progress\":{\"fraction_done\":0.25}}",
+        "{\"status\":\"RUNNING\",\"progress\":{\"fraction_done\":0.25},"
+            + "\"schema\":[{\"name\":\"firstname\",\"type\":\"string\"},"
+            + "{\"name\":\"age\",\"type\":\"int\"}],\"datarows\":[],\"total\":0,\"size\":0}",
         formatter.format(response));
+  }
+
+  @Test
+  void formatRunningJobEmitsIdAndRowsSoFar() {
+    AsyncQueryResult response =
+        new AsyncQueryResult(
+            "RUNNING",
+            schema,
+            Arrays.asList(tupleValue(ImmutableMap.of("firstname", "John", "age", 20))),
+            null,
+            null,
+            null,
+            new org.opensearch.sql.job.QueryProgress(0.5D),
+            "job-id",
+            java.util.List.of(new org.opensearch.sql.executor.Warning("PARTIAL_RESULT", "w", null)));
+    AsyncQueryResultResponseFormatter formatter = new AsyncQueryResultResponseFormatter(COMPACT);
+    assertEquals(
+        "{\"id\":\"job-id\",\"status\":\"RUNNING\",\"progress\":{\"fraction_done\":0.5},"
+            + "\"schema\":[{\"name\":\"firstname\",\"type\":\"string\"},"
+            + "{\"name\":\"age\",\"type\":\"int\"}],\"datarows\":[[\"John\",20]],"
+            + "\"total\":1,\"size\":1,\"warnings\":[{\"type\":\"PARTIAL_RESULT\",\"message\":\"w\"}]}",
+        formatter.format(response));
+  }
+
+  @Test
+  void formatSparkRunningResponseOmitsRows() {
+    AsyncQueryResult response = new AsyncQueryResult("RUNNING", null, null, null);
+    AsyncQueryResultResponseFormatter formatter = new AsyncQueryResultResponseFormatter(COMPACT);
+    assertEquals("{\"status\":\"RUNNING\"}", formatter.format(response));
   }
 
   @Test

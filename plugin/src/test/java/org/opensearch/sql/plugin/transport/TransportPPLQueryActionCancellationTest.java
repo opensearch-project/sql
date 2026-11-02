@@ -101,7 +101,8 @@ public class TransportPPLQueryActionCancellationTest {
             CompletableFuture.completedFuture(
                 new QueryResult.Running(
                     new QueryJobId("owner-node", "query-context"),
-                    org.opensearch.sql.job.QueryProgress.NONE)));
+                    org.opensearch.sql.job.QueryProgress.NONE,
+                    java.util.Optional.empty())));
 
     submit(task);
 

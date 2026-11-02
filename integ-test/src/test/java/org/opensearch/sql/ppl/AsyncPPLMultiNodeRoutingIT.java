@@ -123,8 +123,8 @@ public class AsyncPPLMultiNodeRoutingIT extends PPLIntegTestCase {
 
     JSONObject fetched = pollUntilTerminal(nodeB, queryId, 30_000);
     Assert.assertEquals("SUCCEEDED", fetched.getString("status"));
-    // Async GET formatter emits raw engine type ("long"), not the JDBC family ("bigint").
-    verifySchema(fetched, schema("c", "long"));
+    // Same PPL type names as the sync response.
+    verifySchema(fetched, schema("c", "bigint"));
     verifyDataRows(fetched, rows(1000));
     verifyNumOfRows(fetched, 1);
   }

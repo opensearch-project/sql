@@ -720,11 +720,14 @@ If the query is still running when the wait expires, the response is:
   "id": "<opaque-id>",
   "status": "RUNNING",
   "progress": {"fraction_done": 0.42},
-  "schema": [],
-  "datarows": [],
-  "total": 0
+  "schema": [{"name": "n", "type": "int"}],
+  "datarows": [[0], [1], [2]],
+  "total": 3,
+  "size": 3
 }
 ```
+
+`schema`, `datarows`, and `total` hold the rows the query has produced so far. They are final rows in final order: each response is a complete view whose rows are a prefix of the final result, and a later response only adds rows. A query whose last step must see all rows first (for example `sort`, `eventstats`, or `stats` without `by`) returns no rows until it finishes, and `timewrap` queries return none while running. `GET` on a running job returns the same shape without `id`.
 
 `progress.fraction_done` is a best-effort estimate of the work done, derived from the shards and pages the query's index scans have completed. It is always within `[0.0, 1.0]` and never decreases between polls. It stays below `1.0` while the job is `RUNNING`, is `1.0` once the job `SUCCEEDED`, and keeps its last running value when the job `FAILED`. Progress counts only index scans run by the Calcite engine: a query with no such scan reports `0.0` until it finishes, a query that falls back to the legacy engine keeps the value it reached before the fallback, and `graphlookup` traversals are not counted. On a remote cluster, a single-request search (such as `stats` without `by`) and each composite aggregation page report progress only when their response arrives, not per shard. Queries that finish inside the submit wait return the synchronous response, which has no `progress` field.
 
@@ -736,7 +739,7 @@ GET    /_plugins/_async_query/<id>
 
 Both terminal states return HTTP `200`. The body shape differs by state:
 
-- `SUCCEEDED` — a row-shaped response (`status`, `progress`, `schema`, `datarows`, `total`, `size`), or the explain body when the submitted query starts with `explain`.
+- `SUCCEEDED` — a row-shaped response (`status`, `progress`, `schema`, `datarows`, `total`, `size`, and `warnings` when present) with the same schema and rows as the synchronous response, or the explain body when the submitted query starts with `explain`.
 - `FAILED` — `status: "FAILED"`, `progress`, and an `error` object whose fields match the body a synchronous PPL request would have returned on the same failure. Typical fields: `type`, `reason`, `details`, `code`, `context.stage`, `location[]`, and `suggestion` when applicable. Example:
 
 ```

@@ -386,7 +386,51 @@ class QueryJobTest {
                 java.util.OptionalLong.empty(),
                 java.util.Optional.empty(),
                 java.util.Optional.empty(),
-                QueryProgress.DONE));
+                QueryProgress.DONE,
+                java.util.Optional.empty()));
+  }
+
+  @Test
+  void currentResult_isReportedOnlyWhileRunning() {
+    RecordingRunner runner = new RecordingRunner();
+    runner.current = java.util.Optional.of((QueryResult.Rows) RESULT);
+    QueryJob job = newJob(runner, 240L);
+    assertTrue(job.status().current().isEmpty(), "PENDING has no rows");
+
+    job.startRunner();
+    assertEquals(runner.current, job.status().current());
+
+    runner.complete(RESULT);
+    assertTrue(job.status().current().isEmpty(), "SUCCEEDED reports the result, not current");
+  }
+
+  @Test
+  void currentResult_isEmptyAfterFailure() {
+    RecordingRunner runner = new RecordingRunner();
+    runner.current = java.util.Optional.of((QueryResult.Rows) RESULT);
+    QueryJob job = newJob(runner, 250L);
+    job.startRunner();
+    runner.fail(new IllegalStateException("boom"));
+    assertTrue(job.status().current().isEmpty());
+  }
+
+  @Test
+  void currentResult_runnerErrorReportsNoRows() {
+    RecordingRunner runner = new RecordingRunner();
+    runner.currentError = new IllegalStateException("snapshot bug");
+    QueryJob job = newJob(runner, 260L);
+    job.startRunner();
+    assertTrue(job.status().current().isEmpty());
+  }
+
+  @Test
+  void await_runningCarriesRowsSoFar() throws Exception {
+    RecordingRunner runner = new RecordingRunner();
+    runner.current = java.util.Optional.of((QueryResult.Rows) RESULT);
+    QueryJob job = newJob(runner, 270L);
+    job.startRunner();
+    QueryResult result = job.await(Duration.ZERO).toCompletableFuture().get(1, TimeUnit.SECONDS);
+    assertEquals(runner.current, assertInstanceOf(QueryResult.Running.class, result).current());
   }
 
   private static QueryJob newJob(QueryRunner runner, long submittedMillis) {
@@ -401,6 +445,8 @@ class QueryJobTest {
     private volatile double progress;
     private volatile RuntimeException progressError;
     private volatile int progressCalls;
+    private volatile java.util.Optional<QueryResult.Rows> current = java.util.Optional.empty();
+    private volatile RuntimeException currentError;
 
     @Override
     public CompletionStage<QueryResult> run() {
@@ -411,6 +457,14 @@ class QueryJobTest {
     @Override
     public void cancel() {
       cancelled = true;
+    }
+
+    @Override
+    public java.util.Optional<QueryResult.Rows> currentResult() {
+      if (currentError != null) {
+        throw currentError;
+      }
+      return current;
     }
 
     @Override

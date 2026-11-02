@@ -6,12 +6,16 @@
 package org.opensearch.sql.spark.transport.model;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import lombok.Getter;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionEngine;
+import org.opensearch.sql.executor.Warning;
 import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.job.QueryProgress;
+import org.opensearch.sql.lang.LangSpec;
+import org.opensearch.sql.lang.PPLLangSpec;
 import org.opensearch.sql.protocol.response.QueryResult;
 
 /** AsyncQueryResult for async query APIs. */
@@ -32,6 +36,9 @@ public class AsyncQueryResult extends QueryResult {
   /** {@code null} on the Spark path. */
   @Getter private final QueryProgress progress;
 
+  /** Polling id, set only on the submit response of a running query job. */
+  @Getter private final String id;
+
   public AsyncQueryResult(
       String status,
       ExecutionEngine.Schema schema,
@@ -48,7 +55,12 @@ public class AsyncQueryResult extends QueryResult {
       Cursor cursor,
       String error,
       Map<String, Object> errorDetails) {
-    this(status, schema, exprValues, cursor, error, errorDetails, null);
+    super(schema, exprValues, cursor);
+    this.status = status;
+    this.error = error;
+    this.errorDetails = errorDetails;
+    this.progress = null;
+    this.id = null;
   }
 
   public AsyncQueryResult(
@@ -58,12 +70,21 @@ public class AsyncQueryResult extends QueryResult {
       Cursor cursor,
       String error,
       Map<String, Object> errorDetails,
-      QueryProgress progress) {
-    super(schema, exprValues, cursor);
+      QueryProgress progress,
+      String id,
+      List<Warning> warnings) {
+    // A query job (progress is set only on that path) is PPL; render it as the sync PPL response.
+    super(
+        schema,
+        exprValues,
+        cursor,
+        progress == null ? LangSpec.SQL_SPEC : PPLLangSpec.PPL_SPEC,
+        progress == null ? List.of() : warnings);
     this.status = status;
     this.error = error;
     this.errorDetails = errorDetails;
     this.progress = progress;
+    this.id = id;
   }
 
   public AsyncQueryResult(
@@ -85,5 +106,6 @@ public class AsyncQueryResult extends QueryResult {
     this.error = error;
     this.errorDetails = errorDetails;
     this.progress = null;
+    this.id = null;
   }
 }

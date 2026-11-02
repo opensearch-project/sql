@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.job;
 
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
 /**
@@ -29,5 +30,10 @@ public interface QueryRunner {
   /** Current progress estimate; called from any thread, so it must not block. */
   default QueryProgress progress() {
     return QueryProgress.NONE;
+  }
+
+  /** Rows produced so far, each a final row of the result; called from any thread. */
+  default Optional<QueryResult.Rows> currentResult() {
+    return Optional.empty();
   }
 }

@@ -11,6 +11,7 @@ import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
 import java.time.Clock;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
@@ -19,9 +20,6 @@ import java.util.function.Supplier;
 import org.apache.calcite.rel.RelNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.json.JSONString;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.ContextPreservingActionListener;
@@ -37,11 +35,13 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
+import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
 import org.opensearch.sql.executor.AnalyzeResponse;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.job.OpenSearchQueryJobService;
 import org.opensearch.sql.job.OpenSearchSecurityAdapter;
 import org.opensearch.sql.job.QueryJob;
@@ -76,6 +76,8 @@ import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.VisualizationResponseFormatter;
 import org.opensearch.sql.protocol.response.format.YamlResponseFormatter;
+import org.opensearch.sql.spark.transport.format.AsyncQueryResultResponseFormatter;
+import org.opensearch.sql.spark.transport.model.AsyncQueryResult;
 import org.opensearch.tasks.Task;
 import org.opensearch.telemetry.tracing.Span;
 import org.opensearch.telemetry.tracing.SpanCreationContext;
@@ -326,7 +328,8 @@ public class TransportPPLQueryAction
             anonymizedQuerySink,
             Clock.systemUTC(),
             cancelExecution,
-            () -> new QueryProgress(progressTracker.fractionDone()));
+            () -> new QueryProgress(progressTracker.fractionDone()),
+            () -> progressTracker.partialRows().snapshot());
     ThreadContext threadContext = clientRef.threadPool().getThreadContext();
     ActionListener<TransportPPLQueryResponse> ctxListener =
         ContextPreservingActionListener.wrapPreservingContext(listener, threadContext);
@@ -372,25 +375,27 @@ public class TransportPPLQueryAction
         });
   }
 
-  /**
-   * Wire shape of a {@link org.opensearch.sql.job.QueryResult.Running}; must match the async-query
-   * GET RUNNING body.
-   */
+  /** Rendered by the GET formatter, so submit and GET bodies of a running job match. */
   private static String formatRunning(org.opensearch.sql.job.QueryResult.Running running) {
-    return new JSONObject()
-        .put("id", running.id().encode())
-        .put("status", "RUNNING")
-        .put("progress", new JSONObject().put("fraction_done", fractionDone(running)))
-        .put("schema", new JSONArray())
-        .put("datarows", new JSONArray())
-        .put("total", 0)
-        .toString();
-  }
-
-  /** org.json drops the {@code .0} of a whole number; GET (Gson) keeps it. */
-  private static JSONString fractionDone(org.opensearch.sql.job.QueryResult.Running running) {
-    String value = Double.toString(running.progress().fractionDone());
-    return () -> value;
+    ExecutionEngine.Schema schema =
+        running
+            .current()
+            .map(org.opensearch.sql.job.QueryResult.Rows::schema)
+            .orElse(new ExecutionEngine.Schema(List.of()));
+    List<ExprValue> rows =
+        running.current().map(org.opensearch.sql.job.QueryResult.Rows::rows).orElse(List.of());
+    return new AsyncQueryResultResponseFormatter(JsonResponseFormatter.Style.PRETTY)
+        .format(
+            new AsyncQueryResult(
+                "RUNNING",
+                schema,
+                rows,
+                Cursor.None,
+                null,
+                null,
+                running.progress(),
+                running.id().encode(),
+                List.of()));
   }
 
   private ResponseListener<AnalyzeResponse> createAnalyzeResponseListener(

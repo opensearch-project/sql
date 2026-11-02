@@ -235,7 +235,8 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
             null,
             null,
             null,
-            status.progress());
+            status.progress(),
+            rows.warnings());
       }
       if (result instanceof QueryResult.Explain explain) {
         return new AsyncQueryExecutionResponse(
@@ -259,9 +260,19 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
           null,
           null,
           details,
-          status.progress());
+          status.progress(),
+          List.of());
     }
+    // RUNNING carries the rows produced so far, if any.
     return new AsyncQueryExecutionResponse(
-        status.state().name(), EMPTY_SCHEMA, List.of(), null, null, null, null, status.progress());
+        status.state().name(),
+        status.current().map(QueryResult.Rows::schema).orElse(EMPTY_SCHEMA),
+        status.current().map(QueryResult.Rows::rows).orElse(List.of()),
+        null,
+        null,
+        null,
+        null,
+        status.progress(),
+        List.of());
   }
 }

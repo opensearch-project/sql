@@ -13,6 +13,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.core.common.Strings;
+import org.opensearch.sql.executor.Warning;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.spark.transport.model.AsyncQueryResult;
@@ -49,14 +50,20 @@ public class AsyncQueryResultResponseFormatter extends JsonResponseFormatter<Asy
     String status = response.getStatus();
     // "SUCCESS" is the legacy Spark job-run state; "SUCCEEDED" is the neutral QueryJobState name
     // emitted by the id-shape routing path (issue #5765).
-    if ("success".equalsIgnoreCase(status) || "succeeded".equalsIgnoreCase(status)) {
+    // A running query job (progress is set only on that path) carries the rows produced so far.
+    boolean runningJob = "RUNNING".equals(status) && response.getProgress() != null;
+    if ("success".equalsIgnoreCase(status) || "succeeded".equalsIgnoreCase(status) || runningJob) {
       json.total(response.size()).size(response.size());
       json.schema(
           response.columnNameTypes().entrySet().stream()
               .map((entry) -> new Column(entry.getKey(), entry.getValue()))
               .collect(Collectors.toList()));
       json.datarows(fetchDataRows(response));
+      if (!response.getWarnings().isEmpty()) {
+        json.warnings(response.getWarnings());
+      }
     }
+    json.id(response.getId());
     json.status(response.getStatus());
     if (response.getProgress() != null) {
       json.progress(Map.of("fraction_done", response.getProgress().fractionDone()));
@@ -89,6 +96,8 @@ public class AsyncQueryResultResponseFormatter extends JsonResponseFormatter<Asy
   @JsonIgnoreProperties(ignoreUnknown = true)
   public static class JsonResponse {
 
+    private final String id;
+
     private final String status;
 
     private final Map<String, Double> progress;
@@ -99,6 +108,9 @@ public class AsyncQueryResultResponseFormatter extends JsonResponseFormatter<Asy
 
     private Integer total;
     private Integer size;
+
+    /** Present only when non-empty, as on the sync response. */
+    private final List<Warning> warnings;
 
     /**
      * Either a human-readable string (Spark path) or a structured map matching the sync REST

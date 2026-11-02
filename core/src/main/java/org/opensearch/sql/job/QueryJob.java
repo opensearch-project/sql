@@ -112,6 +112,7 @@ public final class QueryJob {
   /** Returns an immutable snapshot of the job's current state. */
   public QueryJobStatus status() {
     double sample = sampleRunnerProgress();
+    Optional<QueryResult.Rows> current = sampleCurrentResult();
     synchronized (this) {
       return new QueryJobStatus(
           id,
@@ -121,7 +122,8 @@ public final class QueryJob {
           completedAtMillis,
           failure,
           result,
-          progress(sample));
+          progress(sample),
+          runningOnly(current));
     }
   }
 
@@ -171,9 +173,10 @@ public final class QueryJob {
 
   private QueryResult.Running running() {
     double sample = sampleRunnerProgress();
+    Optional<QueryResult.Rows> current = sampleCurrentResult();
     synchronized (this) {
       double fraction = Math.min(MAX_RUNNING_FRACTION, progress(sample).fractionDone());
-      return new QueryResult.Running(id, new QueryProgress(fraction));
+      return new QueryResult.Running(id, new QueryProgress(fraction), runningOnly(current));
     }
   }
 
@@ -295,6 +298,26 @@ public final class QueryJob {
       runningFraction = Math.max(runningFraction, Math.min(MAX_RUNNING_FRACTION, sample));
     }
     return new QueryProgress(runningFraction);
+  }
+
+  /** Caller holds the monitor. */
+  private Optional<QueryResult.Rows> runningOnly(Optional<QueryResult.Rows> current) {
+    return state == QueryJobState.RUNNING ? current : Optional.empty();
+  }
+
+  /** Called outside the monitor; the runner is foreign code. */
+  private Optional<QueryResult.Rows> sampleCurrentResult() {
+    synchronized (this) {
+      if (state != QueryJobState.RUNNING) {
+        return Optional.empty();
+      }
+    }
+    try {
+      Optional<QueryResult.Rows> current = runner.currentResult();
+      return current == null ? Optional.empty() : current;
+    } catch (RuntimeException e) {
+      return Optional.empty();
+    }
   }
 
   /** Called outside the monitor; the runner is foreign code. */

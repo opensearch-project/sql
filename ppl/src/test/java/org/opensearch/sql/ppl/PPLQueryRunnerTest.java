@@ -14,6 +14,7 @@ import static org.mockito.Mockito.mock;
 
 import java.time.Clock;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -49,7 +50,8 @@ public class PPLQueryRunnerTest {
             s -> {},
             Clock.systemUTC(),
             () -> {},
-            () -> QueryProgress.NONE);
+            () -> QueryProgress.NONE,
+            Optional::empty);
     QueryResult result = runner.run().toCompletableFuture().get();
     assertTrue(result instanceof QueryResult.Rows);
     assertEquals(response.getSchema(), ((QueryResult.Rows) result).schema());
@@ -75,7 +77,8 @@ public class PPLQueryRunnerTest {
             s -> {},
             Clock.systemUTC(),
             () -> {},
-            () -> QueryProgress.NONE);
+            () -> QueryProgress.NONE,
+            Optional::empty);
     ExecutionException e =
         assertThrows(ExecutionException.class, () -> runner.run().toCompletableFuture().get());
     assertEquals("boom", e.getCause().getMessage());
@@ -90,7 +93,8 @@ public class PPLQueryRunnerTest {
             s -> {},
             Clock.systemUTC(),
             () -> {},
-            () -> QueryProgress.NONE);
+            () -> QueryProgress.NONE,
+            Optional::empty);
     assertEquals(QueryProgress.NONE, runner.progress());
   }
 
@@ -104,8 +108,25 @@ public class PPLQueryRunnerTest {
             s -> {},
             Clock.systemUTC(),
             () -> {},
-            () -> progress);
+            () -> progress,
+            Optional::empty);
     assertEquals(progress, runner.progress());
+  }
+
+  @Test
+  public void currentResult_readsSupplier() {
+    Optional<QueryResult.Rows> rows =
+        Optional.of(new QueryResult.Rows(new Schema(List.of()), List.of(), null, null, 0));
+    PPLQueryRunner runner =
+        new PPLQueryRunner(
+            mock(PPLService.class),
+            new PPLQueryRequest("source=logs", null, "/_plugins/_ppl", "jdbc"),
+            s -> {},
+            Clock.systemUTC(),
+            () -> {},
+            () -> QueryProgress.NONE,
+            () -> rows);
+    assertEquals(rows, runner.currentResult());
   }
 
   @Test
@@ -117,7 +138,8 @@ public class PPLQueryRunnerTest {
             s -> {},
             Clock.systemUTC(),
             () -> {},
-            () -> QueryProgress.NONE);
+            () -> QueryProgress.NONE,
+            Optional::empty);
     runner.run();
     assertThrows(IllegalStateException.class, runner::run);
   }
@@ -132,7 +154,8 @@ public class PPLQueryRunnerTest {
             s -> {},
             Clock.systemUTC(),
             stops::incrementAndGet,
-            () -> QueryProgress.NONE);
+            () -> QueryProgress.NONE,
+            Optional::empty);
     var future = runner.run().toCompletableFuture();
 
     runner.cancel();
@@ -161,7 +184,8 @@ public class PPLQueryRunnerTest {
             s -> {},
             Clock.systemUTC(),
             stops::incrementAndGet,
-            () -> QueryProgress.NONE);
+            () -> QueryProgress.NONE,
+            Optional::empty);
     QueryResult result = runner.run().toCompletableFuture().join();
 
     runner.cancel();

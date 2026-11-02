@@ -10,10 +10,14 @@ import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
 
-/** Progress of one query: the mean of its index scans, each added at code generation. */
+/**
+ * Progress of one async query, the mean of its index scans (each added at code generation), and the
+ * rows it has produced so far.
+ */
 public final class QueryProgressTracker {
 
   private final List<SourceProgress> sources = new CopyOnWriteArrayList<>();
+  private final PartialRows partialRows = new PartialRows();
 
   public static Optional<QueryProgressTracker> current() {
     return OpenSearchQueryManager.getCancellableTask() instanceof ProgressTrackingTask task
@@ -25,6 +29,10 @@ public final class QueryProgressTracker {
     SourceProgress source = new SourceProgress();
     sources.add(source);
     return source;
+  }
+
+  public PartialRows partialRows() {
+    return partialRows;
   }
 
   public double fractionDone() {
