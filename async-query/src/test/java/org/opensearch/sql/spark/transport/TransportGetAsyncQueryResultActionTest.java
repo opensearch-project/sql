@@ -20,6 +20,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
+import java.util.List;
 import java.util.HashSet;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -144,6 +145,33 @@ public class TransportGetAsyncQueryResultActionTest {
             + "  \"size\": 2\n"
             + "}",
         getAsyncQueryResultActionResponse.getResult());
+  }
+
+  @Test
+  public void testDoExecuteWithQueryJobResponseUsesPplTypes() {
+    GetAsyncQueryResultActionRequest request = new GetAsyncQueryResultActionRequest("jobId");
+    ExecutionEngine.Schema schema =
+        new ExecutionEngine.Schema(
+            ImmutableList.of(new ExecutionEngine.Schema.Column("age", "age", INTEGER)));
+    when(jobExecutorService.getAsyncQueryResults(eq("jobId"), any()))
+        .thenReturn(
+            new AsyncQueryExecutionResponse(
+                "SUCCEEDED",
+                schema,
+                List.of(tupleValue(ImmutableMap.of("age", 20))),
+                null,
+                null,
+                null,
+                null,
+                org.opensearch.sql.job.QueryProgress.DONE,
+                List.of()));
+
+    action.doExecute(task, request, actionListener);
+
+    verify(actionListener).onResponse(createJobActionResponseArgumentCaptor.capture());
+    String body = createJobActionResponseArgumentCaptor.getValue().getResult();
+    Assertions.assertTrue(body.contains("\"type\": \"int\""), body);
+    Assertions.assertTrue(body.contains("\"fraction_done\": 1.0"), body);
   }
 
   @Test

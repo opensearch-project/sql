@@ -64,6 +64,9 @@ public class AsyncPPLPartialRowsIT extends PPLIntegTestCase {
       JSONObject terminal = run(query, running);
 
       assertMatchesSync(query, terminal, running);
+      Assert.assertTrue(
+          "100 composite pages must return rows before the last one: " + sizes(running),
+          running.stream().anyMatch(r -> rows(r).length() > 0));
     } finally {
       updateClusterSettings(
           new SQLIntegTestCase.ClusterSetting("persistent", "plugins.query.buckets", null));
@@ -71,12 +74,23 @@ public class AsyncPPLPartialRowsIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void blockingPlanMatchesSync() throws Exception {
-    String query = "source=" + INDEX + " | sort - n | fields n";
+  public void blockingPlanReturnsRowsOnlyAfterReadingAllInput() throws Exception {
+    // eventstats needs every row before it can emit any.
+    String query = "source=" + INDEX + " | eventstats max(n) as mx | fields n, mx";
     List<JSONObject> running = new ArrayList<>();
     JSONObject terminal = run(query, running);
 
     assertMatchesSync(query, terminal, running);
+    // Rows may stream out once eventstats has read its whole input, never before.
+    for (JSONObject response : running) {
+      if (rows(response).length() > 0) {
+        Assert.assertEquals(
+            "rows before the scan finished: " + response.getJSONObject("progress"),
+            0.95D,
+            response.getJSONObject("progress").getDouble("fraction_done"),
+            0D);
+      }
+    }
   }
 
   @Test

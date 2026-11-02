@@ -58,11 +58,10 @@ public class AsyncQueryResultResponseFormatterTest {
   @Test
   void formatRunningJobEmitsProgress() {
     AsyncQueryResult response =
-        new AsyncQueryResult(
+        AsyncQueryResult.forQueryJob(
             "RUNNING",
             schema,
             java.util.List.of(),
-            null,
             null,
             null,
             new org.opensearch.sql.job.QueryProgress(0.25D),
@@ -79,11 +78,10 @@ public class AsyncQueryResultResponseFormatterTest {
   @Test
   void formatRunningJobEmitsIdAndRowsSoFar() {
     AsyncQueryResult response =
-        new AsyncQueryResult(
+        AsyncQueryResult.forQueryJob(
             "RUNNING",
             schema,
             Arrays.asList(tupleValue(ImmutableMap.of("firstname", "John", "age", 20))),
-            null,
             null,
             null,
             new org.opensearch.sql.job.QueryProgress(0.5D),
@@ -95,6 +93,24 @@ public class AsyncQueryResultResponseFormatterTest {
             + "\"schema\":[{\"name\":\"firstname\",\"type\":\"string\"},"
             + "{\"name\":\"age\",\"type\":\"int\"}],\"datarows\":[[\"John\",20]],"
             + "\"total\":1,\"size\":1,\"warnings\":[{\"type\":\"PARTIAL_RESULT\",\"message\":\"w\"}]}",
+        formatter.format(response));
+  }
+
+  @Test
+  void formatFailedQueryJobOmitsRows() {
+    AsyncQueryResult response =
+        AsyncQueryResult.forQueryJob(
+            "FAILED",
+            schema,
+            java.util.List.of(),
+            "boom",
+            null,
+            new org.opensearch.sql.job.QueryProgress(0.5D),
+            null,
+            java.util.List.of());
+    AsyncQueryResultResponseFormatter formatter = new AsyncQueryResultResponseFormatter(COMPACT);
+    assertEquals(
+        "{\"status\":\"FAILED\",\"progress\":{\"fraction_done\":0.5},\"error\":\"boom\"}",
         formatter.format(response));
   }
 

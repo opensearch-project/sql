@@ -41,7 +41,6 @@ import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
 import org.opensearch.sql.executor.AnalyzeResponse;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryType;
-import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.job.OpenSearchQueryJobService;
 import org.opensearch.sql.job.OpenSearchSecurityAdapter;
 import org.opensearch.sql.job.QueryJob;
@@ -386,11 +385,10 @@ public class TransportPPLQueryAction
         running.current().map(org.opensearch.sql.job.QueryResult.Rows::rows).orElse(List.of());
     return new AsyncQueryResultResponseFormatter(JsonResponseFormatter.Style.PRETTY)
         .format(
-            new AsyncQueryResult(
+            AsyncQueryResult.forQueryJob(
                 "RUNNING",
                 schema,
                 rows,
-                Cursor.None,
                 null,
                 null,
                 running.progress(),

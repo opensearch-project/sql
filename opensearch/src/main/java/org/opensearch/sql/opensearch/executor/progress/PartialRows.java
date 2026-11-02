@@ -21,37 +21,47 @@ import org.opensearch.sql.job.QueryResult;
 public final class PartialRows {
 
   private final List<ExprValue> rows = new ArrayList<>();
-  private Function<List<ExprValue>, Schema> schema;
+  private Function<List<ExprValue>, Schema> schemaOf;
+  private Schema schema;
+  private QueryResult.Rows last;
 
-  /** Starts collecting; {@code schema} builds the schema for a list of rows. */
-  public synchronized void open(Function<List<ExprValue>, Schema> schema) {
-    this.schema = schema;
-    rows.clear();
+  /** Starts collecting; {@code schemaOf} builds the schema from the rows so far. */
+  public synchronized void open(Function<List<ExprValue>, Schema> schemaOf) {
+    this.schemaOf = schemaOf;
+    reset();
   }
 
   public synchronized void add(ExprValue row) {
-    if (schema != null) {
+    if (schemaOf != null) {
       rows.add(row);
     }
   }
 
   /** Drops the rows, e.g. when execution fails or falls back to another engine. */
   public synchronized void discard() {
-    schema = null;
-    rows.clear();
+    schemaOf = null;
+    reset();
   }
 
-  /** Empty until the first row. */
-  public Optional<QueryResult.Rows> snapshot() {
-    Function<List<ExprValue>, Schema> schemaOf;
-    List<ExprValue> copy;
-    synchronized (this) {
-      if (schema == null || rows.isEmpty()) {
-        return Optional.empty();
-      }
-      schemaOf = schema;
-      copy = List.copyOf(rows);
+  /** Empty until the first row; reused while no row is added. */
+  public synchronized Optional<QueryResult.Rows> snapshot() {
+    if (schemaOf == null || rows.isEmpty()) {
+      return Optional.empty();
     }
-    return Optional.of(new QueryResult.Rows(schemaOf.apply(copy), copy, Cursor.None, List.of(), 0));
+    if (last == null || last.rows().size() != rows.size()) {
+      List<ExprValue> copy = List.copyOf(rows);
+      if (schema == null) {
+        // Fixed once there is a row: only the first row decides runtime-typed columns.
+        schema = schemaOf.apply(copy);
+      }
+      last = new QueryResult.Rows(schema, copy, Cursor.None, List.of(), 0);
+    }
+    return Optional.of(last);
+  }
+
+  private void reset() {
+    rows.clear();
+    schema = null;
+    last = null;
   }
 }

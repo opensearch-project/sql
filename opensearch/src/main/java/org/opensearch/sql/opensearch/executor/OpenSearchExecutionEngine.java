@@ -341,6 +341,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
             }
             listener.onResponse(response);
           } catch (SQLException e) {
+            discardPartialRows();
             if (isPitContextLimitReached(e)) {
               // reason (title) comes from the wrapped cause's message; keep it short and put the
               // explanation and remedy in details.
@@ -356,8 +357,16 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
                   .build();
             }
             throw new RuntimeException(e);
+          } catch (RuntimeException | Error e) {
+            discardPartialRows();
+            throw e;
           }
         });
+  }
+
+  /** The rows may never become the result: the query fails or falls back to another engine. */
+  private static void discardPartialRows() {
+    QueryProgressTracker.current().ifPresent(tracker -> tracker.partialRows().discard());
   }
 
   /**
@@ -453,30 +462,22 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       partialRows.open(rows -> new Schema(buildColumns(columnNames, fieldTypes, rows)));
     }
     List<ExprValue> values = new ArrayList<>();
-    try {
-      // Iterate through the ResultSet
-      while (resultSet.next() && (querySizeLimit == null || values.size() < querySizeLimit)) {
-        Map<String, ExprValue> row = new LinkedHashMap<String, ExprValue>();
-        // Loop through each column
-        for (int i = 1; i <= columnCount; i++) {
-          String columnName = columnNames.get(i - 1);
-          Object value = resultSet.getObject(columnName);
-          Object converted = processValue(value, fieldTypes.get(i - 1));
-          ExprValue exprValue = ExprValueUtils.fromObjectValue(converted);
-          row.put(columnName, exprValue);
-        }
-        ExprValue tuple = ExprTupleValue.fromExprValueMap(row);
-        values.add(tuple);
-        if (partialRows != null) {
-          partialRows.add(tuple);
-        }
+    // Iterate through the ResultSet
+    while (resultSet.next() && (querySizeLimit == null || values.size() < querySizeLimit)) {
+      Map<String, ExprValue> row = new LinkedHashMap<String, ExprValue>();
+      // Loop through each column
+      for (int i = 1; i <= columnCount; i++) {
+        String columnName = columnNames.get(i - 1);
+        Object value = resultSet.getObject(columnName);
+        Object converted = processValue(value, fieldTypes.get(i - 1));
+        ExprValue exprValue = ExprValueUtils.fromObjectValue(converted);
+        row.put(columnName, exprValue);
       }
-    } catch (SQLException | RuntimeException | Error e) {
-      // The rows may never become the result: the query fails or falls back to another engine.
+      ExprValue tuple = ExprTupleValue.fromExprValueMap(row);
+      values.add(tuple);
       if (partialRows != null) {
-        partialRows.discard();
+        partialRows.add(tuple);
       }
-      throw e;
     }
 
     List<Column> columns = buildColumns(columnNames, fieldTypes, values);

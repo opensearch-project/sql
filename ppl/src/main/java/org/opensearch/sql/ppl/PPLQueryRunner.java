@@ -40,8 +40,8 @@ public final class PPLQueryRunner implements QueryRunner {
   private final Consumer<String> anonymizedQuerySink;
   private final Clock clock;
   private final Runnable cancelExecution;
-  private final Supplier<QueryProgress> progress;
-  private final Supplier<Optional<QueryResult.Rows>> currentResult;
+  private volatile Supplier<QueryProgress> progress;
+  private volatile Supplier<Optional<QueryResult.Rows>> currentResult;
   private final AtomicBoolean started = new AtomicBoolean();
   private final CompletableFuture<QueryResult> future = new CompletableFuture<>();
 
@@ -118,6 +118,13 @@ public final class PPLQueryRunner implements QueryRunner {
   @Override
   public Optional<QueryResult.Rows> currentResult() {
     return currentResult.get();
+  }
+
+  /** Drops the suppliers, and with them the engine's progress and buffered rows. */
+  @Override
+  public void close() {
+    progress = () -> QueryProgress.NONE;
+    currentResult = Optional::empty;
   }
 
   @Override

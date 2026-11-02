@@ -220,8 +220,8 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
    * Maps a neutral {@link QueryJobStatus} onto the response shape the async-query transport actions
    * already know how to format. Terminal SUCCEEDED carries schema and rows for the {@link
    * QueryResult.Rows} variant, or the explain response in {@code explain} for the {@link
-   * QueryResult.Explain} variant. FAILED carries a sanitized error; RUNNING / PENDING / CANCELLED
-   * carry no rows.
+   * QueryResult.Explain} variant. FAILED carries a sanitized error, RUNNING the rows produced so
+   * far, and PENDING / CANCELLED no rows.
    */
   private static AsyncQueryExecutionResponse toAsyncResponse(QueryJobStatus status) {
     if (status.state() == QueryJobState.SUCCEEDED && status.result().isPresent()) {

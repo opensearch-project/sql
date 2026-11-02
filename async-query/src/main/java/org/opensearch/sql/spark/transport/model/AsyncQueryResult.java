@@ -14,7 +14,6 @@ import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.Warning;
 import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.job.QueryProgress;
-import org.opensearch.sql.lang.LangSpec;
 import org.opensearch.sql.lang.PPLLangSpec;
 import org.opensearch.sql.protocol.response.QueryResult;
 
@@ -39,6 +38,8 @@ public class AsyncQueryResult extends QueryResult {
   /** Polling id, set only on the submit response of a running query job. */
   @Getter private final String id;
 
+  @Getter private final boolean queryJob;
+
   public AsyncQueryResult(
       String status,
       ExecutionEngine.Schema schema,
@@ -61,30 +62,39 @@ public class AsyncQueryResult extends QueryResult {
     this.errorDetails = errorDetails;
     this.progress = null;
     this.id = null;
+    this.queryJob = false;
   }
 
-  public AsyncQueryResult(
+  /** A query-job response; only PPL submits query jobs, so it renders as the sync PPL response. */
+  public static AsyncQueryResult forQueryJob(
       String status,
       ExecutionEngine.Schema schema,
       Collection<ExprValue> exprValues,
-      Cursor cursor,
       String error,
       Map<String, Object> errorDetails,
       QueryProgress progress,
       String id,
       List<Warning> warnings) {
-    // A query job (progress is set only on that path) is PPL; render it as the sync PPL response.
-    super(
-        schema,
-        exprValues,
-        cursor,
-        progress == null ? LangSpec.SQL_SPEC : PPLLangSpec.PPL_SPEC,
-        progress == null ? List.of() : warnings);
+    return new AsyncQueryResult(
+        status, schema, exprValues, error, errorDetails, progress, id, warnings);
+  }
+
+  private AsyncQueryResult(
+      String status,
+      ExecutionEngine.Schema schema,
+      Collection<ExprValue> exprValues,
+      String error,
+      Map<String, Object> errorDetails,
+      QueryProgress progress,
+      String id,
+      List<Warning> warnings) {
+    super(schema, exprValues, Cursor.None, PPLLangSpec.PPL_SPEC, warnings);
     this.status = status;
     this.error = error;
     this.errorDetails = errorDetails;
     this.progress = progress;
     this.id = id;
+    this.queryJob = true;
   }
 
   public AsyncQueryResult(
@@ -107,5 +117,6 @@ public class AsyncQueryResult extends QueryResult {
     this.errorDetails = errorDetails;
     this.progress = null;
     this.id = null;
+    this.queryJob = false;
   }
 }

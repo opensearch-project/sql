@@ -207,6 +207,7 @@ public final class QueryJob {
       safeCancelRunner();
     }
     completion.cancel(false);
+    safeCloseRunner();
   }
 
   /**
@@ -266,6 +267,7 @@ public final class QueryJob {
       result = Optional.of(value);
     }
     completion.complete(value);
+    safeCloseRunner();
   }
 
   /**
@@ -287,6 +289,7 @@ public final class QueryJob {
       failure = Optional.of(QueryFailure.of(throwable, failureRenderer));
     }
     completion.completeExceptionally(throwable);
+    safeCloseRunner();
   }
 
   /** Never decreases, and stays below 1.0 until SUCCEEDED. Caller holds the monitor. */
@@ -345,6 +348,15 @@ public final class QueryJob {
       runner.cancel();
     } catch (RuntimeException ignored) {
       // Cancellation is best-effort; a misbehaving runner must not block the state machine.
+    }
+  }
+
+  /** The job no longer samples the runner once terminal, so it can release what it holds. */
+  private void safeCloseRunner() {
+    try {
+      runner.close();
+    } catch (RuntimeException ignored) {
+      // Best-effort, like cancellation.
     }
   }
 

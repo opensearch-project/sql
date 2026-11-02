@@ -36,4 +36,10 @@ public interface QueryRunner {
   default Optional<QueryResult.Rows> currentResult() {
     return Optional.empty();
   }
+
+  /**
+   * Releases what the runner holds for {@link #progress()} and {@link #currentResult()}. Called
+   * once the job is terminal, while its result may still be retained; must be idempotent.
+   */
+  default void close() {}
 }

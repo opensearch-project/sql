@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -192,6 +193,7 @@ class AsyncQueryExecutorServiceRoutingTest {
     assertEquals("RUNNING", response.getStatus());
     assertSame(schema, response.getSchema());
     assertEquals(current.rows(), response.getResults());
+    assertTrue(response.isQueryJob());
   }
 
   @Test

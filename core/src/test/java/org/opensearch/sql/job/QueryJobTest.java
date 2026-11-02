@@ -433,6 +433,29 @@ class QueryJobTest {
     assertEquals(runner.current, assertInstanceOf(QueryResult.Running.class, result).current());
   }
 
+  @Test
+  void close_isCalledOnceOnEachTerminalTransition() {
+    RecordingRunner succeeded = new RecordingRunner();
+    QueryJob job = newJob(succeeded, 280L);
+    assertEquals(0, succeeded.closes.get());
+    job.startRunner();
+    succeeded.complete(RESULT);
+    job.cancel();
+    assertEquals(1, succeeded.closes.get());
+
+    RecordingRunner failed = new RecordingRunner();
+    QueryJob failing = newJob(failed, 290L);
+    failing.startRunner();
+    failed.fail(new IllegalStateException("boom"));
+    assertEquals(1, failed.closes.get());
+
+    RecordingRunner cancelled = new RecordingRunner();
+    QueryJob cancelling = newJob(cancelled, 300L);
+    cancelling.startRunner();
+    cancelling.cancel();
+    assertEquals(1, cancelled.closes.get());
+  }
+
   private static QueryJob newJob(QueryRunner runner, long submittedMillis) {
     return new QueryJob(
         ID, OWNER, runner, Clock.fixed(Instant.ofEpochMilli(submittedMillis), ZoneOffset.UTC));
@@ -447,6 +470,7 @@ class QueryJobTest {
     private volatile int progressCalls;
     private volatile java.util.Optional<QueryResult.Rows> current = java.util.Optional.empty();
     private volatile RuntimeException currentError;
+    private final AtomicInteger closes = new AtomicInteger();
 
     @Override
     public CompletionStage<QueryResult> run() {
@@ -457,6 +481,11 @@ class QueryJobTest {
     @Override
     public void cancel() {
       cancelled = true;
+    }
+
+    @Override
+    public void close() {
+      closes.incrementAndGet();
     }
 
     @Override

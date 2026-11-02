@@ -44,6 +44,9 @@ public class AsyncQueryExecutionResponse {
   /** Warnings of a successful query job; empty on the Spark path. */
   private final List<Warning> warnings;
 
+  /** Whether this response comes from a query job rather than the Spark path. */
+  private final boolean queryJob;
+
   /** Spark-shaped constructor; keeps callers that never populate structured error details. */
   public AsyncQueryExecutionResponse(
       String status,
@@ -66,9 +69,19 @@ public class AsyncQueryExecutionResponse {
       String sessionId,
       ExecutionEngine.ExplainResponse explain,
       Map<String, Object> errorDetails) {
-    this(status, schema, results, error, sessionId, explain, errorDetails, null, List.of());
+    this.status = status;
+    this.schema = schema;
+    this.results = results;
+    this.error = error;
+    this.sessionId = sessionId;
+    this.explain = explain;
+    this.errorDetails = errorDetails;
+    this.progress = null;
+    this.warnings = List.of();
+    this.queryJob = false;
   }
 
+  /** A query-job response. */
   public AsyncQueryExecutionResponse(
       String status,
       ExecutionEngine.Schema schema,
@@ -88,5 +101,6 @@ public class AsyncQueryExecutionResponse {
     this.errorDetails = errorDetails;
     this.progress = progress;
     this.warnings = warnings;
+    this.queryJob = true;
   }
 }

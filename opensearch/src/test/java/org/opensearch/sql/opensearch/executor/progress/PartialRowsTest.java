@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.executor.progress;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 
@@ -48,6 +49,23 @@ class PartialRowsTest {
     assertEquals(List.of(integerValue(1), integerValue(2)), snapshot.rows());
     assertEquals(SCHEMA, snapshot.schema());
     assertEquals(List.of(2), schemaInputSizes);
+  }
+
+  @Test
+  void schemaIsBuiltOnceAndSnapshotReusedWhileNoRowIsAdded() {
+    PartialRows rows = new PartialRows();
+    List<Integer> schemaCalls = new ArrayList<>();
+    rows.open(
+        values -> {
+          schemaCalls.add(values.size());
+          return SCHEMA;
+        });
+    rows.add(integerValue(1));
+    QueryResult.Rows first = rows.snapshot().orElseThrow();
+    assertSame(first, rows.snapshot().orElseThrow());
+    rows.add(integerValue(2));
+    assertEquals(2, rows.snapshot().orElseThrow().rows().size());
+    assertEquals(List.of(1), schemaCalls);
   }
 
   @Test

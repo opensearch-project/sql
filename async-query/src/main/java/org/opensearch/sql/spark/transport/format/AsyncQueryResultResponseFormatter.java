@@ -50,8 +50,8 @@ public class AsyncQueryResultResponseFormatter extends JsonResponseFormatter<Asy
     String status = response.getStatus();
     // "SUCCESS" is the legacy Spark job-run state; "SUCCEEDED" is the neutral QueryJobState name
     // emitted by the id-shape routing path (issue #5765).
-    // A running query job (progress is set only on that path) carries the rows produced so far.
-    boolean runningJob = "RUNNING".equals(status) && response.getProgress() != null;
+    // A running query job carries the rows produced so far.
+    boolean runningJob = response.isQueryJob() && "RUNNING".equals(status);
     if ("success".equalsIgnoreCase(status) || "succeeded".equalsIgnoreCase(status) || runningJob) {
       json.total(response.size()).size(response.size());
       json.schema(
