@@ -264,15 +264,16 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
           List.of());
     }
     // RUNNING carries the rows produced so far, if any.
+    QueryResult.Rows current = status.current().orElse(QueryResult.Rows.EMPTY);
     return new AsyncQueryExecutionResponse(
         status.state().name(),
-        status.current().map(QueryResult.Rows::schema).orElse(EMPTY_SCHEMA),
-        status.current().map(QueryResult.Rows::rows).orElse(List.of()),
+        current.schema(),
+        current.rows(),
         null,
         null,
         null,
         null,
         status.progress(),
-        status.current().map(QueryResult.Rows::warnings).orElse(List.of()));
+        current.warnings());
   }
 }

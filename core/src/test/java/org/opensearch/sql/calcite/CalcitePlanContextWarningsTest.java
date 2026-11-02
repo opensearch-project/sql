@@ -31,6 +31,8 @@ class CalcitePlanContextWarningsTest {
     CalcitePlanContext.addWarning(WARNING);
     CalcitePlanContext.addWarning(WARNING);
     assertEquals(List.of(WARNING), CalcitePlanContext.peekWarnings());
+    assertEquals(2, CalcitePlanContext.warningCount());
     assertEquals(List.of(WARNING), CalcitePlanContext.drainWarnings());
+    assertEquals(0, CalcitePlanContext.warningCount());
   }
 }

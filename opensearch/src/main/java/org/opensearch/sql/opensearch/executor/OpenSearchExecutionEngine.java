@@ -462,6 +462,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       partialRows.open(rows -> new Schema(buildColumns(columnNames, fieldTypes, rows)));
     }
     List<ExprValue> values = new ArrayList<>();
+    int warningsPublished = 0;
     // Iterate through the ResultSet
     while (resultSet.next() && (querySizeLimit == null || values.size() < querySizeLimit)) {
       Map<String, ExprValue> row = new LinkedHashMap<String, ExprValue>();
@@ -477,7 +478,10 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       values.add(tuple);
       if (partialRows != null) {
         partialRows.add(tuple);
-        partialRows.warnings(CalcitePlanContext.peekWarnings());
+        if (CalcitePlanContext.warningCount() != warningsPublished) {
+          warningsPublished = CalcitePlanContext.warningCount();
+          partialRows.warnings(CalcitePlanContext.peekWarnings());
+        }
       }
     }
 

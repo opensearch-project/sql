@@ -33,6 +33,10 @@ public sealed interface QueryResult
       Schema schema, List<ExprValue> rows, Cursor cursor, List<Warning> warnings, long tookMillis)
       implements QueryResult {
 
+    /** No columns and no rows, e.g. a running job that has produced nothing yet. */
+    public static final Rows EMPTY =
+        new Rows(new Schema(List.of()), List.of(), Cursor.None, List.of(), 0);
+
     public Rows {
       Objects.requireNonNull(schema, "schema must not be null");
       rows = List.copyOf(Objects.requireNonNull(rows, "rows must not be null"));

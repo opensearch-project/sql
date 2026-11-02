@@ -11,7 +11,6 @@ import static org.opensearch.sql.lang.PPLLangSpec.PPL_SPEC;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
 import java.time.Clock;
-import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
@@ -35,7 +34,6 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
-import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
 import org.opensearch.sql.executor.AnalyzeResponse;
@@ -368,12 +366,17 @@ public class TransportPPLQueryAction
               createExplainResponseListener(transformedRequest, ctxListener)
                   .onResponse(explain.response());
             }
-            case org.opensearch.sql.job.QueryResult.Running running ->
-                // A wait timeout completes on the JVM-wide timer thread; format the rows elsewhere.
+            case org.opensearch.sql.job.QueryResult.Running running -> {
+              // A wait timeout completes on the JVM-wide timer thread; format the rows elsewhere.
+              try {
                 clientRef
                     .threadPool()
                     .generic()
                     .execute(() -> respondRunning(running, ctxListener, responseListener));
+              } catch (RuntimeException e) {
+                responseListener.onFailure(e);
+              }
+            }
           }
         });
   }
@@ -394,27 +397,19 @@ public class TransportPPLQueryAction
 
   /** Rendered by the GET formatter, so submit and GET bodies of a running job match. */
   private static String formatRunning(org.opensearch.sql.job.QueryResult.Running running) {
-    ExecutionEngine.Schema schema =
-        running
-            .current()
-            .map(org.opensearch.sql.job.QueryResult.Rows::schema)
-            .orElse(new ExecutionEngine.Schema(List.of()));
-    List<ExprValue> rows =
-        running.current().map(org.opensearch.sql.job.QueryResult.Rows::rows).orElse(List.of());
+    org.opensearch.sql.job.QueryResult.Rows current =
+        running.current().orElse(org.opensearch.sql.job.QueryResult.Rows.EMPTY);
     return new AsyncQueryResultResponseFormatter(JsonResponseFormatter.Style.PRETTY)
         .format(
             AsyncQueryResult.forQueryJob(
                 "RUNNING",
-                schema,
-                rows,
+                current.schema(),
+                current.rows(),
                 null,
                 null,
                 running.progress(),
                 running.id().encode(),
-                running
-                    .current()
-                    .map(org.opensearch.sql.job.QueryResult.Rows::warnings)
-                    .orElse(List.of())));
+                current.warnings()));
   }
 
   private ResponseListener<AnalyzeResponse> createAnalyzeResponseListener(
