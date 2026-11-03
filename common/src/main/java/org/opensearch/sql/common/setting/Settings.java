@@ -27,6 +27,7 @@ public abstract class Settings {
 
     /** PPL Settings. */
     PPL_ENABLED("plugins.ppl.enabled"),
+    PPL_REGEX_MATCH_LIMIT("plugins.ppl.regex.match.limit"),
 
     /** Query Settings. */
     FIELD_TYPE_TOLERANCE("plugins.query.field_type_tolerance"),

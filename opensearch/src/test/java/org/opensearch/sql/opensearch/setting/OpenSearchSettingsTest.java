@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.AdditionalMatchers.not;
 import static org.mockito.AdditionalMatchers.or;
 import static org.mockito.ArgumentMatchers.eq;
@@ -214,5 +215,35 @@ class OpenSearchSettingsTest {
         "",
         ASYNC_QUERY_EXTERNAL_SCHEDULER_INTERVAL_SETTING.get(
             org.opensearch.common.settings.Settings.builder().build()));
+  }
+
+  @Test
+  void pplRegexMatchLimitSettingSeedsAndUpdatesTheGuard() {
+    long original = org.opensearch.sql.expression.parse.RegexCommonUtils.getMatchLimit();
+    try {
+      when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
+      when(clusterSettings.get(not((eq(ClusterName.CLUSTER_NAME_SETTING))))).thenReturn(null);
+      // A value preset at startup is seeded into the RegexCommonUtils guard during construction.
+      when(clusterSettings.get(OpenSearchSettings.PPL_REGEX_MATCH_LIMIT_SETTING)).thenReturn(250L);
+
+      OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
+
+      // Registered in the plugin settings list and exposed under its key.
+      assertTrue(
+          OpenSearchSettings.pluginSettings()
+              .contains(OpenSearchSettings.PPL_REGEX_MATCH_LIMIT_SETTING));
+      Long seeded = settings.getSettingValue(Settings.Key.PPL_REGEX_MATCH_LIMIT);
+      assertEquals(250L, seeded.longValue());
+      // Seed pushed into the static guard used by parse.
+      assertEquals(250L, org.opensearch.sql.expression.parse.RegexCommonUtils.getMatchLimit());
+
+      // A dynamic update keeps latestSettings and the guard in sync.
+      settings.new RegexMatchLimitUpdater(Settings.Key.PPL_REGEX_MATCH_LIMIT).accept(777L);
+      Long updated = settings.getSettingValue(Settings.Key.PPL_REGEX_MATCH_LIMIT);
+      assertEquals(777L, updated.longValue());
+      assertEquals(777L, org.opensearch.sql.expression.parse.RegexCommonUtils.getMatchLimit());
+    } finally {
+      org.opensearch.sql.expression.parse.RegexCommonUtils.setMatchLimit(original);
+    }
   }
 }

@@ -31,6 +31,7 @@ import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.IndexSettings;
 import org.opensearch.sql.common.setting.LegacySettings;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.expression.parse.RegexCommonUtils;
 
 /** Setting implementation on OpenSearch. */
 @Log4j2
@@ -82,6 +83,14 @@ public class OpenSearchSettings extends Settings {
       Setting.boolSetting(
           Key.PPL_ENABLED.getKeyValue(),
           LegacyOpenDistroSettings.PPL_ENABLED_SETTING,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<Long> PPL_REGEX_MATCH_LIMIT_SETTING =
+      Setting.longSetting(
+          Key.PPL_REGEX_MATCH_LIMIT.getKeyValue(),
+          RegexCommonUtils.DEFAULT_MATCH_LIMIT,
+          1L,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
@@ -276,6 +285,18 @@ public class OpenSearchSettings extends Settings {
         Key.PPL_ENABLED,
         PPL_ENABLED_SETTING,
         new Updater(Key.PPL_ENABLED));
+    // Keep the RegexCommonUtils guard (in the engine-agnostic core module) in sync with the
+    // cluster setting, and seed it with any value preset at startup.
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.PPL_REGEX_MATCH_LIMIT,
+        PPL_REGEX_MATCH_LIMIT_SETTING,
+        new RegexMatchLimitUpdater(Key.PPL_REGEX_MATCH_LIMIT));
+    Object regexMatchLimit = clusterSettings.get(PPL_REGEX_MATCH_LIMIT_SETTING);
+    if (regexMatchLimit != null) {
+      RegexCommonUtils.setMatchLimit(((Number) regexMatchLimit).longValue());
+    }
     register(
         settingBuilder,
         clusterSettings,
@@ -441,6 +462,25 @@ public class OpenSearchSettings extends Settings {
     }
   }
 
+  /**
+   * Update consumer for {@code plugins.ppl.regex.match.limit}. Extends {@link Updater} to keep
+   * {@code latestSettings} current, then pushes the new value into the engine-agnostic {@link
+   * RegexCommonUtils} guard used by the parse command. A named inner class (not a lambda) so it is
+   * unit-test coverable, matching the pattern of {@link Updater}.
+   */
+  @VisibleForTesting
+  class RegexMatchLimitUpdater extends Updater {
+    RegexMatchLimitUpdater(Settings.Key key) {
+      super(key);
+    }
+
+    @Override
+    public void accept(Object newValue) {
+      super.accept(newValue);
+      RegexCommonUtils.setMatchLimit(((Number) newValue).longValue());
+    }
+  }
+
   /** Used by Plugin to init Setting. */
   public static List<Setting<?>> pluginSettings() {
     return new ImmutableList.Builder<Setting<?>>()
@@ -450,6 +490,7 @@ public class OpenSearchSettings extends Settings {
         .add(SQL_DELETE_ENABLED_SETTING)
         .add(SQL_PAGINATION_API_SEARCH_AFTER_SETTING)
         .add(PPL_ENABLED_SETTING)
+        .add(PPL_REGEX_MATCH_LIMIT_SETTING)
         .add(QUERY_MEMORY_LIMIT_SETTING)
         .add(QUERY_SIZE_LIMIT_SETTING)
         .add(METRICS_ROLLING_WINDOW_SETTING)
