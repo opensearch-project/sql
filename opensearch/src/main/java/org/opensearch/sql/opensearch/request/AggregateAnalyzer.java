@@ -150,6 +150,12 @@ public class AggregateAnalyzer {
     final boolean bucketNullable;
     final int queryBucketSize;
 
+    /**
+     * Whether a filtered aggregation may carry a script query. OpenSearch refuses one while {@code
+     * search.allow_expensive_queries} is false, so the aggregation is left for the coordinator.
+     */
+    final boolean scriptPushdownAllowed;
+
     <T extends ValuesSourceAggregationBuilder<T>> T build(RexNode node, T aggBuilder) {
       return build(node, aggBuilder::field, aggBuilder::script);
     }

@@ -9,6 +9,7 @@ import static java.util.Objects.requireNonNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.spy;
 
@@ -785,6 +786,70 @@ public class PredicateAnalyzerTest {
     Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(0L));
     QueryBuilder builder = PredicateAnalyzer.analyze(call, schema, fieldTypes, rowType, cluster);
     assert (builder.toString().contains("\"lang\" : \"opensearch_compounded_script\""));
+  }
+
+  /** The row type of {@link #schema}, as the script push-down cases above build it. */
+  private RelDataType scriptRowType() {
+    return builder
+        .getTypeFactory()
+        .builder()
+        .kind(StructKind.FULLY_QUALIFIED)
+        .add("a", builder.getTypeFactory().createSqlType(SqlTypeName.BIGINT))
+        .add("b", builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR))
+        .add("c", builder.getTypeFactory().createSqlType(SqlTypeName.VARCHAR))
+        .build();
+  }
+
+  /** {@code c = 'Hi'} -- text with no keyword sub-field, so only a script can answer it. */
+  private RexNode scriptOnlyPredicate() {
+    return builder.makeCall(
+        SqlStdOperatorTable.EQUALS,
+        builder.makeInputRef(typeFactory.createSqlType(SqlTypeName.VARCHAR), 2),
+        stringLiteral);
+  }
+
+  @Test
+  void equals_scriptPushDown_refusedWhenScriptPushdownIsNotAllowed() {
+    Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(0L));
+    assertThrows(
+        ExpressionNotAnalyzableException.class,
+        () ->
+            PredicateAnalyzer.analyzeExpression(
+                scriptOnlyPredicate(), schema, fieldTypes, scriptRowType(), cluster, false));
+  }
+
+  /**
+   * Refusing the script leaves only that conjunct above the scan: what the index can answer is
+   * still pushed down, so the predicate does not become a full scan.
+   */
+  @Test
+  void and_scriptPushdownNotAllowed_pushesDownTheRest() throws ExpressionNotAnalyzableException {
+    RexNode call =
+        builder.makeCall(
+            SqlStdOperatorTable.AND,
+            builder.makeCall(SqlStdOperatorTable.EQUALS, field1, numericLiteral),
+            scriptOnlyPredicate());
+    Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(0L));
+
+    QueryExpression expression =
+        PredicateAnalyzer.analyzeExpression(
+            call, schema, fieldTypes, scriptRowType(), cluster, false);
+
+    assertTrue(expression.isPartial());
+    assertEquals(0, expression.getScriptCount());
+    String query = expression.builder().toString();
+    assertTrue(query.contains("\"a\""), query);
+    assertFalse(query.contains("opensearch_compounded_script"), query);
+  }
+
+  @Test
+  void equals_scriptPushDown_allowedByDefault() throws ExpressionNotAnalyzableException {
+    Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(0L));
+    QueryExpression expression =
+        PredicateAnalyzer.analyzeExpression(
+            scriptOnlyPredicate(), schema, fieldTypes, scriptRowType(), cluster, true);
+    assertTrue(
+        expression.builder().toString().contains("\"lang\" : \"opensearch_compounded_script\""));
   }
 
   @Test

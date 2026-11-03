@@ -279,4 +279,21 @@ class OpenSearchIndexTest {
     assertTrue(index.isFieldTypeTolerance());
     assertFalse(index.isFieldTypeTolerance());
   }
+
+  @Test
+  void isExpensiveQueriesAllowed() {
+    when(settings.getSettingValue(Settings.Key.ALLOW_EXPENSIVE_QUERIES))
+        .thenReturn(true)
+        .thenReturn(false);
+    assertTrue(index.isExpensiveQueriesAllowed());
+    assertFalse(index.isExpensiveQueriesAllowed());
+  }
+
+  /** A settings implementation that does not carry the key leaves the query planned as it was. */
+  @Test
+  void isExpensiveQueriesAllowedWhenTheSettingIsUnknown() {
+    when(settings.getSettingValue(Settings.Key.ALLOW_EXPENSIVE_QUERIES))
+        .thenThrow(new NullPointerException());
+    assertTrue(index.isExpensiveQueriesAllowed());
+  }
 }

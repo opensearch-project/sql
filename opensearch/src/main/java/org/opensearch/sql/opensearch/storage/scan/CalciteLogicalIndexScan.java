@@ -164,7 +164,12 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
       Map<String, ExprType> fieldTypes = this.osIndex.getAllFieldTypes();
       QueryExpression queryExpression =
           PredicateAnalyzer.analyzeExpression(
-              filter.getCondition(), schema, fieldTypes, rowType, getCluster());
+              filter.getCondition(),
+              schema,
+              fieldTypes,
+              rowType,
+              getCluster(),
+              osIndex.isExpensiveQueriesAllowed());
       // TODO: handle the case where condition contains a score function
       CalciteLogicalIndexScan newScan = this.copy();
       newScan.pushDownContext.add(
@@ -403,7 +408,12 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
       boolean bucketNullable = !PPLHintUtils.ignoreNullBucket(aggregate);
       AggregateAnalyzer.AggregateBuilderHelper helper =
           new AggregateAnalyzer.AggregateBuilderHelper(
-              getRowType(), fieldTypes, getCluster(), bucketNullable, queryBucketSize);
+              getRowType(),
+              fieldTypes,
+              getCluster(),
+              bucketNullable,
+              queryBucketSize,
+              osIndex.isExpensiveQueriesAllowed());
       final Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> builderAndParser =
           AggregateAnalyzer.analyze(aggregate, project, outputFields, helper);
       Map<String, OpenSearchDataType> extendedTypeMapping =

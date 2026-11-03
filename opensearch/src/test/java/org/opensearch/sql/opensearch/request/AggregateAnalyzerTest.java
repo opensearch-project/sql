@@ -154,7 +154,8 @@ class AggregateAnalyzerTest {
             List.of(countCall, avgCall, sumCall, minCall, maxCall), ImmutableBitSet.of());
     Project project = createMockProject(List.of(0));
     AggregateAnalyzer.AggregateBuilderHelper helper =
-        new AggregateAnalyzer.AggregateBuilderHelper(rowType, fieldTypes, null, true, BUCKET_SIZE);
+        new AggregateAnalyzer.AggregateBuilderHelper(
+            rowType, fieldTypes, null, true, BUCKET_SIZE, true);
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
         AggregateAnalyzer.analyze(aggregate, project, outputFields, helper);
     assertEquals(
@@ -195,7 +196,8 @@ class AggregateAnalyzerTest {
     Aggregate aggregate = createMockAggregate(List.of(checkedLongSumCall), ImmutableBitSet.of());
     Project project = createMockProject(List.of(0));
     AggregateAnalyzer.AggregateBuilderHelper helper =
-        new AggregateAnalyzer.AggregateBuilderHelper(rowType, fieldTypes, null, true, BUCKET_SIZE);
+        new AggregateAnalyzer.AggregateBuilderHelper(
+            rowType, fieldTypes, null, true, BUCKET_SIZE, true);
 
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
         AggregateAnalyzer.analyze(aggregate, project, List.of("checked_sum"), helper);
@@ -295,7 +297,8 @@ class AggregateAnalyzerTest {
             List.of(varSampCall, varPopCall, stddevSampCall, stddevPopCall), ImmutableBitSet.of());
     Project project = createMockProject(List.of(0));
     AggregateAnalyzer.AggregateBuilderHelper helper =
-        new AggregateAnalyzer.AggregateBuilderHelper(rowType, fieldTypes, null, true, BUCKET_SIZE);
+        new AggregateAnalyzer.AggregateBuilderHelper(
+            rowType, fieldTypes, null, true, BUCKET_SIZE, true);
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
         AggregateAnalyzer.analyze(aggregate, project, outputFields, helper);
     assertEquals(
@@ -336,7 +339,8 @@ class AggregateAnalyzerTest {
     Aggregate aggregate = createMockAggregate(List.of(aggCall), ImmutableBitSet.of(0, 1));
     Project project = createMockProject(List.of(0, 1));
     AggregateAnalyzer.AggregateBuilderHelper helper =
-        new AggregateAnalyzer.AggregateBuilderHelper(rowType, fieldTypes, null, true, BUCKET_SIZE);
+        new AggregateAnalyzer.AggregateBuilderHelper(
+            rowType, fieldTypes, null, true, BUCKET_SIZE, true);
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
         AggregateAnalyzer.analyze(aggregate, project, outputFields, helper);
 
@@ -399,7 +403,7 @@ class AggregateAnalyzerTest {
 
     AggregateAnalyzer.AggregateBuilderHelper helper =
         new AggregateAnalyzer.AggregateBuilderHelper(
-            rowType, fieldTypes, aggregate.getCluster(), true, BUCKET_SIZE);
+            rowType, fieldTypes, aggregate.getCluster(), true, BUCKET_SIZE, true);
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
         AggregateAnalyzer.analyze(aggregate, null, List.of("cnt"), helper);
 
@@ -455,7 +459,7 @@ class AggregateAnalyzerTest {
 
     AggregateAnalyzer.AggregateBuilderHelper helper =
         new AggregateAnalyzer.AggregateBuilderHelper(
-            rowType, fieldTypes, aggregate.getCluster(), true, BUCKET_SIZE);
+            rowType, fieldTypes, aggregate.getCluster(), true, BUCKET_SIZE, true);
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
         AggregateAnalyzer.analyze(aggregate, project, List.of("c", "cnt"), helper);
 
@@ -824,7 +828,7 @@ class AggregateAnalyzerTest {
       }
       AggregateAnalyzer.AggregateBuilderHelper helper =
           new AggregateAnalyzer.AggregateBuilderHelper(
-              rowType, fieldTypes, agg.getCluster(), true, BUCKET_SIZE);
+              rowType, fieldTypes, agg.getCluster(), true, BUCKET_SIZE, true);
       Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
           AggregateAnalyzer.analyze(agg, project, outputFields, helper);
 

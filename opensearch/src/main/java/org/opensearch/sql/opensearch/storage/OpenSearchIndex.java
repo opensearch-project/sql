@@ -212,6 +212,19 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
     }
   }
 
+  /**
+   * Whether the cluster still accepts the query types OpenSearch classifies as expensive. A {@code
+   * script} query is one of them, so a predicate planned as a script pushdown is rejected on the
+   * shard when this is off.
+   */
+  public boolean isExpensiveQueriesAllowed() {
+    try {
+      return settings.getSettingValue(Settings.Key.ALLOW_EXPENSIVE_QUERIES);
+    } catch (Exception e) {
+      return true;
+    }
+  }
+
   /** TODO: Push down operations to index scan operator as much as possible in future. */
   @Override
   public PhysicalPlan implement(LogicalPlan plan) {

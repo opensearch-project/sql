@@ -57,7 +57,8 @@ public class AggregateFilterAnalyzer {
         helper.rowType.getFieldNames(),
         helper.fieldTypes,
         helper.rowType,
-        helper.cluster);
+        helper.cluster,
+        helper.scriptPushdownAllowed);
   }
 
   private AggregationBuilder buildFilterAggregation(
