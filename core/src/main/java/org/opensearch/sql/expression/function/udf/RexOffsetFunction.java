@@ -20,6 +20,7 @@ import org.apache.calcite.sql.type.SqlReturnTypeInference;
 import org.opensearch.sql.calcite.utils.PPLOperandTypes;
 import org.opensearch.sql.expression.function.ImplementorUDF;
 import org.opensearch.sql.expression.function.UDFOperandMetadata;
+import org.opensearch.sql.expression.parse.RegexCommonUtils;
 
 /** Custom REX_OFFSET function for calculating regex match positions. */
 public final class RexOffsetFunction extends ImplementorUDF {
@@ -56,8 +57,9 @@ public final class RexOffsetFunction extends ImplementorUDF {
     }
 
     try {
-      Pattern pattern = Pattern.compile(patternStr);
-      Matcher matcher = pattern.matcher(text);
+      // Bound backtracking work against user text.
+      Pattern pattern = RegexCommonUtils.getCompiledPattern(patternStr);
+      Matcher matcher = RegexCommonUtils.boundedMatcher(pattern, text);
 
       if (!matcher.find()) {
         return null;
@@ -65,6 +67,7 @@ public final class RexOffsetFunction extends ImplementorUDF {
 
       List<String> offsetPairs = new java.util.ArrayList<>();
 
+      // Fixed internal pattern over the pattern string (enumerates named groups); not user input.
       Pattern namedGroupPattern = Pattern.compile("\\(\\?<([^>]+)>");
       Matcher namedGroupMatcher = namedGroupPattern.matcher(patternStr);
 

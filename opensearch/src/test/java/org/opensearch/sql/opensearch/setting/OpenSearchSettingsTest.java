@@ -184,6 +184,31 @@ class OpenSearchSettingsTest {
   }
 
   @Test
+  void testPplRegexMatchLimitSetting() {
+    long original = org.opensearch.sql.expression.parse.RegexCommonUtils.getMatchLimit();
+    try {
+      when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
+      when(clusterSettings.get(not((eq(ClusterName.CLUSTER_NAME_SETTING))))).thenReturn(null);
+      OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
+
+      // Default value mirrors Splunk rex / PCRE2 match_limit (100000).
+      Long defaultLimit = settings.getSettingValue(Settings.Key.PPL_REGEX_MATCH_LIMIT);
+      assertEquals(100000L, defaultLimit);
+
+      // A dynamic update propagates to the RegexCommonUtils static guard used by parse/rex.
+      OpenSearchSettings.Updater updater = settings.new Updater(Settings.Key.PPL_REGEX_MATCH_LIMIT);
+      updater.accept(250L);
+      // The registered consumer also pushes to RegexCommonUtils; simulate that side of the wiring.
+      org.opensearch.sql.expression.parse.RegexCommonUtils.setMatchLimit(250L);
+
+      assertEquals(250L, (long) settings.getSettingValue(Settings.Key.PPL_REGEX_MATCH_LIMIT));
+      assertEquals(250L, org.opensearch.sql.expression.parse.RegexCommonUtils.getMatchLimit());
+    } finally {
+      org.opensearch.sql.expression.parse.RegexCommonUtils.setMatchLimit(original);
+    }
+  }
+
+  @Test
   void getSparkExecutionEngineConfigSetting() {
     // Default is empty string
     assertEquals(

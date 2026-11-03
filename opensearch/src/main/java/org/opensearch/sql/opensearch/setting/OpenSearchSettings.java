@@ -31,6 +31,7 @@ import org.opensearch.index.IndexSettings;
 import org.opensearch.search.aggregations.MultiBucketConsumerService;
 import org.opensearch.sql.common.antlr.AstBuildGuard;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.expression.parse.RegexCommonUtils;
 import org.opensearch.sql.opensearch.data.value.FlatObjectValues;
 import org.opensearch.sql.utils.DeserializationFilterUtil;
 
@@ -136,6 +137,14 @@ public class OpenSearchSettings extends Settings {
           Key.PPL_REX_MAX_MATCH_LIMIT.getKeyValue(),
           10,
           1,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<?> PPL_REGEX_MATCH_LIMIT_SETTING =
+      Setting.longSetting(
+          Key.PPL_REGEX_MATCH_LIMIT.getKeyValue(),
+          RegexCommonUtils.DEFAULT_MATCH_LIMIT,
+          1L,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
@@ -488,6 +497,23 @@ public class OpenSearchSettings extends Settings {
         Key.PPL_REX_MAX_MATCH_LIMIT,
         PPL_REX_MAX_MATCH_LIMIT_SETTING,
         new Updater(Key.PPL_REX_MAX_MATCH_LIMIT));
+    Updater regexMatchLimitUpdater = new Updater(Key.PPL_REGEX_MATCH_LIMIT);
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.PPL_REGEX_MATCH_LIMIT,
+        PPL_REGEX_MATCH_LIMIT_SETTING,
+        // Keep the static guard in RegexCommonUtils (in the engine-agnostic core module) in sync
+        // on both registration and dynamic change, since parse/rex matching is evaluated there.
+        newValue -> {
+          regexMatchLimitUpdater.accept(newValue);
+          RegexCommonUtils.setMatchLimit(((Number) newValue).longValue());
+        });
+    // Seed the initial value: the update consumer above only fires on subsequent changes.
+    Object regexMatchLimit = clusterSettings.get(PPL_REGEX_MATCH_LIMIT_SETTING);
+    if (regexMatchLimit != null) {
+      RegexCommonUtils.setMatchLimit(((Number) regexMatchLimit).longValue());
+    }
     register(
         settingBuilder,
         clusterSettings,
@@ -781,6 +807,7 @@ public class OpenSearchSettings extends Settings {
         .add(DEFAULT_PATTERN_BUFFER_LIMIT_SETTING)
         .add(DEFAULT_PATTERN_SHOW_NUMBERED_TOKEN_SETTING)
         .add(PPL_REX_MAX_MATCH_LIMIT_SETTING)
+        .add(PPL_REGEX_MATCH_LIMIT_SETTING)
         .add(PPL_VALUES_MAX_LIMIT_SETTING)
         .add(PPL_SUBSEARCH_MAXOUT_SETTING)
         .add(PPL_JOIN_SUBSEARCH_MAXOUT_SETTING)
