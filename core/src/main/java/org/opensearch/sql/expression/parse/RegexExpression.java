@@ -42,7 +42,7 @@ public class RegexExpression extends ParseExpression {
   @Override
   ExprValue parseValue(ExprValue value) throws ExpressionEvaluationException {
     String rawString = value.stringValue();
-    Matcher matcher = regexPattern.matcher(rawString);
+    Matcher matcher = RegexCommonUtils.boundedMatcher(regexPattern, rawString);
     if (matcher.matches()) {
       return new ExprStringValue(matcher.group(identifierStr));
     }
