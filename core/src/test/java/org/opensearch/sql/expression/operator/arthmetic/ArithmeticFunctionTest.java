@@ -19,6 +19,7 @@ import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.data.model.ExprByteValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprFloatValue;
@@ -30,7 +31,6 @@ import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.data.type.WideningTypeRule;
-import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.ExpressionTestBase;
 import org.opensearch.sql.expression.FunctionExpression;
@@ -213,43 +213,26 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
   @ParameterizedTest(name = "multipleParameters({1},{2})")
   @MethodSource("arithmeticFunctionArguments")
   public void multipleParameters(ExprValue op1) {
+    assertThrows(ErrorReport.class, () -> DSL.add(literal(op1), literal(op1), literal(op1)));
     assertThrows(
-        ExpressionEvaluationException.class,
-        () -> DSL.add(literal(op1), literal(op1), literal(op1)));
-    assertThrows(
-        ExpressionEvaluationException.class,
-        () -> DSL.addFunction(literal(op1), literal(op1), literal(op1)));
+        ErrorReport.class, () -> DSL.addFunction(literal(op1), literal(op1), literal(op1)));
 
+    assertThrows(ErrorReport.class, () -> DSL.subtract(literal(op1), literal(op1), literal(op1)));
     assertThrows(
-        ExpressionEvaluationException.class,
-        () -> DSL.subtract(literal(op1), literal(op1), literal(op1)));
-    assertThrows(
-        ExpressionEvaluationException.class,
-        () -> DSL.subtractFunction(literal(op1), literal(op1), literal(op1)));
+        ErrorReport.class, () -> DSL.subtractFunction(literal(op1), literal(op1), literal(op1)));
 
+    assertThrows(ErrorReport.class, () -> DSL.multiply(literal(op1), literal(op1), literal(op1)));
     assertThrows(
-        ExpressionEvaluationException.class,
-        () -> DSL.multiply(literal(op1), literal(op1), literal(op1)));
-    assertThrows(
-        ExpressionEvaluationException.class,
-        () -> DSL.multiplyFunction(literal(op1), literal(op1), literal(op1)));
+        ErrorReport.class, () -> DSL.multiplyFunction(literal(op1), literal(op1), literal(op1)));
 
+    assertThrows(ErrorReport.class, () -> DSL.divide(literal(op1), literal(op1), literal(op1)));
     assertThrows(
-        ExpressionEvaluationException.class,
-        () -> DSL.divide(literal(op1), literal(op1), literal(op1)));
-    assertThrows(
-        ExpressionEvaluationException.class,
-        () -> DSL.divideFunction(literal(op1), literal(op1), literal(op1)));
+        ErrorReport.class, () -> DSL.divideFunction(literal(op1), literal(op1), literal(op1)));
 
+    assertThrows(ErrorReport.class, () -> DSL.mod(literal(op1), literal(op1), literal(op1)));
+    assertThrows(ErrorReport.class, () -> DSL.modulus(literal(op1), literal(op1), literal(op1)));
     assertThrows(
-        ExpressionEvaluationException.class,
-        () -> DSL.mod(literal(op1), literal(op1), literal(op1)));
-    assertThrows(
-        ExpressionEvaluationException.class,
-        () -> DSL.modulus(literal(op1), literal(op1), literal(op1)));
-    assertThrows(
-        ExpressionEvaluationException.class,
-        () -> DSL.modulusFunction(literal(op1), literal(op1), literal(op1)));
+        ErrorReport.class, () -> DSL.modulusFunction(literal(op1), literal(op1), literal(op1)));
   }
 
   protected void assertValueEqual(

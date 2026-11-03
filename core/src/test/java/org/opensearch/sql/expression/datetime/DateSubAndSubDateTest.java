@@ -18,8 +18,9 @@ import java.time.LocalTime;
 import java.time.Period;
 import java.time.ZoneOffset;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.exception.ExpressionEvaluationException;
 
 public class DateSubAndSubDateTest extends DateTimeTestBase {
 
@@ -136,12 +137,12 @@ public class DateSubAndSubDateTest extends DateTimeTestBase {
 
     var exception =
         assertThrows(
-            ExpressionEvaluationException.class,
-            () -> date_sub(LocalDateTime.of(1961, 4, 12, 9, 7), 100500));
+            ErrorReport.class, () -> date_sub(LocalDateTime.of(1961, 4, 12, 9, 7), 100500));
     assertEquals(
         "date_sub function expected {[DATE,INTERVAL],[TIMESTAMP,INTERVAL],[TIME,INTERVAL]}, but got"
             + " [TIMESTAMP,INTEGER]",
         exception.getMessage());
+    assertEquals(ErrorCode.TYPE_ERROR, exception.getCode());
   }
 
   @Test
