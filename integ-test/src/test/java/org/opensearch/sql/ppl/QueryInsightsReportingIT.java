@@ -21,9 +21,9 @@ import org.opensearch.sql.legacy.TestUtils;
  * <p>Query Insights is a separate plugin and is not installed in the SQL integ-test cluster. The
  * reporting gate ({@code isQueryInsightsRecordingEnabled}) therefore returns false and the whole
  * reporting path is skipped, so these tests assert the important contract: with Query Insights
- * absent, plain and multi-scan (join) PPL queries still run and return correct results. The
- * end-to-end assertion that records and sub-queries land in Query Insights lives with the Query
- * Insights plugin, which can co-install both plugins.
+ * absent, plain and multi-scan (join) PPL queries still run and return correct results. {@link
+ * QueryInsightsRecordingIT} asserts the records and sub-queries themselves, on a cluster with Query
+ * Insights installed.
  */
 public class QueryInsightsReportingIT extends PPLIntegTestCase {
 

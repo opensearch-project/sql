@@ -23,11 +23,10 @@ import org.junit.Test;
  * + index-read permissions, and explicitly not the report action's {@code cluster:admin}
  * permission, can run PPL queries unchanged.
  *
- * <p>The send itself is wrapped in {@code stashContext()} so it runs user-less rather than being
- * authorized against the querying user (see {@code QueryInsightsReporter}); proving that holds for
- * a low-privilege user needs Query Insights co-installed and belongs with that plugin's tests, as
- * does read-side visibility of the recorded identity ({@code
- * search.insights.top_queries.filter_by_mode}).
+ * <p>{@link QueryInsightsRecordingSecurityIT} covers a secured cluster with Query Insights
+ * installed: a user without any Query Insights permission still gets a record that carries their
+ * identity, because the send runs user-less (see {@code QueryInsightsReporter}), and who can read
+ * the records back is governed by {@code search.insights.top_queries.filter_by_mode}.
  */
 public class QueryInsightsReportingSecurityIT extends SecurityTestBase {
 
