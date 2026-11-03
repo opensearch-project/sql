@@ -7,6 +7,8 @@ package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
+import static org.opensearch.sql.util.MatcherUtils.rows;
+import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
 import org.json.JSONObject;
@@ -40,7 +42,14 @@ public class QueryInsightsReportingIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format("source=%s | where age > 30 | fields firstname", TEST_INDEX_BANK));
-    assertTrue(result.getJSONArray("datarows").length() > 0);
+    verifyDataRows(
+        result,
+        rows("Amber JOHnny"),
+        rows("Hattie"),
+        rows("Dale"),
+        rows("Elinor"),
+        rows("Virginia"),
+        rows("Dillard"));
   }
 
   @Test
@@ -52,12 +61,14 @@ public class QueryInsightsReportingIT extends PPLIntegTestCase {
       result =
           executeQuery(
               String.format(
-                  "source=%s | join on firstname=holdersName %s", TEST_INDEX_BANK, TEST_INDEX_DOG));
+                  "source=%s | join on firstname=holdersName %s | fields firstname, dog_name",
+                  TEST_INDEX_BANK, TEST_INDEX_DOG));
     } catch (ResponseException e) {
       // Surface the server error body to make failures debuggable rather than opaque.
       throw new AssertionError(
           "join query failed: " + TestUtils.getResponseBody(e.getResponse()), e);
     }
-    assertTrue(result.has("datarows"));
+    // Hattie is the only account holder who owns a dog.
+    verifyDataRows(result, rows("Hattie", "snoopy"));
   }
 }
