@@ -27,6 +27,7 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.ExecutionDispatcher;
 import org.opensearch.sql.executor.ExecutionEngine;
+import org.opensearch.sql.executor.ThreadResourceAccounting;
 import org.opensearch.sql.monitor.profile.ProfileContext;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.tasks.CancellableTask;
@@ -92,6 +93,7 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
                     ThreadPool.Names.GENERIC);
             Cancellable cancelPoller = scheduleCancellationPoller(cancellableTask, executionThread);
             Hook.Closeable hookHandle = null;
+            ThreadResourceAccounting.Scope accounting = ThreadResourceAccounting.Scope.NOOP;
             try {
               // Restore state from caller thread
               ThreadContext.putAll(ctx);
@@ -107,6 +109,8 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
                 hookHandle =
                     Hook.CURRENT_TIME.addThread((Consumer<Holder<Long>>) h -> h.set(currentTime));
               }
+              // Script plans do their real work on this thread, so account it to the query here.
+              accounting = ThreadResourceAccounting.enter(cancellableTask);
               task.run();
             } catch (Exception e) {
               LOG.error("Exception during task execution on complex pool", e);
@@ -120,6 +124,7 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
               if (hookHandle != null) {
                 hookHandle.close();
               }
+              accounting.close();
               OpenSearchQueryManager.clearCancellableTask();
               RelMetadataQueryBase.THREAD_PROVIDERS.remove();
               CalcitePlanContext.clearTimewrapSignals();
