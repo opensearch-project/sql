@@ -882,3 +882,34 @@ plugins.query.field_type_tolerance setting is enabled, the SQL/PPL plugin will h
 scalar data types, allowing basic queries (e.g., SELECT * FROM tbl WHERE condition). However, using multi-value
 fields in expressions or functions will result in exceptions. If this setting is disabled or absent, only the
 first element of an array is returned, preserving the default behavior.
+
+plugins.ppl.regex.match.limit
+=============================
+
+Version
+-------
+2.19
+
+Description
+-----------
+
+The PPL ``parse`` command evaluates a user-supplied regular expression against each row with
+``java.util.regex``. Some pattern and input combinations cause catastrophic backtracking, where a single
+match does an enormous amount of work and ties up a worker thread, since neither the resource circuit breaker
+nor the query timeout can stop a match in progress. This setting bounds that work: it caps the total number of
+characters a single match may read and aborts the match with a client-side error once the cap is exceeded.
+
+1. The default value is 100000, matching the ``match_limit`` default used by Splunk ``rex`` and PCRE2.
+2. The cap is an absolute count for the whole match, not scaled by input length, so it cannot be evaded by shrinking the input.
+3. This setting is node scope.
+4. This setting can be updated dynamically.
+5. Non-positive values are ignored so the guard cannot be disabled by misconfiguration.
+
+Legitimate matches read each character a small constant number of times and are unaffected. Raise it only if a
+legitimately heavy pattern needs more headroom. Here is an example::
+
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	  "transient" : {
+	    "plugins.ppl.regex.match.limit" : 200000
+	  }
+	}'
