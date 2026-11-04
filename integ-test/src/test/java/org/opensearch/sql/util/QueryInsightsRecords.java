@@ -202,6 +202,35 @@ public final class QueryInsightsRecords {
     return values;
   }
 
+  /**
+   * The finished queries Live Queries returns with {@code use_finished_cache=true}. The call also
+   * turns the finished queries cache on, which records nothing until it is first read.
+   */
+  public static List<JSONObject> finishedQueries(RestClient client) throws IOException {
+    Request request = new Request("GET", "/_insights/live_queries");
+    request.addParameter("use_finished_cache", "true");
+    JSONObject response = new JSONObject(getResponseBody(client.performRequest(request)));
+    return select(response.optJSONArray("finished_queries"), record -> true);
+  }
+
+  /** The finished query Live Queries lists under {@code liveQueryId}, once it has finished. */
+  public static JSONObject awaitFinishedQuery(RestClient client, String liveQueryId)
+      throws Exception {
+    AtomicReference<JSONObject> found = new AtomicReference<>();
+    OpenSearchTestCase.assertBusy(
+        () -> {
+          List<JSONObject> matches =
+              select(
+                  new JSONArray(finishedQueries(client)),
+                  record -> liveQueryId.equals(record.optString("id")));
+          assertFalse("no finished query " + liveQueryId + " yet", matches.isEmpty());
+          found.set(matches.get(0));
+        },
+        60,
+        TimeUnit.SECONDS);
+    return found.get();
+  }
+
   public static long measurement(JSONObject record, String metric) {
     JSONObject value = record.getJSONObject("measurements").optJSONObject(metric);
     return value == null ? 0L : value.getLong("number");

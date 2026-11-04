@@ -171,6 +171,29 @@ public class QueryInsightsRecordingIT extends PPLIntegTestCase {
     assertEquals(Set.of("qi_it_join_left", "qi_it_join_right"), childIndices);
   }
 
+  @Test
+  public void finishedQueryKeepsItsLiveQueryIdWithItsSearchesFoldedIn() throws Exception {
+    QueryInsightsRecords.finishedQueries(client()); // the cache records nothing until first read
+    indexWithDocs("qi_it_finished_left");
+    indexWithDocs("qi_it_finished_right");
+    executeQuery(
+        "source=qi_it_finished_left | join left=l right=r on l.k = r.k qi_it_finished_right"
+            + " | fields l.v, r.v");
+
+    JSONObject record = awaitPplRecord("qi_it_finished_left");
+    String marker = record.getString("parent_marker");
+    // Live Queries lists the running query under its own task, <nodeId>:<taskId>, which is the
+    // marker without its source; the finished entry must keep that id for the dashboard to follow.
+    String liveQueryId = marker.substring(marker.indexOf(':') + 1);
+    JSONObject finished = QueryInsightsRecords.awaitFinishedQuery(client(), liveQueryId);
+    assertEquals("completed", finished.getString("status"));
+    assertEquals(record.getString("id"), finished.getString("top_n_id"));
+    // Its two searches are folded into its entry, as Live Queries shows them, not listed alone.
+    for (JSONObject entry : QueryInsightsRecords.finishedQueries(client())) {
+      assertNotEquals("search listed on its own: " + entry, marker, entry.optString("derived_from"));
+    }
+  }
+
   // ---------------------------------------------------------------------------------------------
 
   private static void indexWithDocs(String index) throws Exception {
