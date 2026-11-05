@@ -16,7 +16,7 @@ final class MappingConflictFixtures {
 
   /** The field types the drifts cross, each against the others and against the field absent. */
   static final List<String> TYPES =
-      List.of("text", "keyword", "byte", "integer", "long", "date", "object");
+      List.of("text", "keyword", "byte", "integer", "long", "date", "object", "flat_object");
 
   /**
    * A PPL command template, holding {@code {I}} for the source and {@code {F}} for the field under
@@ -130,13 +130,7 @@ final class MappingConflictFixtures {
               "#5835",
               List.of("stats_max"),
               List.of("keyword/byte", "keyword/integer", "keyword/long", "keyword/date"),
-              "string"),
-          // #5836 sort, stats max, and stats min on an object or nested field return 500
-          new Known500(
-              "#5836",
-              List.of("sort", "reverse_after_sort", "head_after_sort", "join_self", "stats_max"),
-              List.of("text/object", "object/absent", "absent/object"),
-              "struct"));
+              "string"));
 
   private MappingConflictFixtures() {}
 }

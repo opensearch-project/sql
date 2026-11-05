@@ -254,6 +254,9 @@
                     }
                   }
                 },
+                "flat_object": {
+                  "type": "flat_object"
+                },
                 "alias": {
                   "type": "alias",
                   "path": "attributes.types.alias_target"
