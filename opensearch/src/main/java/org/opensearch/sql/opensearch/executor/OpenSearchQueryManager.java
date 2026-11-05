@@ -16,6 +16,7 @@ import org.opensearch.core.concurrency.OpenSearchRejectedExecutionException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryManager;
+import org.opensearch.sql.executor.ThreadResourceAccounting;
 import org.opensearch.sql.executor.execution.AbstractPlan;
 import org.opensearch.tasks.CancellableTask;
 import org.opensearch.threadpool.Scheduler;
@@ -82,6 +83,11 @@ public class OpenSearchQueryManager implements QueryManager {
 
               setCancellableTask(cancelTask);
 
+              // Account this thread's work to the query. Script plans hand off to the
+              // complex-worker pool, which opens its own scope.
+              final ThreadResourceAccounting.Scope accounting =
+                  ThreadResourceAccounting.enter(cancelTask);
+
               try {
                 task.run();
                 timeoutTask.cancel();
@@ -99,6 +105,7 @@ public class OpenSearchQueryManager implements QueryManager {
 
                 throw e;
               } finally {
+                accounting.close();
                 clearCancellableTask();
               }
             });
