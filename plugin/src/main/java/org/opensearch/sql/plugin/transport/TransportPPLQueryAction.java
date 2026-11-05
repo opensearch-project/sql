@@ -76,6 +76,7 @@ import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.VisualizationResponseFormatter;
 import org.opensearch.sql.protocol.response.format.YamlResponseFormatter;
+import org.opensearch.tasks.CancellableTask;
 import org.opensearch.tasks.Task;
 import org.opensearch.telemetry.tracing.Span;
 import org.opensearch.telemetry.tracing.SpanCreationContext;
@@ -212,8 +213,8 @@ public class TransportPPLQueryAction
       return;
     }
 
-    if (task instanceof PPLQueryTask pplQueryTask) {
-      OpenSearchQueryManager.setCancellableTask(pplQueryTask);
+    if (task instanceof CancellableTask cancellableTask) {
+      OpenSearchQueryManager.setCancellableTask(cancellableTask);
     }
     Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_TOTAL).increment();
     Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_COUNT_TOTAL).increment();
@@ -314,11 +315,11 @@ public class TransportPPLQueryAction
       PPLQueryRequest transformedRequest,
       ActionListener<TransportPPLQueryResponse> listener,
       Consumer<String> anonymizedQuerySink) {
-    if (!(task instanceof PPLQueryTask pplQueryTask)) {
-      throw new IllegalArgumentException("Async PPL queries require a cancellable PPLQueryTask");
+    if (!(task instanceof CancellableTask cancellableTask)) {
+      throw new IllegalArgumentException("Async PPL queries require a cancellable task");
     }
-    Runnable cancelExecution = () -> pplQueryTask.cancel("async PPL query cancelled");
-    QueryProgressTracker progressTracker = QueryProgressTracker.attach(pplQueryTask);
+    Runnable cancelExecution = () -> cancellableTask.cancel("async PPL query cancelled");
+    QueryProgressTracker progressTracker = QueryProgressTracker.attach(cancellableTask);
     QueryRunner runner =
         new PPLQueryRunner(
             pplService,
