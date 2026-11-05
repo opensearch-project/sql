@@ -15,6 +15,7 @@ import org.apache.calcite.linq4j.Enumerator;
 import org.opensearch.core.tasks.TaskCancelledException;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.NonFallbackCalciteException;
 import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.monitor.ResourceMonitor;
@@ -39,6 +40,10 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   private final BackgroundSearchScanner bgScanner;
 
   private final List<String> fields;
+
+  @Nullable private final String nestedPath;
+  private Iterator<ExprValue> nestedChildren = Collections.emptyIterator();
+  @Nullable private ExprValue nestedChild;
 
   /** Search request. */
   @EqualsAndHashCode.Include @ToString.Include private OpenSearchRequest request;
@@ -67,6 +72,7 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   public OpenSearchIndexEnumerator(
       OpenSearchClient client,
       List<String> fields,
+      @Nullable String nestedPath,
       int maxResponseSize,
       int maxResultWindow,
       int queryBucketSize,
@@ -84,6 +90,7 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
     }
 
     this.fields = fields;
+    this.nestedPath = nestedPath;
     this.request = request;
     this.maxResponseSize = maxResponseSize;
     this.monitor = monitor;
@@ -115,6 +122,10 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
   }
 
   private Object resolveForCalcite(ExprValue value, String rawPath) {
+    if (nestedChild != null && rawPath.startsWith(nestedPath + ".")) {
+      value = nestedChild;
+      rawPath = rawPath.substring(nestedPath.length() + 1);
+    }
     if (HighlightExpression.HIGHLIGHT_FIELD.equals(rawPath)) {
       ExprValue hl = ExprValueUtils.getTupleValue(value).get(HighlightExpression.HIGHLIGHT_FIELD);
       return (hl != null && !hl.isMissing() && !hl.isNull()) ? hl : null;
@@ -147,16 +158,31 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
       }
     }
 
-    if (iterator == null || (!iterator.hasNext() && !this.bgScanner.isScanDone())) {
-      iterator = fetchNextBatch();
-    }
-    if (iterator.hasNext()) {
+    while (true) {
+      if (nestedChildren.hasNext()) {
+        nestedChild = nestedChildren.next();
+        queryCount++;
+        return true;
+      }
+      if (iterator == null || (!iterator.hasNext() && !this.bgScanner.isScanDone())) {
+        iterator = fetchNextBatch();
+      }
+      if (!iterator.hasNext()) {
+        markComplete();
+        return false;
+      }
       current = iterator.next();
-      queryCount++;
-      return true;
-    } else {
-      markComplete();
-      return false;
+      if (nestedPath == null) {
+        nestedChild = null;
+        queryCount++;
+        return true;
+      }
+      ExprValue children =
+          ExprValueUtils.resolveRefPaths(current, List.of(nestedPath.split("\\.")));
+      nestedChildren =
+          children.type() == ExprCoreType.ARRAY
+              ? children.collectionValue().iterator()
+              : Collections.emptyIterator();
     }
   }
 
@@ -174,12 +200,16 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
     bgScanner.reset(request);
     iterator = bgScanner.fetchNextBatch(request).iterator();
     queryCount = 0;
+    nestedChildren = Collections.emptyIterator();
+    nestedChild = null;
   }
 
   @Override
   public void close() {
     // Not marked complete: failing and fallback queries close their scans too.
     iterator = Collections.emptyIterator();
+    nestedChildren = Collections.emptyIterator();
+    nestedChild = null;
     queryCount = 0;
     bgScanner.close();
     if (request != null) {
