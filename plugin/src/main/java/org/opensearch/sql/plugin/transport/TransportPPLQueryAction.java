@@ -19,9 +19,6 @@ import java.util.function.Supplier;
 import org.apache.calcite.rel.RelNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.json.JSONString;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.ContextPreservingActionListener;
@@ -76,6 +73,8 @@ import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.VisualizationResponseFormatter;
 import org.opensearch.sql.protocol.response.format.YamlResponseFormatter;
+import org.opensearch.sql.spark.transport.format.AsyncQueryResultResponseFormatter;
+import org.opensearch.sql.spark.transport.model.AsyncQueryResult;
 import org.opensearch.tasks.Task;
 import org.opensearch.telemetry.tracing.Span;
 import org.opensearch.telemetry.tracing.SpanCreationContext;
@@ -326,7 +325,8 @@ public class TransportPPLQueryAction
             anonymizedQuerySink,
             Clock.systemUTC(),
             cancelExecution,
-            () -> new QueryProgress(progressTracker.fractionDone()));
+            () -> new QueryProgress(progressTracker.fractionDone()),
+            () -> progressTracker.partialRows().snapshot());
     ThreadContext threadContext = clientRef.threadPool().getThreadContext();
     ActionListener<TransportPPLQueryResponse> ctxListener =
         ContextPreservingActionListener.wrapPreservingContext(listener, threadContext);
@@ -366,31 +366,53 @@ public class TransportPPLQueryAction
               createExplainResponseListener(transformedRequest, ctxListener)
                   .onResponse(explain.response());
             }
-            case org.opensearch.sql.job.QueryResult.Running running ->
-                ctxListener.onResponse(new TransportPPLQueryResponse(formatRunning(running)));
+            case org.opensearch.sql.job.QueryResult.Running running -> {
+              // Wait timeouts complete on the JVM-wide timer thread; format elsewhere.
+              try {
+                clientRef
+                    .threadPool()
+                    .generic()
+                    .execute(() -> respondRunning(running, ctxListener));
+              } catch (RuntimeException e) {
+                ctxListener.onResponse(
+                    new TransportPPLQueryResponse(formatRunning(running, false)));
+              }
+            }
           }
         });
   }
 
-  /**
-   * Wire shape of a {@link org.opensearch.sql.job.QueryResult.Running}; must match the async-query
-   * GET RUNNING body.
-   */
-  private static String formatRunning(org.opensearch.sql.job.QueryResult.Running running) {
-    return new JSONObject()
-        .put("id", running.id().encode())
-        .put("status", "RUNNING")
-        .put("progress", new JSONObject().put("fraction_done", fractionDone(running)))
-        .put("schema", new JSONArray())
-        .put("datarows", new JSONArray())
-        .put("total", 0)
-        .toString();
+  private static void respondRunning(
+      org.opensearch.sql.job.QueryResult.Running running,
+      ActionListener<TransportPPLQueryResponse> listener) {
+    String body;
+    try {
+      body = formatRunning(running, true);
+    } catch (RuntimeException e) {
+      // The job keeps running, so still return its id.
+      body = formatRunning(running, false);
+    }
+    listener.onResponse(new TransportPPLQueryResponse(body));
   }
 
-  /** org.json drops the {@code .0} of a whole number; GET (Gson) keeps it. */
-  private static JSONString fractionDone(org.opensearch.sql.job.QueryResult.Running running) {
-    String value = Double.toString(running.progress().fractionDone());
-    return () -> value;
+  /** Same formatter as GET, so the bodies match. */
+  private static String formatRunning(
+      org.opensearch.sql.job.QueryResult.Running running, boolean withRows) {
+    org.opensearch.sql.job.QueryResult.Rows current =
+        withRows
+            ? running.current().orElse(org.opensearch.sql.job.QueryResult.Rows.EMPTY)
+            : org.opensearch.sql.job.QueryResult.Rows.EMPTY;
+    return new AsyncQueryResultResponseFormatter(JsonResponseFormatter.Style.PRETTY)
+        .format(
+            AsyncQueryResult.forQueryJob(
+                "RUNNING",
+                current.schema(),
+                current.rows(),
+                null,
+                null,
+                running.progress(),
+                running.id().encode(),
+                current.warnings()));
   }
 
   private ResponseListener<AnalyzeResponse> createAnalyzeResponseListener(

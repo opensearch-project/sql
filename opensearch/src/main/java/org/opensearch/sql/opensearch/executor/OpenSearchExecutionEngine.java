@@ -67,6 +67,8 @@ import org.opensearch.sql.monitor.profile.MetricName;
 import org.opensearch.sql.monitor.profile.ProfileScope;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprGeoPointValue;
+import org.opensearch.sql.opensearch.executor.progress.PartialRows;
+import org.opensearch.sql.opensearch.executor.progress.QueryProgressTracker;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
 import org.opensearch.sql.opensearch.functions.DistinctCountApproxAggFunction;
 import org.opensearch.sql.opensearch.functions.GeoIpFunction;
@@ -339,6 +341,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
             }
             listener.onResponse(response);
           } catch (SQLException e) {
+            discardPartialRows();
             if (isPitContextLimitReached(e)) {
               // reason (title) comes from the wrapped cause's message; keep it short and put the
               // explanation and remedy in details.
@@ -354,8 +357,16 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
                   .build();
             }
             throw new RuntimeException(e);
+          } catch (RuntimeException | Error e) {
+            discardPartialRows();
+            throw e;
           }
         });
+  }
+
+  /** The rows may never become the result. */
+  private static void discardPartialRows() {
+    QueryProgressTracker.current().ifPresent(tracker -> tracker.partialRows().discard());
   }
 
   /**
@@ -437,41 +448,44 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     int columnCount = metaData.getColumnCount();
     List<RelDataType> fieldTypes =
         rowTypes.getFieldList().stream().map(RelDataTypeField::getType).toList();
+    List<String> columnNames = new ArrayList<>(columnCount);
+    for (int i = 1; i <= columnCount; i++) {
+      columnNames.add(metaData.getColumnName(i));
+    }
+    // Timewrap reshapes rows at the end, so its rows so far are not a prefix of its result.
+    PartialRows partialRows =
+        TimewrapPivot.isTimewrap()
+            ? null
+            : QueryProgressTracker.current().map(QueryProgressTracker::partialRows).orElse(null);
+    if (partialRows != null) {
+      partialRows.open(rows -> new Schema(buildColumns(columnNames, fieldTypes, rows)));
+    }
     List<ExprValue> values = new ArrayList<>();
+    int warningsPublished = 0;
     // Iterate through the ResultSet
     while (resultSet.next() && (querySizeLimit == null || values.size() < querySizeLimit)) {
       Map<String, ExprValue> row = new LinkedHashMap<String, ExprValue>();
       // Loop through each column
       for (int i = 1; i <= columnCount; i++) {
-        String columnName = metaData.getColumnName(i);
+        String columnName = columnNames.get(i - 1);
         Object value = resultSet.getObject(columnName);
         Object converted = processValue(value, fieldTypes.get(i - 1));
         ExprValue exprValue = ExprValueUtils.fromObjectValue(converted);
         row.put(columnName, exprValue);
       }
-      values.add(ExprTupleValue.fromExprValueMap(row));
+      ExprValue tuple = ExprTupleValue.fromExprValueMap(row);
+      values.add(tuple);
+      if (partialRows != null) {
+        // Warnings first, so a row is never shown without them.
+        if (CalcitePlanContext.warningCount() != warningsPublished) {
+          warningsPublished = CalcitePlanContext.warningCount();
+          partialRows.warnings(CalcitePlanContext.peekWarnings());
+        }
+        partialRows.add(tuple);
+      }
     }
 
-    List<Column> columns = new ArrayList<>(metaData.getColumnCount());
-    for (int i = 1; i <= columnCount; ++i) {
-      String columnName = metaData.getColumnName(i);
-      RelDataType fieldType = fieldTypes.get(i - 1);
-      // TODO: Correct this after fixing issue github.com/opensearch-project/sql/issues/3751
-      //  The element type of struct and array is currently set to ANY.
-      //  We set them using the runtime type as a workaround.
-      ExprType exprType;
-      if (fieldType.getSqlTypeName() == SqlTypeName.ANY) {
-        if (!values.isEmpty()) {
-          exprType = values.getFirst().tupleValue().get(columnName).type();
-        } else {
-          // Using UNDEFINED instead of UNKNOWN to avoid throwing exception
-          exprType = ExprCoreType.UNDEFINED;
-        }
-      } else {
-        exprType = OpenSearchTypeFactory.convertRelDataTypeToExprType(fieldType);
-      }
-      columns.add(new Column(columnName, null, exprType));
-    }
+    List<Column> columns = buildColumns(columnNames, fieldTypes, values);
     // Drain before the timewrap block: its finally clears the same thread-local.
     List<Warning> warnings = CalcitePlanContext.drainWarnings();
 
@@ -496,6 +510,31 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     QueryResponse response = new QueryResponse(schema, values, null);
     response.setWarnings(warnings);
     return response;
+  }
+
+  private static List<Column> buildColumns(
+      List<String> columnNames, List<RelDataType> fieldTypes, List<ExprValue> values) {
+    List<Column> columns = new ArrayList<>(columnNames.size());
+    for (int i = 0; i < columnNames.size(); ++i) {
+      String columnName = columnNames.get(i);
+      RelDataType fieldType = fieldTypes.get(i);
+      // TODO: Correct this after fixing issue github.com/opensearch-project/sql/issues/3751
+      //  The element type of struct and array is currently set to ANY.
+      //  We set them using the runtime type as a workaround.
+      ExprType exprType;
+      if (fieldType.getSqlTypeName() == SqlTypeName.ANY) {
+        if (!values.isEmpty()) {
+          exprType = values.getFirst().tupleValue().get(columnName).type();
+        } else {
+          // Using UNDEFINED instead of UNKNOWN to avoid throwing exception
+          exprType = ExprCoreType.UNDEFINED;
+        }
+      } else {
+        exprType = OpenSearchTypeFactory.convertRelDataTypeToExprType(fieldType);
+      }
+      columns.add(new Column(columnName, null, exprType));
+    }
+    return columns;
   }
 
   /** Registers opensearch-dependent functions */

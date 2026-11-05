@@ -85,16 +85,25 @@ public class TransportGetAsyncQueryResultAction
       }
       ResponseFormatter<AsyncQueryResult> formatter =
           new AsyncQueryResultResponseFormatter(JsonResponseFormatter.Style.PRETTY);
-      String responseContent =
-          formatter.format(
-              new AsyncQueryResult(
+      AsyncQueryResult result =
+          asyncQueryExecutionResponse.isQueryJob()
+              ? AsyncQueryResult.forQueryJob(
+                  asyncQueryExecutionResponse.getStatus(),
+                  asyncQueryExecutionResponse.getSchema(),
+                  asyncQueryExecutionResponse.getResults(),
+                  asyncQueryExecutionResponse.getError(),
+                  asyncQueryExecutionResponse.getErrorDetails(),
+                  asyncQueryExecutionResponse.getProgress(),
+                  null,
+                  asyncQueryExecutionResponse.getWarnings())
+              : new AsyncQueryResult(
                   asyncQueryExecutionResponse.getStatus(),
                   asyncQueryExecutionResponse.getSchema(),
                   asyncQueryExecutionResponse.getResults(),
                   Cursor.None,
                   asyncQueryExecutionResponse.getError(),
-                  asyncQueryExecutionResponse.getErrorDetails(),
-                  asyncQueryExecutionResponse.getProgress()));
+                  asyncQueryExecutionResponse.getErrorDetails());
+      String responseContent = formatter.format(result);
       listener.onResponse(new GetAsyncQueryResultActionResponse(responseContent));
     } catch (org.opensearch.sql.job.exceptions.QueryJobNotFoundException e) {
       // Translate to a transport-serializable OpenSearchException so cross-node forwarding
