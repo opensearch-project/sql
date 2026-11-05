@@ -9,6 +9,7 @@ import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_
 import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_WORKER_THREAD_POOL_NAME;
 
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelNode;
@@ -80,13 +81,13 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
       Runnable complexTask =
           () -> {
             final Thread executionThread = Thread.currentThread();
+            final AtomicBoolean deadlineExpired = new AtomicBoolean(false);
             Cancellable timeoutHandle =
                 threadPool.schedule(
                     () -> {
-                      LOG.warn(
-                          "Query execution timed out after {}. Interrupting execution thread.",
-                          timeout);
-                      executionThread.interrupt();
+                      LOG.warn("Query execution timed out after {}. Stopping the query.", timeout);
+                      deadlineExpired.set(true);
+                      OpenSearchQueryManager.expire(cancellableTask, executionThread, timeout);
                     },
                     timeout,
                     ThreadPool.Names.GENERIC);
@@ -109,9 +110,15 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
               }
               task.run();
             } catch (Exception e) {
-              LOG.error("Exception during task execution on complex pool", e);
+              Exception failure = e;
+              if (OpenSearchQueryManager.timedOut(cancellableTask, deadlineExpired)) {
+                LOG.error("Query was stopped after exceeding the timeout of {}", timeout);
+                failure = new QueryTimeoutException(timeout);
+              } else {
+                LOG.error("Exception during task execution on complex pool", e);
+              }
               if (failureListener != null) {
-                failureListener.onFailure(e);
+                failureListener.onFailure(failure);
               }
             } finally {
               timeoutHandle.cancel();
@@ -139,7 +146,17 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
       }
     } else {
       CalcitePlanContext.executionPool.set(SQL_WORKER_THREAD_POOL_NAME);
-      task.run();
+      try {
+        task.run();
+      } catch (RuntimeException e) {
+        // Synchronous, so QueryService reports it before OpenSearchQueryManager's catch sees it.
+        if (OpenSearchQueryManager.timedOut(OpenSearchQueryManager.getCancellableTask(), null)) {
+          TimeValue timeout = settings.getSettingValue(Settings.Key.PPL_QUERY_TIMEOUT);
+          LOG.error("Query was stopped after exceeding the timeout of {}", timeout);
+          throw new QueryTimeoutException(timeout);
+        }
+        throw e;
+      }
     }
   }
 
