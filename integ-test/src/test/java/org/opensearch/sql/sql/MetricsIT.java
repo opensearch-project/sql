@@ -38,6 +38,24 @@ public class MetricsIT extends SQLIntegTestCase {
     assertEquals(beforeQueries + 1, requestTotal());
   }
 
+  @Test
+  public void queryLatencyCountsOnlySuccessfulQueries() throws IOException {
+    JSONObject before = new JSONObject(executeStatRequest(makeStatRequest()));
+    executeQuery(String.format(Locale.ROOT, "select age from %s", TEST_INDEX_BANK));
+    executeQuery(String.format(Locale.ROOT, "select count(*) from %s", TEST_INDEX_BANK));
+    try {
+      executeQuery("select * from no_such_index_for_latency");
+    } catch (Exception expected) {
+      // failed queries are not timed
+    }
+    JSONObject after = new JSONObject(executeStatRequest(makeStatRequest()));
+
+    String count = MetricName.SQL_QUERY_TIMED_COUNT.getName();
+    String time = MetricName.SQL_QUERY_TIME.getName();
+    assertEquals(before.getLong(count) + 2, after.getLong(count));
+    Assert.assertTrue(after.getLong(time) >= before.getLong(time));
+  }
+
   private Request makeStatRequest() {
     return new Request("GET", STATS_API_ENDPOINT);
   }

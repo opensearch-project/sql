@@ -17,6 +17,12 @@ public class MetricFactory {
       case DEFAULT:
       case PPL_REQ_TOTAL:
         return new NumericMetric<>(name.getName(), new BasicCounter());
+      case SQL_QUERY_TIME:
+      case PPL_QUERY_TIME:
+        return new NumericMetric<>(name.getName(), new NanosToMillisCounter());
+      case SQL_QUERY_TIMED_COUNT:
+      case PPL_QUERY_TIMED_COUNT:
+        return new NumericMetric<>(name.getName(), new BasicCounter());
       case CIRCUIT_BREAKER:
         return new GaugeMetric<>(name.getName(), BackOffRetryStrategy.GET_CB_STATE);
       case REQ_COUNT_TOTAL:

@@ -37,6 +37,19 @@ public class MetricsIT extends PPLIntegTestCase {
     assertThat(pplRequestTotal(), equalTo(beforeQueries + 3));
   }
 
+  @Test
+  public void queryLatencyCountsOnlyExecutedQueries() throws IOException {
+    JSONObject before = new JSONObject(executeStatRequest(makeStatRequest()));
+    multiQueries(3);
+    explainQueryToString(String.format("source=%s | fields age", TEST_INDEX_BANK));
+    JSONObject after = new JSONObject(executeStatRequest(makeStatRequest()));
+
+    String count = MetricName.PPL_QUERY_TIMED_COUNT.getName();
+    String time = MetricName.PPL_QUERY_TIME.getName();
+    assertThat(after.getLong(count), equalTo(before.getLong(count) + 3));
+    Assert.assertTrue(after.getLong(time) >= before.getLong(time));
+  }
+
   private void multiQueries(int n) throws IOException {
     for (int i = 0; i < n; ++i) {
       executeQuery(String.format("source=%s | where age = 31 + 1 | fields age", TEST_INDEX_BANK));

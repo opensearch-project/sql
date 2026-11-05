@@ -41,6 +41,14 @@ The meaning of fields in the response is as follows:
 +----------------------------+---------------------------------------------------------------+
 |     failed_request_count_cb| Indicate if plugin is being circuit broken within the interval|
 +----------------------------+---------------------------------------------------------------+
+|    sql_query_time_in_millis|     Total time spent executing successful SQL queries since   |
+|                            |     node start, in milliseconds. Explain and cursor close are |
+|                            |     excluded                                                  |
++----------------------------+---------------------------------------------------------------+
+|       sql_query_timed_count|  Total count of SQL queries included in                       |
+|                            |  sql_query_time_in_millis. Average latency over an interval   |
+|                            |  is the change in time divided by the change in this count    |
++----------------------------+---------------------------------------------------------------+
 
 
 Example
