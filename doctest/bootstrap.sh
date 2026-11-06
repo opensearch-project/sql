@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Copyright OpenSearch Contributors
+# SPDX-License-Identifier: Apache-2.0
+
 DIR=$(dirname "$0")
 
 if hash python3.8 2> /dev/null; then
