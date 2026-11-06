@@ -86,3 +86,4 @@ fetched rows / total rows = 6/6
 The `trendline` command has the following limitations:
 
 * The `trendline` command requires all values in the specified `<field>` parameter to be non-null. Any rows with `null` values in this field are automatically excluded from the command's output.
+* The `trendline` command only supports numeric fields in the `<field>` parameter. Using it on any other field type, such as a string or timestamp field, results in an error.
