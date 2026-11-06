@@ -282,6 +282,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
@@ -300,6 +301,9 @@ import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexSubQuery;
 import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlFunction;
+import org.apache.calcite.sql.SqlFunctionCategory;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -308,6 +312,7 @@ import org.apache.calcite.sql.type.CompositeOperandTypeChecker;
 import org.apache.calcite.sql.type.FamilyOperandTypeChecker;
 import org.apache.calcite.sql.type.ImplicitCastOperandTypeChecker;
 import org.apache.calcite.sql.type.OperandTypes;
+import org.apache.calcite.sql.type.ReturnTypes;
 import org.apache.calcite.sql.type.SameOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlOperandTypeChecker;
 import org.apache.calcite.sql.type.SqlTypeFamily;
@@ -540,6 +545,29 @@ public class PPLFuncImpTable {
     return validateFunctionArgs(implementation, functionName, field, argList, rexBuilder);
   }
 
+  /**
+   * Marker for "every element of this multi_value field", typed as the element. Only valid as the
+   * argument of an aggregate in {@link #ELEMENT_AGGREGATES}; the analytics engine
+   * (OpenSearchMultiValueAggregateRule) replaces it with per-row reductions.
+   */
+  static final SqlFunction MV_ELEMENTS =
+      new SqlFunction(
+          "MV_ELEMENTS",
+          SqlKind.OTHER_FUNCTION,
+          ReturnTypes.TO_COLLECTION_ELEMENT_FORCE_NULLABLE,
+          null,
+          OperandTypes.ARRAY,
+          SqlFunctionCategory.USER_DEFINED_FUNCTION);
+
+  private static final Set<BuiltinFunctionName> ELEMENT_AGGREGATES =
+      Set.of(SUM, AVG, VARSAMP, VARPOP, STDDEV_SAMP, STDDEV_POP);
+
+  private static boolean isNumericArray(RelDataType type) {
+    return type.getSqlTypeName() == SqlTypeName.ARRAY
+        && type.getComponentType() != null
+        && SqlTypeUtil.isNumeric(type.getComponentType());
+  }
+
   public RelBuilder.AggCall resolveAgg(
       BuiltinFunctionName functionName,
       boolean distinct,
@@ -547,6 +575,15 @@ public class PPLFuncImpTable {
       List<RexNode> argList,
       CalcitePlanContext context) {
     var implementation = getImplementation(functionName);
+
+    // sum/avg/var/stddev over a multi_value field aggregate every element: lower the field to the
+    // MV_ELEMENTS marker (typed as the element) so validation and the handler see a numeric
+    // argument. The analytics engine replaces the marker with per-row reductions.
+    if (field != null
+        && ELEMENT_AGGREGATES.contains(functionName)
+        && isNumericArray(field.getType())) {
+      field = context.rexBuilder.makeCall(MV_ELEMENTS, field);
+    }
 
     // Validation is done based on original argument types to generate error from user perspective.
     List<RexNode> nodes =
@@ -1650,6 +1687,31 @@ public class PPLFuncImpTable {
       register(functionName, handler, typeChecker);
     }
 
+    /**
+     * Registers MIN/MAX. Over a multi_value (ARRAY) field the aggregate runs over every element:
+     * the argument is reduced per row with {@code ARRAY_MIN}/{@code ARRAY_MAX}, so {@code
+     * max(codes)} becomes {@code MAX(ARRAY_MAX(codes))} and is typed as the element, not the array.
+     * Empty and null arrays reduce to null and are ignored.
+     */
+    void registerMinMaxOperator(
+        BuiltinFunctionName functionName, SqlAggFunction aggFunction, SqlOperator listReduction) {
+      SqlOperandTypeChecker innerTypeChecker = extractTypeCheckerFromUDF(aggFunction);
+      PPLTypeChecker typeChecker =
+          wrapSqlOperandTypeChecker(innerTypeChecker, functionName.name(), true);
+      AggHandler handler =
+          (distinct, field, argList, ctx) -> {
+            RexNode arg =
+                field.getType().getSqlTypeName() == SqlTypeName.ARRAY
+                    ? ctx.relBuilder.call(listReduction, field)
+                    : field;
+            List<RexNode> newArgList =
+                argList.stream().map(PlanUtils::derefMapCall).collect(Collectors.toList());
+            return UserDefinedFunctionUtils.makeAggregateCall(
+                aggFunction, List.of(arg), newArgList, ctx.relBuilder);
+          };
+      register(functionName, handler, typeChecker);
+    }
+
     /** Registers checked integral sums while retaining standard SUM behavior for other types. */
     void registerSumOperator() {
       registerOperator(
@@ -1666,8 +1728,8 @@ public class PPLFuncImpTable {
     }
 
     void populate() {
-      registerOperator(MAX, SqlStdOperatorTable.MAX);
-      registerOperator(MIN, SqlStdOperatorTable.MIN);
+      registerMinMaxOperator(MAX, SqlStdOperatorTable.MAX, SqlLibraryOperators.ARRAY_MAX);
+      registerMinMaxOperator(MIN, SqlStdOperatorTable.MIN, SqlLibraryOperators.ARRAY_MIN);
       registerSumOperator();
       registerOperator(VARSAMP, PPLBuiltinOperators.VAR_SAMP_NULLABLE);
       registerOperator(VARPOP, PPLBuiltinOperators.VAR_POP_NULLABLE);
