@@ -24,7 +24,7 @@ The `expand` command supports the following parameters.
 
 | Parameter | Required/Optional | Description |
 | --- | --- | --- |
-| `<field>` | Required | The field to be expanded. Only nested arrays are supported. |
+| `<field>` | Required | The field to be expanded. Must be an `array` field, such as a nested field or the result of `stats list()`. |
 | `<alias>` | Optional | The name to use in place of the original field name. |  
   
 
@@ -59,4 +59,4 @@ fetched rows / total rows = 4/4
 
 The `expand` command has the following limitations:
 
-* The `expand` command only supports nested arrays. Primitive fields storing arrays are not supported. For example, a string field storing an array of strings cannot be expanded.
+* The `expand` command only supports `array` fields, meaning a nested field or an array built in the query, such as with `array()` or `stats list()`. Any other field results in an error, even when its documents store an array. For example, a string field storing an array of strings has the type `string`, and an object field storing an array of objects has the type `struct`, so neither can be expanded.

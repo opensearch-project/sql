@@ -23,6 +23,7 @@ import org.opensearch.sql.monitor.profile.ProfileContext;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
+import org.opensearch.sql.opensearch.executor.progress.SourceProgress;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.tasks.CancellableTask;
@@ -85,9 +86,15 @@ public class BackgroundSearchScanner {
    */
   @Nullable private final CancellableTask cancellableTask;
 
+  @Nullable private final SourceProgress progress;
+
   public BackgroundSearchScanner(
-      OpenSearchClient client, int maxResultWindow, int queryBucketSize) {
+      OpenSearchClient client,
+      int maxResultWindow,
+      int queryBucketSize,
+      @Nullable SourceProgress progress) {
     this.client = client;
+    this.progress = progress;
     this.maxResultWindow = maxResultWindow;
     this.queryBucketSize = queryBucketSize;
     this.cancellableTask = OpenSearchQueryManager.getCancellableTask();
@@ -138,7 +145,7 @@ public class BackgroundSearchScanner {
       restored = true;
     }
     try {
-      return QueryProfiling.withCurrentContext(ctx, () -> client.search(request));
+      return QueryProfiling.withCurrentContext(ctx, () -> client.search(request, progress));
     } finally {
       if (restored) {
         OpenSearchQueryManager.clearCancellableTask();
@@ -175,7 +182,7 @@ public class BackgroundSearchScanner {
             e);
       }
     } else {
-      return client.search(request);
+      return client.search(request, progress);
     }
   }
 

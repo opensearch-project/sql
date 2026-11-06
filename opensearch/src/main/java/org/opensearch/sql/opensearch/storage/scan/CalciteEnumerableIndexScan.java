@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import java.util.List;
+import java.util.Optional;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.PhysType;
@@ -29,6 +30,8 @@ import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.plan.Scannable;
 import org.opensearch.sql.calcite.plan.rule.OpenSearchRules;
+import org.opensearch.sql.opensearch.executor.progress.QueryProgressTracker;
+import org.opensearch.sql.opensearch.executor.progress.SourceProgress;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
@@ -105,7 +108,16 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
             pref.preferArray());
 
     Expression scanOperator = implementor.stash(this, CalciteEnumerableIndexScan.class);
-    return implementor.result(physType, Blocks.toBlock(Expressions.call(scanOperator, "scan")));
+    // One source per use: the planner may share a scan, e.g. both sides of a self-join.
+    Optional<QueryProgressTracker> tracker = QueryProgressTracker.current();
+    Expression scan =
+        tracker.isEmpty()
+            ? Expressions.call(scanOperator, "scan")
+            : Expressions.call(
+                scanOperator,
+                "scan",
+                implementor.stash(tracker.get().addSource(), SourceProgress.class));
+    return implementor.result(physType, Blocks.toBlock(scan));
   }
 
   /**
@@ -115,6 +127,15 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
    */
   @Override
   public Enumerable<@Nullable Object> scan() {
+    return scan(null);
+  }
+
+  @Override
+  public Enumerable<@Nullable Object> scanAsRoot() {
+    return scan(QueryProgressTracker.current().map(QueryProgressTracker::addSource).orElse(null));
+  }
+
+  public Enumerable<@Nullable Object> scan(@Nullable SourceProgress progress) {
     return new AbstractEnumerable<>() {
       @Override
       public Enumerator<Object> enumerator() {
@@ -126,7 +147,8 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
             requestBuilder.getMaxResultWindow(),
             osIndex.getQueryBucketSize(),
             osIndex.buildRequest(requestBuilder),
-            osIndex.createOpenSearchResourceMonitor());
+            osIndex.createOpenSearchResourceMonitor(),
+            progress);
       }
     };
   }

@@ -24,6 +24,7 @@ import org.opensearch.index.query.QueryShardException;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.common.error.QueryProcessingStage;
 import org.opensearch.sql.exception.NonFallbackCalciteException;
+import org.opensearch.sql.opensearch.executor.WorkerPoolSaturatedException;
 
 /**
  * Verifies {@link SyncErrorReportRenderer#statusCodeFor(Throwable)} takes the status of an {@link
@@ -32,6 +33,15 @@ import org.opensearch.sql.exception.NonFallbackCalciteException;
  * generated and the shard failed to compile returns 500.
  */
 public class SyncErrorReportRendererTest {
+
+  @Test
+  public void saturatedWorkerPoolReturns429() {
+    WorkerPoolSaturatedException saturated = new WorkerPoolSaturatedException("sql-worker");
+    assertEquals(429, SyncErrorReportRenderer.statusCodeFor(saturated));
+    assertEquals(429, SyncErrorReportRenderer.statusCodeFor(new RuntimeException(saturated)));
+    assertEquals(
+        "Too Many Requests", SyncErrorReportRenderer.renderErrorMap(saturated).get("reason"));
+  }
 
   @Test
   public void shardFailureInsideExecuteQueryReturns400() {

@@ -28,4 +28,9 @@ public final class ProfileScannableRel extends ProfileEnumerableRel implements S
   public Enumerable<@Nullable Object> scan() {
     return profile(scannable.scan(), planNode.metrics());
   }
+
+  @Override
+  public Enumerable<@Nullable Object> scanAsRoot() {
+    return profile(scannable.scanAsRoot(), planNode.metrics());
+  }
 }

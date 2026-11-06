@@ -32,6 +32,7 @@ public abstract class Settings {
     PATTERN_BUFFER_LIMIT("plugins.ppl.pattern.buffer.limit"),
     PATTERN_SHOW_NUMBERED_TOKEN("plugins.ppl.pattern.show.numbered.token"),
     PPL_REX_MAX_MATCH_LIMIT("plugins.ppl.rex.max_match.limit"),
+    PPL_REGEX_MATCH_LIMIT("plugins.ppl.regex.match.limit"),
     PPL_VALUES_MAX_LIMIT("plugins.ppl.values.max.limit"),
     PPL_SYNTAX_LEGACY_PREFERRED("plugins.ppl.syntax.legacy.preferred"),
     PPL_SUBSEARCH_MAXOUT("plugins.ppl.subsearch.maxout"),
@@ -48,6 +49,7 @@ public abstract class Settings {
 
     /** Query Settings. */
     FIELD_TYPE_TOLERANCE("plugins.query.field_type_tolerance"),
+    FLAT_OBJECT_MAX_DEPTH("plugins.query.flat_object.max_depth"),
 
     /** Common Settings for SQL and PPL. */
     QUERY_MEMORY_LIMIT("plugins.query.memory_limit"),

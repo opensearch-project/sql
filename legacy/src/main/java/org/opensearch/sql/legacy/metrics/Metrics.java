@@ -26,6 +26,15 @@ public class Metrics {
     for (MetricName metricName : MetricName.values()) {
       registerMetric(MetricFactory.createMetric(metricName));
     }
+    for (LatencyMetricName latencyName : LatencyMetricName.values()) {
+      registerMetric(new LatencyMetric(latencyName));
+    }
+  }
+
+  /** The latency metric for a query language, or null if not registered. */
+  public LatencyMetric getLatencyMetric(LatencyMetricName latencyName) {
+    Metric<?> metric = registeredMetricsByName.get(latencyName.getName());
+    return metric instanceof LatencyMetric ? (LatencyMetric) metric : null;
   }
 
   public void registerMetric(Metric metric) {
@@ -68,7 +77,7 @@ public class Metrics {
       if (metric.getName().equals("default")) {
         continue;
       }
-      metricsJSONObject.put(metric.getName(), metric.getValue());
+      metric.collectInto(metricsJSONObject);
     }
 
     return metricsJSONObject.toString();

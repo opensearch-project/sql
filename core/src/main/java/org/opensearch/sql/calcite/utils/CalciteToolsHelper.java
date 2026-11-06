@@ -334,7 +334,7 @@ public class CalciteToolsHelper {
         Hook.PLAN_BEFORE_IMPLEMENTATION.run(root);
         RelDataType resultType = root.rel.getRowType();
         boolean isDml = root.kind.belongsTo(SqlKind.DML);
-        final Bindable bindable = dataContext -> scannable.scan();
+        final Bindable bindable = dataContext -> scannable.scanAsRoot();
 
         return new PreparedResultImpl(
             resultType,

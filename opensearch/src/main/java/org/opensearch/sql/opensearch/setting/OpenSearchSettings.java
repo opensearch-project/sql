@@ -31,6 +31,8 @@ import org.opensearch.index.IndexSettings;
 import org.opensearch.search.aggregations.MultiBucketConsumerService;
 import org.opensearch.sql.common.antlr.AstBuildGuard;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.expression.parse.RegexCommonUtils;
+import org.opensearch.sql.opensearch.data.value.FlatObjectValues;
 import org.opensearch.sql.utils.DeserializationFilterUtil;
 
 /** Setting implementation on OpenSearch. */
@@ -135,6 +137,14 @@ public class OpenSearchSettings extends Settings {
           Key.PPL_REX_MAX_MATCH_LIMIT.getKeyValue(),
           10,
           1,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<?> PPL_REGEX_MATCH_LIMIT_SETTING =
+      Setting.longSetting(
+          Key.PPL_REGEX_MATCH_LIMIT.getKeyValue(),
+          RegexCommonUtils.DEFAULT_MATCH_LIMIT,
+          1L,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
@@ -391,6 +401,14 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<Integer> FLAT_OBJECT_MAX_DEPTH_SETTING =
+      Setting.intSetting(
+          Key.FLAT_OBJECT_MAX_DEPTH.getKeyValue(),
+          FlatObjectValues.DEFAULT_MAX_DEPTH,
+          1,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   public static final Setting<Boolean> SQL_COMPLEX_WORKER_POOL_ENABLED_SETTING =
       Setting.boolSetting(
           Key.SQL_COMPLEX_WORKER_POOL_ENABLED.getKeyValue(),
@@ -479,6 +497,23 @@ public class OpenSearchSettings extends Settings {
         Key.PPL_REX_MAX_MATCH_LIMIT,
         PPL_REX_MAX_MATCH_LIMIT_SETTING,
         new Updater(Key.PPL_REX_MAX_MATCH_LIMIT));
+    Updater regexMatchLimitUpdater = new Updater(Key.PPL_REGEX_MATCH_LIMIT);
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.PPL_REGEX_MATCH_LIMIT,
+        PPL_REGEX_MATCH_LIMIT_SETTING,
+        // Keep the static guard in RegexCommonUtils (in the engine-agnostic core module) in sync
+        // on both registration and dynamic change, since parse/rex matching is evaluated there.
+        newValue -> {
+          regexMatchLimitUpdater.accept(newValue);
+          RegexCommonUtils.setMatchLimit(((Number) newValue).longValue());
+        });
+    // Seed the initial value: the update consumer above only fires on subsequent changes.
+    Object regexMatchLimit = clusterSettings.get(PPL_REGEX_MATCH_LIMIT_SETTING);
+    if (regexMatchLimit != null) {
+      RegexCommonUtils.setMatchLimit(((Number) regexMatchLimit).longValue());
+    }
     register(
         settingBuilder,
         clusterSettings,
@@ -688,6 +723,12 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.FLAT_OBJECT_MAX_DEPTH,
+        FLAT_OBJECT_MAX_DEPTH_SETTING,
+        new Updater(Key.FLAT_OBJECT_MAX_DEPTH));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.SQL_COMPLEX_WORKER_POOL_ENABLED,
         SQL_COMPLEX_WORKER_POOL_ENABLED_SETTING,
         new Updater(Key.SQL_COMPLEX_WORKER_POOL_ENABLED));
@@ -766,6 +807,7 @@ public class OpenSearchSettings extends Settings {
         .add(DEFAULT_PATTERN_BUFFER_LIMIT_SETTING)
         .add(DEFAULT_PATTERN_SHOW_NUMBERED_TOKEN_SETTING)
         .add(PPL_REX_MAX_MATCH_LIMIT_SETTING)
+        .add(PPL_REGEX_MATCH_LIMIT_SETTING)
         .add(PPL_VALUES_MAX_LIMIT_SETTING)
         .add(PPL_SUBSEARCH_MAXOUT_SETTING)
         .add(PPL_JOIN_SUBSEARCH_MAXOUT_SETTING)
@@ -790,6 +832,7 @@ public class OpenSearchSettings extends Settings {
         .add(SESSION_INACTIVITY_TIMEOUT_MILLIS_SETTING)
         .add(STREAMING_JOB_HOUSEKEEPER_INTERVAL_SETTING)
         .add(FIELD_TYPE_TOLERANCE_SETTING)
+        .add(FLAT_OBJECT_MAX_DEPTH_SETTING)
         .add(SQL_COMPLEX_WORKER_POOL_ENABLED_SETTING)
         .build();
   }

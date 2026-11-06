@@ -9,6 +9,7 @@ import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_
 import static org.opensearch.sql.opensearch.executor.OpenSearchQueryManager.SQL_WORKER_THREAD_POOL_NAME;
 
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
 import org.apache.calcite.rel.RelNode;
@@ -21,6 +22,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.core.concurrency.OpenSearchRejectedExecutionException;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
@@ -76,16 +78,16 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
       long currentTime = Hook.CURRENT_TIME.get(-1L);
       TimeValue timeout = settings.getSettingValue(Settings.Key.PPL_QUERY_TIMEOUT);
 
-      threadPool.schedule(
+      Runnable complexTask =
           () -> {
             final Thread executionThread = Thread.currentThread();
+            final AtomicBoolean deadlineExpired = new AtomicBoolean(false);
             Cancellable timeoutHandle =
                 threadPool.schedule(
                     () -> {
-                      LOG.warn(
-                          "Query execution timed out after {}. Interrupting execution thread.",
-                          timeout);
-                      executionThread.interrupt();
+                      LOG.warn("Query execution timed out after {}. Stopping the query.", timeout);
+                      deadlineExpired.set(true);
+                      OpenSearchQueryManager.expire(cancellableTask, executionThread, timeout);
                     },
                     timeout,
                     ThreadPool.Names.GENERIC);
@@ -108,9 +110,15 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
               }
               task.run();
             } catch (Exception e) {
-              LOG.error("Exception during task execution on complex pool", e);
+              Exception failure = e;
+              if (OpenSearchQueryManager.timedOut(cancellableTask, deadlineExpired)) {
+                LOG.error("Query was stopped after exceeding the timeout of {}", timeout);
+                failure = new QueryTimeoutException(timeout);
+              } else {
+                LOG.error("Exception during task execution on complex pool", e);
+              }
               if (failureListener != null) {
-                failureListener.onFailure(e);
+                failureListener.onFailure(failure);
               }
             } finally {
               timeoutHandle.cancel();
@@ -124,12 +132,31 @@ public class ThreadPoolExecutionDispatcher implements ExecutionDispatcher {
               CalcitePlanContext.clearTimewrapSignals();
               QueryProfiling.clear();
             }
-          },
-          new TimeValue(0),
-          SQL_COMPLEX_WORKER_THREAD_POOL_NAME);
+          };
+      try {
+        // The executor runs the task in this thread's ThreadContext.
+        threadPool.executor(SQL_COMPLEX_WORKER_THREAD_POOL_NAME).execute(complexTask);
+      } catch (OpenSearchRejectedExecutionException e) {
+        WorkerPoolSaturatedException saturated =
+            new WorkerPoolSaturatedException(SQL_COMPLEX_WORKER_THREAD_POOL_NAME);
+        if (failureListener == null) {
+          throw saturated;
+        }
+        failureListener.onFailure(saturated);
+      }
     } else {
       CalcitePlanContext.executionPool.set(SQL_WORKER_THREAD_POOL_NAME);
-      task.run();
+      try {
+        task.run();
+      } catch (RuntimeException e) {
+        // Synchronous, so QueryService reports it before OpenSearchQueryManager's catch sees it.
+        if (OpenSearchQueryManager.timedOut(OpenSearchQueryManager.getCancellableTask(), null)) {
+          TimeValue timeout = settings.getSettingValue(Settings.Key.PPL_QUERY_TIMEOUT);
+          LOG.error("Query was stopped after exceeding the timeout of {}", timeout);
+          throw new QueryTimeoutException(timeout);
+        }
+        throw e;
+      }
     }
   }
 

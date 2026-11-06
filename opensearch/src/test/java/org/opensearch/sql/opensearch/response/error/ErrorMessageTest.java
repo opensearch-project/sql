@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.core.rest.RestStatus.SERVICE_UNAVAILABLE;
+import static org.opensearch.core.rest.RestStatus.TOO_MANY_REQUESTS;
 
 import java.sql.SQLException;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,22 @@ class ErrorMessageTest {
             + "    \"type\": \"IllegalStateException\"\n"
             + "  },\n"
             + "  \"status\": 400\n"
+            + "}",
+        errorMessage.toString());
+  }
+
+  @Test
+  public void testTooManyRequestsToString() {
+    ErrorMessage errorMessage =
+        new ErrorMessage(new IllegalStateException(), TOO_MANY_REQUESTS.getStatus());
+    assertEquals(
+        "{\n"
+            + "  \"error\": {\n"
+            + "    \"reason\": \"Too Many Requests\",\n"
+            + "    \"details\": \"\",\n"
+            + "    \"type\": \"IllegalStateException\"\n"
+            + "  },\n"
+            + "  \"status\": 429\n"
             + "}",
         errorMessage.toString());
   }

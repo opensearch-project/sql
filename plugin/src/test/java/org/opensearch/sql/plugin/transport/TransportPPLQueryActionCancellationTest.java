@@ -38,6 +38,7 @@ import org.opensearch.sql.job.QueryRunner;
 import org.opensearch.sql.job.SecurityAdapter;
 import org.opensearch.sql.ppl.PPLService;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
+import org.opensearch.tasks.CancellableTask;
 import org.opensearch.tasks.Task;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.node.NodeClient;
@@ -79,14 +80,45 @@ public class TransportPPLQueryActionCancellationTest {
     submitAsync.setAccessible(true);
   }
 
+  /**
+   * A caller that bundles its own copy of the SQL classes creates its own {@code PPLQueryTask},
+   * which is a different class loaded by that plugin's classloader. Binding has to recognise the
+   * core type so the query is still linked to its task.
+   */
+  @Test
+  public void aTaskFromAnotherPluginsClassloaderIsStillCancellable() throws Exception {
+    CancellableTask foreignTask =
+        new CancellableTask(
+            2, "transport", PPLQueryAction.NAME, "source=test", TaskId.EMPTY_TASK_ID, Map.of()) {
+          @Override
+          public boolean shouldCancelChildrenOnCancellation() {
+            return true;
+          }
+        };
+    when(security.current()).thenReturn(Principal.UNSECURED);
+    when(jobs.submit(any(), eq(Principal.UNSECURED), any(), any()))
+        .thenReturn(
+            CompletableFuture.completedFuture(
+                new QueryResult.Running(
+                    new QueryJobId("owner-node", "query-context"),
+                    org.opensearch.sql.job.QueryProgress.NONE)));
+
+    submit(foreignTask);
+
+    ArgumentCaptor<QueryRunner> runner = ArgumentCaptor.forClass(QueryRunner.class);
+    verify(jobs).submit(runner.capture(), eq(Principal.UNSECURED), any(), any());
+    runner.getValue().cancel();
+    assertTrue(foreignTask.isCancelled());
+    assertEquals("async PPL query cancelled", foreignTask.getReasonCancelled());
+  }
+
   @Test
   public void unsupportedTaskIsRejectedBeforePublishingOrExecutingAJob() {
     InvocationTargetException failure =
         assertThrows(InvocationTargetException.class, () -> submit(mock(Task.class)));
 
     assertTrue(failure.getCause() instanceof IllegalArgumentException);
-    assertEquals(
-        "Async PPL queries require a cancellable PPLQueryTask", failure.getCause().getMessage());
+    assertEquals("Async PPL queries require a cancellable task", failure.getCause().getMessage());
     verifyNoInteractions(jobs, pplService, client, security, listener);
   }
 
@@ -99,7 +131,9 @@ public class TransportPPLQueryActionCancellationTest {
     when(jobs.submit(any(), eq(Principal.UNSECURED), any(), any()))
         .thenReturn(
             CompletableFuture.completedFuture(
-                new QueryResult.Running(new QueryJobId("owner-node", "query-context"))));
+                new QueryResult.Running(
+                    new QueryJobId("owner-node", "query-context"),
+                    org.opensearch.sql.job.QueryProgress.NONE)));
 
     submit(task);
 

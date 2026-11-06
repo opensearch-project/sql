@@ -122,7 +122,7 @@ public final class RexExtractFunction extends ImplementorUDF {
       String text, String pattern, java.util.function.Function<Matcher, String> extractor) {
     try {
       Pattern compiledPattern = RegexCommonUtils.getCompiledPattern(pattern);
-      Matcher matcher = compiledPattern.matcher(text);
+      Matcher matcher = RegexCommonUtils.boundedMatcher(compiledPattern, text);
 
       if (matcher.find()) {
         return extractor.apply(matcher);

@@ -108,6 +108,7 @@ import org.opensearch.sql.legacy.plugin.RestSqlStatsAction;
 import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
 import org.opensearch.sql.opensearch.client.PluginClient;
 import org.opensearch.sql.opensearch.client.RemoteClusterServiceProvider;
+import org.opensearch.sql.opensearch.data.value.FlatObjectValues;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
 import org.opensearch.sql.opensearch.storage.rest.CoreEndpointsProvider;
@@ -442,6 +443,15 @@ public class SQLPlugin extends Plugin
     this.pluginSettings = new OpenSearchSettings(clusterService.getClusterSettings());
     this.client = (NodeClient) client;
     this.pluginClient = new PluginClient(client);
+
+    // Read on every node, including by pushed-down scripts on data nodes, so it is kept as a static
+    // in step with the cluster setting -- as SearchService does for max_clause_count.
+    FlatObjectValues.setMaxDepth(
+        OpenSearchSettings.FLAT_OBJECT_MAX_DEPTH_SETTING.get(clusterService.getSettings()));
+    clusterService
+        .getClusterSettings()
+        .addSettingsUpdateConsumer(
+            OpenSearchSettings.FLAT_OBJECT_MAX_DEPTH_SETTING, FlatObjectValues::setMaxDepth);
 
     publishRestCommandRegistries();
 

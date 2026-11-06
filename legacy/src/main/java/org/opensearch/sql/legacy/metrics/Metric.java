@@ -20,4 +20,9 @@ public abstract class Metric<T> implements java.io.Serializable {
   }
 
   public abstract T getValue();
+
+  /** Write this metric's stats-response entries. Override to emit more than one key. */
+  public void collectInto(org.json.JSONObject json) {
+    json.put(getName(), getValue());
+  }
 }

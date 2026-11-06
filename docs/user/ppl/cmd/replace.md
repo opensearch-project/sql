@@ -335,3 +335,4 @@ The `replace` command has the following limitations:
 * **Wildcards**: The `*` wildcard matches zero or more characters and is case sensitive.
 * **Wildcard matching**: Replacement wildcards must match the pattern wildcard count or be zero.
 * **Escape sequences**: Use `\*` for literal asterisk and `\\` for literal backslash characters.  
+* **Field types**: The `replace` command supports string, date, time, timestamp, and binary fields. It replaces text in a date, time, timestamp, or binary value as PPL returns it, such as `2024-01-01 00:00:00` for a timestamp, and returns a string. Using it on any other field type, such as a numeric, `ip`, or `struct` field, results in an error. Object and flat_object fields have the type `struct`.
