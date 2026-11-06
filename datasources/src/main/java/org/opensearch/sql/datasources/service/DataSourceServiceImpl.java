@@ -31,7 +31,16 @@ import org.opensearch.sql.storage.DataSourceFactory;
 public class DataSourceServiceImpl implements DataSourceService {
 
   public static final Set<String> CONFIDENTIAL_AUTH_KEYS =
-      Set.of("auth.username", "auth.password", "auth.access_key", "auth.secret_key");
+      Set.of(
+          "auth.username",
+          "auth.password",
+          "auth.access_key",
+          "auth.secret_key",
+          // Matched with endsWith, so this covers prometheus.oauth2.clientSecret and
+          // alertmanager.oauth2.clientSecret. The secret is encrypted at rest but decrypted
+          // when metadata is read, so without this it would be returned in plain text by the
+          // datasource read APIs.
+          "oauth2.clientSecret");
 
   private final DataSourceLoaderCache dataSourceLoaderCache;
 
@@ -149,7 +158,7 @@ public class DataSourceServiceImpl implements DataSourceService {
     DataSourceMetadata.Builder metadataBuilder = new DataSourceMetadata.Builder(metadata);
     for (String key : dataSourceData.keySet()) {
       switch (key) {
-          // Name and connector should not be modified
+        // Name and connector should not be modified
         case DESCRIPTION_FIELD:
           metadataBuilder.setDescription((String) dataSourceData.get(DESCRIPTION_FIELD));
           break;

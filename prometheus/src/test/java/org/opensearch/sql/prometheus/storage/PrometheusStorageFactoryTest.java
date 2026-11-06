@@ -239,4 +239,145 @@ public class PrometheusStorageFactoryTest {
             + "Validate with plugins.query.datasources.uri.hosts.denylist config",
         exception.getMessage());
   }
+
+  @Test
+  @SneakyThrows
+  void testGetStorageEngineWithOAuth2ValidHttpsTokenUrl() {
+    when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST))
+        .thenReturn(Collections.emptyList());
+    PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("prometheus.uri", "http://localhost:9090");
+    properties.put("prometheus.auth.type", "oauth2");
+    properties.put("prometheus.oauth2.clientId", "testClient");
+    properties.put("prometheus.oauth2.clientSecret", "testSecret");
+    properties.put(
+        "prometheus.oauth2.tokenUrl",
+        "https://localhost:8443/token"); // Use localhost to avoid DNS issues
+
+    StorageEngine storageEngine = prometheusStorageFactory.getStorageEngine(properties);
+    Assertions.assertTrue(storageEngine instanceof PrometheusStorageEngine);
+  }
+
+  @Test
+  @SneakyThrows
+  void testGetStorageEngineWithOAuth2InvalidHttpTokenUrl() {
+    when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST))
+        .thenReturn(Collections.emptyList());
+    PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("prometheus.uri", "http://localhost:9090");
+    properties.put("prometheus.auth.type", "oauth2");
+    properties.put("prometheus.oauth2.clientId", "testClient");
+    properties.put("prometheus.oauth2.clientSecret", "testSecret");
+    properties.put(
+        "prometheus.oauth2.tokenUrl", "http://localhost:8443/token"); // HTTP instead of HTTPS
+
+    IllegalArgumentException exception =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () -> prometheusStorageFactory.getStorageEngine(properties));
+    Assertions.assertTrue(
+        exception.getMessage().contains("OAuth2 token URL must use HTTPS protocol for security"));
+  }
+
+  @Test
+  @SneakyThrows
+  void testGetStorageEngineWithOAuth2MissingSchemeTokenUrl() {
+    when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST))
+        .thenReturn(Collections.emptyList());
+    PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("prometheus.uri", "http://localhost:9090");
+    properties.put("prometheus.auth.type", "oauth2");
+    properties.put("prometheus.oauth2.clientId", "testClient");
+    properties.put("prometheus.oauth2.clientSecret", "testSecret");
+    properties.put("prometheus.oauth2.tokenUrl", "localhost:8443/token"); // Missing scheme
+
+    IllegalArgumentException exception =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () -> prometheusStorageFactory.getStorageEngine(properties));
+    Assertions.assertTrue(exception.getMessage().contains("Invalid OAuth2 token URL format"));
+  }
+
+  @Test
+  @SneakyThrows
+  void testGetStorageEngineWithOAuth2EmptyTokenUrl() {
+    when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST))
+        .thenReturn(Collections.emptyList());
+    PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("prometheus.uri", "http://localhost:9090");
+    properties.put("prometheus.auth.type", "oauth2");
+    properties.put("prometheus.oauth2.clientId", "testClient");
+    properties.put("prometheus.oauth2.clientSecret", "testSecret");
+    properties.put("prometheus.oauth2.tokenUrl", ""); // Empty token URL
+
+    IllegalArgumentException exception =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () -> prometheusStorageFactory.getStorageEngine(properties));
+    Assertions.assertTrue(exception.getMessage().contains("OAuth2 configuration incomplete"));
+  }
+
+  @Test
+  @SneakyThrows
+  void testGetStorageEngineWithOAuth2InvalidTokenUrlFormat() {
+    when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST))
+        .thenReturn(Collections.emptyList());
+    PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("prometheus.uri", "http://localhost:9090");
+    properties.put("prometheus.auth.type", "oauth2");
+    properties.put("prometheus.oauth2.clientId", "testClient");
+    properties.put("prometheus.oauth2.clientSecret", "testSecret");
+    properties.put(
+        "prometheus.oauth2.tokenUrl", "https://invalid url with spaces"); // Invalid URL format
+
+    IllegalArgumentException exception =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () -> prometheusStorageFactory.getStorageEngine(properties));
+    Assertions.assertTrue(exception.getMessage().contains("Invalid OAuth2 token URL format"));
+  }
+
+  @Test
+  @SneakyThrows
+  void testGetStorageEngineWithOAuth2MissingHostnameTokenUrl() {
+    when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST))
+        .thenReturn(Collections.emptyList());
+    PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("prometheus.uri", "http://localhost:9090");
+    properties.put("prometheus.auth.type", "oauth2");
+    properties.put("prometheus.oauth2.clientId", "testClient");
+    properties.put("prometheus.oauth2.clientSecret", "testSecret");
+    properties.put("prometheus.oauth2.tokenUrl", "https://"); // Missing hostname - just protocol
+
+    IllegalArgumentException exception =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () -> prometheusStorageFactory.getStorageEngine(properties));
+    Assertions.assertTrue(exception.getMessage().contains("Invalid OAuth2 token URL format"));
+  }
+
+  @Test
+  @SneakyThrows
+  void testGetStorageEngineWithOAuth2MissingRequiredFields() {
+    PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("prometheus.uri", "http://localhost:9090");
+    properties.put("prometheus.auth.type", "oauth2");
+    properties.put("prometheus.oauth2.clientId", "testClient");
+    // Missing clientSecret and tokenUrl
+
+    IllegalArgumentException exception =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () -> prometheusStorageFactory.getStorageEngine(properties));
+    Assertions.assertTrue(exception.getMessage().contains("Missing"));
+    Assertions.assertTrue(exception.getMessage().contains("prometheus.oauth2.clientSecret"));
+    Assertions.assertTrue(exception.getMessage().contains("prometheus.oauth2.tokenUrl"));
+  }
 }
