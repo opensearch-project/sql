@@ -255,13 +255,14 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testNoMvWithAllNulls() throws IOException {
-    String q =
+    // age is an integer field, so it is cast to string first: nomv rejects numeric arrays.
+    final String q =
         "source="
             + TEST_INDEX_BANK_WITH_NULL_VALUES
-            + " | where account_number = 25 | eval arr = array(age, age, age) | nomv arr | fields"
-            + " account_number, arr";
+            + " | where account_number = 25 | eval age_str = cast(age as string) | eval arr ="
+            + " array(age_str, age_str, age_str) | nomv arr | fields account_number, arr";
 
-    JSONObject result = executeQuery(q);
+    final JSONObject result = executeQuery(q);
 
     verifySchema(result, schema("account_number", null, "bigint"), schema("arr", null, "string"));
 
@@ -270,17 +271,39 @@ public class CalciteNoMvCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testNoMvArrayWithAllNulls() throws IOException {
-    String q =
+    // age is an integer field, so it is cast to string first: nomv rejects numeric arrays.
+    final String q =
         "source="
             + TEST_INDEX_BANK_WITH_NULL_VALUES
-            + " | where account_number = 25 | eval arr = array(age, age, age) | nomv arr | fields"
-            + " account_number, arr";
+            + " | where account_number = 25 | eval arr = array(cast(age as string), cast(age as"
+            + " string), cast(age as string)) | nomv arr | fields account_number, arr";
 
-    JSONObject result = executeQuery(q);
+    final JSONObject result = executeQuery(q);
 
     verifySchema(result, schema("account_number", null, "bigint"), schema("arr", null, "string"));
 
     verifyDataRows(result, rows(25, ""));
+  }
+
+  @Test
+  public void testNoMvNumericArrayError() {
+    final ResponseException ex =
+        Assertions.assertThrows(
+            ResponseException.class,
+            () ->
+                executeQuery(
+                    "source="
+                        + TEST_INDEX_BANK
+                        + " | eval arr = array(age) | nomv arr | head 1 | fields arr"));
+
+    final int status = ex.getResponse().getStatusLine().getStatusCode();
+    Assertions.assertEquals(400, status, "Expected 400 for an array of non-string elements");
+
+    final String msg = ex.getMessage();
+    Assertions.assertTrue(
+        msg.contains("MVJOIN only supports string arrays, but got an array of INTEGER"), msg);
+    Assertions.assertTrue(msg.contains("ExpressionEvaluationException"), msg);
+    Assertions.assertTrue(msg.contains("analyzing"), msg);
   }
 
   @Test
