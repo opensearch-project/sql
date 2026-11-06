@@ -6,11 +6,12 @@
 package org.opensearch.sql.opensearch.executor;
 
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
-import org.opensearch.OpenSearchTimeoutException;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.concurrency.OpenSearchRejectedExecutionException;
 import org.opensearch.sql.common.setting.Settings;
@@ -50,6 +51,20 @@ public class OpenSearchQueryManager implements QueryManager {
     cancellableTask.remove();
   }
 
+  /**
+   * Set when this query's deadline expires, for a query that has no task to carry the signal. Boxed
+   * because the scheduled timeout writes it from another thread.
+   */
+  private static final ThreadLocal<AtomicBoolean> deadlineFlag = new ThreadLocal<>();
+
+  static void setDeadlineFlag(AtomicBoolean flag) {
+    deadlineFlag.set(flag);
+  }
+
+  static void clearDeadlineFlag() {
+    deadlineFlag.remove();
+  }
+
   @Override
   public QueryId submit(AbstractPlan queryPlan) {
     TimeValue timeout = settings.getSettingValue(Settings.Key.PPL_QUERY_TIMEOUT);
@@ -68,19 +83,21 @@ public class OpenSearchQueryManager implements QueryManager {
         withCurrentContext(
             () -> {
               final Thread executionThread = Thread.currentThread();
+              final AtomicBoolean deadlineExpired = new AtomicBoolean(false);
 
               Scheduler.ScheduledCancellable timeoutTask =
                   threadPool.schedule(
                       () -> {
                         LOG.warn(
-                            "Query execution timed out after {}. Interrupting execution thread.",
-                            timeout);
-                        executionThread.interrupt();
+                            "Query execution timed out after {}. Stopping the query.", timeout);
+                        deadlineExpired.set(true);
+                        expire(cancelTask, executionThread, timeout);
                       },
                       timeout,
                       ThreadPool.Names.GENERIC);
 
               setCancellableTask(cancelTask);
+              setDeadlineFlag(deadlineExpired);
 
               try {
                 task.run();
@@ -89,17 +106,17 @@ public class OpenSearchQueryManager implements QueryManager {
                 Thread.interrupted();
               } catch (Exception e) {
                 timeoutTask.cancel();
+                Thread.interrupted();
 
-                // Special-case handling of timeout-related interruptions
-                if (Thread.interrupted() || e.getCause() instanceof InterruptedException) {
-                  LOG.error("Query was interrupted due to timeout after {}", timeout);
-                  throw new OpenSearchTimeoutException(
-                      "Query execution timed out after " + timeout);
+                if (timedOut(cancelTask, deadlineExpired)) {
+                  LOG.error("Query was stopped after exceeding the timeout of {}", timeout);
+                  throw new QueryTimeoutException(timeout);
                 }
 
                 throw e;
               } finally {
                 clearCancellableTask();
+                clearDeadlineFlag();
               }
             });
 
@@ -109,6 +126,40 @@ public class OpenSearchQueryManager implements QueryManager {
     } catch (OpenSearchRejectedExecutionException e) {
       throw new WorkerPoolSaturatedException(SQL_WORKER_THREAD_POOL_NAME);
     }
+  }
+
+  private static final String TIMEOUT_REASON_PREFIX = "Query execution timed out after ";
+
+  /**
+   * Whether this query was stopped by its own deadline. The task is shared across the worker and
+   * complex-worker threads and carries the reason {@link #expire} cancelled it, so it answers for
+   * whichever thread observes the failure. {@code localFlag} covers a query submitted with no task.
+   */
+  static boolean timedOut(@Nullable CancellableTask task, @Nullable AtomicBoolean localFlag) {
+    if (localFlag != null && localFlag.get()) {
+      return true;
+    }
+    AtomicBoolean carried = deadlineFlag.get();
+    if (carried != null && carried.get()) {
+      return true;
+    }
+    return task != null
+        && task.isCancelled()
+        && task.getReasonCancelled() != null
+        && task.getReasonCancelled().startsWith(TIMEOUT_REASON_PREFIX);
+  }
+
+  /**
+   * Stops a query whose deadline expired. Cancelling reaches work that is not blocked on I/O, since
+   * {@code OpenSearchIndexEnumerator#moveNext} tests {@link CancellableTask#isCancelled()} per row;
+   * the interrupt releases a thread blocked on a fetch.
+   */
+  static void expire(
+      @Nullable CancellableTask cancelTask, Thread executionThread, TimeValue timeout) {
+    if (cancelTask != null && !cancelTask.isCancelled()) {
+      cancelTask.cancel(TIMEOUT_REASON_PREFIX + timeout);
+    }
+    executionThread.interrupt();
   }
 
   private Runnable withCurrentContext(final Runnable task) {
