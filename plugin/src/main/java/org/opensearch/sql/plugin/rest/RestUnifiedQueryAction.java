@@ -14,6 +14,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -22,9 +23,12 @@ import org.apache.commons.lang3.Strings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
+import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.analytics.QueryRequestContext;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
 import org.opensearch.analytics.exec.profile.QueryProfile;
+import org.opensearch.cluster.ClusterState;
+import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentFactory;
@@ -71,6 +75,7 @@ public class RestUnifiedQueryAction {
   private final AnalyticsExecutionEngine analyticsEngine;
   private final NodeClient client;
   private final ClusterService clusterService;
+  private final IndexNameExpressionResolver indexNameExpressionResolver;
   private final org.opensearch.analytics.EngineContextProvider contextProvider;
   private final org.opensearch.sql.common.setting.Settings pluginSettings;
   private final org.opensearch.sql.executor.ExecutionDispatcher executionDispatcher;
@@ -78,12 +83,14 @@ public class RestUnifiedQueryAction {
   public RestUnifiedQueryAction(
       NodeClient client,
       ClusterService clusterService,
+      IndexNameExpressionResolver indexNameExpressionResolver,
       QueryPlanExecutor<RelNode, Iterable<Object[]>> planExecutor,
       org.opensearch.analytics.EngineContextProvider contextProvider,
       org.opensearch.sql.common.setting.Settings pluginSettings,
       org.opensearch.sql.executor.ExecutionDispatcher executionDispatcher) {
     this.client = client;
     this.clusterService = clusterService;
+    this.indexNameExpressionResolver = indexNameExpressionResolver;
     this.analyticsEngine = new AnalyticsExecutionEngine(planExecutor);
     this.contextProvider = contextProvider;
     this.pluginSettings = pluginSettings;
@@ -108,8 +115,7 @@ public class RestUnifiedQueryAction {
     // Cluster-level opt-in: when `cluster.pluggable.dataformat="composite"`, new indices
     // inherit `index.pluggable.dataformat="composite"` at creation (see
     // MetadataCreateIndexService), so every queryable target is analytics-eligible. Skip
-    // the per-index lookup — it doesn't work for aliases, wildcards, comma-lists, or data
-    // streams (Metadata#index() only resolves concrete names).
+    // the per-index lookup because the cluster setting already determines the storage format.
     if ("composite"
         .equals(
             IndicesService.CLUSTER_PLUGGABLE_DATAFORMAT_VALUE_SETTING.get(
@@ -129,7 +135,6 @@ public class RestUnifiedQueryAction {
     }
     try (UnifiedQueryContext context = buildParsingContext(queryType)) {
       return extractIndexName(query, queryType, context)
-          .map(this::stripSchemaPrefix)
           .map(this::allIndicesArePluggableDataformat)
           .orElse(false);
     } catch (Exception e) {
@@ -138,21 +143,41 @@ public class RestUnifiedQueryAction {
   }
 
   /**
-   * Checks if all indices in a (possibly comma-separated) index expression are pluggable
-   * dataformat. For multi-index queries (source=idx1,idx2), each index is checked independently.
-   * Returns true only if every index is composite — mixed or all-lucene returns false.
+   * Resolves an index expression and checks that every concrete index uses the pluggable composite
+   * data format. Comma-separated sources are resolved together so one routing decision covers the
+   * complete source. Empty, missing, mixed-format, and failed resolutions stay on the default query
+   * path.
    */
   private boolean allIndicesArePluggableDataformat(String indexExpression) {
-    String[] indices = indexExpression.split(",");
-    if (indices.length == 0) {
+    String[] expressions =
+        Arrays.stream(indexExpression.split(",", -1))
+            .map(String::trim)
+            .map(this::stripSchemaPrefix)
+            .toArray(String[]::new);
+    if (expressions.length == 0 || Arrays.stream(expressions).anyMatch(String::isEmpty)) {
       return false;
     }
-    for (String idx : indices) {
-      String trimmed = idx.trim();
-      if (trimmed.isEmpty()) {
-        continue;
+
+    ClusterState state = clusterService.state();
+    final String[] concreteNames;
+    try {
+      concreteNames =
+          indexNameExpressionResolver.concreteIndexNames(
+              state, IndicesOptions.lenientExpandOpen(), true, expressions);
+    } catch (RuntimeException e) {
+      return false;
+    }
+    if (concreteNames.length == 0) {
+      return false;
+    }
+    for (String concreteName : concreteNames) {
+      var indexMetadata = state.metadata().index(concreteName);
+      if (indexMetadata == null) {
+        return false;
       }
-      if (!isPluggableDataformatIndex(trimmed)) {
+      var settings = indexMetadata.getSettings();
+      if (!IndexSettings.PLUGGABLE_DATAFORMAT_ENABLED_SETTING.get(settings)
+          || !"composite".equals(IndexSettings.PLUGGABLE_DATAFORMAT_VALUE_SETTING.get(settings))) {
         return false;
       }
     }
@@ -170,18 +195,11 @@ public class RestUnifiedQueryAction {
   }
 
   private String stripSchemaPrefix(String indexName) {
+    int prefixLength = indexName.startsWith("-") ? 1 : 0;
     int lastDot = indexName.lastIndexOf('.');
-    return lastDot >= 0 ? indexName.substring(lastDot + 1) : indexName;
-  }
-
-  private boolean isPluggableDataformatIndex(String indexName) {
-    var indexMetadata = clusterService.state().metadata().index(indexName);
-    if (indexMetadata == null) {
-      return false;
-    }
-    var settings = indexMetadata.getSettings();
-    return IndexSettings.PLUGGABLE_DATAFORMAT_ENABLED_SETTING.get(settings)
-        && "composite".equals(IndexSettings.PLUGGABLE_DATAFORMAT_VALUE_SETTING.get(settings));
+    return lastDot >= prefixLength
+        ? indexName.substring(0, prefixLength) + indexName.substring(lastDot + 1)
+        : indexName;
   }
 
   /** Execute with no parent task (SQL path): the analytics query runs detached, not cancellable. */
