@@ -20,11 +20,11 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.opensearch.client.PluginClient;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.threadpool.Scheduler.Cancellable;
 import org.opensearch.threadpool.ThreadPool;
-import org.opensearch.transport.client.Client;
 
 public class ClusterManagerEventListener implements LocalNodeClusterManagerListener {
 
@@ -32,7 +32,7 @@ public class ClusterManagerEventListener implements LocalNodeClusterManagerListe
   private Cancellable flintStreamingJobHouseKeeperCron;
   private final ClusterService clusterService;
   private final ThreadPool threadPool;
-  private final Client client;
+  private final PluginClient client;
   private final Clock clock;
   private final DataSourceService dataSourceService;
   private final FlintIndexMetadataService flintIndexMetadataService;
@@ -45,7 +45,7 @@ public class ClusterManagerEventListener implements LocalNodeClusterManagerListe
   public ClusterManagerEventListener(
       ClusterService clusterService,
       ThreadPool threadPool,
-      Client client,
+      PluginClient client,
       Clock clock,
       Setting<TimeValue> sessionTtl,
       Setting<TimeValue> resultTtl,

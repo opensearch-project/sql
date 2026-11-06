@@ -19,6 +19,7 @@ import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.execution.xcontent.AsyncQueryJobMetadataXContentSerializer;
 import org.opensearch.sql.spark.utils.IDUtils;
+import org.opensearch.sql.spark.utils.TestPluginClient;
 import org.opensearch.test.OpenSearchIntegTestCase;
 
 public class OpenSearchAsyncQueryJobMetadataStorageServiceTest extends OpenSearchIntegTestCase {
@@ -35,7 +36,7 @@ public class OpenSearchAsyncQueryJobMetadataStorageServiceTest extends OpenSearc
   public void setup() {
     openSearchJobMetadataStorageService =
         new OpenSearchAsyncQueryJobMetadataStorageService(
-            new StateStore(client(), clusterService()),
+            new StateStore(TestPluginClient.of(client()), clusterService()),
             new AsyncQueryJobMetadataXContentSerializer());
   }
 

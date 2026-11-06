@@ -32,6 +32,7 @@ import org.opensearch.sql.spark.execution.statestore.StatementStorageService;
 import org.opensearch.sql.spark.execution.xcontent.SessionModelXContentSerializer;
 import org.opensearch.sql.spark.execution.xcontent.StatementModelXContentSerializer;
 import org.opensearch.sql.spark.utils.IDUtils;
+import org.opensearch.sql.spark.utils.TestPluginClient;
 import org.opensearch.test.OpenSearchIntegTestCase;
 
 /** mock-maker-inline does not work with OpenSearchTestCase. */
@@ -54,7 +55,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
   public void setup() {
     emrsClient = new TestEMRServerlessClient();
     startJobRequest = new StartJobRequest("", null, "appId", "", "", new HashMap<>(), false, "");
-    StateStore stateStore = new StateStore(client(), clusterService());
+    StateStore stateStore = new StateStore(TestPluginClient.of(client()), clusterService());
     sessionStorageService =
         new OpenSearchSessionStorageService(stateStore, new SessionModelXContentSerializer());
     statementStorageService =
