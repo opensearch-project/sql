@@ -40,6 +40,8 @@ The following queries show both syntax types:
 
 * **Unquoted**: `search error`, `search user-123`, `search log_*`
 * **Quoted**: `search "error message"`, `search "user@example.com"`
+
+A quoted value is matched as a phrase on analyzed text fields, even when it contains no spaces. For example, `search "user-123"` matches only documents in which the analyzed tokens `user` and `123` appear next to each other in that order, while the unquoted `search user-123` matches documents containing either token. A quoted value that contains a wildcard and no spaces, such as `search "log_*"`, is treated as a wildcard pattern instead of a phrase.
   
 ### Field values
 
