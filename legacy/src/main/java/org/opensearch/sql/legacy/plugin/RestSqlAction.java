@@ -52,8 +52,10 @@ import org.opensearch.sql.legacy.executor.RestExecutor;
 import org.opensearch.sql.legacy.executor.cursor.CursorActionRequestRestExecutorFactory;
 import org.opensearch.sql.legacy.executor.cursor.CursorAsyncRestExecutor;
 import org.opensearch.sql.legacy.executor.format.ErrorMessageFactory;
+import org.opensearch.sql.legacy.metrics.LatencyMetricName;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
+import org.opensearch.sql.legacy.metrics.QueryLatencyMetrics;
 import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.request.SqlRequest;
 import org.opensearch.sql.legacy.request.SqlRequestFactory;
@@ -118,6 +120,17 @@ public class RestSqlAction extends BaseRestHandler {
     Metrics.getInstance().getNumericalMetric(MetricName.REQ_TOTAL).increment();
     Metrics.getInstance().getNumericalMetric(MetricName.REQ_COUNT_TOTAL).increment();
 
+    // Explain and cursor close don't execute a query; keep them out of latency stats.
+    if (isExplainRequest(request) || request.path().endsWith("/close")) {
+      return prepareQueryRequest(request, client);
+    }
+    // Time every query execution path (V2, legacy fallback, cursor, analytics) at the channel.
+    RestChannelConsumer consumer = prepareQueryRequest(request, client);
+    return channel ->
+        consumer.accept(QueryLatencyMetrics.timedChannel(channel, LatencyMetricName.SQL));
+  }
+
+  private RestChannelConsumer prepareQueryRequest(RestRequest request, NodeClient client) {
     QueryContext.addRequestId();
 
     try {

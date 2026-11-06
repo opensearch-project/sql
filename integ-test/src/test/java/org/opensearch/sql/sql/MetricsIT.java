@@ -20,6 +20,7 @@ import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.legacy.metrics.LatencyMetricName;
 import org.opensearch.sql.legacy.metrics.MetricName;
 
 public class MetricsIT extends SQLIntegTestCase {
@@ -36,6 +37,24 @@ public class MetricsIT extends SQLIntegTestCase {
     TimeUnit.SECONDS.sleep(2L);
 
     assertEquals(beforeQueries + 1, requestTotal());
+  }
+
+  @Test
+  public void queryLatencyCountsOnlySuccessfulQueries() throws IOException {
+    JSONObject before = new JSONObject(executeStatRequest(makeStatRequest()));
+    executeQuery(String.format(Locale.ROOT, "select age from %s", TEST_INDEX_BANK));
+    executeQuery(String.format(Locale.ROOT, "select count(*) from %s", TEST_INDEX_BANK));
+    try {
+      executeQuery("select * from no_such_index_for_latency");
+    } catch (Exception expected) {
+      // failed queries are not timed
+    }
+    JSONObject after = new JSONObject(executeStatRequest(makeStatRequest()));
+
+    String count = LatencyMetricName.SQL.getCountKey();
+    String time = LatencyMetricName.SQL.getTimeKey();
+    assertEquals(before.getLong(count) + 2, after.getLong(count));
+    Assert.assertTrue(after.getLong(time) >= before.getLong(time));
   }
 
   private Request makeStatRequest() {
