@@ -399,7 +399,7 @@ public class AggregateAnalyzer {
       Pair<AggregationBuilder, MetricParser> builderAndParser =
           createAggregationBuilderAndParser(aggCall, args, aggName, helper, dedupSortKeys);
       builderAndParser = aggFilterAnalyzer.analyze(builderAndParser, aggCall, aggName);
-      // Nested aggregation (https://docs.opensearch.org/docs/latest/aggregations/bucket/nested/)
+      // Nested aggregation (https://docs.opensearch.org/latest/aggregations/bucket/nested/)
       String nestedPath =
           args.isEmpty()
               ? null
