@@ -124,6 +124,7 @@ configurations.all {
 
 configurations {
     zipArchive
+    thinJarConsumer
 }
 
 compileJava {
@@ -176,11 +177,35 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.3'
 
     zipArchive group: 'org.opensearch.plugin', name:'opensearch-job-scheduler', version: "${opensearch_build}"
+
+    // Alerting and skills bundle opensearch-sql-thin with only these jars, not their dependencies,
+    // and bring their own org.json. ThinJarClassesTest links the thin jar classes against them.
+    thinJarConsumer(project(':core')) { transitive = false }
+    thinJarConsumer(project(':ppl')) { transitive = false }
+    thinJarConsumer(project(':protocol')) { transitive = false }
+    thinJarConsumer "org.opensearch:opensearch:${opensearch_version}"
+    thinJarConsumer group: 'org.json', name: 'json', version: '20231013'
+}
+
+// Builds opensearch-sql-thin the way alerting and skills do: the org/opensearch/sql classes of this
+// plugin's jar.
+def thinJar = tasks.register('thinJar', Jar) {
+    dependsOn tasks.named('jar')
+    from(zipTree(tasks.named('jar').flatMap { it.archiveFile })) {
+        include 'org/opensearch/sql/**'
+    }
+    archiveFileName = 'opensearch-sql-thin.jar'
+    destinationDirectory = layout.buildDirectory.dir('thin-jar')
 }
 
 test {
     maxParallelForks = Runtime.runtime.availableProcessors()
     include '**/*Test.class'
+    inputs.files(thinJar, configurations.thinJarConsumer)
+    jvmArgumentProviders.add({
+        def classpath = [thinJar.get().archiveFile.get().asFile] + configurations.thinJarConsumer.files
+        ["-Dtests.thinJar.classpath=${classpath.join(File.pathSeparator)}".toString()]
+    } as CommandLineArgumentProvider)
     testLogging {
         events "passed", "skipped", "failed"
         exceptionFormat "full"
