@@ -648,7 +648,11 @@ public class PPLFuncImpTable {
     try {
       for (Map.Entry<CalciteFuncSignature, FunctionImp> implement : implementList) {
         if (implement.getKey().match(functionName.getName(), argTypes)) {
-          return implement.getValue().resolve(builder, args);
+          return narrowIntArgs(
+              builder,
+              implement.getKey().typeChecker(),
+              args,
+              implement.getValue().resolve(builder, args));
         }
       }
 
@@ -676,6 +680,78 @@ public class PPLFuncImpTable {
         String.format(
             "%s function expects {%s}, but got %s",
             functionName, allowedSignatures, PlanUtils.getActualSignature(argTypes)));
+  }
+
+  /**
+   * Narrows BIGINT operands of a resolved Calcite built-in call to INTEGER where its runtime method
+   * needs a Java {@code int}.
+   *
+   * <p>PPL widens integer arithmetic to BIGINT for overflow safety (#5603), so {@code 1 + 1} is
+   * BIGINT. Type checking still accepts it ({@code SqlTypeFamily.INTEGER} contains BIGINT), but
+   * some Calcite runtime methods take a Java {@code int} (e.g. {@code SqlFunctions.left(String,
+   * int)}), and code generation cannot pass a {@code long} there. Values outside the int range fail
+   * at runtime with an out-of-range error rather than wrapping.
+   *
+   * <p>The positions come from the runtime methods themselves (see {@link CalciteIntParameters}),
+   * so an operand is narrowed only when no overload accepts a {@code long} there; e.g. {@code
+   * SUBSTRING}, which has {@code long} overloads, is left as is. When the runtime methods cannot be
+   * read (e.g. {@code ITEM}), the signature alternative that accepted these operands decides
+   * instead, so {@code ITEM(map, key)} is not narrowed while {@code ITEM(array, index)} is. PPL
+   * UDFs are skipped: their runtime methods take {@code long} (enforced by {@code
+   * UDFIntParameterTest}).
+   */
+  private static RexNode narrowIntArgs(
+      RexBuilder builder, @Nullable PPLTypeChecker typeChecker, RexNode[] args, RexNode node) {
+    if (!(node instanceof RexCall call) || call.getOperator() instanceof SqlUserDefinedFunction) {
+      return node;
+    }
+    List<RexNode> operands = call.getOperands();
+    boolean[] narrowable =
+        CalciteIntParameters.narrowablePositions(call.getOperator(), operands.size())
+            .orElseGet(() -> signatureIntegerPositions(typeChecker, args, call));
+    if (narrowable == null) {
+      return node;
+    }
+    List<RexNode> narrowed = null;
+    for (int pos = 0; pos < operands.size(); pos++) {
+      RexNode operand = operands.get(pos);
+      if (!narrowable[pos] || operand.getType().getSqlTypeName() != SqlTypeName.BIGINT) {
+        continue;
+      }
+      if (narrowed == null) {
+        narrowed = new ArrayList<>(operands);
+      }
+      RelDataType intType =
+          TYPE_FACTORY.createSqlType(SqlTypeName.INTEGER, operand.getType().isNullable());
+      narrowed.set(pos, builder.makeCast(intType, operand));
+    }
+    return narrowed == null ? node : call.clone(call.getType(), narrowed);
+  }
+
+  /**
+   * Fallback for {@link #narrowIntArgs}: positions that the signature alternative accepting {@code
+   * args} restricts to the INTEGER family, read from the registered signature or else the
+   * operator's own checker. Returns {@code null} when the call's operands are not {@code args}
+   * (positions would not line up) or no signature can be read.
+   */
+  private static @Nullable boolean[] signatureIntegerPositions(
+      @Nullable PPLTypeChecker typeChecker, RexNode[] args, RexCall call) {
+    if (!call.getOperands().equals(Arrays.asList(args))) {
+      return null;
+    }
+    List<RelDataType> types = Arrays.stream(args).map(RexNode::getType).toList();
+    List<SqlTypeFamily> families = typeChecker == null ? null : typeChecker.matchedFamilies(types);
+    if (families == null) {
+      families = PPLTypeChecker.matchedFamilies(call.getOperator().getOperandTypeChecker(), types);
+    }
+    if (families == null) {
+      return null;
+    }
+    boolean[] positions = new boolean[args.length];
+    for (int pos = 0; pos < args.length; pos++) {
+      positions[pos] = families.get(pos) == SqlTypeFamily.INTEGER;
+    }
+    return positions;
   }
 
   /**
@@ -769,7 +845,12 @@ public class PPLFuncImpTable {
                   .typeChecker()
                   .checkOperandTypes(widenedArgs.stream().map(RexNode::getType).toList());
           if (matchSignature) {
-            return implement.getValue().resolve(builder, widenedArgs.toArray(new RexNode[0]));
+            RexNode[] coercedArgs = widenedArgs.toArray(new RexNode[0]);
+            return narrowIntArgs(
+                builder,
+                implement.getKey().typeChecker(),
+                coercedArgs,
+                implement.getValue().resolve(builder, coercedArgs));
           }
         }
       }
@@ -784,7 +865,12 @@ public class PPLFuncImpTable {
           //  will be skipped.
           //  Maybe can be improved to return the best match? E.g. convert to timestamp when date,
           //  time, and timestamp are all possible.
-          return implement.getValue().resolve(builder, castedArgs.toArray(new RexNode[0]));
+          RexNode[] coercedArgs = castedArgs.toArray(new RexNode[0]);
+          return narrowIntArgs(
+              builder,
+              signature.typeChecker(),
+              coercedArgs,
+              implement.getValue().resolve(builder, coercedArgs));
         }
       }
     }

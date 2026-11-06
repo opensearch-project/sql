@@ -213,4 +213,99 @@ public class CalciteTextFunctionIT extends TextFunctionIT {
         rows("world", false, true),
         rows("helloworld", true, true));
   }
+
+  @Test
+  public void testLeftWithArithmeticLength() throws IOException {
+    // LEFT with arithmetic length argument. PPL arithmetic widens to BIGINT but LEFT expects int.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = left(name, 1 + 1) | head 1 | fields result",
+                TEST_INDEX_STRINGS));
+
+    verifySchema(actual, schema("result", null, "string"));
+  }
+
+  @Test
+  public void testRightWithArithmeticLength() throws IOException {
+    // RIGHT with arithmetic length argument. PPL arithmetic widens to BIGINT but RIGHT expects int.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = right(name, 1 + 1) | head 1 | fields result",
+                TEST_INDEX_STRINGS));
+
+    verifySchema(actual, schema("result", null, "string"));
+  }
+
+  @Test
+  public void testSubstringWithArithmeticArgs() throws IOException {
+    // SUBSTRING with arithmetic start and length. Both widen to BIGINT; Calcite's substring has
+    // long overloads, so no narrowing is needed.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = substring(name, 1 + 0, 2 + 1) | head 1 | fields result",
+                TEST_INDEX_STRINGS));
+
+    verifySchema(actual, schema("result", null, "string"));
+  }
+
+  @Test
+  public void testSubstringWithBigintBeyondIntRange() throws IOException {
+    // Calcite's substring takes long and clamps it, so a BIGINT beyond the int range must not be
+    // narrowed (narrowing would turn these into out-of-range errors).
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval s = substring('abcdef', cast(3000000000 as long)), l ="
+                    + " substring('abcdef', 2, cast(3000000000 as long)) | head 1 | fields s, l",
+                TEST_INDEX_STRINGS));
+
+    verifySchema(actual, schema("s", null, "string"), schema("l", null, "string"));
+    verifyDataRows(actual, rows("", "bcdef"));
+  }
+
+  @Test
+  public void testLocateWithArithmeticStart() throws IOException {
+    // LOCATE's start position is a Java int in Calcite's runtime, so the widened BIGINT start must
+    // be narrowed to INTEGER or codegen fails.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval r = locate('a', 'banana', 1 + 2) | head 1 | fields r",
+                TEST_INDEX_STRINGS));
+
+    verifySchema(actual, schema("r", null, "int"));
+    verifyDataRows(actual, rows(4));
+  }
+
+  @Test
+  public void testLeftWithCastLongLength() throws IOException {
+    // LEFT with an explicit cast(x as long) length. Pre-existing bug: a genuinely-BIGINT value
+    // handed to LEFT's int parameter must be narrowed to INTEGER.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = left('abcdef', cast(2 as long)) | head 1 | fields"
+                    + " result",
+                TEST_INDEX_STRINGS));
+
+    verifySchema(actual, schema("result", null, "string"));
+    verifyDataRows(actual, rows("ab"));
+  }
+
+  @Test
+  public void testRightWithCastLongLength() throws IOException {
+    // RIGHT with an explicit cast(x as long) length.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval result = right('abcdef', cast(2 as long)) | head 1 | fields"
+                    + " result",
+                TEST_INDEX_STRINGS));
+
+    verifySchema(actual, schema("result", null, "string"));
+    verifyDataRows(actual, rows("ef"));
+  }
 }
