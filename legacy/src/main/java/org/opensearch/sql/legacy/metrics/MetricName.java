@@ -26,10 +26,6 @@ public enum MetricName {
   PPL_REQ_COUNT_TOTAL("ppl_request_count"),
   PPL_FAILED_REQ_COUNT_SYS("ppl_failed_request_count_syserr"),
   PPL_FAILED_REQ_COUNT_CUS("ppl_failed_request_count_cuserr"),
-  SQL_QUERY_TIME("sql_query_time_in_millis"),
-  SQL_QUERY_TIMED_COUNT("sql_query_timed_count"),
-  PPL_QUERY_TIME("ppl_query_time_in_millis"),
-  PPL_QUERY_TIMED_COUNT("ppl_query_timed_count"),
   DATASOURCE_CREATION_REQ_COUNT("datasource_create_request_count"),
   DATASOURCE_GET_REQ_COUNT("datasource_get_request_count"),
   DATASOURCE_PUT_REQ_COUNT("datasource_put_request_count"),
@@ -74,10 +70,6 @@ public enum MetricName {
           .add(PPL_REQ_COUNT_TOTAL)
           .add(PPL_FAILED_REQ_COUNT_SYS)
           .add(PPL_FAILED_REQ_COUNT_CUS)
-          .add(SQL_QUERY_TIME)
-          .add(SQL_QUERY_TIMED_COUNT)
-          .add(PPL_QUERY_TIME)
-          .add(PPL_QUERY_TIMED_COUNT)
           .add(DATASOURCE_CREATION_REQ_COUNT)
           .add(DATASOURCE_DELETE_REQ_COUNT)
           .add(DATASOURCE_FAILED_REQ_COUNT_CUS)

@@ -52,6 +52,7 @@ import org.opensearch.sql.legacy.executor.RestExecutor;
 import org.opensearch.sql.legacy.executor.cursor.CursorActionRequestRestExecutorFactory;
 import org.opensearch.sql.legacy.executor.cursor.CursorAsyncRestExecutor;
 import org.opensearch.sql.legacy.executor.format.ErrorMessageFactory;
+import org.opensearch.sql.legacy.metrics.LatencyMetricName;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.metrics.QueryLatencyMetrics;
@@ -126,9 +127,7 @@ public class RestSqlAction extends BaseRestHandler {
     // Time every query execution path (V2, legacy fallback, cursor, analytics) at the channel.
     RestChannelConsumer consumer = prepareQueryRequest(request, client);
     return channel ->
-        consumer.accept(
-            QueryLatencyMetrics.timedChannel(
-                channel, MetricName.SQL_QUERY_TIME, MetricName.SQL_QUERY_TIMED_COUNT));
+        consumer.accept(QueryLatencyMetrics.timedChannel(channel, LatencyMetricName.SQL));
   }
 
   private RestChannelConsumer prepareQueryRequest(RestRequest request, NodeClient client) {

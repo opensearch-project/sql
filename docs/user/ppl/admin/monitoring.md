@@ -17,7 +17,7 @@ The meaning of fields in the response is as follows:
 | `ppl_failed_request_count_syserr` | Count of failed PPL request due to system error within the interval |
 | `ppl_failed_request_count_cuserr` | Count of failed PPL request due to bad request within the interval |
 | `ppl_query_time_in_millis` | Total time spent executing successful PPL queries since node start, in milliseconds. Explain, analyze, and async queries are excluded |
-| `ppl_query_timed_count` | Total count of PPL queries included in `ppl_query_time_in_millis`. Average latency over an interval is the change in time divided by the change in this count |  
+| `ppl_query_timed_count` | Total count of PPL queries included in `ppl_query_time_in_millis`. Average latency over an interval is the change in time divided by the change in this count. Both values are read together, so a response never includes a query's time without its count. Both reset to 0 on node restart |  
 
 ### Example  
 

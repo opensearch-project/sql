@@ -18,6 +18,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
+import org.opensearch.sql.legacy.metrics.LatencyMetricName;
 import org.opensearch.sql.legacy.metrics.MetricName;
 
 public class MetricsIT extends PPLIntegTestCase {
@@ -44,8 +45,8 @@ public class MetricsIT extends PPLIntegTestCase {
     explainQueryToString(String.format("source=%s | fields age", TEST_INDEX_BANK));
     JSONObject after = new JSONObject(executeStatRequest(makeStatRequest()));
 
-    String count = MetricName.PPL_QUERY_TIMED_COUNT.getName();
-    String time = MetricName.PPL_QUERY_TIME.getName();
+    String count = LatencyMetricName.PPL.getCountKey();
+    String time = LatencyMetricName.PPL.getTimeKey();
     assertThat(after.getLong(count), equalTo(before.getLong(count) + 3));
     Assert.assertTrue(after.getLong(time) >= before.getLong(time));
   }

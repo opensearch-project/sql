@@ -16,42 +16,36 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestResponse;
 
 /**
- * Records end-to-end query latency into a cumulative (total time, count) metric pair. Consumers
- * derive average latency over an interval as delta(time) / delta(count), the same shape as core's
- * {@code query_time_in_millis} / {@code query_total}. Only successful queries are recorded.
+ * Records end-to-end query latency into a {@link LatencyMetric}. Consumers derive average latency
+ * over an interval as delta(time) / delta(count), the same shape as core's {@code
+ * query_time_in_millis} / {@code query_total}. Only successful queries are recorded.
  */
 public final class QueryLatencyMetrics {
 
   private QueryLatencyMetrics() {}
 
-  /** Add one timed query to the given metric pair. No-op if the metrics are not registered. */
-  public static void record(MetricName timeMetric, MetricName countMetric, long elapsedNanos) {
-    NumericMetric<?> time = Metrics.getInstance().getNumericalMetric(timeMetric);
-    NumericMetric<?> count = Metrics.getInstance().getNumericalMetric(countMetric);
-    if (time == null || count == null) {
-      return;
+  /** Add one timed query to the language's latency metric. No-op if it is not registered. */
+  public static void record(LatencyMetricName latencyName, long elapsedNanos) {
+    LatencyMetric metric = Metrics.getInstance().getLatencyMetric(latencyName);
+    if (metric != null) {
+      metric.record(elapsedNanos);
     }
-    time.increment(Math.max(0L, elapsedNanos));
-    count.increment();
   }
 
   /** Wrap a listener so a successful response records the time since this call. */
   public static <T> ActionListener<T> timedListener(
-      ActionListener<T> delegate, MetricName timeMetric, MetricName countMetric) {
-    return timedListener(delegate, timeMetric, countMetric, System::nanoTime);
+      ActionListener<T> delegate, LatencyMetricName latencyName) {
+    return timedListener(delegate, latencyName, System::nanoTime);
   }
 
   public static <T> ActionListener<T> timedListener(
-      ActionListener<T> delegate,
-      MetricName timeMetric,
-      MetricName countMetric,
-      LongSupplier nanoClock) {
+      ActionListener<T> delegate, LatencyMetricName latencyName, LongSupplier nanoClock) {
     final long start = nanoClock.getAsLong();
     return new ActionListener<>() {
       @Override
       public void onResponse(T response) {
         try {
-          record(timeMetric, countMetric, nanoClock.getAsLong() - start);
+          record(latencyName, nanoClock.getAsLong() - start);
         } finally {
           delegate.onResponse(response);
         }
@@ -65,31 +59,24 @@ public final class QueryLatencyMetrics {
   }
 
   /** Wrap a REST channel so a 2xx response records the time since this call. */
-  public static RestChannel timedChannel(
-      RestChannel delegate, MetricName timeMetric, MetricName countMetric) {
-    return timedChannel(delegate, timeMetric, countMetric, System::nanoTime);
+  public static RestChannel timedChannel(RestChannel delegate, LatencyMetricName latencyName) {
+    return timedChannel(delegate, latencyName, System::nanoTime);
   }
 
   public static RestChannel timedChannel(
-      RestChannel delegate, MetricName timeMetric, MetricName countMetric, LongSupplier nanoClock) {
-    return new TimedRestChannel(delegate, timeMetric, countMetric, nanoClock);
+      RestChannel delegate, LatencyMetricName latencyName, LongSupplier nanoClock) {
+    return new TimedRestChannel(delegate, latencyName, nanoClock);
   }
 
   private static final class TimedRestChannel implements RestChannel {
     private final RestChannel delegate;
-    private final MetricName timeMetric;
-    private final MetricName countMetric;
+    private final LatencyMetricName latencyName;
     private final LongSupplier nanoClock;
     private final long start;
 
-    TimedRestChannel(
-        RestChannel delegate,
-        MetricName timeMetric,
-        MetricName countMetric,
-        LongSupplier nanoClock) {
+    TimedRestChannel(RestChannel delegate, LatencyMetricName latencyName, LongSupplier nanoClock) {
       this.delegate = delegate;
-      this.timeMetric = timeMetric;
-      this.countMetric = countMetric;
+      this.latencyName = latencyName;
       this.nanoClock = nanoClock;
       this.start = nanoClock.getAsLong();
     }
@@ -99,7 +86,7 @@ public final class QueryLatencyMetrics {
       try {
         int status = response.status().getStatus();
         if (status >= 200 && status < 300) {
-          record(timeMetric, countMetric, nanoClock.getAsLong() - start);
+          record(latencyName, nanoClock.getAsLong() - start);
         }
       } finally {
         delegate.sendResponse(response);

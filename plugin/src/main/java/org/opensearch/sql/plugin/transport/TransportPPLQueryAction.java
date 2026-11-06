@@ -49,6 +49,7 @@ import org.opensearch.sql.job.QueryJobService;
 import org.opensearch.sql.job.QueryProgress;
 import org.opensearch.sql.job.QueryRunner;
 import org.opensearch.sql.job.SecurityAdapter;
+import org.opensearch.sql.legacy.metrics.LatencyMetricName;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.metrics.QueryLatencyMetrics;
@@ -275,8 +276,7 @@ public class TransportPPLQueryAction
               transformedRequest.profile(),
               transformedRequest.getFetchSize(),
               task,
-              QueryLatencyMetrics.timedListener(
-                  clearingListener, MetricName.PPL_QUERY_TIME, MetricName.PPL_QUERY_TIMED_COUNT));
+              QueryLatencyMetrics.timedListener(clearingListener, LatencyMetricName.PPL));
         }
         return;
       }
@@ -299,8 +299,7 @@ public class TransportPPLQueryAction
       } else {
         // Time sync executions only; explain/analyze/async responses don't reflect query latency.
         ActionListener<TransportPPLQueryResponse> timedListener =
-            QueryLatencyMetrics.timedListener(
-                clearingListener, MetricName.PPL_QUERY_TIME, MetricName.PPL_QUERY_TIMED_COUNT);
+            QueryLatencyMetrics.timedListener(clearingListener, LatencyMetricName.PPL);
         pplService.execute(
             transformedRequest,
             createListener(transformedRequest, timedListener),

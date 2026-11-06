@@ -20,6 +20,7 @@ import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.legacy.metrics.LatencyMetricName;
 import org.opensearch.sql.legacy.metrics.MetricName;
 
 public class MetricsIT extends SQLIntegTestCase {
@@ -50,8 +51,8 @@ public class MetricsIT extends SQLIntegTestCase {
     }
     JSONObject after = new JSONObject(executeStatRequest(makeStatRequest()));
 
-    String count = MetricName.SQL_QUERY_TIMED_COUNT.getName();
-    String time = MetricName.SQL_QUERY_TIME.getName();
+    String count = LatencyMetricName.SQL.getCountKey();
+    String time = LatencyMetricName.SQL.getTimeKey();
     assertEquals(before.getLong(count) + 2, after.getLong(count));
     Assert.assertTrue(after.getLong(time) >= before.getLong(time));
   }

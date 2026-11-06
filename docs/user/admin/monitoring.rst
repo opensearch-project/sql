@@ -47,7 +47,10 @@ The meaning of fields in the response is as follows:
 +----------------------------+---------------------------------------------------------------+
 |       sql_query_timed_count|  Total count of SQL queries included in                       |
 |                            |  sql_query_time_in_millis. Average latency over an interval   |
-|                            |  is the change in time divided by the change in this count    |
+|                            |  is the change in time divided by the change in this count.   |
+|                            |  Both values are read together, so a response never includes  |
+|                            |  a query's time without its count. Both reset to 0 on node    |
+|                            |  restart                                                      |
 +----------------------------+---------------------------------------------------------------+
 
 
