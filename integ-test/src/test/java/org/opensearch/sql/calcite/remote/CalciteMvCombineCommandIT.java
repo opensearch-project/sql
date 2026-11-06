@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.calcite.remote;
 
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.Capability.MVCOMBINE_ARRAY_AGG;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -21,6 +22,7 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 import org.opensearch.sql.util.RequiresCapability;
 
@@ -33,6 +35,9 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
     super.init();
     enableCalcite();
     loadIndex(Index.MVCOMBINE);
+    // Let the shards accept a top_hits of plugins.query.buckets hits so that mvcombine is pushed
+    // down. CalciteNoPushdownIT reruns this class without pushdown.
+    setMaxInnerResultWindow(INDEX, 10000);
   }
 
   // ---------------------------
@@ -206,6 +211,127 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
   }
 
   // ---------------------------
+  // Pushdown returns what the in-memory mvcombine returns
+  // ---------------------------
+
+  @Test
+  @RequiresCapability(MVCOMBINE_ARRAY_AGG)
+  public void testMvCombine_pushdownKeepsDuplicatesAndEmptyStrings() throws IOException {
+    verifySameResultsWithoutPushdown(
+        "source="
+            + INDEX
+            + " | fields ip, bytes, tags, packets_str"
+            + " | mvcombine packets_str"
+            + " | sort ip");
+  }
+
+  @Test
+  @RequiresCapability(MVCOMBINE_ARRAY_AGG)
+  public void testMvCombine_pushdownOfGroupWithoutTargetValue() throws IOException {
+    verifySameResultsWithoutPushdown(
+        "source="
+            + INDEX
+            + " | where ip='10.0.0.3'"
+            + " | fields ip, bytes, tags, letters, packets_str"
+            + " | mvcombine packets_str"
+            + " | sort letters");
+  }
+
+  @Test
+  @RequiresCapability(MVCOMBINE_ARRAY_AGG)
+  public void testMvCombine_pushdownKeepsOrderOfPrecedingSort() throws IOException {
+    String q =
+        "source="
+            + INDEX
+            + " | fields ip, bytes, tags, packets_str"
+            + " | sort - packets_str"
+            + " | mvcombine packets_str"
+            + " | sort ip";
+    verifySameResultsWithoutPushdown(q);
+
+    // 10.0.0.9 is the last group; its documents hold 1, 2 and 3 in this order.
+    JSONArray rows = executeQuery(q).getJSONArray("datarows");
+    JSONArray last = rows.getJSONArray(rows.length() - 1);
+    Assertions.assertEquals("10.0.0.9", last.getString(0));
+    Assertions.assertEquals(List.of("3", "2", "1"), toStringListDropNulls(last.get(3)));
+  }
+
+  @Test
+  @RequiresCapability(MVCOMBINE_ARRAY_AGG)
+  public void testMvCombine_pushdownKeepsIpValues() throws IOException {
+    verifySameResultsWithoutPushdown(
+        "source=" + INDEX + " | fields tags, ip | sort ip | mvcombine ip | sort tags");
+  }
+
+  @Test
+  @RequiresCapability(MVCOMBINE_ARRAY_AGG)
+  public void testMvCombine_pushdownKeepsDateValues() throws IOException {
+    loadIndex(Index.BANK);
+    try {
+      setMaxInnerResultWindow(TEST_INDEX_BANK, 10000);
+      verifySameResultsWithoutPushdown(
+          "source="
+              + TEST_INDEX_BANK
+              + " | fields gender, birthdate"
+              + " | sort birthdate"
+              + " | mvcombine birthdate"
+              + " | sort gender");
+    } finally {
+      resetMaxInnerResultWindow(TEST_INDEX_BANK);
+    }
+  }
+
+  @Test
+  @RequiresCapability(MVCOMBINE_ARRAY_AGG)
+  public void testMvCombine_pushdownFailsWhenGroupExceedsQueryBucketSize() throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    try {
+      // The top_hits now returns at most 2 of the 3 values of the group.
+      setQueryBucketSize(2);
+      ResponseException ex =
+          Assertions.assertThrows(
+              ResponseException.class,
+              () ->
+                  executeQuery(
+                      "source="
+                          + INDEX
+                          + " | where ip='10.0.0.1' and bytes=100 and tags='t1'"
+                          + " | fields ip, bytes, tags, packets_str"
+                          + " | mvcombine packets_str"));
+      String msg = ex.getMessage();
+      Assertions.assertTrue(msg.contains("RESOURCE_LIMIT_EXCEEDED"), msg);
+      Assertions.assertTrue(
+          msg.contains(
+              "Cannot collect all 3 values of a group into [packets_str], only 2 were returned."),
+          msg);
+    } finally {
+      resetQueryBucketSize();
+    }
+  }
+
+  @Test
+  @RequiresCapability(MVCOMBINE_ARRAY_AGG)
+  public void testMvCombine_notPushedDownWhenInnerResultWindowIsTooSmall() throws IOException {
+    try {
+      resetMaxInnerResultWindow(INDEX);
+      String q =
+          "source="
+              + INDEX
+              + " | where ip='10.0.0.1' and bytes=100 and tags='t1'"
+              + " | fields ip, bytes, tags, packets_str"
+              + " | mvcombine packets_str";
+      Assertions.assertFalse(explainQueryToString(q).contains("top_hits"));
+      JSONObject result = executeQuery(q);
+      List<String> packets =
+          toStringListDropNulls(result.getJSONArray("datarows").getJSONArray(0).get(3));
+      Collections.sort(packets);
+      Assertions.assertEquals(List.of("10", "20", "30"), packets);
+    } finally {
+      setMaxInnerResultWindow(INDEX, 10000);
+    }
+  }
+
+  // ---------------------------
   // Edge case / error semantics
   // ---------------------------
 
@@ -227,6 +353,24 @@ public class CalciteMvCombineCommandIT extends PPLIntegTestCase {
   // ---------------------------
   // Helpers
   // ---------------------------
+
+  /** Expects the pushed-down mvcombine to return the rows, in order, of the in-memory one. */
+  private void verifySameResultsWithoutPushdown(String query) throws IOException {
+    enabledOnlyWhenPushdownIsEnabled();
+    Assertions.assertTrue(explainQueryToString(query).contains("top_hits"), "not pushed down");
+    JSONArray pushedDown = executeQuery(query).getJSONArray("datarows");
+    try {
+      updateClusterSettings(
+          new ClusterSetting(
+              "transient", Settings.Key.CALCITE_PUSHDOWN_ENABLED.getKeyValue(), "false"));
+      JSONArray inMemory = executeQuery(query).getJSONArray("datarows");
+      Assertions.assertTrue(
+          pushedDown.similar(inMemory),
+          "with pushdown: " + pushedDown + "\nwithout pushdown: " + inMemory);
+    } finally {
+      updatePushdownSettings();
+    }
+  }
 
   private static boolean isSyntaxBadRequest(ResponseException e) {
     int status = e.getResponse().getStatusLine().getStatusCode();

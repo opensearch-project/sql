@@ -94,6 +94,9 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
   /** The cached max result window setting of index. */
   private Integer cachedMaxResultWindow = null;
 
+  /** The cached max inner result window setting of index. */
+  private Integer cachedMaxInnerResultWindow = null;
+
   /** Constructor. */
   public OpenSearchIndex(OpenSearchClient client, Settings settings, String indexName) {
     this.client = client;
@@ -198,6 +201,15 @@ public class OpenSearchIndex extends AbstractOpenSearchTable {
           new OpenSearchDescribeIndexRequest(client, indexName).getMaxResultWindow();
     }
     return cachedMaxResultWindow;
+  }
+
+  /** Get the max inner result window setting of the table, which bounds a top_hits size. */
+  public Integer getMaxInnerResultWindow() {
+    if (cachedMaxInnerResultWindow == null) {
+      cachedMaxInnerResultWindow =
+          new OpenSearchDescribeIndexRequest(client, indexName).getMaxInnerResultWindow();
+    }
+    return cachedMaxInnerResultWindow;
   }
 
   public Integer getQueryBucketSize() {

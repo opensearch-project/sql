@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.storage.scan;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -25,6 +26,7 @@ import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Aggregate;
+import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Filter;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.core.Sort;
@@ -34,13 +36,16 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.search.aggregations.AggregationBuilder;
+import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.sql.ast.tree.HighlightConfig;
 import org.opensearch.sql.calcite.plan.HighlightPushDown;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
@@ -66,6 +71,7 @@ import org.opensearch.sql.opensearch.storage.scan.context.ProjectDigest;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownContext;
 import org.opensearch.sql.opensearch.storage.scan.context.PushDownType;
 import org.opensearch.sql.opensearch.storage.scan.context.RareTopDigest;
+import org.opensearch.sql.opensearch.storage.scan.context.SortDigest;
 import org.opensearch.sql.utils.Utils;
 
 /** The logical relational operator representing a scan of an OpenSearchIndex type. */
@@ -400,21 +406,51 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
         return null;
       }
       int queryBucketSize = osIndex.getQueryBucketSize();
+      List<SortBuilder<?>> inputSorts = List.of();
+      if (aggregate.getAggCallList().stream()
+          .anyMatch(call -> call.getAggregation().getKind() == SqlKind.ARRAY_AGG)) {
+        // ARRAY_AGG is pushed down as a top_hits of queryBucketSize hits per bucket, which the
+        // shards reject above index.max_inner_result_window (100 by default). That setting is the
+        // index's guard on top_hits heap, so keep ARRAY_AGG in memory unless it was raised.
+        int maxInnerResultWindow = osIndex.getMaxInnerResultWindow();
+        if (maxInnerResultWindow < queryBucketSize) {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug(
+                "Cannot pushdown ARRAY_AGG since index.max_inner_result_window {} is less than the"
+                    + " query bucket size {}",
+                maxInnerResultWindow,
+                queryBucketSize);
+          }
+          return null;
+        }
+        // ARRAY_AGG keeps the input order, so its hits must be sorted as the scan below it is.
+        if (pushDownContext.isSortExprPushed()) {
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Cannot pushdown ARRAY_AGG over a sort on expressions");
+          }
+          return null;
+        }
+        if (pushDownContext.getDigestByType(PushDownType.SORT) instanceof SortDigest sortDigest) {
+          inputSorts = sortDigest.builders();
+        }
+      }
       boolean bucketNullable = !PPLHintUtils.ignoreNullBucket(aggregate);
       AggregateAnalyzer.AggregateBuilderHelper helper =
           new AggregateAnalyzer.AggregateBuilderHelper(
-              getRowType(), fieldTypes, getCluster(), bucketNullable, queryBucketSize);
+              getRowType(), fieldTypes, getCluster(), bucketNullable, queryBucketSize, inputSorts);
       final Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> builderAndParser =
           AggregateAnalyzer.analyze(aggregate, project, outputFields, helper);
       Map<String, OpenSearchDataType> extendedTypeMapping =
-          aggregate.getRowType().getFieldList().stream()
-              .collect(
-                  Collectors.toMap(
-                      RelDataTypeField::getName,
-                      field ->
-                          OpenSearchDataType.of(
-                              OpenSearchTypeFactory.convertRelDataTypeToExprType(
-                                  field.getType()))));
+          new HashMap<>(
+              aggregate.getRowType().getFieldList().stream()
+                  .collect(
+                      Collectors.toMap(
+                          RelDataTypeField::getName,
+                          field ->
+                              OpenSearchDataType.of(
+                                  OpenSearchTypeFactory.convertRelDataTypeToExprType(
+                                      field.getType())))));
+      useFieldTypeForArrayAgg(aggregate, project, outputFields, fieldTypes, extendedTypeMapping);
       AggSpec aggSpec = AggSpec.create(extendedTypeMapping, bucketNames, builderAndParser);
       // AggPushDownAction is lazily materialized by AggSpec.buildAction() and then this action
       // will materialize agg request builder.
@@ -429,6 +465,37 @@ public class CalciteLogicalIndexScan extends AbstractCalciteIndexScan implements
       }
     }
     return null;
+  }
+
+  /**
+   * Parses the values that a pushed-down ARRAY_AGG collects with the type of their field, as the
+   * in-memory scan does, instead of by their JSON type: a date is a string in _source.
+   */
+  private void useFieldTypeForArrayAgg(
+      Aggregate aggregate,
+      @Nullable Project project,
+      List<String> outputFields,
+      Map<String, ExprType> fieldTypes,
+      Map<String, OpenSearchDataType> typeMapping) {
+    int groupCount = aggregate.getGroupSet().cardinality();
+    List<AggregateCall> aggCalls = aggregate.getAggCallList();
+    for (int i = 0; i < aggCalls.size(); i++) {
+      AggregateCall aggCall = aggCalls.get(i);
+      if (aggCall.getAggregation().getKind() != SqlKind.ARRAY_AGG) {
+        continue;
+      }
+      int argIndex = aggCall.getArgList().getFirst();
+      RexNode arg =
+          project == null
+              ? RexInputRef.of(argIndex, getRowType())
+              : project.getProjects().get(argIndex);
+      if (arg instanceof RexInputRef ref) {
+        ExprType fieldType = fieldTypes.get(getRowType().getFieldNames().get(ref.getIndex()));
+        if (fieldType != null) {
+          typeMapping.put(outputFields.get(groupCount + i), OpenSearchDataType.of(fieldType));
+        }
+      }
+    }
   }
 
   public AbstractRelNode pushDownLimit(LogicalSort sort, Integer limit, Integer offset) {

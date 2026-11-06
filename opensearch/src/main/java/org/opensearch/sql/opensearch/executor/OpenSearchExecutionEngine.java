@@ -353,6 +353,11 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
                           + " setting.")
                   .build();
             }
+            ErrorReport report = findErrorReport(e);
+            if (report != null) {
+              // Raised while reading the results, e.g. by a response parser: already user-facing.
+              throw report;
+            }
             throw new RuntimeException(e);
           }
         });
@@ -378,6 +383,18 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       }
     }
     return false;
+  }
+
+  /** The first {@link ErrorReport} in the cause chain of {@code t}, or null. */
+  static ErrorReport findErrorReport(Throwable t) {
+    for (Throwable cause = t;
+        cause != null && cause != cause.getCause();
+        cause = cause.getCause()) {
+      if (cause instanceof ErrorReport report) {
+        return report;
+      }
+    }
+    return null;
   }
 
   /**

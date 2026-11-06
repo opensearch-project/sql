@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -197,6 +198,16 @@ class OpenSearchIndexTest {
             hasEntry("_sort", ExprCoreType.LONG),
             hasEntry("_score", ExprCoreType.FLOAT),
             hasEntry("_maxscore", ExprCoreType.FLOAT)));
+  }
+
+  @Test
+  void getMaxInnerResultWindowReturnsSmallestWindowOfIndices() {
+    when(client.getIndexMaxInnerResultWindows("test"))
+        .thenReturn(Map.of("test-1", 10000, "test-2", 100));
+
+    assertEquals(100, index.getMaxInnerResultWindow());
+    assertEquals(100, index.getMaxInnerResultWindow());
+    verify(client, times(1)).getIndexMaxInnerResultWindows("test");
   }
 
   @Test

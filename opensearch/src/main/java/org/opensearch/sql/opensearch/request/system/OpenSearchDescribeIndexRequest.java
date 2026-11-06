@@ -133,6 +133,17 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
         .get();
   }
 
+  /**
+   * Get the minimum of the max inner result windows of the indices.
+   *
+   * @return max inner result window
+   */
+  public Integer getMaxInnerResultWindow() {
+    return client.getIndexMaxInnerResultWindows(indexName.getIndexNames()).values().stream()
+        .min(Integer::compare)
+        .get();
+  }
+
   private ExprTupleValue row(String fieldName, String fieldType, int position, String clusterName) {
     LinkedHashMap<String, ExprValue> valueMap = new LinkedHashMap<>();
     valueMap.put("TABLE_CAT", stringValue(clusterName));

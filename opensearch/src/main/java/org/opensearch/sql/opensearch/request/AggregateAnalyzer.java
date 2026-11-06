@@ -80,6 +80,7 @@ import org.opensearch.search.aggregations.support.ValueType;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.ScriptSortBuilder;
+import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.expression.SpanUnit;
@@ -92,9 +93,11 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchGeoPointType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.ScriptQueryExpression;
 import org.opensearch.sql.opensearch.response.agg.ArgMaxMinParser;
+import org.opensearch.sql.opensearch.response.agg.ArrayAggParser;
 import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.CheckedLongSumParser;
 import org.opensearch.sql.opensearch.response.agg.CountAsTotalHitsParser;
@@ -149,6 +152,21 @@ public class AggregateAnalyzer {
     final RelOptCluster cluster;
     final boolean bucketNullable;
     final int queryBucketSize;
+
+    /**
+     * Sorts already pushed down to the scan below the aggregate. ARRAY_AGG applies them to its
+     * top_hits so that the collected values keep the input order.
+     */
+    final List<SortBuilder<?>> inputSorts;
+
+    public AggregateBuilderHelper(
+        RelDataType rowType,
+        Map<String, ExprType> fieldTypes,
+        RelOptCluster cluster,
+        boolean bucketNullable,
+        int queryBucketSize) {
+      this(rowType, fieldTypes, cluster, bucketNullable, queryBucketSize, List.of());
+    }
 
     <T extends ValuesSourceAggregationBuilder<T>> T build(RexNode node, T aggBuilder) {
       return build(node, aggBuilder::field, aggBuilder::script);
@@ -568,6 +586,62 @@ public class AggregateAnalyzer {
             createTopHitsBuilder(
                 aggCall, args, aggName, helper, 1, true, true, sortField, SortOrder.ASC);
         yield Pair.of(minBuilder, new ArgMaxMinParser(aggName));
+      }
+      case ARRAY_AGG -> {
+        // The caller only pushes ARRAY_AGG down when index.max_inner_result_window allows a
+        // top_hits of queryBucketSize hits. ArrayAggParser fails rather than truncate a larger
+        // group, and the caller parses its values with the type of the collected field.
+        if (aggCall.ignoreNulls()) {
+          throw new AggregateAnalyzer.AggregateAnalyzerException(
+              "Cannot push down ARRAY_AGG IGNORE NULLS");
+        }
+        RexNode arg = args.getFirst().getKey();
+        String sourcePath = null;
+        TopHitsAggregationBuilder arrayBuilder;
+        if (arg instanceof RexInputRef) {
+          NamedFieldExpression field = helper.inferNamedField(arg);
+          if (field.isStructField()) {
+            throw new AggregateAnalyzer.AggregateAnalyzerException(
+                String.format(
+                    "Cannot push down ARRAY_AGG on struct field [%s]", args.getFirst().getValue()));
+          }
+          if (field.getExprType() instanceof OpenSearchGeoPointType) {
+            // A list of geo points does not parse back as an array of geo points.
+            throw new AggregateAnalyzer.AggregateAnalyzerException(
+                String.format(
+                    "Cannot push down ARRAY_AGG on geo_point field [%s]",
+                    args.getFirst().getValue()));
+          }
+          if (field.isAliasField()) {
+            // An alias is not in _source.
+            arrayBuilder =
+                createTopHitsBuilder(
+                    aggCall,
+                    args,
+                    aggName,
+                    helper,
+                    helper.queryBucketSize,
+                    true,
+                    false,
+                    null,
+                    null);
+          } else {
+            // Read the value from _source as the in-memory scan does: the fields API formats it
+            // (dates, normalized keywords), so the collected values would differ.
+            sourcePath = field.getRootName();
+            arrayBuilder =
+                AggregationBuilders.topHits(aggName)
+                    .from(0)
+                    .size(helper.queryBucketSize)
+                    .fetchSource(new String[] {sourcePath}, new String[0]);
+          }
+        } else {
+          arrayBuilder =
+              createTopHitsBuilder(
+                  aggCall, args, aggName, helper, helper.queryBucketSize, true, false, null, null);
+        }
+        helper.inputSorts.forEach(arrayBuilder::sort);
+        yield Pair.of(arrayBuilder, new ArrayAggParser(aggName, sourcePath));
       }
       case OTHER_FUNCTION -> {
         BuiltinFunctionName functionName =

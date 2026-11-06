@@ -7,12 +7,14 @@ package org.opensearch.sql.opensearch.request;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -30,6 +32,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.runtime.Hook;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.AbstractTable;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -41,11 +44,17 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.metrics.SumAggregationBuilder;
+import org.opensearch.search.sort.SortBuilder;
+import org.opensearch.search.sort.SortBuilders;
+import org.opensearch.search.sort.SortOrder;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchGeoPointType;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer.ExpressionNotAnalyzableException;
+import org.opensearch.sql.opensearch.response.agg.ArrayAggParser;
 import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.CheckedLongSumParser;
 import org.opensearch.sql.opensearch.response.agg.FilterParser;
@@ -499,6 +508,96 @@ class AggregateAnalyzerTest {
   }
 
   @Test
+  void analyze_arrayAggAggregation() throws ExpressionNotAnalyzableException {
+    buildAggregation("array_a")
+        .withAggCall(
+            b -> b.aggregateCall(SqlLibraryOperators.ARRAY_AGG, b.field("a")).as("array_a"))
+        .expectDslQuery(
+            "[{\"array_a\":{\"top_hits\":{\"from\":0,\"size\":1000,\"version\":false,\"seq_no_primary_term\":false,\"explain\":false,\"_source\":{\"includes\":[\"a\"]}}}}]")
+        .expectResponseParser(new MetricParserHelper(List.of(new ArrayAggParser("array_a", "a"))))
+        .verify();
+  }
+
+  @Test
+  void analyze_arrayAggIgnoreNullsIsNotPushedDown() {
+    AggregationTestBuilder builder =
+        buildAggregation("array_a")
+            .withAggCall(
+                b ->
+                    b.aggregateCall(SqlLibraryOperators.ARRAY_AGG, b.field("a"))
+                        .ignoreNulls(true)
+                        .as("array_a"));
+    ExpressionNotAnalyzableException exception =
+        assertThrows(ExpressionNotAnalyzableException.class, builder::verify);
+    assertEquals("Cannot push down ARRAY_AGG IGNORE NULLS", exception.getCause().getMessage());
+  }
+
+  @Test
+  void analyze_arrayAggAggregationSortsHitsInInputOrder() throws ExpressionNotAnalyzableException {
+    buildAggregation("array_a")
+        .withAggCall(
+            b -> b.aggregateCall(SqlLibraryOperators.ARRAY_AGG, b.field("a")).as("array_a"))
+        .withInputSorts(
+            List.of(
+                SortBuilders.fieldSort("b.keyword").order(SortOrder.DESC).missing("_last"),
+                SortBuilders.fieldSort("a").order(SortOrder.ASC).missing("_first")))
+        .expectDslQuery(
+            "[{\"array_a\":{\"top_hits\":{\"from\":0,\"size\":1000,\"version\":false,\"seq_no_primary_term\":false,\"explain\":false,\"_source\":{\"includes\":[\"a\"]},\"sort\":[{\"b.keyword\":{\"order\":\"desc\",\"missing\":\"_last\"}},{\"a\":{\"order\":\"asc\",\"missing\":\"_first\"}}]}}}]")
+        .verify();
+  }
+
+  @Test
+  void analyze_arrayAggOnExpressionFetchesScriptField() throws ExpressionNotAnalyzableException {
+    buildAggregation("array_a")
+        .withAggCall(
+            b ->
+                b.aggregateCall(
+                        SqlLibraryOperators.ARRAY_AGG,
+                        b.call(SqlStdOperatorTable.PLUS, b.field("a"), b.literal(1)))
+                    .as("array_a"))
+        .expectDslTemplate(
+            "[{\"array_a\":{\"top_hits\":{\"from\":0,\"size\":1000,\"version\":false,\"seq_no_primary_term\":false,\"explain\":false,\"_source\":false,\"script_fields\":{*:{\"script\":*}}}}}]")
+        .expectResponseParser(new MetricParserHelper(List.of(new ArrayAggParser("array_a", null))))
+        .verify();
+  }
+
+  @Test
+  void analyze_arrayAggOnGeoPointFieldIsNotPushedDown() {
+    AggregationTestBuilder builder =
+        buildAggregation("array_c")
+            .withFieldTypes(Map.of("c", OpenSearchGeoPointType.of()))
+            .withAggCall(
+                b -> b.aggregateCall(SqlLibraryOperators.ARRAY_AGG, b.field("c")).as("array_c"));
+    ExpressionNotAnalyzableException exception =
+        assertThrows(ExpressionNotAnalyzableException.class, builder::verify);
+    assertEquals(
+        "Cannot push down ARRAY_AGG on geo_point field [c]", exception.getCause().getMessage());
+  }
+
+  @Test
+  void analyze_arrayAggOnStructFieldIsNotPushedDown() {
+    AggregationTestBuilder builder =
+        buildAggregation("array_c")
+            .withFieldTypes(Map.of("c", ExprCoreType.STRUCT))
+            .withAggCall(
+                b -> b.aggregateCall(SqlLibraryOperators.ARRAY_AGG, b.field("c")).as("array_c"));
+    ExpressionNotAnalyzableException exception =
+        assertThrows(ExpressionNotAnalyzableException.class, builder::verify);
+    assertEquals(
+        "Cannot push down ARRAY_AGG on struct field [c]", exception.getCause().getMessage());
+  }
+
+  @Test
+  void analyze_otherAggregationsIgnoreInputSorts() throws ExpressionNotAnalyzableException {
+    buildAggregation("first_a")
+        .withAggCall(b -> b.aggregateCall(PPLBuiltinOperators.FIRST, b.field("a")).as("first_a"))
+        .withInputSorts(List.of(SortBuilders.fieldSort("a").order(SortOrder.DESC)))
+        .expectDslQuery(
+            "[{\"first_a\":{\"top_hits\":{\"from\":0,\"size\":1,\"version\":false,\"seq_no_primary_term\":false,\"explain\":false,\"_source\":false,\"fields\":[{\"field\":\"a\"}]}}}]")
+        .verify();
+  }
+
+  @Test
   void analyze_aggCall_simpleFilter() throws ExpressionNotAnalyzableException {
     buildAggregation("filter_cnt")
         .withAggCall(
@@ -742,6 +841,8 @@ class AggregateAnalyzerTest {
     private final List<String> outputFields;
     private final List<RelBuilder.AggCall> aggCalls = new ArrayList<>();
     private final RelBuilder relBuilder;
+    private final Map<String, ExprType> testFieldTypes = new HashMap<>(fieldTypes);
+    private List<SortBuilder<?>> inputSorts = List.of();
     private String expectedDsl;
     private String expectedDslTemplate;
     private MetricParserHelper expectedParser;
@@ -768,6 +869,16 @@ class AggregateAnalyzerTest {
 
     AggregationTestBuilder withAggCall(Function<RelBuilder, RelBuilder.AggCall> aggCallBuilder) {
       aggCalls.add(aggCallBuilder.apply(relBuilder));
+      return this;
+    }
+
+    AggregationTestBuilder withFieldTypes(Map<String, ExprType> overriddenFieldTypes) {
+      testFieldTypes.putAll(overriddenFieldTypes);
+      return this;
+    }
+
+    AggregationTestBuilder withInputSorts(List<SortBuilder<?>> inputSorts) {
+      this.inputSorts = inputSorts;
       return this;
     }
 
@@ -824,7 +935,7 @@ class AggregateAnalyzerTest {
       }
       AggregateAnalyzer.AggregateBuilderHelper helper =
           new AggregateAnalyzer.AggregateBuilderHelper(
-              rowType, fieldTypes, agg.getCluster(), true, BUCKET_SIZE);
+              rowType, testFieldTypes, agg.getCluster(), true, BUCKET_SIZE, inputSorts);
       Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> result =
           AggregateAnalyzer.analyze(agg, project, outputFields, helper);
 

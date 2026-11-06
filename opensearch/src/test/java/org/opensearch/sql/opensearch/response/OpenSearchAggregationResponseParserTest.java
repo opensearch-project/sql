@@ -9,6 +9,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.opensearch.response.AggregationResponseUtils.fromJson;
@@ -16,12 +17,19 @@ import static org.opensearch.sql.opensearch.response.agg.Utils.handleNanInfValue
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.opensearch.search.aggregations.metrics.ExtendedStats;
+import org.opensearch.sql.common.error.ErrorCode;
+import org.opensearch.sql.common.error.ErrorReport;
+import org.opensearch.sql.common.error.ResourceLimitExceededException;
+import org.opensearch.sql.opensearch.response.agg.ArrayAggParser;
 import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.FilterParser;
@@ -301,6 +309,155 @@ class OpenSearchAggregationResponseParserTest {
         parse(parser, response),
         contains(
             ImmutableMap.of("type", "take"), ImmutableMap.of("take", ImmutableList.of("m", "f"))));
+  }
+
+  @Test
+  void array_agg_should_keep_hit_order_and_duplicates() {
+    String response = arrayAggResponse(3, "[10]", "[20]", "[10]");
+    OpenSearchAggregationResponseParser parser =
+        new CompositeAggregationParser(new ArrayAggParser("packets", null));
+    assertThat(
+        parse(parser, response),
+        contains(
+            ImmutableMap.of("ip", "10.0.0.1"),
+            ImmutableMap.of("packets", ImmutableList.of(10, 20, 10))));
+  }
+
+  @Test
+  void array_agg_should_keep_null_of_hit_without_value() {
+    String response = arrayAggResponse(2, "[10]", null);
+    OpenSearchAggregationResponseParser parser =
+        new CompositeAggregationParser(new ArrayAggParser("packets", null));
+    assertThat(
+        parse(parser, response),
+        contains(
+            ImmutableMap.of("ip", "10.0.0.1"),
+            Collections.singletonMap("packets", Arrays.asList(10, null))));
+  }
+
+  /** A routed hit also carries the _routing meta field, which is not the collected value. */
+  @Test
+  void array_agg_should_ignore_meta_fields_of_hit() {
+    String response = arrayAggResponse(2, "[10]", null).replace("\"_id\": \"1\"}", routedHit());
+    OpenSearchAggregationResponseParser parser =
+        new CompositeAggregationParser(new ArrayAggParser("packets", null));
+    assertThat(
+        parse(parser, response),
+        contains(
+            ImmutableMap.of("ip", "10.0.0.1"),
+            Collections.singletonMap("packets", Arrays.asList(10, null))));
+  }
+
+  private static String routedHit() {
+    return "\"_id\": \"1\", \"_routing\": \"r1\"}";
+  }
+
+  @Test
+  void array_agg_should_read_values_from_source() {
+    String response =
+        arrayAggSourceResponse(
+            "packets", "{\"packets\": \"10\"}", "{\"packets\": [\"20\", \"21\"]}", "{}", null);
+    OpenSearchAggregationResponseParser parser =
+        new CompositeAggregationParser(new ArrayAggParser("packets", "packets"));
+    // A multi-valued field contributes its first value; a hit without the field contributes NULL.
+    assertThat(
+        parse(parser, response),
+        contains(
+            ImmutableMap.of("ip", "10.0.0.1"),
+            Collections.singletonMap("packets", Arrays.asList("10", "20", null, null))));
+  }
+
+  @Test
+  void array_agg_should_read_object_subfield_from_source() {
+    String response = arrayAggSourceResponse("user.name", "{\"user\": {\"name\": \"John\"}}");
+    OpenSearchAggregationResponseParser parser =
+        new CompositeAggregationParser(new ArrayAggParser("user.name", "user.name"));
+    assertThat(
+        parse(parser, response),
+        contains(
+            ImmutableMap.of("ip", "10.0.0.1"),
+            ImmutableMap.of("user.name", ImmutableList.of("John"))));
+  }
+
+  /** A composite bucket keyed by ip whose top_hits returns one hit per given _source. */
+  private static String arrayAggSourceResponse(String aggName, String... sources) {
+    String hits =
+        Arrays.stream(sources)
+            .map(
+                source ->
+                    source == null
+                        ? "{\"_index\": \"idx\", \"_id\": \"1\"}"
+                        : "{\"_index\": \"idx\", \"_id\": \"1\", \"_source\": " + source + "}")
+            .collect(Collectors.joining(","));
+    return "{\"composite#composite_buckets\": {\"buckets\": [{"
+        + "\"key\": {\"ip\": \"10.0.0.1\"},"
+        + "\"doc_count\": "
+        + sources.length
+        + ","
+        + "\"top_hits#"
+        + aggName
+        + "\": {\"hits\": {"
+        + "\"total\": {\"value\": "
+        + sources.length
+        + ", \"relation\": \"eq\"},"
+        + "\"hits\": ["
+        + hits
+        + "]}}}]}}";
+  }
+
+  /** ARRAY_AGG over a group whose rows are all filtered out is NULL, not an empty array. */
+  @Test
+  void array_agg_should_return_null_for_bucket_without_hits() {
+    String response = arrayAggResponse(0);
+    OpenSearchAggregationResponseParser parser =
+        new CompositeAggregationParser(new ArrayAggParser("packets", null));
+    assertThat(
+        parse(parser, response),
+        contains(ImmutableMap.of("ip", "10.0.0.1"), Collections.singletonMap("packets", null)));
+  }
+
+  @Test
+  void array_agg_should_fail_when_bucket_has_more_values_than_hits() {
+    String response = arrayAggResponse(3, "[10]", "[20]");
+    OpenSearchAggregationResponseParser parser =
+        new CompositeAggregationParser(new ArrayAggParser("packets", null));
+    ErrorReport report = assertThrows(ErrorReport.class, () -> parse(parser, response));
+    assertEquals(ErrorCode.RESOURCE_LIMIT_EXCEEDED, report.getCode());
+    assertInstanceOf(ResourceLimitExceededException.class, report.getCause());
+    assertEquals(
+        "Cannot collect all 3 values of a group into [packets], only 2 were returned.",
+        report.getCause().getMessage());
+    assertEquals(
+        "The aggregation was pushed down as a top_hits of 2 hits per group. Increase both"
+            + " [plugins.query.buckets] and the index setting [index.max_inner_result_window] to"
+            + " at least 3, or disable the aggregation pushdown.",
+        report.getDetails());
+  }
+
+  /** A composite bucket keyed by ip whose top_hits returns one hit per given fields value. */
+  private static String arrayAggResponse(int totalHits, String... packetsValues) {
+    String hits =
+        Arrays.stream(packetsValues)
+            .map(
+                value ->
+                    value == null
+                        ? "{\"_index\": \"idx\", \"_id\": \"1\"}"
+                        : "{\"_index\": \"idx\", \"_id\": \"1\", \"fields\": {\"packets\": "
+                            + value
+                            + "}}")
+            .collect(Collectors.joining(","));
+    return "{\"composite#composite_buckets\": {\"buckets\": [{"
+        + "\"key\": {\"ip\": \"10.0.0.1\"},"
+        + "\"doc_count\": "
+        + totalHits
+        + ","
+        + "\"top_hits#packets\": {\"hits\": {"
+        + "\"total\": {\"value\": "
+        + totalHits
+        + ", \"relation\": \"eq\"},"
+        + "\"hits\": ["
+        + hits
+        + "]}}}]}}";
   }
 
   /** SELECT PERCENTILE(age, 50) FROM accounts. */

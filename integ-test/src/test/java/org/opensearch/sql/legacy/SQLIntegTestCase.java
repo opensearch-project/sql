@@ -205,6 +205,15 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         indexName, "{ \"index\": { \"max_result_window\": " + DEFAULT_MAX_RESULT_WINDOW + " } }");
   }
 
+  protected void setMaxInnerResultWindow(String indexName, Integer window) throws IOException {
+    updateIndexSettings(
+        indexName, "{ \"index\": { \"max_inner_result_window\": " + window + " } }");
+  }
+
+  protected void resetMaxInnerResultWindow(String indexName) throws IOException {
+    updateIndexSettings(indexName, "{ \"index\": { \"max_inner_result_window\": null } }");
+  }
+
   /** Provide for each test to load test index, data and other setup work */
   protected void init() throws Exception {
     disableCalcite();
