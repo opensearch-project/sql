@@ -5,15 +5,14 @@
 
 package org.opensearch.sql.directquery.transport.model.datasource;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-
 /**
  *
  * @opensearch.experimental
  *
  * Interface for results from various data sources.
+ *
+ * <p>Concrete result types are dispatched by the {@code dataSourceType} string carried alongside
+ * the serialized payload in the transport protocol (see {@code ExecuteDirectQueryActionResponse}),
+ * so no in-JSON Jackson type discriminator is used here.
  */
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
-@JsonSubTypes({@JsonSubTypes.Type(value = PrometheusResult.class, name = "prometheus")})
 public interface DataSourceResult {}
