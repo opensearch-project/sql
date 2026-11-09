@@ -485,6 +485,7 @@ public class SQLPlugin extends Plugin
             OpenSearchSettings.RESULT_INDEX_TTL_SETTING,
             OpenSearchSettings.STREAMING_JOB_HOUSEKEEPER_INTERVAL_SETTING,
             OpenSearchSettings.AUTO_INDEX_MANAGEMENT_ENABLED_SETTING,
+            OpenSearchSettings.AUTO_INDEX_MANAGEMENT_INTERVAL_SETTING,
             environment.settings(),
             dataSourceService,
             injector.getInstance(FlintIndexMetadataServiceImpl.class),

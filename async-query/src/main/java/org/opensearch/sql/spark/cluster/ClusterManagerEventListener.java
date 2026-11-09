@@ -39,6 +39,7 @@ public class ClusterManagerEventListener implements LocalNodeClusterManagerListe
   private final FlintIndexOpFactory flintIndexOpFactory;
   private Duration sessionTtlDuration;
   private Duration resultTtlDuration;
+  private TimeValue retentionInterval;
   private TimeValue streamingJobHouseKeepingInterval;
   private boolean isAutoIndexManagementEnabled;
 
@@ -51,6 +52,7 @@ public class ClusterManagerEventListener implements LocalNodeClusterManagerListe
       Setting<TimeValue> resultTtl,
       Setting<TimeValue> streamingJobHouseKeepingInterval,
       Setting<Boolean> isAutoIndexManagementEnabledSetting,
+      Setting<TimeValue> retentionInterval,
       Settings settings,
       DataSourceService dataSourceService,
       FlintIndexMetadataService flintIndexMetadataService,
@@ -66,6 +68,7 @@ public class ClusterManagerEventListener implements LocalNodeClusterManagerListe
     this.sessionTtlDuration = toDuration(sessionTtl.get(settings));
     this.resultTtlDuration = toDuration(resultTtl.get(settings));
     this.streamingJobHouseKeepingInterval = streamingJobHouseKeepingInterval.get(settings);
+    this.retentionInterval = retentionInterval.get(settings);
 
     clusterService
         .getClusterSettings()
@@ -85,6 +88,19 @@ public class ClusterManagerEventListener implements LocalNodeClusterManagerListe
               this.resultTtlDuration = toDuration(it);
               cancel(flintIndexRetentionCron);
               reInitializeFlintIndexRetention();
+            });
+
+    clusterService
+        .getClusterSettings()
+        .addSettingsUpdateConsumer(
+            retentionInterval,
+            it -> {
+              this.retentionInterval = it;
+              // Only the node that runs the retention reschedules it.
+              if (flintIndexRetentionCron != null) {
+                cancel(flintIndexRetentionCron);
+                reInitializeFlintIndexRetention();
+              }
             });
 
     isAutoIndexManagementEnabled = isAutoIndexManagementEnabledSetting.get(settings);
@@ -163,7 +179,7 @@ public class ClusterManagerEventListener implements LocalNodeClusterManagerListe
                 indexCleanup,
                 SPARK_REQUEST_BUFFER_INDEX_NAME + "*",
                 DataSourceMetadata.DEFAULT_RESULT_INDEX + "*"),
-            TimeValue.timeValueHours(24),
+            retentionInterval,
             executorName());
   }
 

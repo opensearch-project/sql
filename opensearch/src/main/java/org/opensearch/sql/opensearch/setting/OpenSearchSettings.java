@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.setting;
 
 import static org.opensearch.common.settings.Settings.EMPTY;
 import static org.opensearch.common.unit.TimeValue.timeValueDays;
+import static org.opensearch.common.unit.TimeValue.timeValueHours;
 import static org.opensearch.common.unit.TimeValue.timeValueMinutes;
 import static org.opensearch.sql.common.setting.Settings.Key.ENCYRPTION_MASTER_KEY;
 
@@ -373,6 +374,13 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<TimeValue> AUTO_INDEX_MANAGEMENT_INTERVAL_SETTING =
+      Setting.positiveTimeSetting(
+          Key.AUTO_INDEX_MANAGEMENT_INTERVAL.getKeyValue(),
+          timeValueHours(24),
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   public static final Setting<?> DATASOURCES_LIMIT_SETTING =
       Setting.intSetting(
           Key.DATASOURCES_LIMIT.getKeyValue(),
@@ -697,6 +705,12 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.AUTO_INDEX_MANAGEMENT_INTERVAL,
+        AUTO_INDEX_MANAGEMENT_INTERVAL_SETTING,
+        new Updater(Key.AUTO_INDEX_MANAGEMENT_INTERVAL));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.DATASOURCES_LIMIT,
         DATASOURCES_LIMIT_SETTING,
         new Updater(Key.DATASOURCES_LIMIT));
@@ -828,6 +842,7 @@ public class OpenSearchSettings extends Settings {
         .add(SESSION_INDEX_TTL_SETTING)
         .add(RESULT_INDEX_TTL_SETTING)
         .add(AUTO_INDEX_MANAGEMENT_ENABLED_SETTING)
+        .add(AUTO_INDEX_MANAGEMENT_INTERVAL_SETTING)
         .add(DATASOURCES_LIMIT_SETTING)
         .add(SESSION_INACTIVITY_TIMEOUT_MILLIS_SETTING)
         .add(STREAMING_JOB_HOUSEKEEPER_INTERVAL_SETTING)
