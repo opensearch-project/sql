@@ -6,7 +6,7 @@
 package org.opensearch.sql.opensearch.executor;
 
 import com.google.common.base.Suppliers;
-import java.sql.Array;
+import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import org.apache.calcite.avatica.util.Cursor;
 import org.apache.calcite.avatica.util.StructImpl;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
@@ -417,18 +418,6 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       }
       return Arrays.asList(attrs);
     }
-    if (value instanceof Array sqlArray) {
-      // Reading array cells by JDBC ordinal returns java.sql.Array; by column name they were
-      // returned already unwrapped. Unwrap here so both paths produce the same ExprValue.
-      Object raw = sqlArray.getArray();
-      if (raw instanceof Object[] arr) {
-        return processValue(Arrays.asList(arr), type);
-      }
-      if (raw instanceof List) {
-        return processValue(raw, type);
-      }
-      return raw;
-    }
     if (value instanceof List) {
       List<Object> list = (List<Object>) value;
       RelDataType componentType =
@@ -451,19 +440,26 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     int columnCount = metaData.getColumnCount();
     List<RelDataType> fieldTypes =
         rowTypes.getFieldList().stream().map(RelDataTypeField::getType).toList();
-    // Resolve column names once; reading each cell by ordinal avoids Avatica's per-cell
-    // case-insensitive name scan, which is O(columns^2) per row on wide schemas (issue #5939).
+    // Resolve column names once; the slow path (getObject(String)) runs Avatica's case-insensitive
+    // linear scan per cell, giving O(rows * columns^2) materialization on wide schemas (#5939).
+    // The fast path reads the AvaticaResultSet accessor list directly and calls
+    // accessor.getObject(), which is exactly what getObject(String) does after it finds the
+    // column — but without the per-cell scan and without AvaticaSite's SQL-type coercion that
+    // getObject(int) would apply (that coercion rewrites geopoints to WKT strings, arrays to
+    // ArrayImpl, floats to doubles, etc. — see tests under CalciteDataType / CalciteGeoPoint).
     String[] columnNames = new String[columnCount];
     for (int i = 1; i <= columnCount; i++) {
       columnNames[i - 1] = metaData.getColumnName(i);
     }
+    List<Cursor.Accessor> accessors = resolveAvaticaAccessors(resultSet);
     List<ExprValue> values = new ArrayList<>();
-    // Iterate through the ResultSet
     while (resultSet.next() && (querySizeLimit == null || values.size() < querySizeLimit)) {
       Map<String, ExprValue> row = new LinkedHashMap<String, ExprValue>();
-      // Loop through each column
       for (int i = 1; i <= columnCount; i++) {
-        Object value = resultSet.getObject(i);
+        Object value =
+            accessors != null
+                ? accessors.get(i - 1).getObject()
+                : resultSet.getObject(columnNames[i - 1]);
         Object converted = processValue(value, fieldTypes.get(i - 1));
         ExprValue exprValue = ExprValueUtils.fromObjectValue(converted);
         row.put(columnNames[i - 1], exprValue);
@@ -515,6 +511,48 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     QueryResponse response = new QueryResponse(schema, values, null);
     response.setWarnings(warnings);
     return response;
+  }
+
+  // One-time reflection to AvaticaResultSet.accessorList. Resolved lazily; null means the slow
+  // name-based read path is used (either the ResultSet isn't Avatica, or the field moved).
+  private static final AtomicReference<Field> AVATICA_ACCESSOR_LIST_FIELD = new AtomicReference<>();
+  private static final AtomicReference<Boolean> AVATICA_ACCESSOR_LIST_RESOLVED =
+      new AtomicReference<>(false);
+
+  private static Field avaticaAccessorListField() {
+    if (AVATICA_ACCESSOR_LIST_RESOLVED.get()) {
+      return AVATICA_ACCESSOR_LIST_FIELD.get();
+    }
+    try {
+      Field f =
+          Class.forName("org.apache.calcite.avatica.AvaticaResultSet")
+              .getDeclaredField("accessorList");
+      f.setAccessible(true);
+      AVATICA_ACCESSOR_LIST_FIELD.set(f);
+    } catch (ReflectiveOperationException e) {
+      logger.warn(
+          "Could not resolve AvaticaResultSet.accessorList; falling back to slow per-cell name"
+              + " lookup. Wide schemas may be O(cols^2) (#5939).",
+          e);
+    } finally {
+      AVATICA_ACCESSOR_LIST_RESOLVED.set(true);
+    }
+    return AVATICA_ACCESSOR_LIST_FIELD.get();
+  }
+
+  /** Returns the AvaticaResultSet accessor list or null if the fast path is unavailable. */
+  @SuppressWarnings("unchecked")
+  private static List<Cursor.Accessor> resolveAvaticaAccessors(ResultSet resultSet) {
+    Field f = avaticaAccessorListField();
+    if (f == null) return null;
+    try {
+      Class<?> avaticaCls = Class.forName("org.apache.calcite.avatica.AvaticaResultSet");
+      if (!resultSet.isWrapperFor(avaticaCls)) return null;
+      Object avatica = resultSet.unwrap(avaticaCls);
+      return (List<Cursor.Accessor>) f.get(avatica);
+    } catch (ReflectiveOperationException | SQLException e) {
+      return null;
+    }
   }
 
   /** Registers opensearch-dependent functions */
