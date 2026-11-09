@@ -21,10 +21,12 @@ cluster_permissions:
 index_permissions:
   # The async query result index holds the output of a query the user ran: the Spark job writes it
   # and the user reads it back through the plugin as themselves, so it is not a system index and is
-  # not registered as one. FlintIndexRetention still purges it on the cluster manager, where there
-  # is no user to act for, and outside its own system indices the plugin subject is evaluated like
-  # any other role. The pattern matches the default name and the per-datasource names derived from
-  # it, which DataSourceMetadata requires to start with query_execution_result.
+  # not registered as one. The plugin itself writes it in two places, and outside its own system
+  # indices the plugin subject is evaluated like any other role: FlintIndexRetention purges it on
+  # the cluster manager, where there is no user to act for, and StateStore stores the result of an
+  # index DML query (DROP or ALTER on a Flint index) in it, creating the index if it is missing.
+  # The pattern matches the default name and the per-datasource names derived from it, which
+  # DataSourceMetadata requires to start with query_execution_result.
   - index_patterns:
       - "query_execution_result*"
     allowed_actions:
@@ -39,3 +41,7 @@ index_permissions:
       # setRefresh(true) on the delete-by-query request, which also runs the shard level
       # indices:admin/refresh[s] through the action filters
       - "indices:admin/refresh*"
+      # StateStore.create: the index creation, and the document write, which runs as a shard
+      # level bulk covered by indices:data/write/bulk* above
+      - "indices:admin/create"
+      - "indices:data/write/index"
