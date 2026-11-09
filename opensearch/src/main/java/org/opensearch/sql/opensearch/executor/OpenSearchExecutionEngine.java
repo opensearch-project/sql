@@ -506,66 +506,60 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     return response;
   }
 
-  private static final AtomicReference<Field> AVATICA_ACCESSOR_LIST_FIELD = new AtomicReference<>();
-  private static final AtomicReference<Boolean> AVATICA_ACCESSOR_LIST_RESOLVED =
-      new AtomicReference<>(false);
+  // Resolved once at class-load. Any failure (Avatica renamed/removed the field, module
+  // restrictions block setAccessible) raises ExceptionInInitializerError so an Avatica upgrade
+  // surfaces immediately instead of silently reintroducing the #5939 O(cols^2) hot path.
+  private static final Class<?> AVATICA_RESULT_SET_CLASS;
+  private static final Field AVATICA_ACCESSOR_LIST_FIELD;
 
-  /**
-   * Caches the reflective handle to {@code AvaticaResultSet.accessorList}.
-   *
-   * <p>Why reflection: {@code Avatica} does not publish the per-column {@link Cursor.Accessor}
-   * objects through any public {@code ResultSet} API. {@code ResultSet.getObject(int)} would reach
-   * the same accessors but then applies {@code AvaticaSite.get()} SQL-type coercion that rewrites
-   * geopoints to WKT strings, arrays to {@code ArrayImpl}, and narrows floats to doubles — breaking
-   * downstream {@code ExprValue} conversion. {@code getObject(String)} skips the coercion but runs
-   * an O(columns) case-insensitive label scan per cell, which is the #5939 regression.
-   *
-   * <p>Reading {@code accessorList} and calling {@code accessor.getObject()} directly is the only
-   * way to combine the unscanned ordinal lookup with the raw (uncoerced) value {@code
-   * getObject(String)} returned pre-#5939.
-   *
-   * <p>Resolution happens once per JVM; if it fails (field renamed in a future Avatica, module
-   * restrictions), returns {@code null} and we fall back to {@code getObject(String)} — correct but
-   * slow on wide schemas.
-   */
-  private static Field avaticaAccessorListField() {
-    if (AVATICA_ACCESSOR_LIST_RESOLVED.get()) {
-      return AVATICA_ACCESSOR_LIST_FIELD.get();
-    }
+  static {
     try {
-      Field f =
-          Class.forName("org.apache.calcite.avatica.AvaticaResultSet")
-              .getDeclaredField("accessorList");
-      f.setAccessible(true);
-      AVATICA_ACCESSOR_LIST_FIELD.set(f);
+      AVATICA_RESULT_SET_CLASS = Class.forName("org.apache.calcite.avatica.AvaticaResultSet");
+      AVATICA_ACCESSOR_LIST_FIELD = AVATICA_RESULT_SET_CLASS.getDeclaredField("accessorList");
+      AVATICA_ACCESSOR_LIST_FIELD.setAccessible(true);
     } catch (ReflectiveOperationException e) {
-      logger.warn(
-          "Could not resolve AvaticaResultSet.accessorList; falling back to slow per-cell name"
-              + " lookup. Wide schemas may be O(cols^2) (#5939).",
-          e);
-    } finally {
-      AVATICA_ACCESSOR_LIST_RESOLVED.set(true);
+      throw new ExceptionInInitializerError(
+          new IllegalStateException(
+              "AvaticaResultSet.accessorList is no longer reachable via reflection; the #5939"
+                  + " fast path depends on it. Likely cause: Avatica was upgraded and changed its"
+                  + " internal layout. Update OpenSearchExecutionEngine.resolveAvaticaAccessors"
+                  + " to match the new shape before shipping the Avatica bump.",
+              e));
     }
-    return AVATICA_ACCESSOR_LIST_FIELD.get();
   }
 
   /**
-   * Unwraps the {@link ResultSet} to its underlying {@code AvaticaResultSet} and returns its
-   * accessor list, or {@code null} if the fast path is unavailable (non-Avatica result set, or
-   * reflection could not resolve the field — see {@link #avaticaAccessorListField()}). Callers must
-   * handle the {@code null} case by falling back to {@code getObject(String)}.
+   * Returns the per-column {@link Cursor.Accessor} list of the underlying {@code AvaticaResultSet},
+   * or {@code null} if {@code resultSet} is not an {@code AvaticaResultSet} (e.g. a unit-test
+   * mock).
+   *
+   * <p>Why reflection: Avatica exposes no public API that combines ordinal lookup with the raw,
+   * uncoerced value. {@code ResultSet.getObject(int)} runs {@code AvaticaSite.get()} which rewrites
+   * geopoints to WKT strings, arrays to {@code ArrayImpl}, and narrows floats to doubles —
+   * downstream {@code ExprValue} conversion can't absorb those. {@code getObject(String)} skips the
+   * coercion but is O(cols) per cell (the #5939 regression). Reaching {@code accessorList} and
+   * calling {@code accessor.getObject()} directly is the only way to get both — same {@code
+   * Cursor.Accessor.getObject()} invocation {@code getObject(String)} eventually makes, just
+   * without the label scan.
+   *
+   * <p>Non-Avatica result sets fall back to {@code getObject(String)} in {@link #buildResultSet};
+   * reflection failure is NOT allowed to silently degrade — it throws at class load (see static
+   * init) so an Avatica upgrade can't reintroduce O(cols^2) unnoticed.
    */
   @SuppressWarnings("unchecked")
-  private static List<Cursor.Accessor> resolveAvaticaAccessors(ResultSet resultSet) {
-    Field f = avaticaAccessorListField();
-    if (f == null) return null;
+  private static List<Cursor.Accessor> resolveAvaticaAccessors(ResultSet resultSet)
+      throws SQLException {
+    if (!resultSet.isWrapperFor(AVATICA_RESULT_SET_CLASS)) return null;
     try {
-      Class<?> avaticaCls = Class.forName("org.apache.calcite.avatica.AvaticaResultSet");
-      if (!resultSet.isWrapperFor(avaticaCls)) return null;
-      Object avatica = resultSet.unwrap(avaticaCls);
-      return (List<Cursor.Accessor>) f.get(avatica);
-    } catch (ReflectiveOperationException | SQLException e) {
-      return null;
+      return (List<Cursor.Accessor>)
+          AVATICA_ACCESSOR_LIST_FIELD.get(resultSet.unwrap(AVATICA_RESULT_SET_CLASS));
+    } catch (IllegalAccessException e) {
+      // setAccessible succeeded at init; losing access here would be a JVM-level regression, not
+      // an Avatica change. Surface loudly rather than falling back to O(cols^2).
+      throw new IllegalStateException(
+          "AvaticaResultSet.accessorList became inaccessible after setAccessible; #5939 fast path"
+              + " broken.",
+          e);
     }
   }
 
