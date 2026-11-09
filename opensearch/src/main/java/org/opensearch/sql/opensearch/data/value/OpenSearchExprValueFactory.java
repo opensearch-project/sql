@@ -433,14 +433,12 @@ public class OpenSearchExprValueFactory {
   }
 
   /**
-   * Parse struct content in which a dotted field name runs into a sibling's value of the other
-   * kind, such as {@code peer.name} next to {@code "peer": "svc-a"}. Object fields with dynamic
-   * mapping disabled or with enabled: false accept such documents, because OpenSearch maps neither
-   * path.
+   * Parse struct content in which a dotted field name collides with another field on its path, such
+   * as {@code peer.name} next to {@code "peer": "svc-a"}. Objects with dynamic mapping disabled or
+   * enabled: false accept such documents.
    *
-   * <p>Every field is parsed before any is placed, so the outcome does not depend on key order: a
-   * dotted field name that cannot be expanded under its sibling keeps its literal name, as a
-   * malformed field name does, and the sibling keeps its own.
+   * <p>The dotted field name keeps its literal name, as a malformed one does. All fields are parsed
+   * before any is placed, so a sibling like {@code peer} keeps its own name whatever the key order.
    */
   private ExprValue parseStructWithPathConflict(
       Content content, String prefix, boolean supportArrays) {
@@ -522,9 +520,8 @@ public class OpenSearchExprValueFactory {
    *
    * <p>If there is existing vale for the JsonPath, we need to merge the new value to the old.
    *
-   * @return false, with result unchanged, if the path runs into an existing value of the other
-   *     kind: a non-object it would have to descend into, or at the leaf an object where the value
-   *     is not one, or the reverse
+   * @return false, leaving result unchanged, if a value already on the path is not an object where
+   *     an object is needed, or the other way round
    */
   static boolean populateValueRecursive(ExprTupleValue result, JsonPath path, ExprValue value) {
     Map<String, ExprValue> fields = result.tupleValue();
