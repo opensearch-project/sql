@@ -430,31 +430,37 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     return value;
   }
 
-  private QueryResponse buildResultSet(
-      ResultSet resultSet, RelDataType rowTypes, Integer querySizeLimit) throws SQLException {
+  // package-private for testing
+  QueryResponse buildResultSet(ResultSet resultSet, RelDataType rowTypes, Integer querySizeLimit)
+      throws SQLException {
     // Get the ResultSet metadata to know about columns
     ResultSetMetaData metaData = resultSet.getMetaData();
     int columnCount = metaData.getColumnCount();
     List<RelDataType> fieldTypes =
         rowTypes.getFieldList().stream().map(RelDataTypeField::getType).toList();
+    // Resolve column names once; reading each cell by ordinal avoids Avatica's per-cell
+    // case-insensitive name scan, which is O(columns^2) per row on wide schemas (issue #5939).
+    String[] columnNames = new String[columnCount];
+    for (int i = 1; i <= columnCount; i++) {
+      columnNames[i - 1] = metaData.getColumnName(i);
+    }
     List<ExprValue> values = new ArrayList<>();
     // Iterate through the ResultSet
     while (resultSet.next() && (querySizeLimit == null || values.size() < querySizeLimit)) {
       Map<String, ExprValue> row = new LinkedHashMap<String, ExprValue>();
       // Loop through each column
       for (int i = 1; i <= columnCount; i++) {
-        String columnName = metaData.getColumnName(i);
-        Object value = resultSet.getObject(columnName);
+        Object value = resultSet.getObject(i);
         Object converted = processValue(value, fieldTypes.get(i - 1));
         ExprValue exprValue = ExprValueUtils.fromObjectValue(converted);
-        row.put(columnName, exprValue);
+        row.put(columnNames[i - 1], exprValue);
       }
       values.add(ExprTupleValue.fromExprValueMap(row));
     }
 
     List<Column> columns = new ArrayList<>(metaData.getColumnCount());
     for (int i = 1; i <= columnCount; ++i) {
-      String columnName = metaData.getColumnName(i);
+      String columnName = columnNames[i - 1];
       RelDataType fieldType = fieldTypes.get(i - 1);
       // TODO: Correct this after fixing issue github.com/opensearch-project/sql/issues/3751
       //  The element type of struct and array is currently set to ANY.

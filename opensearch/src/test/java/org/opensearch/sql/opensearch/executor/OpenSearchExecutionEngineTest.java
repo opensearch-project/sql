@@ -12,8 +12,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.common.setting.Settings.Key.SQL_CURSOR_KEEP_ALIVE;
@@ -22,6 +25,8 @@ import static org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,6 +35,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -288,6 +297,50 @@ class OpenSearchExecutionEngineTest {
             "exception while executing query", new RuntimeException("all shards failed"));
 
     assertFalse(OpenSearchExecutionEngine.isPitContextLimitReached(chain));
+  }
+
+  @Test
+  void build_result_set_reads_cells_by_ordinal_not_name() throws SQLException {
+    // Regression for issue #5939: Avatica's getObject(String) does a case-insensitive linear scan
+    // of the column metadata on every call, which makes result materialization O(rows x columns^2)
+    // for wide schemas. The engine must read each cell by its JDBC ordinal instead.
+    int columnCount = 2000;
+    int rowCount = 5;
+
+    ResultSetMetaData metaData = mock(ResultSetMetaData.class);
+    when(metaData.getColumnCount()).thenReturn(columnCount);
+    for (int i = 1; i <= columnCount; i++) {
+      when(metaData.getColumnName(i)).thenReturn("c" + i);
+    }
+
+    ResultSet resultSet = mock(ResultSet.class);
+    when(resultSet.getMetaData()).thenReturn(metaData);
+    AtomicReference<Integer> consumed = new AtomicReference<>(0);
+    when(resultSet.next())
+        .thenAnswer(
+            invocation -> {
+              int c = consumed.get();
+              if (c >= rowCount) return false;
+              consumed.set(c + 1);
+              return true;
+            });
+    when(resultSet.getObject(anyInt())).thenReturn("v");
+
+    RelDataTypeFactory typeFactory = new JavaTypeFactoryImpl();
+    RelDataTypeFactory.Builder rowBuilder = typeFactory.builder();
+    for (int i = 1; i <= columnCount; i++) {
+      rowBuilder.add("c" + i, typeFactory.createSqlType(SqlTypeName.VARCHAR));
+    }
+    RelDataType rowType = rowBuilder.build();
+
+    OpenSearchExecutionEngine engine =
+        new OpenSearchExecutionEngine(client, protector, new PlanSerializer(null));
+    QueryResponse response = engine.buildResultSet(resultSet, rowType, null);
+
+    assertEquals(rowCount, response.getResults().size());
+    assertEquals(columnCount, response.getSchema().getColumns().size());
+    // Ordinal reads only: name-based lookup would reintroduce the quadratic hot path.
+    verify(resultSet, never()).getObject(anyString());
   }
 
   @Test
