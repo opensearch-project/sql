@@ -48,6 +48,9 @@ public class ResultIndexPluginAccessSecurityIT extends SecurityTestBase {
       client().performRequest(deleteDataSource);
     } catch (ResponseException e) {
       // Only the DML test creates it.
+      if (e.getResponse().getStatusLine().getStatusCode() != 404) {
+        throw e;
+      }
     }
   }
 
@@ -146,7 +149,8 @@ public class ResultIndexPluginAccessSecurityIT extends SecurityTestBase {
 
   private static List<String> newProblemLines(int before) throws IOException {
     List<String> lines = problemLines();
-    return lines.subList(before, lines.size());
+    // A rolled log file can shrink the count; report everything rather than miss a line.
+    return before <= lines.size() ? lines.subList(before, lines.size()) : lines;
   }
 
   /**
@@ -164,7 +168,7 @@ public class ResultIndexPluginAccessSecurityIT extends SecurityTestBase {
       for (Path log :
           files
               .filter(p -> p.getParent().getFileName().toString().equals("logs"))
-              .filter(p -> p.toString().contains("integTestWithSecurity"))
+              .filter(p -> p.toString().contains("/integTestWithSecurity-"))
               .filter(p -> p.getFileName().toString().endsWith(".log"))
               .toList()) {
         try (Stream<String> logLines = Files.lines(log)) {

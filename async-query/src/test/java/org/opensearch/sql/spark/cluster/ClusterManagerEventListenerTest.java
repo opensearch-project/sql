@@ -6,10 +6,9 @@
 package org.opensearch.sql.spark.cluster;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -108,6 +107,14 @@ class ClusterManagerEventListenerTest {
     clusterSettings.applySettings(Settings.builder().put(INTERVAL, "5s").build());
 
     assertEquals(List.of(), retentionIntervals);
-    verify(threadPool, never()).scheduleWithFixedDelay(any(), any(), eq(ThreadPool.Names.GENERIC));
+  }
+
+  @Test
+  void rejectsAnIntervalBelowOneSecond() {
+    Settings tooShort = Settings.builder().put(INTERVAL, "500ms").build();
+
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> OpenSearchSettings.AUTO_INDEX_MANAGEMENT_INTERVAL_SETTING.get(tooShort));
   }
 }

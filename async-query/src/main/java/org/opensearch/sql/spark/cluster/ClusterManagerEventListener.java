@@ -96,7 +96,7 @@ public class ClusterManagerEventListener implements LocalNodeClusterManagerListe
             retentionInterval,
             it -> {
               this.retentionInterval = it;
-              // Only the node that runs the retention reschedules it.
+              // Reschedule a retention this node already runs; never start one here.
               if (flintIndexRetentionCron != null) {
                 cancel(flintIndexRetentionCron);
                 reInitializeFlintIndexRetention();

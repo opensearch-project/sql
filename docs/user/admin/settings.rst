@@ -705,9 +705,10 @@ Description
 -----------
 This setting controls how often the cluster manager deletes outdated request and result index documents when
 plugins.query.executionengine.spark.auto_index_management.enabled is true. The first run starts one interval after the
-node becomes cluster manager or the setting changes.
+node becomes cluster manager or a retention setting changes.
 
 * Default Value: 24 hours
+* Minimum Value: 1 second
 
 To run it every 12 hours for example, use this command:
 

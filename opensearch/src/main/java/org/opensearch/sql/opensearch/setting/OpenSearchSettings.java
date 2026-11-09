@@ -9,6 +9,7 @@ import static org.opensearch.common.settings.Settings.EMPTY;
 import static org.opensearch.common.unit.TimeValue.timeValueDays;
 import static org.opensearch.common.unit.TimeValue.timeValueHours;
 import static org.opensearch.common.unit.TimeValue.timeValueMinutes;
+import static org.opensearch.common.unit.TimeValue.timeValueSeconds;
 import static org.opensearch.sql.common.setting.Settings.Key.ENCYRPTION_MASTER_KEY;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -374,10 +375,12 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  /** How often the cluster manager purges outdated request and result index documents. */
   public static final Setting<TimeValue> AUTO_INDEX_MANAGEMENT_INTERVAL_SETTING =
-      Setting.positiveTimeSetting(
+      Setting.timeSetting(
           Key.AUTO_INDEX_MANAGEMENT_INTERVAL.getKeyValue(),
           timeValueHours(24),
+          timeValueSeconds(1),
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 

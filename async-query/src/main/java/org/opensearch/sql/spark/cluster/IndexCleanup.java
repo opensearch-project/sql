@@ -62,6 +62,12 @@ public class IndexCleanup {
                 // or the index does not exist at all
                 LOG.info("{} docs are deleted for index:{}", deleted, indexName);
               }
+              if (response.getVersionConflicts() > 0) {
+                LOG.info(
+                    "{} docs in index:{} were written after the purge found them and are kept",
+                    response.getVersionConflicts(),
+                    indexName);
+              }
               Exception failure = failureOf(indexName, response);
               if (failure != null) {
                 listener.onFailure(failure);
