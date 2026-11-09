@@ -432,21 +432,14 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     return value;
   }
 
-  // package-private for testing
   QueryResponse buildResultSet(ResultSet resultSet, RelDataType rowTypes, Integer querySizeLimit)
       throws SQLException {
-    // Get the ResultSet metadata to know about columns
     ResultSetMetaData metaData = resultSet.getMetaData();
     int columnCount = metaData.getColumnCount();
     List<RelDataType> fieldTypes =
         rowTypes.getFieldList().stream().map(RelDataTypeField::getType).toList();
-    // Resolve column names once; the slow path (getObject(String)) runs Avatica's case-insensitive
-    // linear scan per cell, giving O(rows * columns^2) materialization on wide schemas (#5939).
-    // The fast path reads the AvaticaResultSet accessor list directly and calls
-    // accessor.getObject(), which is exactly what getObject(String) does after it finds the
-    // column — but without the per-cell scan and without AvaticaSite's SQL-type coercion that
-    // getObject(int) would apply (that coercion rewrites geopoints to WKT strings, arrays to
-    // ArrayImpl, floats to doubles, etc. — see tests under CalciteDataType / CalciteGeoPoint).
+    // Materialise cells via the Avatica accessor list to avoid Avatica's per-cell case-insensitive
+    // column-name scan, which makes getObject(String) O(rows x columns^2) on wide schemas (#5939).
     String[] columnNames = new String[columnCount];
     for (int i = 1; i <= columnCount; i++) {
       columnNames[i - 1] = metaData.getColumnName(i);
@@ -513,12 +506,28 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     return response;
   }
 
-  // One-time reflection to AvaticaResultSet.accessorList. Resolved lazily; null means the slow
-  // name-based read path is used (either the ResultSet isn't Avatica, or the field moved).
   private static final AtomicReference<Field> AVATICA_ACCESSOR_LIST_FIELD = new AtomicReference<>();
   private static final AtomicReference<Boolean> AVATICA_ACCESSOR_LIST_RESOLVED =
       new AtomicReference<>(false);
 
+  /**
+   * Caches the reflective handle to {@code AvaticaResultSet.accessorList}.
+   *
+   * <p>Why reflection: {@code Avatica} does not publish the per-column {@link Cursor.Accessor}
+   * objects through any public {@code ResultSet} API. {@code ResultSet.getObject(int)} would reach
+   * the same accessors but then applies {@code AvaticaSite.get()} SQL-type coercion that rewrites
+   * geopoints to WKT strings, arrays to {@code ArrayImpl}, and narrows floats to doubles — breaking
+   * downstream {@code ExprValue} conversion. {@code getObject(String)} skips the coercion but runs
+   * an O(columns) case-insensitive label scan per cell, which is the #5939 regression.
+   *
+   * <p>Reading {@code accessorList} and calling {@code accessor.getObject()} directly is the only
+   * way to combine the unscanned ordinal lookup with the raw (uncoerced) value {@code
+   * getObject(String)} returned pre-#5939.
+   *
+   * <p>Resolution happens once per JVM; if it fails (field renamed in a future Avatica, module
+   * restrictions), returns {@code null} and we fall back to {@code getObject(String)} — correct but
+   * slow on wide schemas.
+   */
   private static Field avaticaAccessorListField() {
     if (AVATICA_ACCESSOR_LIST_RESOLVED.get()) {
       return AVATICA_ACCESSOR_LIST_FIELD.get();
@@ -540,7 +549,12 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     return AVATICA_ACCESSOR_LIST_FIELD.get();
   }
 
-  /** Returns the AvaticaResultSet accessor list or null if the fast path is unavailable. */
+  /**
+   * Unwraps the {@link ResultSet} to its underlying {@code AvaticaResultSet} and returns its
+   * accessor list, or {@code null} if the fast path is unavailable (non-Avatica result set, or
+   * reflection could not resolve the field — see {@link #avaticaAccessorListField()}). Callers must
+   * handle the {@code null} case by falling back to {@code getObject(String)}.
+   */
   @SuppressWarnings("unchecked")
   private static List<Cursor.Accessor> resolveAvaticaAccessors(ResultSet resultSet) {
     Field f = avaticaAccessorListField();
