@@ -520,11 +520,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     } catch (ReflectiveOperationException e) {
       throw new ExceptionInInitializerError(
           new IllegalStateException(
-              "AvaticaResultSet.accessorList is no longer reachable via reflection; the #5939"
-                  + " fast path depends on it. Likely cause: Avatica was upgraded and changed its"
-                  + " internal layout. Update OpenSearchExecutionEngine.resolveAvaticaAccessors"
-                  + " to match the new shape before shipping the Avatica bump.",
-              e));
+              "AvaticaResultSet.accessorList is no longer reachable via reflection", e));
     }
   }
 
