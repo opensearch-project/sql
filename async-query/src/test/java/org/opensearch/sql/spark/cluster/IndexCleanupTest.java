@@ -7,6 +7,7 @@ package org.opensearch.sql.spark.cluster;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -102,14 +103,27 @@ class IndexCleanupTest {
   }
 
   @Test
-  void ignoresADocWrittenAfterTheSearchFoundIt() {
+  void continuesPastADocWrittenAfterTheSearchFoundIt() {
+    // With abortOnVersionConflict false, core counts the conflict and does not list it as a failure.
+    assertFalse(sent.get().isAbortOnVersionConflict());
+    BulkByScrollResponse response = response(2, List.of(), List.of());
+    when(response.getVersionConflicts()).thenReturn(1L);
+    transportListener.get().onResponse(response);
+
+    assertEquals(2L, deleted.get());
+    assertNull(failure.get());
+  }
+
+  @Test
+  void failsWhenAConflictIsListedAsAFailure() {
+    // Core only lists a conflict when it stopped the request at that batch.
     BulkItemResponse.Failure conflict =
         new BulkItemResponse.Failure(
             INDEX, "id", new RuntimeException("version conflict"), RestStatus.CONFLICT);
     transportListener.get().onResponse(response(2, List.of(conflict), List.of()));
 
-    assertEquals(2L, deleted.get());
-    assertNull(failure.get());
+    assertNull(deleted.get());
+    assertSame(conflict.getCause(), failure.get().getCause());
   }
 
   @Test

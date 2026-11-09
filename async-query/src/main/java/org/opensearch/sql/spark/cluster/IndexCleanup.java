@@ -13,7 +13,6 @@ import org.opensearch.action.bulk.BulkItemResponse;
 import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.reindex.BulkByScrollResponse;
 import org.opensearch.index.reindex.DeleteByQueryAction;
@@ -47,7 +46,10 @@ public class IndexCleanup {
         new DeleteByQueryRequest(indexName)
             .setQuery(queryForDeleteByQueryRequest)
             .setIndicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN)
-            .setRefresh(true);
+            .setRefresh(true)
+            // A doc written after the search found it is not stale. Count it as a version conflict
+            // and carry on, rather than stopping the whole purge at that batch.
+            .setAbortOnVersionConflict(false);
 
     client.execute(
         DeleteByQueryAction.INSTANCE,
@@ -73,11 +75,7 @@ public class IndexCleanup {
   // Delete-by-query completes normally when searches or deletes in it were rejected, for example
   // when the subject it runs as is not permitted an action, and lists them in the response.
   private static Exception failureOf(String indexName, BulkByScrollResponse response) {
-    // A conflict means the doc was written after the search found it, so it is not stale.
-    List<BulkItemResponse.Failure> bulkFailures =
-        response.getBulkFailures().stream()
-            .filter(failure -> failure.getStatus() != RestStatus.CONFLICT)
-            .toList();
+    List<BulkItemResponse.Failure> bulkFailures = response.getBulkFailures();
     List<ScrollableHitSource.SearchFailure> searchFailures = response.getSearchFailures();
     if (bulkFailures.isEmpty() && searchFailures.isEmpty()) {
       return null;
