@@ -525,22 +525,11 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
   }
 
   /**
-   * Returns the per-column {@link Cursor.Accessor} list of the underlying {@code AvaticaResultSet},
-   * or {@code null} if {@code resultSet} is not an {@code AvaticaResultSet} (e.g. a unit-test
-   * mock).
-   *
-   * <p>Why reflection: Avatica exposes no public API that combines ordinal lookup with the raw,
-   * uncoerced value. {@code ResultSet.getObject(int)} runs {@code AvaticaSite.get()} which rewrites
-   * geopoints to WKT strings, arrays to {@code ArrayImpl}, and narrows floats to doubles —
-   * downstream {@code ExprValue} conversion can't absorb those. {@code getObject(String)} skips the
-   * coercion but is O(cols) per cell (the #5939 regression). Reaching {@code accessorList} and
-   * calling {@code accessor.getObject()} directly is the only way to get both — same {@code
-   * Cursor.Accessor.getObject()} invocation {@code getObject(String)} eventually makes, just
-   * without the label scan.
-   *
-   * <p>Non-Avatica result sets fall back to {@code getObject(String)} in {@link #buildResultSet};
-   * reflection failure is NOT allowed to silently degrade — it throws at class load (see static
-   * init) so an Avatica upgrade can't reintroduce O(cols^2) unnoticed.
+   * Returns the {@code AvaticaResultSet}'s per-column {@link Cursor.Accessor} list, or {@code null}
+   * if {@code resultSet} is not an {@code AvaticaResultSet}. Reflection is required because neither
+   * public {@code getObject} overload returns the raw value at ordinal cost: {@code getObject(int)}
+   * applies {@code AvaticaSite.get} type coercion (geopoint→WKT, list→ {@code ArrayImpl},
+   * float→double), and {@code getObject(String)} runs an O(cols) label scan per cell (#5939).
    */
   @SuppressWarnings("unchecked")
   private static List<Cursor.Accessor> resolveAvaticaAccessors(ResultSet resultSet)
