@@ -344,6 +344,51 @@ class OpenSearchExecutionEngineTest {
   }
 
   @Test
+  void build_result_set_unwraps_jdbc_array_to_list() throws SQLException {
+    // Avatica's getObject(int) returns a java.sql.Array (ArrayImpl) for ARRAY columns, while
+    // the pre-fix getObject(String) path returned the underlying List already. Both paths must
+    // produce the same ExprValue so array-typed PPL commands keep working post-fix.
+    ResultSetMetaData metaData = mock(ResultSetMetaData.class);
+    when(metaData.getColumnCount()).thenReturn(1);
+    when(metaData.getColumnName(1)).thenReturn("arr");
+
+    java.sql.Array sqlArray = mock(java.sql.Array.class);
+    when(sqlArray.getArray()).thenReturn(new Object[] {"a", "b"});
+
+    ResultSet resultSet = mock(ResultSet.class);
+    when(resultSet.getMetaData()).thenReturn(metaData);
+    AtomicReference<Integer> consumed = new AtomicReference<>(0);
+    when(resultSet.next())
+        .thenAnswer(
+            invocation -> {
+              int c = consumed.get();
+              if (c >= 1) return false;
+              consumed.set(c + 1);
+              return true;
+            });
+    when(resultSet.getObject(1)).thenReturn(sqlArray);
+
+    RelDataTypeFactory typeFactory = new JavaTypeFactoryImpl();
+    RelDataType rowType =
+        typeFactory
+            .builder()
+            .add(
+                "arr",
+                typeFactory.createArrayType(typeFactory.createSqlType(SqlTypeName.VARCHAR), -1))
+            .build();
+
+    OpenSearchExecutionEngine engine =
+        new OpenSearchExecutionEngine(client, protector, new PlanSerializer(null));
+    QueryResponse response = engine.buildResultSet(resultSet, rowType, null);
+
+    assertEquals(1, response.getResults().size());
+    ExprValue arrValue = response.getResults().getFirst().tupleValue().get("arr");
+    assertEquals(
+        List.of("a", "b"),
+        arrValue.collectionValue().stream().map(ExprValue::stringValue).toList());
+  }
+
+  @Test
   void pit_context_limit_check_survives_self_referential_cause() {
     // A throwable whose cause is itself must not loop forever (getCause() == this).
     RuntimeException selfReferential =

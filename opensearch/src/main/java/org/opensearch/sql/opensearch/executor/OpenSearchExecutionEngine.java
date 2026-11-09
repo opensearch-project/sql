@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.executor;
 
 import com.google.common.base.Suppliers;
+import java.sql.Array;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -415,6 +416,18 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
         return map;
       }
       return Arrays.asList(attrs);
+    }
+    if (value instanceof Array sqlArray) {
+      // Reading array cells by JDBC ordinal returns java.sql.Array; by column name they were
+      // returned already unwrapped. Unwrap here so both paths produce the same ExprValue.
+      Object raw = sqlArray.getArray();
+      if (raw instanceof Object[] arr) {
+        return processValue(Arrays.asList(arr), type);
+      }
+      if (raw instanceof List) {
+        return processValue(raw, type);
+      }
+      return raw;
     }
     if (value instanceof List) {
       List<Object> list = (List<Object>) value;
