@@ -119,7 +119,7 @@ public class ConditionalIT extends SQLIntegTestCase {
                 "SELECT NULLIF(firstname, 'Amber JOHnny') as testnullif "
                     + "FROM "
                     + TEST_INDEX_BANK_WITH_NULL_VALUES
-                    + " limit 2 ",
+                    + " ORDER BY account_number limit 2 ",
                 "jdbc"));
     verifySchema(response, schema("NULLIF(firstname, 'Amber JOHnny')", "testnullif", "keyword"));
     verifyDataRows(response, rows(LITERAL_NULL.value()), rows("Hattie"));

@@ -7,13 +7,13 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.Capability.COALESCE_ALL_NULL_OPERANDS;
-import static org.opensearch.sql.util.Capability.HEAD_WITHOUT_STABLE_SORT;
 import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
+import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 import org.opensearch.sql.util.RequiresCapability;
 
@@ -23,29 +23,33 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
     super.init();
     enableCalcite();
 
+    // init() runs as @Before, before every test method. On the analytics route the parquet-backed
+    // store is append-only on same-_id PUT, so seed the extra docs only when the index is first
+    // created — otherwise it accumulates duplicates per test method and inflates row counts.
+    boolean stateCountryWithNullExisted =
+        TestUtils.isIndexExist(client(), TEST_INDEX_STATE_COUNTRY_WITH_NULL);
     loadIndex(Index.STATE_COUNTRY_WITH_NULL);
 
-    Request request1 =
-        new Request("PUT", "/" + TEST_INDEX_STATE_COUNTRY_WITH_NULL + "/_doc/9?refresh=true");
-    request1.setJsonEntity(
-        "{\"name\":null,\"age\":25,\"score\":85.5,\"active\":true,\"year\":2023,\"month\":4}");
-    client().performRequest(request1);
+    if (!stateCountryWithNullExisted) {
+      Request request1 = TestUtils.seedDocRequest(TEST_INDEX_STATE_COUNTRY_WITH_NULL, "9");
+      request1.setJsonEntity(
+          "{\"name\":null,\"age\":25,\"score\":85.5,\"active\":true,\"year\":2023,\"month\":4}");
+      client().performRequest(request1);
 
-    Request request2 =
-        new Request("PUT", "/" + TEST_INDEX_STATE_COUNTRY_WITH_NULL + "/_doc/10?refresh=true");
-    request2.setJsonEntity(
-        "{\"name\":\"\",\"age\":null,\"score\":null,\"active\":false,\"year\":2023,\"month\":4}");
-    client().performRequest(request2);
+      Request request2 = TestUtils.seedDocRequest(TEST_INDEX_STATE_COUNTRY_WITH_NULL, "10");
+      request2.setJsonEntity(
+          "{\"name\":\"\",\"age\":null,\"score\":null,\"active\":false,\"year\":2023,\"month\":4}");
+      client().performRequest(request2);
+    }
   }
 
   @Test
-  @RequiresCapability(HEAD_WITHOUT_STABLE_SORT)
   public void testCoalesceBasic() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval result = coalesce(name, age, 0) | fields name, age, result |"
-                    + " head 3",
+                "source=%s | eval result = coalesce(name, age, 0) | sort - age | fields name, age,"
+                    + " result | head 3",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchema(
@@ -55,13 +59,12 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
   }
 
   @Test
-  @RequiresCapability(HEAD_WITHOUT_STABLE_SORT)
   public void testCoalesceWithMixedTypes() throws IOException {
     JSONObject actual =
         executeQuery(
             String.format(
                 "source=%s | eval result = coalesce(name, age, 'fallback') |"
-                    + " fields name, age, result | head 3",
+                    + " sort - age | fields name, age, result | head 3",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     verifySchema(
@@ -170,8 +173,8 @@ public class CalcitePPLEnhancedCoalesceIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval result = coalesce(field1, field2, field3) | fields name, result |"
-                    + " head 1",
+                "source=%s | eval result = coalesce(field1, field2, field3) | sort - age | fields"
+                    + " name, result | head 1",
                 TEST_INDEX_STATE_COUNTRY_WITH_NULL));
 
     // When every COALESCE operand is missing/null, the result has no known type (see #5175).

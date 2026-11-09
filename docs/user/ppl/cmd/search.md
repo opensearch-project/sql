@@ -270,7 +270,7 @@ fetched rows / total rows = 11/11
 Combine conditions with `AND` to require all criteria to match:
 
 ```ppl
-search severityText="INFO" AND `resource.attributes.service.name`="cart-service" source=otellogs
+search severityText="INFO" AND `resource.attributes.service.name`="cart" source=otellogs
 | fields body
 | head 1
 ```
@@ -330,12 +330,13 @@ search instrumentationScope.name!="@opentelemetry/instrumentation-http" source=o
 The query returns the following results:
 
 ```text
-fetched rows / total rows = 1/1
-+------------------------------+
-| instrumentationScope.name    |
-|------------------------------|
-| Microsoft.Extensions.Hosting |
-+------------------------------+
+fetched rows / total rows = 2/2
++-----------------------------------------------------------------------------+
+| instrumentationScope.name                                                   |
+|-----------------------------------------------------------------------------|
+| Microsoft.Extensions.Hosting                                                |
+| go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc |
++-----------------------------------------------------------------------------+
 ```
 
 **`NOT` operator**
@@ -352,15 +353,15 @@ The query returns the following results:
 
 ```text
 fetched rows / total rows = 5/5
-+------------------------------+
-| instrumentationScope.name    |
-|------------------------------|
-| Microsoft.Extensions.Hosting |
-| null                         |
-| null                         |
-| null                         |
-| null                         |
-+------------------------------+
++-----------------------------------------------------------------------------+
+| instrumentationScope.name                                                   |
+|-----------------------------------------------------------------------------|
+| Microsoft.Extensions.Hosting                                                |
+| go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc |
+| null                                                                        |
+| null                                                                        |
+| null                                                                        |
++-----------------------------------------------------------------------------+
 ```
 
 ## Example 5: Querying ranges

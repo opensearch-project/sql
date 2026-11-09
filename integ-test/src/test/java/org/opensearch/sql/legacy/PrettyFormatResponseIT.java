@@ -8,7 +8,6 @@ package org.opensearch.sql.legacy;
 import static java.util.stream.Collectors.toSet;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.opensearch.sql.util.Capability.DYNAMIC_STRING_NO_KEYWORD;
 import static org.opensearch.sql.util.Capability.NESTED_FIELDS;
@@ -104,14 +103,21 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
   @RequiresCapability(RESPONSE_FORMAT)
   public void wrongIndexType() throws IOException {
     String type = "wrongType";
-    try {
-      executeQuery(
-          String.format(
-              Locale.ROOT, "SELECT * FROM %s/%s", TestsConstants.TEST_INDEX_ACCOUNT, type));
-    } catch (IllegalArgumentException e) {
-      assertThat(
-          e.getMessage(), is(String.format(Locale.ROOT, "Index type %s does not exist", type)));
-    }
+    org.opensearch.client.ResponseException exception =
+        assertThrows(
+            org.opensearch.client.ResponseException.class,
+            () ->
+                executeQuery(
+                    String.format(
+                        Locale.ROOT,
+                        "SELECT * FROM %s/%s",
+                        TestsConstants.TEST_INDEX_ACCOUNT,
+                        type)));
+
+    // IndexNotFoundException should return HTTP 404
+    assertEquals(404, exception.getResponse().getStatusLine().getStatusCode());
+    String body = org.opensearch.sql.util.TestUtils.getResponseBody(exception.getResponse());
+    assertTrue(body.contains("IndexNotFoundException") || body.contains("no such index"));
   }
 
   @Test

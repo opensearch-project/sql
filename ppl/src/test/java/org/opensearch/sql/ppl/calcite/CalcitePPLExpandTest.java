@@ -5,6 +5,10 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.apache.calcite.config.CalciteConnectionConfig;
@@ -77,12 +81,29 @@ public class CalcitePPLExpandTest extends CalcitePPLAbstractTest {
     }
   }
 
+  /** A table with a map column, whose leaves are reached with ITEM rather than a column ref. */
+  public static class TableWithMap extends TableWithArray {
+    @Override
+    public RelDataType getRowType(RelDataTypeFactory typeFactory) {
+      return typeFactory
+          .builder()
+          .add("DEPTNO", SqlTypeName.INTEGER)
+          .add(
+              "ATTRS",
+              typeFactory.createMapType(
+                  typeFactory.createSqlType(SqlTypeName.VARCHAR),
+                  typeFactory.createSqlType(SqlTypeName.VARCHAR)))
+          .build();
+    }
+  }
+
   @Override
   protected Frameworks.ConfigBuilder config(CalciteAssert.SchemaSpec... schemaSpecs) {
     final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
     final SchemaPlus schema = CalciteAssert.addSchema(rootSchema, schemaSpecs);
     // Add an empty table with name DEPT for test purpose
     schema.add("DEPT", new TableWithArray());
+    schema.add("DEPT_MAP", new TableWithMap());
     return Frameworks.newConfigBuilder()
         .parserConfig(SqlParser.Config.DEFAULT)
         .defaultSchema(schema)
@@ -130,5 +151,22 @@ public class CalcitePPLExpandTest extends CalcitePPLAbstractTest {
             + "LATERAL UNNEST((SELECT `$cor0`.`employee_no`\n"
             + "FROM (VALUES (0)) `t` (`ZERO`))) `t10` (`employee_no`)";
     verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  // expand correlates the expansion with a column of its input. A leaf of a map, or any other
+  // value computed from a column, is not one -- it reaches the planner as an ITEM call -- and the
+  // cast used to fail as a ClassCastException, which reached the user as an internal error.
+  @Test
+  public void testExpandOfAValueThatIsNotAColumn() {
+    Throwable thrown =
+        assertThrows(Throwable.class, () -> getRelNode("source=DEPT_MAP | expand ATTRS.k"));
+    assertFalse(
+        "expand of a non-column must not surface as a ClassCastException",
+        thrown instanceof ClassCastException
+            || thrown.getCause() instanceof ClassCastException
+            || String.valueOf(thrown.getMessage()).contains("ClassCastException"));
+    assertTrue(
+        "the message should name the field: " + thrown.getMessage(),
+        String.valueOf(thrown.getMessage()).contains("ATTRS.k"));
   }
 }

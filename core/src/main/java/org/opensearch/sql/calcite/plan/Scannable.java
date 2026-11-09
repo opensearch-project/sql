@@ -17,4 +17,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public interface Scannable {
 
   public Enumerable<@Nullable Object> scan();
+
+  /** Called when this is the plan root, which runs without generated code. */
+  default Enumerable<@Nullable Object> scanAsRoot() {
+    return scan();
+  }
 }

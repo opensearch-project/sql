@@ -20,6 +20,7 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.AlternateM
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BetweenPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BinaryComparisonPredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BooleanContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.BucketFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CaseFuncAlternativeContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CaseFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ColumnFilterContext;
@@ -163,6 +164,26 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitScalarFunctionCall(ScalarFunctionCallContext ctx) {
     return buildFunction(ctx.scalarFunctionName().getText(), ctx.functionArgs().functionArg());
+  }
+
+  /**
+   * Lowers {@code histogram} and {@code date_histogram} to a {@link Span}, the same node PPL's
+   * {@code span()} produces. Anything the grammar does not admit here is a syntax error, which
+   * RestSQLQueryAction hands to the legacy engine.
+   */
+  @Override
+  public UnresolvedExpression visitBucketFunctionCall(BucketFunctionCallContext ctx) {
+    OpenSearchSQLParser.BucketFunctionContext bucket = ctx.bucketFunction();
+    return AstDSL.spanFromSpanLengthLiteral(
+        normalizeField(visit(bucket.field)), (Literal) visit(bucket.interval));
+  }
+
+  /** A string literal naming a column is coerced so downstream sees a column reference. */
+  private static UnresolvedExpression normalizeField(UnresolvedExpression field) {
+    if (field instanceof Literal literal && literal.getType() == DataType.STRING) {
+      return AstDSL.qualifiedName(literal.getValue().toString());
+    }
+    return field;
   }
 
   @Override

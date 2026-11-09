@@ -9,9 +9,6 @@ import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_FALSE;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -27,6 +24,9 @@ import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 @UtilityClass
 public class JsonUtils {
@@ -46,7 +46,7 @@ public class JsonUtils {
     try {
       objectMapper.readTree(jsonExprValue.stringValue());
       return LITERAL_TRUE;
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       return LITERAL_FALSE;
     }
   }
@@ -71,7 +71,7 @@ public class JsonUtils {
     JsonNode jsonNode;
     try {
       jsonNode = objectMapper.readTree(json.stringValue());
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       final String errorFormat = "JSON string '%s' is not valid. Error details: %s";
       throw new SemanticCheckException(String.format(errorFormat, json, e.getMessage()), e);
     }
@@ -90,13 +90,13 @@ public class JsonUtils {
         return new ExprCollectionValue(elements);
       case OBJECT:
         Map<String, ExprValue> values = new LinkedHashMap<>();
-        for (var iter = jsonNode.fields(); iter.hasNext(); ) {
+        for (var iter = jsonNode.properties().iterator(); iter.hasNext(); ) {
           Map.Entry<String, JsonNode> entry = iter.next();
           values.put(entry.getKey(), processJsonNode(entry.getValue()));
         }
         return ExprTupleValue.fromExprValueMap(values);
       case STRING:
-        return new ExprStringValue(jsonNode.asText());
+        return new ExprStringValue(jsonNode.asString());
       case NUMBER:
         if (jsonNode.isFloatingPointNumber()) {
           return new ExprDoubleValue(jsonNode.asDouble());

@@ -18,6 +18,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
+import org.opensearch.sql.legacy.metrics.LatencyMetricName;
 import org.opensearch.sql.legacy.metrics.MetricName;
 
 public class MetricsIT extends PPLIntegTestCase {
@@ -35,6 +36,19 @@ public class MetricsIT extends PPLIntegTestCase {
     TimeUnit.SECONDS.sleep(2L);
 
     assertThat(pplRequestTotal(), equalTo(beforeQueries + 3));
+  }
+
+  @Test
+  public void queryLatencyCountsOnlyExecutedQueries() throws IOException {
+    JSONObject before = new JSONObject(executeStatRequest(makeStatRequest()));
+    multiQueries(3);
+    explainQueryToString(String.format("source=%s | fields age", TEST_INDEX_BANK));
+    JSONObject after = new JSONObject(executeStatRequest(makeStatRequest()));
+
+    String count = LatencyMetricName.PPL.getCountKey();
+    String time = LatencyMetricName.PPL.getTimeKey();
+    assertThat(after.getLong(count), equalTo(before.getLong(count) + 3));
+    Assert.assertTrue(after.getLong(time) >= before.getLong(time));
   }
 
   private void multiQueries(int n) throws IOException {

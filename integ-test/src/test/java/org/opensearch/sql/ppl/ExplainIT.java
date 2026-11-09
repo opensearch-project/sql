@@ -11,6 +11,8 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_OTEL_LOGS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_TIME_DATA;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WEBLOGS;
+import static org.opensearch.sql.util.Capability.EXPLAIN_FORMAT;
+import static org.opensearch.sql.util.Capability.MULTI_VALUE_FIELD_LOAD;
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEqualsIgnoreId;
 import static org.opensearch.sql.util.MatcherUtils.assertYamlEqualsIgnoreId;
 
@@ -22,7 +24,9 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.TestUtils;
+import org.opensearch.sql.util.RequiresCapability;
 
+@RequiresCapability(EXPLAIN_FORMAT)
 public class ExplainIT extends PPLIntegTestCase {
 
   @Override
@@ -32,7 +36,13 @@ public class ExplainIT extends PPLIntegTestCase {
     loadIndex(Index.BANK);
     loadIndex(Index.DATE_FORMATS);
     loadIndex(Index.WEBLOG);
-    loadIndex(Index.OTELLOGS);
+    // otel_logs has a multi-value array for a scalar-mapped field, which the parquet store
+    // rejects at bulk load (MULTI_VALUE_FIELD_LOAD); skip the load on the AE route so it
+    // doesn't abort init() for the independent tests. The dependent tests are
+    // @RequiresCapability-gated.
+    if (!isAnalyticsParquetIndicesEnabled()) {
+      loadIndex(Index.OTELLOGS);
+    }
     loadIndex(Index.TIME_TEST_DATA);
   }
 
@@ -727,6 +737,11 @@ public class ExplainIT extends PPLIntegTestCase {
   // Search command explain examples - 3 core use cases
 
   @Test
+  @RequiresCapability(
+      value = MULTI_VALUE_FIELD_LOAD,
+      note =
+          "reads otel_logs whose multi-value field can't load on the AE store"
+              + " (MULTI_VALUE_FIELD_LOAD).")
   public void testExplainSearchBasicText() throws IOException {
     // Example 1: Basic text search without field specification
     String expected = loadExpectedPlan("explain_search_basic_text.json");
@@ -736,6 +751,11 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = MULTI_VALUE_FIELD_LOAD,
+      note =
+          "reads otel_logs whose multi-value field can't load on the AE store"
+              + " (MULTI_VALUE_FIELD_LOAD).")
   public void testExplainSearchNumericComparison() throws IOException {
     // Example 2: Numeric field comparison with greater than
     String expected = loadExpectedPlan("explain_search_numeric_comparison.json");
@@ -746,6 +766,11 @@ public class ExplainIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = MULTI_VALUE_FIELD_LOAD,
+      note =
+          "reads otel_logs whose multi-value field can't load on the AE store"
+              + " (MULTI_VALUE_FIELD_LOAD).")
   public void testExplainSearchWildcardStar() throws IOException {
     // Example 3: Wildcard search with asterisk for pattern matching
     String expected = loadExpectedPlan("explain_search_wildcard_star.json");

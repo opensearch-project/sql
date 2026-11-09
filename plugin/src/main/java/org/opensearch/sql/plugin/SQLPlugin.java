@@ -13,6 +13,7 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_REQUE
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.nio.charset.Charset;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -103,6 +104,8 @@ import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.plugin.RestSqlAction;
 import org.opensearch.sql.legacy.plugin.RestSqlStatsAction;
 import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
+import org.opensearch.sql.opensearch.client.RemoteClusterServiceProvider;
+import org.opensearch.sql.opensearch.data.value.FlatObjectValues;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
 import org.opensearch.sql.opensearch.storage.rest.CoreEndpointsProvider;
@@ -142,6 +145,7 @@ import org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionRespons
 import org.opensearch.sql.spi.rest.RestEndpointProvider;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
 import org.opensearch.sql.storage.DataSourceFactory;
+import org.opensearch.telemetry.tracing.noop.NoopTracer;
 import org.opensearch.threadpool.ExecutorBuilder;
 import org.opensearch.threadpool.FixedExecutorBuilder;
 import org.opensearch.threadpool.ThreadPool;
@@ -158,6 +162,38 @@ public class SQLPlugin extends Plugin
 
   private static final Logger LOGGER = LogManager.getLogger(SQLPlugin.class);
 
+  private static final String DEFAULT_CALCITE_CHARSET = "UTF-16LE";
+
+  static {
+    // Default Calcite's charset to Unicode (UTF-16LE) so non-Latin-1 string literals (CJK/emoji)
+    // encode uniformly with string columns instead of failing with an ISO-8859-1 encoding error.
+    // Set at plugin load, before any Calcite class reads these once-cached properties.
+    setDefaultIfAbsent("calcite.default.charset", DEFAULT_CALCITE_CHARSET);
+    setDefaultIfAbsent("calcite.default.nationalcharset", DEFAULT_CALCITE_CHARSET);
+    setDefaultIfAbsent("calcite.default.collation.name", DEFAULT_CALCITE_CHARSET + "$en_US");
+
+    // Calcite reads the charset system properties only once and caches the result forever. The
+    // block above runs at plugin load, before anything touches Calcite, so the cached value is
+    // ours. Force-resolve the effective charset now and warn if it isn't what we set: if a future
+    // change ever references a Calcite class before this plugin loads, Calcite will have already
+    // cached the ISO-8859-1 default and Unicode literals will fail in production -- this log line
+    // points back here so the cause is traceable instead of silent.
+    Charset effective = org.apache.calcite.util.Util.getDefaultCharset();
+    if (!DEFAULT_CALCITE_CHARSET.equalsIgnoreCase(effective.name())) {
+      LOGGER.warn(
+          "Calcite default charset is [{}] but expected [{}]. A Calcite class was likely loaded"
+              + " before SQLPlugin; non-Latin-1 string literals may fail with encoding errors.",
+          effective.name(),
+          DEFAULT_CALCITE_CHARSET);
+    }
+  }
+
+  private static void setDefaultIfAbsent(String key, String value) {
+    if (System.getProperty(key) == null) {
+      System.setProperty(key, value);
+    }
+  }
+
   private List<ExecutionEngine> executionEngineExtensions = List.of();
   private List<RestEndpointProvider> restEndpointProviders = List.of();
   private ClusterService clusterService;
@@ -166,6 +202,13 @@ public class SQLPlugin extends Plugin
   private org.opensearch.sql.common.setting.Settings pluginSettings;
 
   private NodeClient client;
+
+  /**
+   * Filled by {@link org.opensearch.sql.plugin.transport.TransportPPLQueryAction}, the first holder
+   * of a {@code TransportService}; returned as a component so it can be injected there.
+   */
+  private final RemoteClusterServiceProvider remoteClusters = new RemoteClusterServiceProvider();
+
   private DataSourceServiceImpl dataSourceService;
   private OpenSearchAsyncQueryScheduler asyncQueryScheduler;
   private Injector injector;
@@ -395,6 +438,15 @@ public class SQLPlugin extends Plugin
     this.pluginSettings = new OpenSearchSettings(clusterService.getClusterSettings());
     this.client = (NodeClient) client;
 
+    // Read on every node, including by pushed-down scripts on data nodes, so it is kept as a static
+    // in step with the cluster setting -- as SearchService does for max_clause_count.
+    FlatObjectValues.setMaxDepth(
+        OpenSearchSettings.FLAT_OBJECT_MAX_DEPTH_SETTING.get(clusterService.getSettings()));
+    clusterService
+        .getClusterSettings()
+        .addSettingsUpdateConsumer(
+            OpenSearchSettings.FLAT_OBJECT_MAX_DEPTH_SETTING, FlatObjectValues::setMaxDepth);
+
     publishRestCommandRegistries();
 
     this.dataSourceService = createDataSourceService();
@@ -403,13 +455,14 @@ public class SQLPlugin extends Plugin
     LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
     LocalClusterState.state().setClient(client);
     ModulesBuilder modules = new ModulesBuilder();
-    modules.add(new OpenSearchPluginModule(executionEngineExtensions));
+    modules.add(new OpenSearchPluginModule(executionEngineExtensions, NoopTracer.INSTANCE));
     modules.add(
         b -> {
           b.bind(NodeClient.class).toInstance((NodeClient) client);
           b.bind(org.opensearch.sql.common.setting.Settings.class).toInstance(pluginSettings);
           b.bind(DataSourceService.class).toInstance(dataSourceService);
           b.bind(ClusterService.class).toInstance(clusterService);
+          b.bind(RemoteClusterServiceProvider.class).toInstance(remoteClusters);
         });
     modules.add(new AsyncExecutorServiceModule());
     modules.add(new DirectQueryModule());
@@ -435,6 +488,11 @@ public class SQLPlugin extends Plugin
     DirectQueryExecutorService directQueryExecutorService =
         injector.getInstance(DirectQueryExecutorService.class);
 
+    org.opensearch.sql.job.QueryJobService queryJobService =
+        injector.getInstance(org.opensearch.sql.job.QueryJobService.class);
+    org.opensearch.sql.job.SecurityAdapter securityAdapter =
+        injector.getInstance(org.opensearch.sql.job.SecurityAdapter.class);
+
     ScheduledAsyncQueryJobRunner.getJobRunnerInstance()
         .loadJobResource(client, clusterService, threadPool, asyncQueryExecutorService);
 
@@ -446,7 +504,10 @@ public class SQLPlugin extends Plugin
         clusterManagerEventListener,
         pluginSettings,
         directQueryExecutorService,
-        extensionsHolder);
+        extensionsHolder,
+        queryJobService,
+        securityAdapter,
+        remoteClusters);
   }
 
   @Override
@@ -509,7 +570,8 @@ public class SQLPlugin extends Plugin
 
   @Override
   public ScriptEngine getScriptEngine(Settings settings, Collection<ScriptContext<?>> contexts) {
-    return new CompoundedScriptEngine();
+    // Resolve plugin settings lazily: getScriptEngine runs before createComponents sets them.
+    return new CompoundedScriptEngine(() -> pluginSettings);
   }
 
   private DataSourceServiceImpl createDataSourceService() {
@@ -536,7 +598,7 @@ public class SQLPlugin extends Plugin
         new ImmutableSet.Builder<DataSourceFactory>()
             .add(
                 new OpenSearchDataSourceFactory(
-                    new OpenSearchNodeClient(this.client), pluginSettings))
+                    new OpenSearchNodeClient(this.client, remoteClusters), pluginSettings))
             .add(new PrometheusStorageFactory(pluginSettings))
             .add(new GlueDataSourceFactory(pluginSettings))
             .add(new SecurityLakeDataSourceFactory(pluginSettings))

@@ -40,6 +40,7 @@ import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.client.OpenSearchRestClient;
 import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
@@ -108,10 +109,10 @@ public class StandalonePaginationIT extends SQLIntegTestCase {
 
     // arrange
     {
-      Request request1 = new Request("PUT", "/test/_doc/1?refresh=true");
+      Request request1 = TestUtils.seedDocRequest("test", "1");
       request1.setJsonEntity("{\"name\": \"hello\", \"age\": 20}");
       client().performRequest(request1);
-      Request request2 = new Request("PUT", "/test/_doc/2?refresh=true");
+      Request request2 = TestUtils.seedDocRequest("test", "2");
       request2.setJsonEntity("{\"name\": \"world\", \"age\": 30}");
       client().performRequest(request2);
     }

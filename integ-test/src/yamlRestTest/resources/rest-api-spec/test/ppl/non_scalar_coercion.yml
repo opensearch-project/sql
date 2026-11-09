@@ -1,0 +1,134 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  - do:
+      indices.create:
+        index: app_logs_object
+        body:
+          mappings:
+            properties:
+              "@timestamp":
+                type: date
+              message:
+                type: text
+              dimensions:
+                properties:
+                  pod:
+                    properties:
+                      name:
+                        type: keyword
+                      uid:
+                        type: keyword
+              tags:
+                type: nested
+                properties:
+                  name:
+                    type: keyword
+  - do:
+      bulk:
+        index: app_logs_object
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"@timestamp": "2026-01-01T00:01:00Z", "message": "request served", "dimensions": {"pod": {"name": "pod-a", "uid": "u-1"}}, "tags": [{"name": "t1"}, {"name": "t2"}]}'
+          - '{"index": {}}'
+          - '{"@timestamp": "2026-01-01T00:02:00Z", "message": "request served", "dimensions": {"pod": {"name": "pod-b", "uid": "u-2"}}, "tags": [{"name": "t3"}]}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+  - do:
+      indices.delete:
+        index: app_logs_object
+        ignore: 404
+
+---
+"timechart split by an object field returns 400 bad_request":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=app_logs_object | timechart span=1m count() by `dimensions.pod`"
+  - match: {"$body": "/Cannot\\s+chart\\s+by.*dimensions.pod.*because\\s+it\\s+is\\s+an\\s+object/"}
+
+---
+"chart split by an object field returns 400 bad_request":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=app_logs_object | chart count() over message by `dimensions.pod`"
+  - match: {"$body": "/Cannot\\s+chart\\s+by.*dimensions.pod.*because\\s+it\\s+is\\s+an\\s+object/"}
+
+---
+"cast of an object field returns 400 bad_request":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=app_logs_object | eval c = cast(`dimensions.pod` as string) | fields c"
+  - match: {"$body": "/Cannot\\s+cast\\s+an\\s+object\\s+to\\s+STRING/"}
+
+---
+"timechart split by a multi-value field returns 400 bad_request":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=app_logs_object | timechart span=1m count() by tags"
+  - match: {"$body": "/Cannot\\s+chart\\s+by.*tags.*because\\s+it\\s+holds\\s+multiple\\s+values/"}
+
+---
+"cast of a multi-value field returns 400 bad_request":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=app_logs_object | eval t = cast(tags as string) | fields t"
+  - match: {"$body": "/Cannot\\s+cast\\s+an\\s+array\\s+to\\s+STRING/"}
+
+---
+"timechart split by a scalar sub-field of an object still works":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=app_logs_object | where message = 'request served' | timechart span=1m count() by `dimensions.pod.name`"
+  - match: {"total": 2}
+  - match: {"datarows": [["2026-01-01 00:01:00", "pod-a", 1], ["2026-01-01 00:02:00", "pod-b", 1]]}

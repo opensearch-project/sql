@@ -8,6 +8,8 @@ To send query request to PPL plugin, you MUST use HTTP POST request. POST reques
 ### Description  
 
 You can send HTTP POST request to endpoint **/_plugins/_ppl** with your query in request body.
+
+When the SQL worker thread pools on the node are full, the query fails with `429` and the message `thread pool is saturated; retry later`. Retry the query later.
 ### Example  
   
 ```bash ppl
@@ -247,11 +249,22 @@ Expected output (trimmed):
 | `size` | Integer | Number of result rows returned. |
 
 
+### Rules For Recommendations
+| Rule | Severity | Trigger | Default threshold | Suggestion |
+|------|----------|---------------|-------------------|------------|
+| Ineffective Filter | WARNING | An in-memory filter operator passes through nearly all of its input rows (`rows_out / rows_in`). | ratio > 0.95 | Consider removing the filter or making it more selective. |
+| Join Row Explosion | WARNING / CRITICAL | A join produces far more rows than its combined inputs (`rows_out / rows_in`). | ratio > 5 (WARNING); ≥ 20 (CRITICAL) | Add filters to the subqueries before the join to reduce rows. |
+| Expensive Sort | WARNING | A sort (including a limit-fused top-N) runs in-memory over a large input and consumes a large share of execution time. | self-time > 20% of execute and input rows > 50,000 | Filter or limit rows before sorting (e.g. add `head` or a `where`). |
+| Bottleneck Stage | INFO | A single operator's self-time dominates total execution time. | self-time > 75% of execute | — |
+| Optimize Phase Dominates | INFO | Query planning takes longer than execution. | optimize > execute **and** optimize > 75 ms | — |
+
+
 ### Notes
 - Analyze output is only returned when the query finishes successfully.
 - Analyze requires the Calcite engine to be enabled (`plugins.calcite.enabled=true`).
 - The `profile` section uses the same format as the `profile` endpoint.
-
+- In rule calculation: `rows_in` is the sum of an operator's child row counts; self-time is an operator's own duration (`time_ms − max(child time_ms)`), since profile `time_ms` is cumulative
+  wall-time.
 
 
 ## Profile (Experimental) (Deprecated)
@@ -646,3 +659,116 @@ Expected output (the explicitly selected metadata field is returned even though 
 - Aggregation queries are not affected by this parameter, as they never include metadata fields in their results.
 - The parameter can be specified as a URL parameter (`?include_metadata=true`) or in the request body JSON (`{"include_metadata": true}`).
 - When both URL parameter and request body specify the parameter, the request body takes precedence.
+
+## Async submit — `wait_for_completion_timeout` and `keep_alive`
+
+### Description
+
+`POST /_plugins/_ppl` accepts two optional body fields that let a client submit a long-running query and return before it finishes. If the query completes inside the configured wait, the response is identical to a synchronous PPL response. If the wait expires first, the response carries an opaque `id` and the client fetches the final result later via `GET /_plugins/_async_query/{id}`.
+
+Results returned inline, including explain output and errors, are not retained. Retention applies only when the submit response returns an `id` for polling.
+
+Parameters:
+
+| Field | Type | Default | Limit | Description |
+|---|---|---|---|---|
+| `wait_for_completion_timeout` | time value string (e.g. `"5s"`, `"0"`) | `30s` when either async field is present | `0s` – `60s` (inclusive); values outside the range are rejected with `400`. | Maximum time the submit response will wait for the query to finish. For complex queries, the submit response may take slightly longer than this value. |
+| `keep_alive` | time value string (e.g. `"5m"`) | `5m` | `> 0`, `≤ 24h`; values outside the range are rejected with `400`. | How long a terminal result is retained after completion. A subsequent GET on the id succeeds within this window and returns `404` afterwards, or as soon as the job is deleted. |
+
+### Limitations
+
+- Async submit is only available for standard PPL queries. The following request shapes always run synchronously and ignore `wait_for_completion_timeout` / `keep_alive`: the `/_plugins/_ppl/_explain` endpoint, requests with `"profile": true`, and non-JSON response formats (`format=csv`, `format=raw`, `format=viz`).
+- Results are retained in memory on the owner node for the duration of `keep_alive`, unless the job is deleted first. Set it as low as practical for your polling cadence; the default is `5m`.
+- Submitting an async query requires `cluster:admin/opensearch/ppl`; fetching requires `cluster:admin/opensearch/ql/async_query/result`; deleting requires `cluster:admin/opensearch/ql/async_query/delete`. Users on custom roles must be granted each action they use — a submit without the fetch grant produces an id that returns `403` on GET.
+- When the security plugin is enabled, only the user who submitted a query can fetch or delete it; other users receive `403`.
+- When the SQL worker thread pools on the node are full, the submit fails with `429`. If the query's id was already returned, GET reports it `FAILED` with the same error.
+
+### Example
+
+Submit a query with a wait budget large enough for completion. The response is the same shape as a synchronous PPL response — no `id`, no polling needed:
+
+```bash ppl
+curl -sS -H 'Content-Type: application/json' \
+-X POST localhost:9200/_plugins/_ppl \
+-d '{"query" : "source=accounts | stats count() as c", "wait_for_completion_timeout": "30s"}'
+```
+
+Expected output:
+
+```json
+{
+  "schema": [
+    {
+      "name": "c",
+      "type": "bigint"
+    }
+  ],
+  "datarows": [
+    [
+      4
+    ]
+  ],
+  "total": 1,
+  "size": 1
+}
+```
+
+If the query is still running when the wait expires, the response is:
+
+```json
+{
+  "id": "<opaque-id>",
+  "status": "RUNNING",
+  "progress": {"fraction_done": 0.42},
+  "schema": [],
+  "datarows": [],
+  "total": 0
+}
+```
+
+`progress.fraction_done` is a best-effort estimate of the work done, derived from the shards and pages the query's index scans have completed. It is always within `[0.0, 1.0]` and never decreases between polls. It stays below `1.0` while the job is `RUNNING`, is `1.0` once the job `SUCCEEDED`, and keeps its last running value when the job `FAILED`. Progress counts only index scans run by the Calcite engine: a query with no such scan reports `0.0` until it finishes, a query that falls back to the legacy engine keeps the value it reached before the fallback, and `graphlookup` traversals are not counted. On a remote cluster, a single-request search (such as `stats` without `by`) and each composite aggregation page report progress only when their response arrives, not per shard. Queries that finish inside the submit wait return the synchronous response, which has no `progress` field.
+
+The client then polls `GET /_plugins/_async_query/{id}` until it returns a terminal status (`SUCCEEDED` or `FAILED`):
+
+```
+GET    /_plugins/_async_query/<id>
+```
+
+Both terminal states return HTTP `200`. The body shape differs by state:
+
+- `SUCCEEDED` — a row-shaped response (`status`, `progress`, `schema`, `datarows`, `total`, `size`), or the explain body when the submitted query starts with `explain`.
+- `FAILED` — `status: "FAILED"`, `progress`, and an `error` object whose fields match the body a synchronous PPL request would have returned on the same failure. Typical fields: `type`, `reason`, `details`, `code`, `context.stage`, `location[]`, and `suggestion` when applicable. Example:
+
+```
+{
+  "status": "FAILED",
+  "progress": {"fraction_done": 0.0},
+  "error": {
+    "type": "IllegalArgumentException",
+    "reason": "Field [nonexistent_field] not found.",
+    "details": "Field [nonexistent_field] not found.",
+    "code": "FIELD_NOT_FOUND",
+    "context": {
+      "stage": "analyzing",
+      "stage_description": "Parsing and validating the query"
+    },
+    "location": ["while preparing and validating the query plan"]
+  }
+}
+```
+
+The GET HTTP status is `200` whenever the poll itself succeeds. `404` from GET means the id is unknown or has expired beyond `keep_alive`; `403` means the caller is not the job's owner.
+
+To cancel a running query or discard a retained result, send `DELETE /_plugins/_async_query/{id}`. The job is removed, so a later GET or DELETE on the id returns `404`. A successful request returns `200` with the job's final status: `CANCELLED` if the query was still running, which also stops its execution, or the existing `SUCCEEDED` or `FAILED` status if it had already finished. An unknown, expired, or already-deleted id returns `404`.
+
+```
+DELETE /_plugins/_async_query/<id>
+```
+
+Example response for a query that was still running:
+
+```json
+{
+  "status": "CANCELLED"
+}
+```

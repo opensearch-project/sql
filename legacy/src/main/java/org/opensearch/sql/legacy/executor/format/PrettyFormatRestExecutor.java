@@ -45,14 +45,16 @@ public class PrettyFormatRestExecutor implements RestExecutor {
   @Override
   public void execute(
       Client client, Map<String, String> params, QueryAction queryAction, RestChannel channel) {
-    String formattedResponse = execute(client, params, queryAction);
+    Protocol protocol = buildProtocol(client, params, queryAction);
+    String formattedResponse = protocol.format();
+    RestStatus restStatus = RestStatus.fromCode(protocol.getStatus());
+
     BytesRestResponse bytesRestResponse;
     if (format.equals("jdbc")) {
       bytesRestResponse =
-          new BytesRestResponse(
-              RestStatus.OK, "application/json; charset=UTF-8", formattedResponse);
+          new BytesRestResponse(restStatus, "application/json; charset=UTF-8", formattedResponse);
     } else {
-      bytesRestResponse = new BytesRestResponse(RestStatus.OK, formattedResponse);
+      bytesRestResponse = new BytesRestResponse(restStatus, formattedResponse);
     }
 
     if (!BackOffRetryStrategy.isHealthy(2 * bytesRestResponse.content().length(), this)) {
@@ -63,29 +65,30 @@ public class PrettyFormatRestExecutor implements RestExecutor {
     channel.sendResponse(bytesRestResponse);
   }
 
-  @Override
-  public String execute(Client client, Map<String, String> params, QueryAction queryAction) {
-    Protocol protocol;
-
+  private Protocol buildProtocol(
+      Client client, Map<String, String> params, QueryAction queryAction) {
     try {
       if (queryAction instanceof DefaultQueryAction) {
-        protocol = buildProtocolForDefaultQuery(client, (DefaultQueryAction) queryAction);
+        return buildProtocolForDefaultQuery(client, (DefaultQueryAction) queryAction);
       } else {
         Object queryResult = QueryActionElasticExecutor.executeAnyAction(client, queryAction);
-        protocol = new Protocol(client, queryAction, queryResult, format, Cursor.NULL_CURSOR);
+        return new Protocol(client, queryAction, queryResult, format, Cursor.NULL_CURSOR);
       }
     } catch (SqlParseException e) {
       LOG.warn("SQL parsing error: {}", e.getMessage(), e);
-      protocol = new Protocol(e);
+      return new Protocol(e);
     } catch (OpenSearchException e) {
       LOG.warn("An error occurred in OpenSearch engine: {}", e.getDetailedMessage(), e);
-      protocol = new Protocol(e);
+      return new Protocol(e);
     } catch (Exception e) {
       LOG.warn("Error happened in pretty formatter", e);
-      protocol = new Protocol(e);
+      return new Protocol(e);
     }
+  }
 
-    return protocol.format();
+  @Override
+  public String execute(Client client, Map<String, String> params, QueryAction queryAction) {
+    return buildProtocol(client, params, queryAction).format();
   }
 
   /**

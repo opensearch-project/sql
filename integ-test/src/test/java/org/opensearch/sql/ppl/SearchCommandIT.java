@@ -7,6 +7,7 @@ package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.util.Capability.DOC_MUTATION;
+import static org.opensearch.sql.util.Capability.MULTI_VALUE_FIELD_LOAD;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -28,6 +29,11 @@ import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.util.RequiresCapability;
 
+@RequiresCapability(
+    value = MULTI_VALUE_FIELD_LOAD,
+    note =
+        "init() loads otel_logs whose multi-value field can't load on the AE store"
+            + " (MULTI_VALUE_FIELD_LOAD). 40 of 52 tests read the dataset.")
 public class SearchCommandIT extends PPLIntegTestCase {
   private static final DateTimeFormatter PPL_TIMESTAMP_FORMATTER =
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");

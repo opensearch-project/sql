@@ -309,7 +309,10 @@ class DataManager:
         def load_json():
             with open(data_file_path, 'r') as f:
                 for line in f:
-                    yield json.loads(line)
+                    doc = json.loads(line)
+                    # Skip bulk API metadata lines ({"index": {"_id": "..."}})
+                    if 'index' not in doc:
+                        yield doc
 
         helpers.bulk(self.client, load_json(), stats_only=True, index=index_name, refresh="wait_for")
 

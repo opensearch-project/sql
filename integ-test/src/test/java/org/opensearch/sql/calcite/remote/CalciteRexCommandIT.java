@@ -10,32 +10,133 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.opensearch.client.Request;
+import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalciteRexCommandIT extends PPLIntegTestCase {
   private static final String SUGGESTION_MATCHING_CONTENT = "capture groups must be alphanumeric";
+  private static final String REDOS_INDEX = "redos_rex_guard";
 
   @Override
   public void init() throws Exception {
     super.init();
     enableCalcite();
     loadIndex(Index.ACCOUNT);
+    createReDoSIndex();
+  }
+
+  /** A single document with a long text value so a catastrophic pattern actually blows up. */
+  private void createReDoSIndex() throws IOException {
+    try {
+      client().performRequest(new Request("DELETE", "/" + REDOS_INDEX));
+    } catch (ResponseException e) {
+      // index doesn't exist yet, fine
+    }
+    Request createIndex = new Request("PUT", "/" + REDOS_INDEX);
+    createIndex.setJsonEntity(
+        "{\"settings\": {\"number_of_shards\": 1, \"number_of_replicas\": 0},"
+            + "\"mappings\": {\"properties\": {\"msg\": {\"type\": \"text\"}}}}");
+    client().performRequest(createIndex);
+
+    // 60 'a' chars: long enough that (?<g>(.*a){8})b would backtrack for many seconds unguarded.
+    String longValue = "a".repeat(60);
+    Request bulk = new Request("POST", "/" + REDOS_INDEX + "/_bulk?refresh=true");
+    bulk.setJsonEntity("{\"index\":{\"_id\":\"1\"}}\n" + "{\"msg\": \"" + longValue + "\"}\n");
+    client().performRequest(bulk);
   }
 
   @Test
   public void testRexBasicFieldExtraction() throws IOException {
+    // Row order is unspecified without a sort, so target one document by its unique key rather
+    // than reading row 0. Cardinality is asserted separately below.
     JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where account_number = 1 | rex field=email"
+                    + " \\\"(?<user>[^@]+)@(?<domain>.+)\\\" | fields email, user, domain",
+                TEST_INDEX_ACCOUNT));
+
+    assertEquals(1, result.getJSONArray("datarows").length());
+    assertEquals("amberduke@pyrami.com", result.getJSONArray("datarows").getJSONArray(0).get(0));
+    assertEquals("amberduke", result.getJSONArray("datarows").getJSONArray(0).get(1));
+    assertEquals("pyrami.com", result.getJSONArray("datarows").getJSONArray(0).get(2));
+
+    JSONObject all =
         executeQuery(
             String.format(
                 "source=%s | rex field=email \\\"(?<user>[^@]+)@(?<domain>.+)\\\" | fields email,"
                     + " user, domain",
                 TEST_INDEX_ACCOUNT));
+    assertEquals(1000, all.getJSONArray("datarows").length());
+  }
 
-    assertEquals(1000, result.getJSONArray("datarows").length());
-    assertEquals("amberduke@pyrami.com", result.getJSONArray("datarows").getJSONArray(0).get(0));
-    assertEquals("amberduke", result.getJSONArray("datarows").getJSONArray(0).get(1));
-    assertEquals("pyrami.com", result.getJSONArray("datarows").getJSONArray(0).get(2));
+  /**
+   * A pathological pattern must be rejected quickly with a client error instead of running
+   * unbounded. The 30s timeout fails the test if the bound ever regresses.
+   */
+  @Test
+  @Timeout(30)
+  public void testRexCatastrophicPatternIsRejectedQuickly() throws IOException {
+    // (?<g>(.*a){8})b over the 60-char 'a' value forces ~C(60,8) backtracking unguarded.
+    try {
+      executeQuery(
+          String.format(
+              "source=%s | rex field=msg \\\"(?<g>(.*a){8})b\\\" | fields g", REDOS_INDEX));
+      fail("Expected the catastrophic regex to be rejected by the backtracking guard");
+    } catch (Exception e) {
+      assertTrue(
+          "Expected a ReDoS-guard error, got: " + e.getMessage(),
+          e.getMessage().contains("too many characters"));
+    }
+  }
+
+  /** rex max_match path (RexExtractMultiFunction) must also be bounded. */
+  @Test
+  @Timeout(30)
+  public void testRexMaxMatchCatastrophicPatternIsRejectedQuickly() throws IOException {
+    try {
+      executeQuery(
+          String.format(
+              "source=%s | rex field=msg \\\"(?<g>(.*a){8})b\\\" max_match=5 | fields g",
+              REDOS_INDEX));
+      fail("Expected the catastrophic regex to be rejected by the backtracking guard");
+    } catch (Exception e) {
+      assertTrue(
+          "Expected a ReDoS-guard error, got: " + e.getMessage(),
+          e.getMessage().contains("too many characters"));
+    }
+  }
+
+  /**
+   * rex offset_field path (RexOffsetFunction, which compiled the pattern directly) must be bounded.
+   */
+  @Test
+  @Timeout(30)
+  public void testRexOffsetFieldCatastrophicPatternIsRejectedQuickly() throws IOException {
+    try {
+      executeQuery(
+          String.format(
+              "source=%s | rex field=msg \\\"(?<g>(.*a){8})b\\\" offset_field=off | fields g, off",
+              REDOS_INDEX));
+      fail("Expected the catastrophic regex to be rejected by the backtracking guard");
+    } catch (Exception e) {
+      assertTrue(
+          "Expected a ReDoS-guard error, got: " + e.getMessage(),
+          e.getMessage().contains("too many characters"));
+    }
+  }
+
+  /** The guard must be transparent: a legitimate rex extraction still works. */
+  @Test
+  public void testRexLegitimatePatternStillWorks() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("source=%s | rex field=msg \\\"(?<g>a+)\\\" | fields g", REDOS_INDEX));
+    assertEquals(1, result.getJSONArray("datarows").length());
+    assertEquals("a".repeat(60), result.getJSONArray("datarows").getJSONArray(0).get(0));
   }
 
   @Test
@@ -114,67 +215,110 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testRexWithFiltering() throws IOException {
+    // Row order is unspecified without a sort, so target one document by its unique key
+    // rather than reading row 0. Cardinality is asserted separately below.
     JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where account_number = 1 | rex field=address"
+                    + " \\\"(?<streetnum>\\\\\\\\d+)\\\\\\\\s+(?<streetname>.+)\\\" | fields"
+                    + " address, streetnum, streetname",
+                TEST_INDEX_ACCOUNT));
+
+    assertEquals(1, result.getJSONArray("datarows").length());
+    assertEquals("880 Holmes Lane", result.getJSONArray("datarows").getJSONArray(0).get(0));
+    assertEquals("880", result.getJSONArray("datarows").getJSONArray(0).get(1));
+    assertEquals("Holmes Lane", result.getJSONArray("datarows").getJSONArray(0).get(2));
+
+    JSONObject all =
         executeQuery(
             String.format(
                 "source=%s | rex field=address"
                     + " \\\"(?<streetnum>\\\\\\\\d+)\\\\\\\\s+(?<streetname>.+)\\\" | fields"
                     + " address, streetnum, streetname",
                 TEST_INDEX_ACCOUNT));
-
-    assertEquals(1000, result.getJSONArray("datarows").length());
-    assertEquals("880 Holmes Lane", result.getJSONArray("datarows").getJSONArray(0).get(0));
-    assertEquals("880", result.getJSONArray("datarows").getJSONArray(0).get(1));
-    assertEquals("Holmes Lane", result.getJSONArray("datarows").getJSONArray(0).get(2));
+    assertEquals(1000, all.getJSONArray("datarows").length());
   }
 
   @Test
   public void testRexMultipleMatches() throws IOException {
+    // Row order is unspecified without a sort, so target one document by its unique key rather
+    // than reading row 0. Cardinality is asserted separately below.
     JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where account_number = 1 | rex field=address"
+                    + " \\\"(?<words>[A-Za-z]+)\\\" max_match=3 | fields address, words",
+                TEST_INDEX_ACCOUNT));
+
+    assertEquals(1, result.getJSONArray("datarows").length());
+    String wordsArray = result.getJSONArray("datarows").getJSONArray(0).get(1).toString();
+    assertTrue(wordsArray.contains("Holmes") && wordsArray.contains("Lane"));
+    assertTrue(wordsArray.startsWith("[") && wordsArray.endsWith("]"));
+
+    JSONObject all =
         executeQuery(
             String.format(
                 "source=%s | rex field=address \\\"(?<words>[A-Za-z]+)\\\" max_match=3 | fields"
                     + " address, words",
                 TEST_INDEX_ACCOUNT));
-
-    assertEquals(1000, result.getJSONArray("datarows").length());
-    String wordsArray = result.getJSONArray("datarows").getJSONArray(0).get(1).toString();
-    assertTrue(wordsArray.contains("Holmes") && wordsArray.contains("Lane"));
-    assertTrue(wordsArray.startsWith("[") && wordsArray.endsWith("]"));
+    assertEquals(1000, all.getJSONArray("datarows").length());
   }
 
   @Test
   public void testRexChainedCommands() throws IOException {
+    // Row order is unspecified without a sort, so target one document by its unique key
+    // rather than reading row 0. Cardinality is asserted separately below.
     JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where account_number = 1 | rex field=firstname"
+                    + " \\\"(?<firstinitial>^.)\\\" | rex field=lastname \\\"(?<lastinitial>^.)\\\""
+                    + " | fields firstname, lastname, firstinitial, lastinitial",
+                TEST_INDEX_ACCOUNT));
+
+    assertEquals(1, result.getJSONArray("datarows").length());
+    assertEquals("Amber", result.getJSONArray("datarows").getJSONArray(0).get(0));
+    assertEquals("Duke", result.getJSONArray("datarows").getJSONArray(0).get(1));
+    assertEquals("A", result.getJSONArray("datarows").getJSONArray(0).get(2));
+    assertEquals("D", result.getJSONArray("datarows").getJSONArray(0).get(3));
+
+    JSONObject all =
         executeQuery(
             String.format(
                 "source=%s | rex field=firstname \\\"(?<firstinitial>^.)\\\" | rex field=lastname"
                     + " \\\"(?<lastinitial>^.)\\\" | fields firstname, lastname, firstinitial,"
                     + " lastinitial",
                 TEST_INDEX_ACCOUNT));
-
-    assertEquals(1000, result.getJSONArray("datarows").length());
-    assertEquals("Amber", result.getJSONArray("datarows").getJSONArray(0).get(0));
-    assertEquals("Duke", result.getJSONArray("datarows").getJSONArray(0).get(1));
-    assertEquals("A", result.getJSONArray("datarows").getJSONArray(0).get(2));
-    assertEquals("D", result.getJSONArray("datarows").getJSONArray(0).get(3));
+    assertEquals(1000, all.getJSONArray("datarows").length());
   }
 
   @Test
   public void testRexComplexPattern() throws IOException {
+    // Row order is unspecified without a sort, so target one document by its unique key
+    // rather than reading row 0. Cardinality is asserted separately below.
     JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | where account_number = 1 | rex field=email"
+                    + " \\\"(?<user>[a-zA-Z0-9._%%+-]+)@(?<domain>[a-zA-Z0-9.-]+)\\\\\\\\.(?<tld>[a-zA-Z]{2,})\\\""
+                    + " | fields email, user, domain, tld",
+                TEST_INDEX_ACCOUNT));
+
+    assertEquals(1, result.getJSONArray("datarows").length());
+    assertEquals("amberduke@pyrami.com", result.getJSONArray("datarows").getJSONArray(0).get(0));
+    assertEquals("amberduke", result.getJSONArray("datarows").getJSONArray(0).get(1));
+    assertEquals("pyrami", result.getJSONArray("datarows").getJSONArray(0).get(2));
+    assertEquals("com", result.getJSONArray("datarows").getJSONArray(0).get(3));
+
+    JSONObject all =
         executeQuery(
             String.format(
                 "source=%s | rex field=email"
                     + " \\\"(?<user>[a-zA-Z0-9._%%+-]+)@(?<domain>[a-zA-Z0-9.-]+)\\\\\\\\.(?<tld>[a-zA-Z]{2,})\\\""
                     + " | fields email, user, domain, tld",
                 TEST_INDEX_ACCOUNT));
-
-    assertEquals(1000, result.getJSONArray("datarows").length());
-    assertEquals("amberduke@pyrami.com", result.getJSONArray("datarows").getJSONArray(0).get(0));
-    assertEquals("amberduke", result.getJSONArray("datarows").getJSONArray(0).get(1));
-    assertEquals("pyrami", result.getJSONArray("datarows").getJSONArray(0).get(2));
-    assertEquals("com", result.getJSONArray("datarows").getJSONArray(0).get(3));
+    assertEquals(1000, all.getJSONArray("datarows").length());
   }
 
   @Test
@@ -307,12 +451,15 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testRexNestedCaptureGroupsBugFix() throws IOException {
+    // This pattern only matches 1 of the 1000 documents, so `head 1` without a sort returns a
+    // non-matching row -- and all three captures null -- unless scan order happens to put the
+    // matching document first. Target it by its unique key instead.
     JSONObject resultWithNested =
         executeQuery(
             String.format(
-                "source=%s | rex field=email"
+                "source=%s | where account_number = 1 | rex field=email"
                     + " \\\"(?<user>[^@]+)@(?<domain>(pyrami|gmail|yahoo))\\\\\\\\.(?<tld>(com|org|net))\\\""
-                    + " | fields user, domain, tld | head 1",
+                    + " | fields user, domain, tld",
                 TEST_INDEX_ACCOUNT));
 
     assertEquals(1, resultWithNested.getJSONArray("datarows").length());
@@ -335,22 +482,24 @@ public class CalciteRexCommandIT extends PPLIntegTestCase {
             .getJSONArray(0)
             .get(2)); // tld should be "com", NOT "pyrami"
 
-    // More complex nested alternation
+    // More complex nested alternation. Same reasoning: `head 1` on an unsorted result can return a
+    // row where the pattern did not match, and getString below would then fail on a null.
     JSONObject complexNested =
         executeQuery(
             String.format(
-                "source=%s | rex field=firstname"
+                "source=%s | where account_number = 1 | rex field=firstname"
                     + " \\\"(?<initial>(A|B|C|D|E))[a-z]*(?<suffix>(ley|nne|ber|ton|son))\\\" |"
-                    + " fields initial, suffix | head 1",
+                    + " fields initial, suffix",
                 TEST_INDEX_ACCOUNT));
 
-    if (!complexNested.getJSONArray("datarows").isEmpty()) {
-      String initial = complexNested.getJSONArray("datarows").getJSONArray(0).getString(0);
-      String suffix = complexNested.getJSONArray("datarows").getJSONArray(0).getString(1);
+    // account_number = 1 is "Amber", which the alternation above matches, so assert the row is
+    // there rather than skipping the checks when it is not -- a conditional here would let a
+    // filtering or rex regression pass vacuously.
+    assertEquals(1, complexNested.getJSONArray("datarows").length());
+    String initial = complexNested.getJSONArray("datarows").getJSONArray(0).getString(0);
+    String suffix = complexNested.getJSONArray("datarows").getJSONArray(0).getString(1);
 
-      assertTrue("Initial should be a single letter A-E", initial.matches("[A-E]"));
-      assertTrue(
-          "Suffix should match alternation pattern", suffix.matches("(ley|nne|ber|ton|son)"));
-    }
+    assertTrue("Initial should be a single letter A-E", initial.matches("[A-E]"));
+    assertTrue("Suffix should match alternation pattern", suffix.matches("(ley|nne|ber|ton|son)"));
   }
 }

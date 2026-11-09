@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.ppl.utils;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -20,6 +18,8 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.type.ExprCoreType;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Parses the inline {@code makeresults format=csv|json data="..."} literal into a shared {@link
@@ -129,7 +129,8 @@ public final class MakeResultsDataParser {
         throw new SyntaxCheckException("makeresults JSON data must be an array of objects");
       }
       Map<String, Object> row = new LinkedHashMap<>();
-      for (Iterator<Map.Entry<String, JsonNode>> it = node.fields(); it.hasNext(); ) {
+      for (Iterator<Map.Entry<String, JsonNode>> it = node.properties().iterator();
+          it.hasNext(); ) {
         Map.Entry<String, JsonNode> f = it.next();
         String name = f.getKey();
         JsonNode v = f.getValue();

@@ -103,6 +103,8 @@ The table below list the mapping between OpenSearch Data Type, OpenSearch SQL Da
 +-----------------+---------------------+-----------+
 | nested          | array               | STRUCT    |
 +-----------------+---------------------+-----------+
+| flat_object     | struct              | STRUCT    |
++-----------------+---------------------+-----------+
 
 Notes:
 * Not all the OpenSearch SQL Type has correspond OpenSearch Type. e.g. data and time. To use function which required such data type, user should explicitly convert the data type.

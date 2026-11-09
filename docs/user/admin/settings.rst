@@ -204,6 +204,126 @@ Result set::
       }
     }
 
+plugins.query.pruning.enabled (Experimental)
+============================================
+
+Version
+-------
+3.9
+
+Description
+-----------
+
+Prunes a wildcard index expression or an explicitly named data stream down to the concrete indices that can hold data in the query's time range, so fewer indices and shards are touched. A wildcard can match regular indices, data streams, or both. Pruning selects from the regular indices and the backing indices of each matched data stream. For an explicitly named data stream, it selects from that stream's backing indices. The primary use currently is to avoid exhausting the open point-in-time (PIT) context limit when a query would otherwise open a reader context over many indices. Enabled by default.
+
+Pruning needs a time range to prune on. It takes one from either of two places:
+
+1. A range on ``@timestamp``, ``timestamp``, or ``time`` in the query itself. Nothing to configure -- any query that filters on one of them is pruned.
+2. The ``start_time`` and ``end_time`` request parameters described below, for a query whose range is not on ``@timestamp``, or whose client would rather state the window than have it inferred.
+
+Anything else is left untouched, and any failure while probing the cluster falls back to querying the full expression. Weigh these limitations before turning it off:
+
+1. An index whose shards are all unavailable is pruned rather than reported, because ``_field_caps`` does not surface per-index failures. Such a query returns fewer rows instead of an error.
+2. Pruning fixes the list of index names, so an index created or deleted between pruning and PIT creation, by a rollover or retention policy for instance, is missed or fails the query. The interval between the two is short, so this is unlikely in practice.
+3. An expression that matches an alias is never pruned, because a filtered alias contributes a filter and routing that are resolved from the expression itself and so would be silently dropped.
+4. Pruning probes the cluster with the ``indices:admin/resolve/index`` and ``indices:data/read/field_caps*`` actions, both granted by the ``ppl_full_access`` role of the security plugin since 3.9. A principal lacking either permission falls back to querying the full expression silently, so pruning simply never takes effect.
+
+Request-level time bounds
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``start_time`` and ``end_time`` declare the window a request is asking about. Both are required, and both are inclusive. ``time_field`` names the field they constrain and defaults to ``@timestamp``; a caller querying an index pattern whose time field is named something else has to give it for request-level pruning to use that field.
+
+Both accept these literals, whatever format the field itself is mapped with:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 34 66
+
+   * - Literal
+     - Example
+   * - OpenSearch date math
+     - ``now``, ``now-7d``, ``now-1d/d``
+   * - ISO-8601 date and time, zone optional
+     - ``2026-09-14T12:00:00.000Z``, ``2026-09-14T12:00:00+08:00``, ``2026-09-14T12:00:00``
+   * - ISO-8601 date only
+     - ``2026-09-14``
+   * - Epoch **milliseconds**
+     - ``1789329600000``
+   * - Date and time separated by a space
+     - ``2026-09-14 12:00:00.000``, ``2026-09-14 12:00:00``
+
+Epoch seconds are not accepted -- a ten-digit number is read as milliseconds, so ``1789329600`` means January 1970. Anything else, malformed values included, is ignored rather than rejected, and nothing is pruned.
+
+They select indices, not rows: an index wholly outside the window is not read. That happens whether or not the query filters on time, so send them only for a window the query's own ``where`` already restricts -- then every index dropped is one the clause had excluded anyway, and the answer is unchanged.
+
+Only the outermost ``source=`` is narrowed. A ``join``'s other side, a subsearch's source, a ``multisearch`` dataset and a ``lookup``'s dimension table are left alone, because the client's own time filter is not known to constrain them -- narrowing one would drop indices nothing filtered, and so drop rows.
+
+How they rank against the query's own time filters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Three time ranges can reach one query. They do different jobs rather than competing for one:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 18 42
+
+   * - Written as
+     - Filters rows
+     - Selects indices
+   * - ``where`` on a time field
+     - yes
+     - only a range on ``@timestamp``, as above
+   * - ``earliest=`` / ``latest=`` in the search command, always on ``@timestamp``
+     - yes
+     - no
+   * - ``start_time`` / ``end_time``
+     - no
+     - yes
+
+The two row filters combine: a query may carry both a ``where`` clause and ``earliest=``/``latest=``, and every one of them applies. Neither overrides the other.
+
+The bounds never filter a row, so they have to cover at least what the row filters restrict. A query whose own range is **wider** than the bounds loses rows: the indices outside the bounds are not read, whatever the query text asked for.
+
+Request body::
+
+    {
+      "query" : "source=logs-* | where `event_time` >= '2026-09-07 00:00:00.000' and `event_time` <= '2026-09-14 00:00:00.000' | stats count() by span(event_time, 1h)",
+      "time_field" : "event_time",
+      "start_time" : "2026-09-07 00:00:00.000",
+      "end_time" : "2026-09-14 00:00:00.000"
+    }
+
+
+Disable it with::
+
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	  "transient" : {
+	    "plugins.query.pruning.enabled" : false
+	  }
+	}'
+
+Result set::
+
+    {
+      "acknowledged" : true,
+      "persistent" : { },
+      "transient" : {
+        "plugins" : {
+          "query" : {
+            "pruning" : {
+              "enabled" : "false"
+            }
+          }
+        }
+      }
+    }
+
+Settings:
+
+1. The default value is true.
+2. This setting is node scope.
+3. This setting can be updated dynamically.
+
 plugins.query.max_expression_depth
 ==================================
 
@@ -235,6 +355,51 @@ Result set::
         }
       }
     }
+
+plugins.query.deserialization.max_depth, max_refs, max_bytes
+============================================================
+
+Version
+-------
+3.9
+
+Description
+-----------
+
+These settings bound the structure of the object graph that the SQL plugin deserializes, for expressions pushed down to data nodes as scripts and for pagination cursors. A payload exceeding any limit fails with ``Failed to deserialize expression code`` (or ``Failed to deserialize object`` for cursors), and the data node logs ``Deserialization filter rejected: depth=.., refs=.., bytes=..``. The class allowlist applied to the same payloads is not configurable.
+
+1. ``plugins.query.deserialization.max_depth``: maximum nesting depth of the object graph. The default value is 150. Each level of expression nesting costs 3 to 4 levels, so the default admits about 45 levels of nesting.
+2. ``plugins.query.deserialization.max_refs``: maximum number of object references. The default value is 10000.
+3. ``plugins.query.deserialization.max_bytes``: maximum size of the serialized payload in bytes. The default value is 65536.
+
+Raise ``max_refs`` and ``max_bytes`` if queries with very large ``IN`` lists or many conditions are rejected. Avoid raising ``max_depth`` far beyond the default: very deep payloads can exhaust the thread stack during deserialization. Here is an example::
+
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	  "transient" : {
+	    "plugins.query.deserialization.max_refs" : 20000
+	  }
+	}'
+
+Result set::
+
+    {
+      "acknowledged" : true,
+      "persistent" : { },
+      "transient" : {
+        "plugins" : {
+          "query" : {
+            "deserialization" : {
+              "max_refs" : "20000"
+            }
+          }
+        }
+      }
+    }
+
+Settings:
+
+1. These settings are node scope.
+2. These settings can be updated dynamically.
 
 plugins.query.buckets
 =====================
@@ -909,6 +1074,30 @@ scalar data types, allowing basic queries (e.g., SELECT * FROM tbl WHERE conditi
 fields in expressions or functions will result in exceptions. If this setting is disabled or absent, only the
 first element of an array is returned, preserving the default behavior.
 
+plugins.query.flat_object.max_depth
+===================================
+
+Version
+-------
+3.10
+
+Description
+-----------
+
+A ``flat_object`` field is read as a struct keyed by the dotted path of each leaf. This setting is how many levels of objects are descended to reach a leaf. Past it, the object that would have been descended into is kept as one leaf under the path reached so far, holding its own JSON; nothing is dropped.
+
+1. The default value is 20, the default of the index setting ``index.mapping.depth.limit``, so a flat_object is read as deeply as a mapped object is allowed.
+2. This setting is node scope.
+3. This setting can be updated dynamically.
+
+Raise it if a flat_object holds leaves deeper than the default. Here is an example::
+
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	  "transient" : {
+	    "plugins.query.flat_object.max_depth" : 30
+	  }
+	}'
+
 plugins.calcite.enabled
 =======================
 
@@ -992,3 +1181,29 @@ Join types ``inner``, ``left``, ``outer`` (alias of ``left``), ``semi`` and ``an
 1. The default value is false since 3.3.0.
 2. This setting is node scope.
 3. This setting can be updated dynamically.
+
+plugins.ppl.regex.match.limit
+=============================
+
+Version
+-------
+3.10
+
+Description
+-----------
+
+The PPL ``parse`` and ``rex`` commands evaluate a user-supplied regular expression against each row with ``java.util.regex``. Some pattern and input combinations cause catastrophic backtracking, where a single match does an enormous amount of work and ties up a worker thread, since neither the resource circuit breaker nor the query timeout can stop a match in progress. This setting bounds that work: it caps the total number of characters a single match may read and aborts the match with a client-side error once the cap is exceeded.
+
+1. The default value is 100000, matching the ``match_limit`` default used by Splunk ``rex`` and PCRE2.
+2. The cap is an absolute count for the whole match, not scaled by input length, so it cannot be evaded by shrinking the input.
+3. This setting is node scope.
+4. This setting can be updated dynamically.
+5. Non-positive values are ignored so the guard cannot be disabled by misconfiguration.
+
+Legitimate matches read each character a small constant number of times and are unaffected. Raise it only if a legitimately heavy pattern needs more headroom. Here is an example::
+
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	  "transient" : {
+	    "plugins.ppl.regex.match.limit" : 200000
+	  }
+	}'

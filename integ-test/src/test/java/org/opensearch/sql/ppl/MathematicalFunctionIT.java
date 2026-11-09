@@ -85,6 +85,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testCeiling() throws IOException {
     JSONObject result =
         executeQuery(
@@ -146,6 +147,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testFloor() throws IOException {
     JSONObject result =
         executeQuery(String.format("source=%s | eval f = floor(age) | fields f", TEST_INDEX_BANK));
@@ -314,6 +316,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testRound() throws IOException {
     JSONObject result =
         executeQuery(String.format("source=%s | eval f = round(age) | fields f", TEST_INDEX_BANK));
@@ -394,6 +397,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testTruncate() throws IOException {
     JSONObject result =
         executeQuery(
@@ -566,6 +570,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testEvalSumMultipleIntegers() throws IOException {
     JSONObject result =
         executeQuery(
@@ -590,6 +595,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testEvalSumWithFields() throws IOException {
     JSONObject result =
         executeQuery(
@@ -604,6 +610,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testEvalSumMultipleNumericArguments() throws IOException {
     JSONObject result =
         executeQuery(
@@ -687,6 +694,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
 
   // Combined sum and avg tests
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testEvalSumAndAvgComparison() throws IOException {
     JSONObject result =
         executeQuery(
@@ -704,6 +712,7 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testEvalSumInWhereClause() throws IOException {
     JSONObject result =
         executeQuery(
@@ -736,7 +745,8 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | eval f = sum(age, 5) + avg(10, 20) | fields f | head 5",
+                "source=%s | sort account_number | eval f = sum(age, 5) + avg(10, 20) | fields f |"
+                    + " head 5",
                 TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "double"));
     // sum(age, 5) + avg(10, 20) = (age + 5) + 15.0
@@ -756,11 +766,13 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testEvalSumWithMultipleFields() throws IOException {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | eval f = sum(age, age, 10) | fields f | head 5", TEST_INDEX_BANK));
+                "source=%s | sort account_number | eval f = sum(age, age, 10) | fields f | head 5",
+                TEST_INDEX_BANK));
     if (isCalciteEnabled()) {
       verifySchema(result, schema("f", null, "bigint"));
     } else {
@@ -775,13 +787,15 @@ public class MathematicalFunctionIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | eval f = avg(age * 2, 10) | fields f | head 5", TEST_INDEX_BANK));
+                "source=%s | sort account_number | eval f = avg(age * 2, 10) | fields f | head 5",
+                TEST_INDEX_BANK));
     verifySchema(result, schema("f", null, "double"));
     // avg(age * 2, 10) = (age * 2 + 10) / 2 = age + 5
     verifyDataRows(result, rows(37.0), rows(41.0), rows(33.0), rows(38.0), rows(41.0));
   }
 
   @Test
+  @RequiresCapability(FUNCTION_TYPE_COMPAT)
   public void testEvalSumWithNegativeNumbers() throws IOException {
     JSONObject result =
         executeQuery(

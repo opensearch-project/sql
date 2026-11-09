@@ -1,0 +1,61 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : null
+
+---
+"Empty PPL query returns 400 syntax error":
+  - skip:
+      features:
+        - headers
+  # Before the fix the empty statement built a null AST and failed with a 500 NullPointerException.
+  # catch: bad_request asserts the HTTP status code is exactly 400.
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: ""
+  - match: { "$body": "/SyntaxCheckException/" }
+  - match: { "$body": "/\\[<EOF>\\]\\s+is\\s+not\\s+a\\s+valid\\s+term/" }
+
+---
+"Whitespace and comment only PPL query returns 400 syntax error":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "  /* nothing here */  "
+  - match: { "$body": "/SyntaxCheckException/" }
+  - match: { "$body": "/\\[<EOF>\\]\\s+is\\s+not\\s+a\\s+valid\\s+term/" }
+
+---
+"Empty PPL explain returns 400 syntax error":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl.explain:
+        body:
+          query: ""
+  - match: { "$body": "/SyntaxCheckException/" }
+  - match: { "$body": "/\\[<EOF>\\]\\s+is\\s+not\\s+a\\s+valid\\s+term/" }

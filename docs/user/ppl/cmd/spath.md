@@ -26,6 +26,8 @@ The `spath` command supports the following parameters.
 | `output` | Optional | The destination field in which the extracted data is stored. Default is the value of `path` in path-based mode, or the value of `input` in auto-extract mode. |
 | `path` | Optional | The JSON path that identifies the data to extract. When omitted, all fields are extracted into a map (auto-extract mode). |  
 
+> **Note**: When `output` names an existing field, the extracted result replaces that field entirely, including any mapped subfields: after `spath input=body output=log`, every `log.<key>` reference reads from the extracted value, and keys that exist only in the index mapping resolve to `null` (or raise an error if the extracted value is not an object). To keep both the extracted and the original values readable, use a non-colliding `output` name.
+
 For more information about path syntax, see [json_extract](../functions/json.md#json_extract).
 
 ## Auto-extract mode (experimental)

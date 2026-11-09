@@ -10,16 +10,22 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_TYPE;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORKER;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WORK_INFORMATION;
+import static org.opensearch.sql.util.Capability.ID_METADATA;
+import static org.opensearch.sql.util.Capability.MULTI_VALUE_FIELD_LOAD;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -28,6 +34,8 @@ import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.sql.legacy.TestUtils;
+import org.opensearch.sql.util.RequiresCapability;
+import tools.jackson.databind.ObjectMapper;
 
 public class IncludeMetadataIT extends PPLIntegTestCase {
 
@@ -36,6 +44,8 @@ public class IncludeMetadataIT extends PPLIntegTestCase {
     super.init();
     enableCalcite();
     loadIndex(Index.ACCOUNT);
+    loadIndex(Index.WORKER);
+    loadIndex(Index.WORK_INFORMATION);
   }
 
   @Test
@@ -95,6 +105,7 @@ public class IncludeMetadataIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ID_METADATA)
   public void testIncludeMetadataTrue() throws IOException {
     // Set include_metadata=true to include metadata fields
     JSONObject result =
@@ -137,6 +148,7 @@ public class IncludeMetadataIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ID_METADATA)
   public void testIncludeMetadataWithExplicitMetadataField() throws IOException {
     // An explicitly selected metadata field is returned regardless of include_metadata: the
     // parameter only governs selections that return all columns. Both values must behave alike.
@@ -156,6 +168,7 @@ public class IncludeMetadataIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ID_METADATA)
   public void testExplicitMetadataFieldSurvivesLaterCommands() throws IOException {
     // A query that does not end with `fields` gets an implicit all-columns projection attached.
     // An earlier revision of this feature made that projection strip metadata unconditionally,
@@ -178,6 +191,55 @@ public class IncludeMetadataIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ID_METADATA)
+  public void testIncludeMetadataWithLookupKeepsSourceMetadata() throws IOException {
+    // Both indices name their metadata fields alike, so one set is returned: the workers' own.
+    // Workers 1001 and 1004 have no work_information match and must keep theirs too.
+    for (String output : List.of("", " APPEND occupation")) {
+      JSONObject result =
+          executeQueryWithParams(
+              String.format(
+                  Locale.ROOT,
+                  "source=%s | lookup %s uid AS id%s | sort id",
+                  TEST_INDEX_WORKER,
+                  TEST_INDEX_WORK_INFORMATION,
+                  output),
+              "include_metadata",
+              "true");
+      assertEquals(List.of("1", "2", "3", "4", "5", "6"), columnValues(result, "_id"));
+      assertEquals(Collections.nCopies(6, TEST_INDEX_WORKER), columnValues(result, "_index"));
+    }
+  }
+
+  @Test
+  @RequiresCapability(ID_METADATA)
+  public void testIncludeMetadataWithLookupOutputsLookupMetadataByName() throws IOException {
+    JSONObject result =
+        executeQueryWithParams(
+            String.format(
+                Locale.ROOT,
+                "source=%s | lookup %s uid AS id OUTPUT _id AS dept_doc_id, _index AS dept_index"
+                    + " | sort id",
+                TEST_INDEX_WORKER,
+                TEST_INDEX_WORK_INFORMATION),
+            "include_metadata",
+            "true");
+    assertEquals(List.of("1", "2", "3", "4", "5", "6"), columnValues(result, "_id"));
+    assertEquals(
+        Arrays.asList("1", null, "2", "3", null, "4"), columnValues(result, "dept_doc_id"));
+    assertEquals(
+        Arrays.asList(
+            TEST_INDEX_WORK_INFORMATION,
+            null,
+            TEST_INDEX_WORK_INFORMATION,
+            TEST_INDEX_WORK_INFORMATION,
+            null,
+            TEST_INDEX_WORK_INFORMATION),
+        columnValues(result, "dept_index"));
+  }
+
+  @Test
+  @RequiresCapability(ID_METADATA)
   public void testIncludeMetadataWithSearch() throws IOException {
     // Test include_metadata with search queries
     JSONObject result =
@@ -222,6 +284,11 @@ public class IncludeMetadataIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = MULTI_VALUE_FIELD_LOAD,
+      note =
+          "reads nested_type whose multi-value field can't load on the AE store"
+              + " (MULTI_VALUE_FIELD_LOAD).")
   public void testIncludeMetadataWithNestedFields() throws IOException {
     // Test include_metadata behavior with nested/structured data
     loadIndex(Index.NESTED);
@@ -252,6 +319,7 @@ public class IncludeMetadataIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ID_METADATA)
   public void testIncludeMetadataWithJsonBodyParameter() throws IOException {
     // Test include_metadata parameter in JSON request body
     JSONObject result =
@@ -270,6 +338,7 @@ public class IncludeMetadataIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(ID_METADATA)
   public void testRequestBodyTakesPrecedenceOverUrlParameter() throws IOException {
     // Test that request body parameter takes precedence over URL parameter
     Request request = new Request("POST", "/_plugins/_ppl?include_metadata=false");
@@ -377,6 +446,19 @@ public class IncludeMetadataIT extends PPLIntegTestCase {
       names.add(schema.getJSONObject(i).getString("name"));
     }
     return names;
+  }
+
+  /** Extracts the values of one column from a response, with {@code null} for a JSON null. */
+  private List<Object> columnValues(JSONObject result, String column) {
+    int index = columnNames(result).indexOf(column);
+    assertTrue("Result should contain column " + column, index >= 0);
+    JSONArray rows = result.getJSONArray("datarows");
+    List<Object> values = new ArrayList<>(rows.length());
+    for (int i = 0; i < rows.length(); i++) {
+      JSONArray row = rows.getJSONArray(i);
+      values.add(row.isNull(index) ? null : row.get(index));
+    }
+    return values;
   }
 
   private JSONObject executeQueryWithJsonBodyParam(String query, boolean includeMetadata)

@@ -7,6 +7,7 @@ package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES;
+import static org.opensearch.sql.util.Capability.DEDUP_NONDETERMINISTIC;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
@@ -16,6 +17,7 @@ import java.util.List;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class DedupCommandIT extends PPLIntegTestCase {
 
@@ -34,6 +36,7 @@ public class DedupCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(DEDUP_NONDETERMINISTIC)
   public void testConsecutiveDedup() throws IOException {
     JSONObject result =
         executeQuery(

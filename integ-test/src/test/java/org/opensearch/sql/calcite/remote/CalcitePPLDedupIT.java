@@ -7,10 +7,20 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DUPLICATION_NULLABLE;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DUPLICATION_NULLABLE_ORDERED;
 import static org.opensearch.sql.util.Capability.DEDUP_NONDETERMINISTIC;
 import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
@@ -24,6 +34,7 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
     enableCalcite();
 
     loadIndex(Index.DUPLICATION_NULLABLE);
+    loadIndex(Index.DUPLICATION_NULLABLE_ORDERED);
     loadIndex(Index.ACCOUNT);
   }
 
@@ -55,15 +66,22 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
 
   @Test
   public void testDedupKeepEmpty() throws IOException {
+    // dedup 1 name KEEPEMPTY=true keeps the first row per distinct non-null name plus every
+    // null-name row. An added `sort name, category` (PPL default ASC NULLS FIRST) pins each
+    // non-null name's surviving row to its smallest category on any shard layout and route -- the
+    // same sort-before-dedup determinism the #3922 regression tests rely on -- so the kept
+    // representative is exact rather than merely "some valid pair". Per name that is A->X,
+    // B->null, C->X, D->Z, E->null; the four null-name rows are always kept in full.
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | dedup 1 name KEEPEMPTY=true | fields name, category",
+                "source=%s | sort name, category | dedup 1 name KEEPEMPTY=true | fields name,"
+                    + " category",
                 TEST_INDEX_DUPLICATION_NULLABLE));
     verifyDataRows(
         actual,
         rows("A", "X"),
-        rows("B", "Z"),
+        rows("B", null),
         rows("C", "X"),
         rows("D", "Z"),
         rows("E", null),
@@ -96,6 +114,17 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
         rows(null, null));
   }
 
+  /**
+   * {@code CONSECUTIVE=true} collapses only <em>adjacent</em> duplicates, so its result depends
+   * entirely on the row-encounter order. A multi-shard index has no stable merge order (the counts
+   * observed on a single shard, 8/12/12/16, become 12/... on five shards). To keep the real index
+   * route while making the encounter order deterministic, this drives a seq-augmented fixture
+   * ({@code duplication_nullable_ordered}, same rows plus an explicit {@code seq}) and adds {@code
+   * | sort seq} before dedup, restoring the historical {@code duplication_nullable} insertion
+   * sequence on any shard layout while still exercising real CONSECUTIVE semantics over the index.
+   * The AE route has no stable per-fragment tiebreaker (DEDUP_NONDETERMINISTIC), so the assertion
+   * stays gated to the routes that produce a deterministic ordered stream.
+   */
   @Test
   @RequiresCapability(
       value = DEDUP_NONDETERMINISTIC,
@@ -104,29 +133,31 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source = %s | dedup 1 name CONSECUTIVE=true | fields name",
-                TEST_INDEX_DUPLICATION_NULLABLE));
+                "source = %s | sort seq | dedup 1 name CONSECUTIVE=true | fields name",
+                TEST_INDEX_DUPLICATION_NULLABLE_ORDERED));
     verifyNumOfRows(actual, 8);
 
     actual =
         executeQuery(
             String.format(
-                "source = %s | dedup 1 name KEEPEMPTY=true CONSECUTIVE=true | fields name",
-                TEST_INDEX_DUPLICATION_NULLABLE));
+                "source = %s | sort seq | dedup 1 name KEEPEMPTY=true CONSECUTIVE=true | fields"
+                    + " name",
+                TEST_INDEX_DUPLICATION_NULLABLE_ORDERED));
     verifyNumOfRows(actual, 12);
 
     actual =
         executeQuery(
             String.format(
-                "source = %s | dedup 2 name CONSECUTIVE=true | fields name",
-                TEST_INDEX_DUPLICATION_NULLABLE));
+                "source = %s | sort seq | dedup 2 name CONSECUTIVE=true | fields name",
+                TEST_INDEX_DUPLICATION_NULLABLE_ORDERED));
     verifyNumOfRows(actual, 12);
 
     actual =
         executeQuery(
             String.format(
-                "source = %s | dedup 2 name KEEPEMPTY=true CONSECUTIVE=true | fields name",
-                TEST_INDEX_DUPLICATION_NULLABLE));
+                "source = %s | sort seq | dedup 2 name KEEPEMPTY=true CONSECUTIVE=true | fields"
+                    + " name",
+                TEST_INDEX_DUPLICATION_NULLABLE_ORDERED));
     verifyNumOfRows(actual, 16);
   }
 
@@ -169,20 +200,25 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | dedup 2 name KEEPEMPTY=true | fields name, category",
                 TEST_INDEX_DUPLICATION_NULLABLE));
-    verifyDataRows(
-        actual,
-        rows("A", "X"),
-        rows("A", "Y"),
-        rows("B", "Z"),
-        rows("B", "Z"),
-        rows("C", "X"),
-        rows("C", "X"),
-        rows("D", "Z"),
-        rows("E", null),
-        rows(null, "Y"),
-        rows(null, "X"),
-        rows(null, "Z"),
-        rows(null, null));
+    // dedup 2 keeps up to two rows per distinct non-null name (A/B/C have >=2, D/E have 1) plus
+    // every null-name row. Which two categories survive per name has no stable cross-shard
+    // tiebreaker, so assert the per-name kept-count, valid pairs, and the fixed null-name rows.
+    List<List<Object>> rows = dataRows(actual);
+    assertEquals(12, rows.size());
+    Map<Object, Integer> nameCounts = new HashMap<>();
+    Set<List<Object>> nullNameRows = new HashSet<>();
+    for (List<Object> row : rows) {
+      Object name = row.get(0);
+      Object category = row.get(1);
+      if (name == null) {
+        nullNameRows.add(Arrays.asList(name, category));
+      } else {
+        nameCounts.merge(name, 1, Integer::sum);
+        assertValidPair(name, category);
+      }
+    }
+    assertEquals(Map.of("A", 2, "B", 2, "C", 2, "D", 1, "E", 1), nameCounts);
+    assertEquals(NULL_NAME_ROWS, nullNameRows);
   }
 
   @Test
@@ -264,20 +300,35 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
   public void testDedupComplex() throws IOException {
     JSONObject actual =
         executeQuery(String.format("source=%s | dedup 1 name", TEST_INDEX_DUPLICATION_NULLABLE));
-    verifyDataRows(
-        actual,
-        rows("X", "A", 1),
-        rows("Z", "B", 1),
-        rows("X", "C", 1),
-        rows("Z", "D", 1),
-        rows(null, "E", 1));
+    // dedup 1 name keeps one row per distinct non-null name. The surviving row's category (and any
+    // other non-key column) has no stable cross-shard tiebreaker, so assert the dedup invariant:
+    // exactly the five names, each once, and each surviving (name, category) is a real data pair.
+    List<List<Object>> byName = dataRows(actual);
+    assertEquals(5, byName.size());
+    Set<Object> names = new HashSet<>();
+    for (List<Object> row : byName) {
+      Object category = row.get(0);
+      Object name = row.get(1);
+      names.add(name);
+      assertEquals(1, ((Number) row.get(2)).intValue());
+      assertValidPair(name, category);
+    }
+    assertEquals(Set.of("A", "B", "C", "D", "E"), names);
     actual =
         executeQuery(
             String.format(
                 "source=%s | fields category, name | dedup 1 name",
                 TEST_INDEX_DUPLICATION_NULLABLE));
-    verifyDataRows(
-        actual, rows("X", "A"), rows("Z", "B"), rows("X", "C"), rows("Z", "D"), rows(null, "E"));
+    List<List<Object>> byNameProjected = dataRows(actual);
+    assertEquals(5, byNameProjected.size());
+    Set<Object> projectedNames = new HashSet<>();
+    for (List<Object> row : byNameProjected) {
+      Object category = row.get(0);
+      Object name = row.get(1);
+      projectedNames.add(name);
+      assertValidPair(name, category);
+    }
+    assertEquals(Set.of("A", "B", "C", "D", "E"), projectedNames);
     actual =
         executeQuery(
             String.format("source=%s | dedup 1 name, category", TEST_INDEX_DUPLICATION_NULLABLE));
@@ -361,9 +412,13 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | rename name as nm | dedup 1 category | fields category, nm",
+                "source=%s | where isnotnull(name) | rename name as nm | sort nm | dedup 1 category"
+                    + " | fields category, nm",
                 TEST_INDEX_DUPLICATION_NULLABLE));
-    // One representative row per category; nm must not be null
+    // Pin the surviving representative deterministically across shards: excluding null names and
+    // sorting by nm makes dedup keep the lexicographically-first name per category (X->A, Y->A,
+    // Z->B). This still exercises the #5150 fix (the renamed non-key field must resolve to a
+    // non-null value in the dedup top_hits response).
     verifyDataRows(actual, rows("X", "A"), rows("Z", "B"), rows("Y", "A"));
   }
 
@@ -380,10 +435,12 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval nm2 = name | rename name as nm | dedup 1 category"
-                    + " | fields category, nm, nm2",
+                "source=%s | where isnotnull(name) | eval nm2 = name | rename name as nm | sort nm"
+                    + " | dedup 1 category | fields category, nm, nm2",
                 TEST_INDEX_DUPLICATION_NULLABLE));
-    // Both nm (from rename) and nm2 (from eval col-ref) must carry the same non-null name value
+    // Pin the surviving representative deterministically across shards (see testDedupWithRenamed
+    // Field). Both nm (from rename) and nm2 (from the eval col-ref) must carry the same non-null
+    // name value, exercising the #5197 alias-collision fix.
     verifyDataRows(actual, rows("X", "A", "A"), rows("Z", "B", "B"), rows("Y", "A", "A"));
   }
 
@@ -422,13 +479,22 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval new_name = lower(name) | dedup 1 new_name",
                 TEST_INDEX_DUPLICATION_NULLABLE));
-    verifyDataRows(
-        actual,
-        rows("X", "A", 1, "a"),
-        rows("Z", "B", 1, "b"),
-        rows("X", "C", 1, "c"),
-        rows("Z", "D", 1, "d"),
-        rows(null, "E", 1, "e"));
+    // dedup 1 new_name keeps one row per distinct lower(name). name and new_name are fully
+    // determined (a<->A ...), but the surviving category has no stable cross-shard tiebreaker;
+    // assert the five keys, the derived-column relation, and a valid (name, category) pair.
+    List<List<Object>> byNewName = dataRows(actual);
+    assertEquals(5, byNewName.size());
+    Set<Object> newNames = new HashSet<>();
+    for (List<Object> row : byNewName) {
+      Object category = row.get(0);
+      Object name = row.get(1);
+      Object newName = row.get(3);
+      newNames.add(newName);
+      assertEquals(1, ((Number) row.get(2)).intValue());
+      assertEquals(((String) name).toLowerCase(Locale.ROOT), newName);
+      assertValidPair(name, category);
+    }
+    assertEquals(Set.of("a", "b", "c", "d", "e"), newNames);
     actual =
         executeQuery(
             String.format(
@@ -480,5 +546,55 @@ public class CalcitePPLDedupIT extends PPLIntegTestCase {
         rows("Y", 1, "A", "a", "y"),
         rows("Z", 1, "B", "b", "z"),
         rows("Z", 1, "B", "b", "z"));
+  }
+
+  // ---- Multi-shard dedup helpers ------------------------------------------------------------
+
+  /**
+   * Every (name, category) pair with a non-null name present in the {@code duplication_nullable}
+   * dataset. dedup keeps one (or N) representative row(s) per key; because the merge has no stable
+   * cross-shard tiebreaker, tests assert the surviving row is a real pair rather than a fixed one.
+   */
+  private static final Set<List<Object>> VALID_NAME_CATEGORY =
+      Set.of(
+          Arrays.asList("A", "X"),
+          Arrays.asList("A", "Y"),
+          Arrays.asList("B", "Z"),
+          Arrays.asList("B", "Y"),
+          Arrays.asList("B", null),
+          Arrays.asList("C", "X"),
+          Arrays.asList("D", "Z"),
+          Arrays.asList("E", null));
+
+  /**
+   * The null-name rows kept by {@code KEEPEMPTY=true} are fully determined: dedup keys on name
+   * only, so every null-name document survives, one per distinct category those rows carry.
+   */
+  private static final Set<List<Object>> NULL_NAME_ROWS =
+      Set.of(
+          Arrays.asList(null, "Y"),
+          Arrays.asList(null, "X"),
+          Arrays.asList(null, "Z"),
+          Arrays.asList(null, null));
+
+  private static void assertValidPair(Object name, Object category) {
+    assertTrue(
+        "unexpected surviving (name, category) = (" + name + ", " + category + ")",
+        VALID_NAME_CATEGORY.contains(Arrays.asList(name, category)));
+  }
+
+  /** Materialize {@code datarows} into a list of rows, mapping JSON null to Java {@code null}. */
+  private static List<List<Object>> dataRows(JSONObject response) {
+    List<List<Object>> rows = new ArrayList<>();
+    JSONArray arr = response.getJSONArray("datarows");
+    for (int i = 0; i < arr.length(); i++) {
+      JSONArray r = arr.getJSONArray(i);
+      List<Object> row = new ArrayList<>();
+      for (int j = 0; j < r.length(); j++) {
+        row.add(r.isNull(j) ? null : r.get(j));
+      }
+      rows.add(row);
+    }
+    return rows;
   }
 }

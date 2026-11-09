@@ -1070,4 +1070,55 @@ public class CalcitePPLAggregationTest extends CalcitePPLAbstractTest {
             + "WHERE `new_avg` > 1000 OR `new_cnt` > 2";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testPercentileApproxOnSmallint() {
+    // EMPNO is SMALLINT
+    String ppl = "source=EMP | stats percentile_approx(EMPNO, 50) as p";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "p=7788\n";
+    verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testPercentileApproxOnTinyint() {
+    // DEPTNO is TINYINT
+    String ppl = "source=EMP | stats percentile_approx(DEPTNO, 50) as p";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "p=20\n";
+    verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testPercentileApproxOnReal() {
+    // PPL float is Calcite REAL
+    String ppl = "source=EMP | stats percentile_approx(cast(EMPNO as float), 50) as p";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "p=7788.0\n";
+    verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testPercentileApproxOnFloatExpression() {
+    // The float literal makes g a Calcite FLOAT
+    String ppl =
+        "source=EMP | eval g = cast(EMPNO as float) * 2.0F | stats percentile_approx(g, 50) as p";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "p=15576.0\n";
+    verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testMedianOnSmallint() {
+    // EMPNO is SMALLINT
+    String ppl = "source=EMP | stats median(EMPNO) as p";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "p=7788\n";
+    verifyResult(root, expectedResult);
+  }
 }

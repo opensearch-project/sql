@@ -622,4 +622,66 @@ public class CalcitePPLEvalTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testEvalUnicodeLiteral() {
+    // A non-Latin-1 (CJK/emoji) literal must build and execute, not fail charset encoding.
+    String ppl = "source=EMP | eval label = '你好 🎉' | fields EMPNO, label";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(EMPNO=[$0], label=['你好 🎉':VARCHAR])\n"
+            + "  LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 14);
+  }
+
+  @Test
+  public void testEvalUnicodeAndAsciiComparison() {
+    // Non-ascii and ascii literals alongside an ascii column comparison must not raise a
+    // mixed-charset error.
+    String ppl =
+        "source=EMP | eval label = '你好', tag = 'ok' | where ENAME = 'MILLER' | fields ENAME,"
+            + " label, tag";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(ENAME=[$1], label=[$8], tag=[$9])\n"
+            + "  LogicalFilter(condition=[=($1, 'MILLER':VARCHAR)])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], label=['你好':VARCHAR], tag=['ok':VARCHAR])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 1);
+  }
+
+  @Test
+  public void testEvalUnicodeAndAsciiInSameExpression() {
+    // A CASE mixing an ascii and a non-ascii branch must resolve a common type, not fail on
+    // charset.
+    String ppl =
+        "source=EMP | eval label = if(SAL > 2000, '高', 'low') | where ENAME = 'MILLER' | fields"
+            + " label";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(label=[$8])\n"
+            + "  LogicalFilter(condition=[=($1, 'MILLER':VARCHAR)])\n"
+            + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], label=[CASE(>($5, 2000), '高', 'low':VARCHAR)])\n"
+            + "      LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 1);
+  }
+
+  @Test
+  public void testEvalUnicodeConcatWithColumn() {
+    // Concatenating a non-ascii literal with an ascii column must build and execute.
+    String ppl =
+        "source=EMP | where ENAME = 'MILLER' | eval label = concat(ENAME, '・你好') | fields label";
+    RelNode root = getRelNode(ppl);
+    String expectedLogical =
+        "LogicalProject(label=[CONCAT($1, '・你好':VARCHAR)])\n"
+            + "  LogicalFilter(condition=[=($1, 'MILLER':VARCHAR)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+    verifyResultCount(root, 1);
+  }
 }

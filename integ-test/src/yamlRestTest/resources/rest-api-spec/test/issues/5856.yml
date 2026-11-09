@@ -1,0 +1,225 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  # Without the fix the nested IN case trips an engine assertion on these assertion-enabled test
+  # nodes, which also returns 400, so each error case matches the exception, the analyzing stage
+  # and the message as well as the status.
+  #
+  # Document 2 has no obj field, so coalesce has to take its string fallback.
+  - do:
+      indices.create:
+        index: object_field_string_operand_5856
+        body:
+          mappings:
+            properties:
+              host:
+                type: keyword
+              obj:
+                properties:
+                  a:
+                    type: keyword
+              items:
+                type: nested
+                properties:
+                  a:
+                    type: keyword
+  - do:
+      bulk:
+        index: object_field_string_operand_5856
+        refresh: true
+        body:
+          - '{"index": {"_id": "1"}}'
+          - '{"host": "a", "obj": {"a": "x"}, "items": [{"a": "x"}]}'
+          - '{"index": {"_id": "2"}}'
+          - '{"host": "b"}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+  - do:
+      indices.delete:
+        index: object_field_string_operand_5856
+        ignore_unavailable: true
+  - do:
+      indices.delete:
+        index: coalesce_all_missing_5856
+        ignore_unavailable: true
+
+---
+"in with a string list on an object field is rejected while analyzing":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=object_field_string_operand_5856 | where obj in ('x', 'y') | fields host"
+  - match: { "$body": "/SemanticCheckException/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/In\\s+expression\\s+types\\s+are\\s+incompatible:\\s+fields\\s+type\\s+STRUCT,\\s+values\\s+type\\s+\\[STRING,\\s+STRING\\]/" }
+
+---
+"in with a string list on a nested field is rejected while analyzing":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=object_field_string_operand_5856 | where items in ('x', 'y') | fields host"
+  - match: { "$body": "/SemanticCheckException/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/In\\s+expression\\s+types\\s+are\\s+incompatible:\\s+fields\\s+type\\s+ARRAY,\\s+values\\s+type\\s+\\[STRING,\\s+STRING\\]/" }
+
+---
+"between with string bounds on an object field is rejected while analyzing":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=object_field_string_operand_5856 | where obj between 'a' and 'z' | fields host"
+  - match: { "$body": "/SemanticCheckException/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/BETWEEN\\s+expression\\s+types\\s+are\\s+incompatible:\\s+\\[STRUCT,\\s+STRING,\\s+STRING\\]/" }
+
+---
+"between with string bounds on a nested field is rejected while analyzing":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=object_field_string_operand_5856 | where items between 'a' and 'z' | fields host"
+  - match: { "$body": "/SemanticCheckException/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/BETWEEN\\s+expression\\s+types\\s+are\\s+incompatible:\\s+\\[ARRAY,\\s+STRING,\\s+STRING\\]/" }
+
+---
+"case mixing an object branch with a string branch is rejected while analyzing":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=object_field_string_operand_5856 | eval x = case(host = 'a', obj else 'z') | fields x"
+  - match: { "$body": "/ExpressionEvaluationException/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/case\\s+branches\\s+must\\s+have\\s+a\\s+common\\s+type/" }
+
+---
+"case mixing a nested branch with a string branch is rejected while analyzing":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=object_field_string_operand_5856 | eval x = case(host = 'a', items else 'z') | fields x"
+  - match: { "$body": "/ExpressionEvaluationException/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/case\\s+branches\\s+must\\s+have\\s+a\\s+common\\s+type/" }
+
+---
+"coalesce of an object field and a string returns strings":
+  - skip:
+      features:
+        - headers
+  # The object value renders as its string form, {a=x}, as coalesce(obj, 1) already does.
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=object_field_string_operand_5856 | eval x = coalesce(obj, 'z') | sort host | fields x"
+  - match: {"total": 2}
+  - match: {"schema": [{"name": "x", "type": "string"}]}
+  - match: {"datarows": [["{a=x}"], ["z"]]}
+
+---
+"isnull on coalesce of an object field and a string or number field keeps the null row":
+  - skip:
+      features:
+        - headers
+  # Document 2 has no fields. A NOT NULL VARCHAR fallback type let Calcite fold isnull(x) to false.
+  - do:
+      indices.create:
+        index: coalesce_all_missing_5856
+        body:
+          mappings:
+            properties:
+              host:
+                type: keyword
+              n:
+                type: integer
+              obj:
+                properties:
+                  a:
+                    type: keyword
+  - do:
+      bulk:
+        index: coalesce_all_missing_5856
+        refresh: true
+        body:
+          - '{"index": {"_id": "1"}}'
+          - '{"host": "a", "n": 1, "obj": {"a": "x"}}'
+          - '{"index": {"_id": "2"}}'
+          - '{}'
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=coalesce_all_missing_5856 | eval x = coalesce(obj, host) | where isnull(x) | fields x"
+  - match: {"total": 1}
+  - match: {"datarows": [[null]]}
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=coalesce_all_missing_5856 | eval x = coalesce(obj, n) | where isnull(x) | fields x"
+  - match: {"total": 1}
+  - match: {"datarows": [[null]]}
+
+---
+"in with a string list on a keyword field still matches":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=object_field_string_operand_5856 | where host in ('a', 'c') | fields host"
+  - match: {"total": 1}
+  - match: {"datarows": [["a"]]}

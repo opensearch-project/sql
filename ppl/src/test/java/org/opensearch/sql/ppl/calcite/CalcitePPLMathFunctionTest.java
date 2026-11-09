@@ -334,4 +334,11 @@ public class CalcitePPLMathFunctionTest extends CalcitePPLAbstractTest {
     String expectedSparkSql = "SELECT POWER(4, 5E-1) `SQRT`\nFROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testTan() {
+    withPPLQuery("source=EMP | eval TAN = tan(0) | fields TAN")
+        .expectLogical("LogicalProject(TAN=[TAN(0)])\n  LogicalTableScan(table=[[scott, EMP]])\n")
+        .expectSparkSQL("SELECT TAN(0) `TAN`\nFROM `scott`.`EMP`");
+  }
 }

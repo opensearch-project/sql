@@ -1,0 +1,38 @@
+{
+  "mappings": {
+    "properties": {
+      "service": {
+        "type": "keyword"
+      },
+      "attributes": {
+        "type": "flat_object"
+      },
+      "attrs": {
+        "type": "alias",
+        "path": "attributes"
+      },
+      "issue": {
+        "properties": {
+          "labels": {
+            "properties": {
+              "category": {
+                "type": "flat_object"
+              }
+            }
+          }
+        }
+      },
+      "projects": {
+        "type": "nested",
+        "properties": {
+          "kw": {
+            "type": "keyword"
+          },
+          "attributes": {
+            "type": "flat_object"
+          }
+        }
+      }
+    }
+  }
+}

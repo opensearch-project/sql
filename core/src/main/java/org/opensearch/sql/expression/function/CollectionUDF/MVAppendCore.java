@@ -55,9 +55,10 @@ public class MVAppendCore {
    * Align a boxed numeric element to the array's target element type. Only numeric widenings that
    * arise from operand widening (e.g. INTEGER cells into a BIGINT array) are handled; non-numeric
    * or null-typed targets pass the value through unchanged so mixed / ANY-typed arrays keep their
-   * existing {@code Object[]} runtime semantics.
+   * existing {@code Object[]} runtime semantics. Also used by {@link
+   * ArrayFunctionImpl#internalCast}.
    */
-  private static Object coerce(Object value, SqlTypeName elementType) {
+  static Object coerce(Object value, SqlTypeName elementType) {
     if (elementType == null || !(value instanceof Number)) {
       return value;
     }
@@ -67,8 +68,9 @@ public class MVAppendCore {
       case SMALLINT -> num.shortValue();
       case INTEGER -> num.intValue();
       case BIGINT -> num.longValue();
-      case FLOAT, REAL -> num.floatValue();
-      case DOUBLE -> num.doubleValue();
+      // Calcite's FLOAT is double precision, and REAL is single precision
+      case DOUBLE, FLOAT -> num.doubleValue();
+      case REAL -> num.floatValue();
       case DECIMAL -> num instanceof BigDecimal ? num : BigDecimal.valueOf(num.doubleValue());
       default -> value;
     };

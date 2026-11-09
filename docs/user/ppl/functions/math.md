@@ -1426,3 +1426,33 @@ fetched rows / total rows = 1/1
 +-----------+
 ```
   
+## TAN
+
+**Usage**: `TAN(x)`
+
+Calculates the tangent of `x`, where `x` is given in radians.
+
+**Parameters**:
+
+- `x` (Required): An `INTEGER`, `LONG`, `FLOAT`, or `DOUBLE` value.
+
+**Return type**: `DOUBLE`
+
+### Example
+  
+```ppl
+source=people
+| eval `TAN(0)` = TAN(0)
+| fields `TAN(0)`
+```
+  
+The query returns the following results:
+  
+```text
+fetched rows / total rows = 1/1
++--------+
+| TAN(0) |
+|--------|
+| 0.0    |
++--------+
+```

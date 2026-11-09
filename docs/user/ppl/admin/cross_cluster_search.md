@@ -44,13 +44,34 @@ fetched rows / total rows = 4/4
 +----------------+-----------+----------------------+---------+--------+--------+----------+-------+-----+-----------------------+----------+
 ```
   
+To search every connected remote cluster, use `*` as the cluster name, for example `source=*:accounts`.
+Local and remote indices can be combined in one query, for example `source=accounts,my_remote_cluster:accounts`.
+
+## Remote Index Fields  
+
+The fields of a remote cluster index can be queried directly. No index needs to exist on the local cluster.
+To keep queries fast, the fields of a remote index are remembered for up to 60 seconds after a query reads
+them. If a field is added on the remote cluster during that time, a query that uses it can fail with a
+"field not found" error until the 60 seconds pass. The same applies to a new index that matches the pattern,
+for example after a rollover. Fields are remembered separately for each user and on each node, so the wait
+only affects queries on the same index pattern by the same user.
+
+## Unavailable Remote Clusters  
+
+If a remote cluster cannot be reached, the query fails with the same error as a search request, for example
+`Unable to open any proxy connections to remote cluster [my_remote_cluster]`. If the remote cluster is
+configured with `skip_unavailable: true`, it is skipped and the other clusters in the query are still searched.
+If every remote cluster in the query is skipped and no local index is named, the query fails with
+`Remote cluster [my_remote_cluster] is unavailable and was skipped (skip_unavailable is true)`.
+
+If the remote cluster is reachable but the index does not exist there, the query fails with `no such index`.
+
 ## Limitations  
 
-Since OpenSearch does not support cross-cluster index metadata retrieval, field mapping of a remote cluster index is not available to the local cluster.
-([[Feature] Cross-cluster field mappings query #6573](https://github.com/opensearch-project/OpenSearch/issues/6573))
-Therefore, the query engine requires that for any remote cluster index that the users need to search,
-the local cluster keep a field mapping system index with the same index name.
-This can be done by creating an index on the local cluster with the same name and schema as the remote cluster index.
+* Parts of a query can run on the remote cluster as scripts (for example, an aggregation on a field whose type
+  differs between indices). Run the same OpenSearch and SQL plugin version on the local and remote clusters: a
+  remote cluster on an older version may not support scripts created by a newer local cluster.
+
 ## Authentication and Permission  
 
 1. The security plugin authenticates the user on the local cluster.  
@@ -60,8 +81,12 @@ This can be done by creating an index on the local cluster with the same name an
   
 Check [Cross-cluster search access control](https://opensearch.org/docs/latest/security/access-control/cross-cluster-search/) for more details.
 Example: Create the ppl_role for test_user on local cluster and the ccs_role for test_user on remote cluster. Then test_user could use PPL to query `ppl-security-demo` index on remote cluster.
-1. On the local cluster, refer to [Security Settings](security.md) to create role and user for PPL plugin and index access permission.  
-2. On the remote cluster, create a new role and grant permission to access index. Create a user with the same name and credentials as the local cluster, and map the user to this role  
+1. On the local cluster, refer to [Security Settings](security.md) to create role and user for PPL plugin and index access permission.
+   If the role lists specific index patterns, also include the cluster-prefixed name (for example `*:ppl-security-demo`),
+   because some requests made on the local cluster, such as point-in-time creation, are checked against it.  
+2. On the remote cluster, create a new role and grant permission to access index. Create a user with the same name and credentials as the local cluster, and map the user to this role.
+   The role needs the same index permissions as PPL on a local cluster (see [Security Settings](security.md)),
+   as in the example below. Without them, the query fails with a permission error.  
   
 ```bash
 PUT _plugins/_security/api/roles/ccs_role
@@ -71,7 +96,9 @@ PUT _plugins/_security/api/roles/ccs_role
       "index_patterns":["ppl-security-demo"],
       "allowed_actions":[
         "indices:admin/shards/search_shards",
-        "indices:data/read/search"
+        "indices:data/read/search",
+        "indices:admin/mappings/get",
+        "indices:monitor/settings/get"
       ]
     }
   ]

@@ -143,6 +143,8 @@ OFFSET:                             'OFFSET';
 
 // INTERVAL AND UNIT KEYWORDS
 INTERVAL:                           'INTERVAL';
+FIXED_INTERVAL:                     'FIXED_INTERVAL';
+CALENDAR_INTERVAL:                  'CALENDAR_INTERVAL';
 MICROSECOND:                        'MICROSECOND';
 SECOND:                             'SECOND';
 MINUTE:                             'MINUTE';

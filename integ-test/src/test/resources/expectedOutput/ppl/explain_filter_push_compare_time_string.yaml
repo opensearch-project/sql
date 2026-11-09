@@ -1,21 +1,21 @@
 root:
-  name: ProjectOperator
-  description:
-    fields: "[custom_time]"
   children:
-    - name: FilterOperator
-      description:
-        conditions: "and(<(custom_time, cast_to_time(\"2018-11-09 19:00:00.123456789\"\
-          )), >(custom_time, cast_to_time(\"2016-12-08 12:00:00.123456789\")))"
-      children:
-        - name: ProjectOperator
-          description:
-            fields: "[custom_time]"
-          children:
-            - name: OpenSearchIndexScan
+    - children:
+        - children:
+            - children: []
               description:
                 request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_date_formats,\
                   \ sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"\
                   _source\":{\"includes\":[\"custom_time\"]}}, pitId=*,\
                   \ cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
-              children: []
+              name: OpenSearchIndexScan
+          description:
+            fields: "[custom_time]"
+          name: ProjectOperator
+      description:
+        conditions: "and(<(custom_time, cast_to_time(\"2018-11-09 19:00:00.123456789\"\
+          )), >(custom_time, cast_to_time(\"2016-12-08 12:00:00.123456789\")))"
+      name: FilterOperator
+  description:
+    fields: "[custom_time]"
+  name: ProjectOperator

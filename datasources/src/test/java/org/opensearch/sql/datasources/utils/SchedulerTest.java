@@ -39,4 +39,21 @@ public class SchedulerTest {
     Scheduler.schedule(nodeClient, () -> isRun.set(true));
     Assert.assertTrue(isRun.get());
   }
+
+  @Test
+  public void schedulesOnNamedPool() {
+    Mockito.when(nodeClient.threadPool()).thenReturn(threadPool);
+
+    AtomicBoolean isRun = new AtomicBoolean(false);
+    Mockito.doAnswer(
+            invocation -> {
+              Runnable task = invocation.getArgument(0);
+              task.run();
+              return null;
+            })
+        .when(threadPool)
+        .schedule(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.eq("generic"));
+    Scheduler.schedule(nodeClient, () -> isRun.set(true), ThreadPool.Names.GENERIC);
+    Assert.assertTrue(isRun.get());
+  }
 }

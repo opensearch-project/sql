@@ -1,9 +1,6 @@
 root:
-  name: ProjectOperator
-  description:
-    fields: "[count(), span(birthdate,1m)]"
   children:
-    - name: OpenSearchIndexScan
+    - children: []
       description:
         request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_bank,\
           \ sourceBuilder={\"from\":0,\"size\":0,\"timeout\":\"1m\",\"aggregations\"\
@@ -12,4 +9,7 @@ root:
           order\":\"asc\",\"fixed_interval\":\"1m\"}}}]},\"aggregations\":{\"count()\"\
           :{\"value_count\":{\"field\":\"_index\"}}}}}}, pitId=*, cursorKeepAlive=null,\
           \ searchAfter=null, searchResponse=null)"
-      children: []
+      name: OpenSearchIndexScan
+  description:
+    fields: "[count(), span(birthdate,1m)]"
+  name: ProjectOperator

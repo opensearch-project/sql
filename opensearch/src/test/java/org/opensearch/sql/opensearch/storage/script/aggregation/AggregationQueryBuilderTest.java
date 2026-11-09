@@ -27,7 +27,6 @@ import static org.opensearch.sql.opensearch.utils.Utils.avg;
 import static org.opensearch.sql.opensearch.utils.Utils.group;
 import static org.opensearch.sql.opensearch.utils.Utils.sort;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collections;
@@ -55,6 +54,7 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.serde.ExpressionSerializer;
+import tools.jackson.databind.ObjectMapper;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)

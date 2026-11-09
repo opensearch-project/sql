@@ -5,9 +5,6 @@
 
 package org.opensearch.sql.opensearch.storage.serde;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
@@ -16,6 +13,7 @@ import java.io.Serializable;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 import lombok.Getter;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.externalize.RelJson;
@@ -27,9 +25,14 @@ import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.util.SqlOperatorTables;
 import org.apache.calcite.util.JsonBuilder;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.opensearch.executor.OpenSearchExecutionEngine.OperatorTable;
 import org.opensearch.sql.utils.DeserializationFilterUtil;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * A serializer that (de-)serializes Calcite RexNode, RelDataType and OpenSearch field mapping.
@@ -43,17 +46,28 @@ import org.opensearch.sql.utils.DeserializationFilterUtil;
 public class RelJsonSerializer {
 
   private final RelOptCluster cluster;
-  private static final ObjectMapper mapper = new ObjectMapper();
+
+  /**
+   * Supplies cluster settings for deserialization structural limits, resolved lazily because the
+   * script engine is created before plugin settings are initialized. Null falls back to defaults.
+   */
+  private final Supplier<Settings> settingsSupplier;
+
+  private static final ObjectMapper mapper =
+      JsonMapper.builder()
+          .configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true)
+          .build();
   private static final TypeReference<LinkedHashMap<String, Object>> TYPE_REF =
       new TypeReference<>() {};
   private static volatile SqlOperatorTable pplSqlOperatorTable;
 
-  static {
-    mapper.configure(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS, true);
+  public RelJsonSerializer(RelOptCluster cluster) {
+    this(cluster, null);
   }
 
-  public RelJsonSerializer(RelOptCluster cluster) {
+  public RelJsonSerializer(RelOptCluster cluster, Supplier<Settings> settingsSupplier) {
     this.cluster = cluster;
+    this.settingsSupplier = settingsSupplier;
   }
 
   private static SqlOperatorTable getPplSqlOperatorTable() {
@@ -121,7 +135,11 @@ public class RelJsonSerializer {
     try {
       ByteArrayInputStream input = new ByteArrayInputStream(Base64.getDecoder().decode(struct));
       ObjectInputStream objectInput = new ObjectInputStream(input);
-      objectInput.setObjectInputFilter(DeserializationFilterUtil.createFilter(""));
+      Settings settings = settingsSupplier == null ? null : settingsSupplier.get();
+      objectInput.setObjectInputFilter(
+          settings == null
+              ? DeserializationFilterUtil.createFilter("")
+              : DeserializationFilterUtil.createFilter(settings, ""));
       exprStr = (String) objectInput.readObject();
 
       // Deserialize RelDataType and RexNode by JSON
@@ -131,7 +149,10 @@ public class RelJsonSerializer {
               .withInputTranslator(ExtendedRelJson::translateInput)
               .withOperatorTable(getPplSqlOperatorTable());
       Map<String, Object> exprMap = mapper.readValue(exprStr, TYPE_REF);
-      return relJson.toRex(cluster, exprMap);
+      RexNode rexNode = relJson.toRex(cluster, exprMap);
+      // Reject client-forged expressions before they reach code generation / Janino compilation.
+      RexLiteralSafetyValidator.validate(rexNode);
+      return rexNode;
     } catch (Exception e) {
       throw new IllegalStateException("Failed to deserialize RexNode " + exprStr, e);
     }

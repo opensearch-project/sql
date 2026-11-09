@@ -786,4 +786,12 @@ public class AstDSL {
   public static Union union(List<UnresolvedPlan> datasets) {
     return new Union(datasets);
   }
+
+  public static Union unionAll(List<UnresolvedPlan> datasets) {
+    return new Union(datasets, false);
+  }
+
+  public static Union unionDistinct(List<UnresolvedPlan> datasets) {
+    return new Union(datasets, true);
+  }
 }

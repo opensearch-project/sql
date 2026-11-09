@@ -6,6 +6,7 @@
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
+import static org.opensearch.sql.util.Capability.RARE_TIE_ORDER;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -15,6 +16,7 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.util.RequiresCapability;
 
 public class RareCommandIT extends PPLIntegTestCase {
 
@@ -31,6 +33,7 @@ public class RareCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(RARE_TIE_ORDER)
   public void testRareWithoutGroup() throws IOException {
     JSONObject result = executeQuery(String.format("source=%s | rare gender", TEST_INDEX_ACCOUNT));
     if (isCalciteEnabled()) {
@@ -42,6 +45,7 @@ public class RareCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(RARE_TIE_ORDER)
   public void testRareWithGroup() throws IOException {
     JSONObject result =
         executeQuery(String.format("source=%s | rare state by gender", TEST_INDEX_ACCOUNT));

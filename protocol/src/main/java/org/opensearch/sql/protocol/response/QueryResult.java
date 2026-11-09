@@ -8,6 +8,7 @@ package org.opensearch.sql.protocol.response;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import lombok.Getter;
@@ -15,6 +16,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.Schema.Column;
+import org.opensearch.sql.executor.Warning;
 import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.lang.LangSpec;
 
@@ -33,6 +35,9 @@ public class QueryResult implements Iterable<Object[]> {
 
   private final LangSpec langSpec;
 
+  /** Non-fatal notices attached to a successful result; empty for a plain success. */
+  @Getter private final List<Warning> warnings;
+
   public QueryResult(ExecutionEngine.Schema schema, Collection<ExprValue> exprValues) {
     this(schema, exprValues, Cursor.None, LangSpec.SQL_SPEC);
   }
@@ -47,10 +52,20 @@ public class QueryResult implements Iterable<Object[]> {
       Collection<ExprValue> exprValues,
       Cursor cursor,
       LangSpec langSpec) {
+    this(schema, exprValues, cursor, langSpec, List.of());
+  }
+
+  public QueryResult(
+      ExecutionEngine.Schema schema,
+      Collection<ExprValue> exprValues,
+      Cursor cursor,
+      LangSpec langSpec,
+      List<Warning> warnings) {
     this.schema = schema;
     this.exprValues = exprValues;
     this.cursor = cursor;
     this.langSpec = langSpec;
+    this.warnings = warnings == null ? List.of() : warnings;
   }
 
   /**

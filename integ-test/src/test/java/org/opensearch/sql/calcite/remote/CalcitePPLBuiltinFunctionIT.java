@@ -10,6 +10,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NULL_MISSING;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STATE_COUNTRY;
 import static org.opensearch.sql.util.Capability.FLOAT_ARITHMETIC_PRECISION;
+import static org.opensearch.sql.util.Capability.QUERY_ERROR_MESSAGE;
 import static org.opensearch.sql.util.MatcherUtils.closeTo;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -168,6 +169,7 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(QUERY_ERROR_MESSAGE)
   public void testConvWithInvalidRadix() {
     Throwable invalidRadixException =
         assertThrowsWithReplace(
@@ -189,6 +191,18 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
                 TEST_INDEX_STATE_COUNTRY));
 
     verifySchema(actual, schema("cot", "double"));
+    verifyDataRows(actual, closeTo(1.0));
+  }
+
+  @Test
+  public void testTan() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval tan = tan(pi() / 4) | head 1 | fields tan",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(actual, schema("tan", "double"));
     verifyDataRows(actual, closeTo(1.0));
   }
 

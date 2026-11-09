@@ -52,5 +52,9 @@ public class SQLQueryValidator {
     if (mvQuery != null) {
       validate(mvQuery, dataSourceType);
     }
+    String filterCondition = indexQueryDetails.getFilterCondition();
+    if (filterCondition != null) {
+      validate("SELECT * FROM t WHERE " + filterCondition, dataSourceType);
+    }
   }
 }

@@ -26,7 +26,9 @@ import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.executor.ExecutionEngine;
+import org.opensearch.sql.executor.Warning;
 import org.opensearch.sql.executor.pagination.Cursor;
+import org.opensearch.sql.lang.LangSpec;
 
 class QueryResultTest {
 
@@ -35,6 +37,24 @@ class QueryResultTest {
           ImmutableList.of(
               new ExecutionEngine.Schema.Column("name", null, STRING),
               new ExecutionEngine.Schema.Column("age", null, INTEGER)));
+
+  @Test
+  void warningsDefaultsToEmptyAndCarriesProvidedList() {
+    // No-warnings constructor -> empty list.
+    assertTrue(new QueryResult(schema, Collections.emptyList()).getWarnings().isEmpty());
+
+    // A provided list is carried through.
+    Warning warning = new Warning("PARTIAL_RESULT", "msg", "detail");
+    QueryResult withWarnings =
+        new QueryResult(
+            schema, Collections.emptyList(), Cursor.None, LangSpec.SQL_SPEC, List.of(warning));
+    assertEquals(List.of(warning), withWarnings.getWarnings());
+
+    // A null list is normalized to empty (never null for consumers).
+    QueryResult nullWarnings =
+        new QueryResult(schema, Collections.emptyList(), Cursor.None, LangSpec.SQL_SPEC, null);
+    assertTrue(nullWarnings.getWarnings().isEmpty());
+  }
 
   @Test
   void size() {

@@ -53,10 +53,11 @@ dependencies {
     api group: 'org.apache.commons', name: 'commons-text', version: "${commons_text_version}"
     api group: 'com.facebook.presto', name: 'presto-matching', version: '0.240'
     api group: 'org.apache.commons', name: 'commons-math3', version: '3.6.1'
-    api "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
-    api "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
+    api "tools.jackson.core:jackson-core:${versions.jackson3}"
+    api "tools.jackson.core:jackson-databind:${versions.jackson3_databind}"
     api "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson_annotations}"
-    api "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${versions.jackson}"
+    api "tools.jackson.dataformat:jackson-dataformat-yaml:${versions.jackson3}"
+    api "org.snakeyaml:snakeyaml-engine:${versions.snakeyaml_engine}"
     api group: 'com.google.code.gson', name: 'gson', version: '2.8.9'
     api group: 'com.tdunning', name: 't-digest', version: '3.3'
     api "net.minidev:json-smart:${versions.json_smart}"

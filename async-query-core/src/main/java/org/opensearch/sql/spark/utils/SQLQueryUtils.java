@@ -23,6 +23,7 @@ import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsLexer;
 import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsParser;
 import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsParser.MaterializedViewQueryContext;
 import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsParser.RecoverIndexJobStatementContext;
+import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsParser.WhereClauseContext;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseLexer;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser.IdentifierReferenceContext;
@@ -366,6 +367,16 @@ public class SQLQueryUtils {
       String query = ctx.start.getInputStream().getText(new Interval(a, b));
       indexQueryDetailsBuilder.mvQuery(query);
       return super.visitMaterializedViewQuery(ctx);
+    }
+
+    @Override
+    public Void visitWhereClause(WhereClauseContext ctx) {
+      FlintSparkSqlExtensionsParser.FilterConditionContext filterCtx = ctx.filterCondition();
+      int a = filterCtx.start.getStartIndex();
+      int b = filterCtx.stop.getStopIndex();
+      String condition = filterCtx.start.getInputStream().getText(new Interval(a, b));
+      indexQueryDetailsBuilder.filterCondition(condition);
+      return super.visitWhereClause(ctx);
     }
 
     @Override

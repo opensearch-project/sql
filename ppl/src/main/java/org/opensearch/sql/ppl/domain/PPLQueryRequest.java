@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.ppl.domain;
 
+import static org.opensearch.sql.calcite.plan.OpenSearchConstants.IMPLICIT_FIELD_TIMESTAMP;
+
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -14,19 +17,27 @@ import java.util.Optional;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.opensearch.sql.ast.statement.ExplainMode;
 import org.opensearch.sql.ast.tree.HighlightConfig;
+import org.opensearch.sql.executor.TimeBounds;
 import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 
 public class PPLQueryRequest {
 
+  private static final Logger LOG = LogManager.getLogger(PPLQueryRequest.class);
+
   private static final String DEFAULT_PPL_PATH = "/_plugins/_ppl";
   private static final String FETCH_SIZE_FIELD = "fetch_size";
   private static final String HIGHLIGHT_FIELD = "highlight";
   private static final String INCLUDE_METADATA_FIELD = "include_metadata";
+  private static final String START_TIME_FIELD = "start_time";
+  private static final String END_TIME_FIELD = "end_time";
+  private static final String TIME_FIELD_FIELD = "time_field";
   private static final int MAX_HIGHLIGHT_FIELDS = 100;
   private static final int MAX_TAG_ENTRIES = 10;
 
@@ -62,6 +73,48 @@ public class PPLQueryRequest {
   @Getter
   @Accessors(fluent = true)
   private String queryId = null;
+
+  public static final Duration DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT = Duration.ofSeconds(30);
+  public static final Duration DEFAULT_KEEP_ALIVE = Duration.ofMinutes(5);
+
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
+  private Duration waitForCompletionTimeout = null;
+
+  @Setter
+  @Getter
+  @Accessors(fluent = true)
+  private Duration keepAlive = null;
+
+  /**
+   * Returns {@code true} iff this request should take the async submit pipeline — the caller
+   * declared async intent via {@code wait_for_completion_timeout} / {@code keep_alive} AND the
+   * request shape supports it. Sync-only shapes (endpoint-level explain / analyze, profile flag,
+   * non-JDBC response formats) return {@code false} even when the async body fields are present;
+   * the dispatch then falls through to the synchronous pipeline and the async fields are ignored.
+   */
+  public boolean shouldRunAsync() {
+    if (waitForCompletionTimeout == null && keepAlive == null) {
+      return false;
+    }
+    if (isExplainRequest() || analyze || profile) {
+      return false;
+    }
+    return Format.of(format).orElse(null) == Format.JDBC;
+  }
+
+  /** Caller-supplied {@code wait_for_completion_timeout} or the default. Never null. */
+  public Duration effectiveWaitForCompletion() {
+    return waitForCompletionTimeout != null
+        ? waitForCompletionTimeout
+        : DEFAULT_WAIT_FOR_COMPLETION_TIMEOUT;
+  }
+
+  /** Caller-supplied {@code keep_alive} or the default. Never null. */
+  public Duration effectiveKeepAlive() {
+    return keepAlive != null ? keepAlive : DEFAULT_KEEP_ALIVE;
+  }
 
   public PPLQueryRequest(String pplQuery, JSONObject jsonContent, String path) {
     this(pplQuery, jsonContent, path, "");
@@ -154,6 +207,36 @@ public class PPLQueryRequest {
       return false;
     }
     return jsonContent.optBoolean(INCLUDE_METADATA_FIELD, false);
+  }
+
+  /**
+   * Request-level time bounds from {@code start_time} / {@code end_time} / {@code time_field}, the
+   * last defaulting to {@code @timestamp}.
+   *
+   * @return the bounds, or null if absent or unusable
+   */
+  public TimeBounds getTimeBounds() {
+    if (jsonContent == null) {
+      return null;
+    }
+    boolean hasStart = jsonContent.has(START_TIME_FIELD);
+    boolean hasEnd = jsonContent.has(END_TIME_FIELD);
+    if (!hasStart || !hasEnd) {
+      if (hasStart || hasEnd) {
+        LOG.warn(
+            "Ignoring time bounds: both {} and {} are required", START_TIME_FIELD, END_TIME_FIELD);
+      }
+      return null;
+    }
+    try {
+      return new TimeBounds(
+          jsonContent.optString(TIME_FIELD_FIELD, IMPLICIT_FIELD_TIMESTAMP),
+          jsonContent.optString(START_TIME_FIELD, null),
+          jsonContent.optString(END_TIME_FIELD, null));
+    } catch (RuntimeException e) {
+      LOG.warn("Ignoring unusable time bounds: {}", e.getMessage());
+      return null;
+    }
   }
 
   /**

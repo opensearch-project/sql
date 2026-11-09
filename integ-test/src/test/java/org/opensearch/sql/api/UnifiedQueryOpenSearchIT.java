@@ -8,6 +8,7 @@ package org.opensearch.sql.api;
 import static java.sql.Types.BIGINT;
 import static java.sql.Types.VARCHAR;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
+import static org.opensearch.sql.util.Capability.DIRECT_LUCENE_QUERY;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -26,11 +27,13 @@ import org.opensearch.sql.opensearch.client.OpenSearchRestClient;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 import org.opensearch.sql.util.InternalRestHighLevelClient;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * Integration test demonstrating the integration and usage of the Unified Query API with OpenSearch
  * as a data source.
  */
+@RequiresCapability(DIRECT_LUCENE_QUERY)
 public class UnifiedQueryOpenSearchIT extends PPLIntegTestCase implements ResultSetAssertion {
 
   private UnifiedQueryContext context;
@@ -72,7 +75,8 @@ public class UnifiedQueryOpenSearchIT extends PPLIntegTestCase implements Result
   public void testSimplePPLQueryExecution() throws Exception {
     String pplQuery =
         String.format(
-            "source = opensearch.%s | fields firstname, age | where age > 30 | head 3",
+            "source = opensearch.%s | where age > 30 and account_number in (1, 6, 18) | fields"
+                + " firstname, age",
             TEST_INDEX_ACCOUNT);
 
     RelNode logicalPlan = planner.plan(pplQuery);
@@ -101,6 +105,30 @@ public class UnifiedQueryOpenSearchIT extends PPLIntegTestCase implements Result
         assertNotNull(rs);
         assertTrue("Expected at least one row for query: " + query, rs.next());
       }
+    }
+  }
+
+  @Test
+  public void testSortThenEvalCopyExecutesEndToEnd() throws Exception {
+    String pplQuery =
+        String.format(
+            "source = opensearch.%s | sort age | eval age_copy = age"
+                + " | fields firstname, age, age_copy",
+            TEST_INDEX_ACCOUNT);
+
+    RelNode plan = planner.plan(pplQuery);
+    try (PreparedStatement statement = compiler.compile(plan)) {
+      ResultSet resultSet = statement.executeQuery();
+
+      verify(resultSet)
+          .expectSchema(col("firstname", VARCHAR), col("age", BIGINT), col("age_copy", BIGINT));
+
+      int rows = 0;
+      while (resultSet.next()) {
+        rows++;
+        assertEquals("age_copy must mirror age", resultSet.getObject(2), resultSet.getObject(3));
+      }
+      assertTrue("expected at least one row", rows > 0);
     }
   }
 

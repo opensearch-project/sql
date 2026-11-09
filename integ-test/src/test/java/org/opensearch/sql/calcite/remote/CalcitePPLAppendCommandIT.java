@@ -13,6 +13,7 @@ import static org.opensearch.sql.util.Capability.IP_UDT_BINARY_REPRESENTATION;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.MatcherUtils.verifySchemaInOrder;
 
 import java.io.IOException;
@@ -263,6 +264,50 @@ public class CalcitePPLAppendCommandIT extends PPLIntegTestCase {
         schema("age", "int"),
         schema("birthdate", "timestamp"));
     verifyDataRows(actual, rows(32, null, 34, "2018-08-11 00:00:00"));
+  }
+
+  @Test
+  public void testAppendWithFieldsOnOneSideHidesMetadataFieldsOfTheOther() throws IOException {
+    // A fields on either side used to turn off metadata stripping for the whole statement, so the
+    // side without fields returned _id, _index, _score, _maxscore, _sort and _routing.
+    List<String> ppls =
+        List.of(
+            String.format(
+                Locale.ROOT,
+                "source=%s | append [ source=%s | fields account_number ]",
+                TEST_INDEX_WEBLOGS,
+                TEST_INDEX_ACCOUNT),
+            String.format(
+                Locale.ROOT,
+                "source=%s | fields account_number | append [ source=%s ]",
+                TEST_INDEX_ACCOUNT,
+                TEST_INDEX_WEBLOGS));
+    for (String ppl : ppls) {
+      JSONObject actual = executeQuery(ppl);
+      verifySchema(
+          actual,
+          schema("account_number", "bigint"),
+          schema("host", "ip"),
+          schema("method", "string"),
+          schema("url", "string"),
+          schema("response", "string"),
+          schema("bytes", "string"),
+          schema("message", "string"));
+    }
+  }
+
+  @Test
+  public void testAppendKeepsMetadataFieldSelectedOnOneSide() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                Locale.ROOT,
+                "source=%s | where account_number = 1 | fields account_number, _id | append ["
+                    + " source=%s | where account_number = 1 | fields account_number ]",
+                TEST_INDEX_ACCOUNT,
+                TEST_INDEX_ACCOUNT));
+    verifySchemaInOrder(actual, schema("account_number", "bigint"), schema("_id", "string"));
+    verifyDataRows(actual, rows(1, "1"), rows(1, null));
   }
 
   @Test

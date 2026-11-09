@@ -206,6 +206,15 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
         return TYPE_FACTORY.createSqlType(SqlTypeName.GEOMETRY, nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("text")) {
         return TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, nullable);
+      } else if (fieldType.legacyTypeName().equalsIgnoreCase("flat_object")) {
+        // Keys are the dotted leaf paths, values are text: a flat_object gives its leaves no type
+        // of their own, and the index holds each as a keyword term. This is what spath already
+        // does for a JSON string -- every value reads as text, and a path holding several values
+        // reads as their JSON.
+        return TYPE_FACTORY.createMapType(
+            TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR),
+            TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR, true),
+            nullable);
       } else if (fieldType.legacyTypeName().equalsIgnoreCase("ip")) {
         return TYPE_FACTORY.createUDT(ExprUDT.EXPR_IP, nullable);
       } else if (fieldType.getOriginalPath().isPresent()) {
@@ -252,6 +261,11 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
           INTERVAL;
       case ARRAY -> ARRAY;
       case MAP -> STRUCT;
+      // Calcite spells a struct as ROW. convertExprTypeToRelDataType builds STRUCT as
+      // MAP<VARCHAR, ANY> since the v2 path only passes _source JSON through, so a genuine ROW —
+      // from an engine that builds a struct out of typed columns — matched nothing and fell
+      // through to UNKNOWN.
+      case ROW -> STRUCT;
       case GEOMETRY -> GEO_POINT;
       case NULL, ANY, OTHER -> UNDEFINED;
       default -> UNKNOWN;
@@ -263,6 +277,18 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
     ExprType type = convertRelDataTypeToExprType(relDataType);
     return (queryType == PPL ? PPL_SPEC.typeName(type) : type.legacyTypeName())
         .toUpperCase(Locale.ROOT);
+  }
+
+  /**
+   * Name a multi-value type the way a query author sees it in a mapping, for error messages:
+   * "object" for an object field, "array" for an array one. Returns null for scalar types.
+   */
+  public static @Nullable String getContainerTypeName(RelDataType relDataType) {
+    return switch (relDataType.getSqlTypeName()) {
+      case MAP, ROW -> "object";
+      case ARRAY, MULTISET -> "array";
+      default -> null;
+    };
   }
 
   /** Converts a Calcite data type to OpenSearch ExprCoreType. */
@@ -433,12 +459,18 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
    * @param types the list of input {@link RelDataType} instances to find the least restrictive
    *     common type for
    * @return the least restrictive {@link RelDataType} preserving the UDT wrapper when all inputs
-   *     share the same UDT, or {@code null} if no common type exists (as determined by {@link
-   *     super#leastRestrictive})
+   *     share the same UDT, or {@code null} if no common type exists (a string type mixed with an
+   *     object or array type and no ANY type, or as determined by {@link super#leastRestrictive})
    */
   @Override
   public @Nullable RelDataType leastRestrictive(List<RelDataType> types) {
     if (types.size() > 1) {
+      // Calcite 1.42 accepts a cast from a string to MAP or ARRAY when it checks types, but no
+      // string value converts at run time. Returning null restores the Calcite 1.41 answer, so a
+      // string type and an object or array type have no common type.
+      if (mixesVarcharWithContainer(types)) {
+        return null;
+      }
       RelDataType first = types.get(0);
       if (first instanceof AbstractExprRelDataType<?> firstUdt) {
         boolean anyNullable = false;
@@ -462,6 +494,25 @@ public class OpenSearchTypeFactory extends JavaTypeFactoryImpl {
       }
     }
     return super.leastRestrictive(types);
+  }
+
+  /**
+   * True when the list holds a VARCHAR or CHAR type and a type {@link #getContainerTypeName} names.
+   * Matches on SQL type name, so the VARCHAR-backed date, time, timestamp and binary UDTs count as
+   * VARCHAR. An ANY type is left to Calcite, which makes ANY the common type.
+   */
+  private static boolean mixesVarcharWithContainer(List<RelDataType> types) {
+    boolean hasVarchar = false;
+    boolean hasContainer = false;
+    for (RelDataType t : types) {
+      SqlTypeName name = t.getSqlTypeName();
+      if (name == SqlTypeName.ANY) {
+        return false;
+      }
+      hasVarchar |= name == SqlTypeName.VARCHAR || name == SqlTypeName.CHAR;
+      hasContainer |= getContainerTypeName(t) != null;
+    }
+    return hasVarchar && hasContainer;
   }
 
   private @Nullable RelDataType leastRestrictiveVarbinaryVarchar(List<RelDataType> types) {

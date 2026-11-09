@@ -26,6 +26,9 @@ import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.executor.ExecutionEngine;
+import org.opensearch.sql.executor.Warning;
+import org.opensearch.sql.executor.pagination.Cursor;
+import org.opensearch.sql.lang.LangSpec;
 import org.opensearch.sql.protocol.response.QueryResult;
 
 class SimpleJsonResponseFormatterTest {
@@ -86,6 +89,47 @@ class SimpleJsonResponseFormatterTest {
             + "  \"total\": 2,\n"
             + "  \"size\": 2\n"
             + "}",
+        formatter.format(response));
+  }
+
+  @Test
+  void formatResponseWithWarnings() {
+    QueryResult response =
+        new QueryResult(
+            schema,
+            Arrays.asList(tupleValue(ImmutableMap.of("firstname", "John", "age", 20))),
+            Cursor.None,
+            LangSpec.SQL_SPEC,
+            List.of(
+                new Warning(
+                    "PARTIAL_RESULT",
+                    "Results exclude 1 index due to a mapping conflict.",
+                    "Field [applicationid] is mapped as text in [logs-conflict-one].")));
+    SimpleJsonResponseFormatter formatter = new SimpleJsonResponseFormatter(COMPACT);
+    assertEquals(
+        "{\"schema\":[{\"name\":\"firstname\",\"type\":\"string\"},"
+            + "{\"name\":\"age\",\"type\":\"integer\"}],\"datarows\":[[\"John\",20]],"
+            + "\"total\":1,\"size\":1,"
+            + "\"warnings\":[{\"type\":\"PARTIAL_RESULT\","
+            + "\"message\":\"Results exclude 1 index due to a mapping conflict.\","
+            + "\"detail\":\"Field [applicationid] is mapped as text in [logs-conflict-one].\"}]}",
+        formatter.format(response));
+  }
+
+  @Test
+  void formatResponseWithoutWarningsOmitsField() {
+    QueryResult response =
+        new QueryResult(
+            schema,
+            Arrays.asList(tupleValue(ImmutableMap.of("firstname", "John", "age", 20))),
+            Cursor.None,
+            LangSpec.SQL_SPEC,
+            List.of());
+    SimpleJsonResponseFormatter formatter = new SimpleJsonResponseFormatter(COMPACT);
+    assertEquals(
+        "{\"schema\":[{\"name\":\"firstname\",\"type\":\"string\"},"
+            + "{\"name\":\"age\",\"type\":\"integer\"}],\"datarows\":[[\"John\",20]],"
+            + "\"total\":1,\"size\":1}",
         formatter.format(response));
   }
 

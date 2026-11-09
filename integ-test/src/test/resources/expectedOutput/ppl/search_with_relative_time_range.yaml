@@ -1,9 +1,6 @@
 root:
-  name: ProjectOperator
-  description:
-    fields: "[@timestamp, category, value, timestamp]"
   children:
-    - name: OpenSearchIndexScan
+    - children: []
       description:
         request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_time_data,\
           \ sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"query\"\
@@ -15,4 +12,7 @@ root:
           :true,\"fuzzy_transpositions\":true,\"boost\":1.0}},\"_source\":{\"includes\"\
           :[\"@timestamp\",\"category\",\"value\",\"timestamp\"]}}, pitId=*,\
           \ cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
-      children: []
+      name: OpenSearchIndexScan
+  description:
+    fields: "[@timestamp, category, value, timestamp]"
+  name: ProjectOperator

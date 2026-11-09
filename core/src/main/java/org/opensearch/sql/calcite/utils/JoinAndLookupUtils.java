@@ -21,6 +21,7 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.Join;
 import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.calcite.CalcitePlanContext;
+import org.opensearch.sql.calcite.plan.OpenSearchConstants;
 
 public interface JoinAndLookupUtils {
 
@@ -84,8 +85,13 @@ public interface JoinAndLookupUtils {
   }
 
   /**
-   * For lookup table, if the output fields are specified, try to add a project list for it. Note,
-   * join will fail if the mapping fields are excluded.
+   * For lookup table, if the output fields are specified, try to add a project list for it.
+   * Otherwise, remove its metadata fields that are not mapping fields, as the output fields would
+   * not have included them either; the final metadata strip is skipped once the source side has an
+   * explicit project. This also applies with {@code include_metadata}: both sides name their
+   * metadata fields alike, so keeping the lookup table's would replace the source rows' own, with
+   * null where no row matches. They can still be requested by name in the output fields. Note, join
+   * will fail if the mapping fields are excluded.
    */
   static void addProjectionIfNecessary(Lookup node, CalcitePlanContext context) {
     List<String> mappingField = node.getMappingAliasMap().keySet().stream().toList();
@@ -99,6 +105,16 @@ public interface JoinAndLookupUtils {
                 .map(fieldName -> (RexNode) context.relBuilder.field(fieldName))
                 .toList();
         context.relBuilder.project(projectList);
+      }
+    } else {
+      List<RexNode> metaFields =
+          context.relBuilder.peek().getRowType().getFieldNames().stream()
+              .filter(OpenSearchConstants.METADATAFIELD_TYPE_MAP::containsKey)
+              .filter(fieldName -> !mappingField.contains(fieldName))
+              .map(fieldName -> (RexNode) context.relBuilder.field(fieldName))
+              .toList();
+      if (!metaFields.isEmpty()) {
+        context.relBuilder.projectExcept(metaFields);
       }
     }
   }

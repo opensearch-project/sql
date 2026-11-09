@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.ppl.dashboard;
 
+import static org.opensearch.sql.util.Capability.AGG_MEASURE_TIE_ORDER;
+import static org.opensearch.sql.util.Capability.KEYWORD_EQUALS_CASE_FOLD;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
@@ -15,6 +17,7 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 /**
  * Integration tests for WAF PPL dashboard queries. These tests ensure that WAF-related PPL queries
@@ -166,6 +169,7 @@ public class WafPplDashboardIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(AGG_MEASURE_TIE_ORDER)
   public void testTopRequestURIs() throws IOException {
     String query =
         String.format(
@@ -190,6 +194,7 @@ public class WafPplDashboardIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(KEYWORD_EQUALS_CASE_FOLD)
   public void testTotalBlockedRequests() throws IOException {
     String query =
         String.format("source=%s | WHERE action = \\\"BLOCK\\\" | STATS count()", WAF_LOGS_INDEX);

@@ -17,7 +17,7 @@ import java.io.Serializable;
 import java.util.zip.Deflater;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
-import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.exception.NoCursorException;
 import org.opensearch.sql.planner.SerializablePlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
@@ -28,11 +28,22 @@ import org.opensearch.sql.utils.DeserializationFilterUtil;
  * This class is entry point to paged requests. It is responsible to cursor serialization and
  * deserialization.
  */
-@RequiredArgsConstructor
 public class PlanSerializer {
   public static final String CURSOR_PREFIX = "n:";
 
   private final StorageEngine engine;
+
+  /** Cluster settings supplying deserialization structural limits; null falls back to defaults. */
+  private final Settings settings;
+
+  public PlanSerializer(StorageEngine engine) {
+    this(engine, null);
+  }
+
+  public PlanSerializer(StorageEngine engine, Settings settings) {
+    this.engine = engine;
+    this.settings = settings;
+  }
 
   /** Converts a physical plan tree to a cursor. */
   public Cursor convertToCursor(PhysicalPlan plan) {
@@ -89,14 +100,17 @@ public class PlanSerializer {
           new GZIPInputStream(new ByteArrayInputStream(HashCode.fromString(code).asBytes()));
       ObjectInputStream objectInput =
           new CursorDeserializationStream(new ByteArrayInputStream(gzip.readAllBytes()));
+      String additionalPatterns =
+          "org.opensearch.sql.planner.physical.*;"
+              + "org.opensearch.sql.opensearch.storage.scan.*;"
+              + "org.opensearch.sql.opensearch.data.type.*;"
+              + "org.opensearch.sql.executor.pagination.*;"
+              + "org.opensearch.sql.executor.QueryType;"
+              + "org.opensearch.sql.utils.*;";
       objectInput.setObjectInputFilter(
-          DeserializationFilterUtil.createFilter(
-              "org.opensearch.sql.planner.physical.*;"
-                  + "org.opensearch.sql.opensearch.storage.scan.*;"
-                  + "org.opensearch.sql.opensearch.data.type.*;"
-                  + "org.opensearch.sql.executor.pagination.*;"
-                  + "org.opensearch.sql.executor.QueryType;"
-                  + "org.opensearch.sql.utils.*;"));
+          settings == null
+              ? DeserializationFilterUtil.createFilter(additionalPatterns)
+              : DeserializationFilterUtil.createFilter(settings, additionalPatterns));
       return (Serializable) objectInput.readObject();
     } catch (Exception e) {
       throw new IllegalStateException("Failed to deserialize object", e);

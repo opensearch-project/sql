@@ -57,8 +57,10 @@ public class MatchPhraseIT extends SQLIntegTestCase {
     JSONObject result1 = executeJdbcRequest(String.format(query1, TEST_INDEX_PHRASE));
     JSONObject result2 = executeJdbcRequest(String.format(query2, TEST_INDEX_PHRASE));
     JSONObject result3 = executeJdbcRequest(String.format(query3, TEST_INDEX_PHRASE));
-    assertTrue(result1.similar(result2));
-    assertTrue(result1.similar(result3));
+    // No ORDER BY: compare the row sets, not the JSON row order, which is not defined.
+    verifyDataRows(result1, rows("quick fox"), rows("quick fox here"));
+    verifyDataRows(result2, rows("quick fox"), rows("quick fox here"));
+    verifyDataRows(result3, rows("quick fox"), rows("quick fox here"));
   }
 
   @Test
@@ -83,7 +85,9 @@ public class MatchPhraseIT extends SQLIntegTestCase {
     JSONObject result1 = executeJdbcRequest(String.format(query1, TEST_INDEX_PHRASE));
     JSONObject result2 = executeJdbcRequest(String.format(query2, TEST_INDEX_PHRASE));
     JSONObject result3 = executeJdbcRequest(String.format(query3, TEST_INDEX_PHRASE));
-    assertTrue(result1.similar(result2));
-    assertTrue(result1.similar(result3));
+    // No ORDER BY: compare the row sets, not the JSON row order, which is not defined.
+    verifyDataRows(result1, rows("quick fox"), rows("quick fox here"));
+    verifyDataRows(result2, rows("quick fox"), rows("quick fox here"));
+    verifyDataRows(result3, rows("quick fox"), rows("quick fox here"));
   }
 }

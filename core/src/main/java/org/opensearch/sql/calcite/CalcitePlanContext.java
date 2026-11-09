@@ -31,6 +31,7 @@ import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 import org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelBuilder;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.QueryType;
+import org.opensearch.sql.executor.Warning;
 import org.opensearch.sql.expression.function.FunctionProperties;
 
 public class CalcitePlanContext {
@@ -63,6 +64,14 @@ public class CalcitePlanContext {
    */
   public static final ThreadLocal<String> executionPool = new ThreadLocal<>();
 
+  /**
+   * Non-fatal warnings raised while planning or executing a query, to be attached to its response.
+   * Drained in {@code OpenSearchExecutionEngine.buildResultSet} and cleared with the other
+   * lifecycle signals so it never leaks onto the next query on a pooled worker thread.
+   */
+  private static final ThreadLocal<List<Warning>> pendingWarnings =
+      ThreadLocal.withInitial(ArrayList::new);
+
   /** Thread-local switch that tells whether the current query prefers legacy behavior. */
   private static final ThreadLocal<Boolean> legacyPreferredFlag =
       ThreadLocal.withInitial(() -> true);
@@ -75,8 +84,8 @@ public class CalcitePlanContext {
   /**
    * The flag used to determine whether we do metadata field projection for user 1. If a project is
    * never visited, we will do metadata field projection for user 2. Else not because user may
-   * intend to show the metadata field themselves. // TODO: use stack here if we want to do similar
-   * projection for subquery.
+   * intend to show the metadata field themselves. Commands that combine several inputs, such as
+   * append, decide this per input; see {@code CalciteRelNodeVisitor#visitInputsWithOwnMetaFields}.
    */
   @Getter @Setter private boolean isProjectVisited = false;
 
@@ -250,6 +259,27 @@ public class CalcitePlanContext {
     timewrapUnitName.set(null);
     timewrapSeries.set(null);
     executionPool.set(null);
+    pendingWarnings.remove();
+  }
+
+  /** Records a non-fatal warning to be attached to the response for the current query. */
+  public static void addWarning(Warning warning) {
+    pendingWarnings.get().add(warning);
+  }
+
+  /**
+   * Returns and clears the warnings collected for the current query, de-duplicated by value. The
+   * planner may fire a rule that raises a warning more than once for equivalent plan alternatives,
+   * so identical warnings are collapsed to one.
+   */
+  public static List<Warning> drainWarnings() {
+    List<Warning> warnings = pendingWarnings.get();
+    if (warnings.isEmpty()) {
+      return List.of();
+    }
+    List<Warning> drained = warnings.stream().distinct().toList();
+    pendingWarnings.remove();
+    return drained;
   }
 
   /**

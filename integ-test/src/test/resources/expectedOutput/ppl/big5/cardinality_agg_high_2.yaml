@@ -1,12 +1,12 @@
 root:
-  name: ProjectOperator
-  description:
-    fields: "[dc(`event.id`)]"
   children:
-    - name: OpenSearchIndexScan
+    - children: []
       description:
         request: "OpenSearchQueryRequest(indexName=big5, sourceBuilder={\"from\":0,\"\
           size\":0,\"timeout\":\"1m\",\"aggregations\":{\"dc(`event.id`)\":{\"cardinality\"\
           :{\"field\":\"event.id\"}}}}, pitId=*, cursorKeepAlive=null, searchAfter=null,\
           \ searchResponse=null)"
-      children: []
+      name: OpenSearchIndexScan
+  description:
+    fields: "[dc(`event.id`)]"
+  name: ProjectOperator

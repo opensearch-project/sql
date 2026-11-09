@@ -1,0 +1,130 @@
+setup:
+  - do:
+      indices.create:
+        index: test_metadata_multi_input
+        body:
+          mappings:
+            properties:
+              id:
+                type: integer
+              msg:
+                type: keyword
+  - do:
+      bulk:
+        index: test_metadata_multi_input
+        refresh: true
+        body:
+          - '{"index": {"_id": "doc-1"}}'
+          - '{"id": 1, "msg": "a"}'
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : null
+
+---
+# A fields in one input of a multi-input command (append, appendpipe, appendcol, union, lookup) used
+# to turn off metadata stripping for the whole statement, so the other input returned _id, _index,
+# _score, _maxscore, _sort and _routing.
+"Fields in one append input does not expose metadata fields of the other":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test_metadata_multi_input | append [ source=test_metadata_multi_input | fields id ]'
+  - match: { "total": 2 }
+  - match: { "schema": [ { "name": "msg", "type": "string" }, { "name": "id", "type": "int" } ] }
+
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test_metadata_multi_input | fields id | append [ source=test_metadata_multi_input ]'
+  - match: { "total": 2 }
+  - match: { "schema": [ { "name": "id", "type": "int" }, { "name": "msg", "type": "string" } ] }
+
+---
+"Fields in an appendpipe sub-pipeline does not expose metadata fields of the main search":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test_metadata_multi_input | appendpipe [ fields id ]'
+  - match: { "total": 2 }
+  - match: { "schema": [ { "name": "msg", "type": "string" }, { "name": "id", "type": "int" } ] }
+
+---
+"Fields in an appendcol subsearch does not expose metadata fields of the main search":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test_metadata_multi_input | appendcol [ eval x = 1 | fields x ]'
+  - match: { "total": 1 }
+  - match: { "schema": [ { "name": "msg", "type": "string" }, { "name": "id", "type": "int" }, { "name": "x", "type": "int" } ] }
+  - match: { "datarows": [ [ "a", 1, 1 ] ] }
+
+---
+"Fields in a union dataset does not expose metadata fields of the upstream search":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test_metadata_multi_input | union [ search source=test_metadata_multi_input | fields id ]'
+  - match: { "total": 2 }
+  - match: { "schema": [ { "name": "msg", "type": "string" }, { "name": "id", "type": "int" } ] }
+
+---
+"Lookup without output fields does not expose metadata fields of the lookup index":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test_metadata_multi_input | fields id | lookup test_metadata_multi_input id'
+  - match: { "total": 1 }
+  - match: { "schema": [ { "name": "id", "type": "int" }, { "name": "msg", "type": "string" } ] }
+  - match: { "datarows": [ [ 1, "a" ] ] }
+
+---
+"Metadata field selected in one append input is kept":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: 'source=test_metadata_multi_input | fields id, _id | append [ source=test_metadata_multi_input ]'
+  - match: { "total": 2 }
+  - match: { "schema": [ { "name": "id", "type": "int" }, { "name": "_id", "type": "string" }, { "name": "msg", "type": "string" } ] }
+  - match: { "datarows": [ [ 1, "doc-1", null ], [ 1, null, "a" ] ] }

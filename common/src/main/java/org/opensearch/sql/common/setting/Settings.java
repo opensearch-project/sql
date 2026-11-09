@@ -32,6 +32,7 @@ public abstract class Settings {
     PATTERN_BUFFER_LIMIT("plugins.ppl.pattern.buffer.limit"),
     PATTERN_SHOW_NUMBERED_TOKEN("plugins.ppl.pattern.show.numbered.token"),
     PPL_REX_MAX_MATCH_LIMIT("plugins.ppl.rex.max_match.limit"),
+    PPL_REGEX_MATCH_LIMIT("plugins.ppl.regex.match.limit"),
     PPL_VALUES_MAX_LIMIT("plugins.ppl.values.max.limit"),
     PPL_SYNTAX_LEGACY_PREFERRED("plugins.ppl.syntax.legacy.preferred"),
     PPL_SUBSEARCH_MAXOUT("plugins.ppl.subsearch.maxout"),
@@ -48,11 +49,16 @@ public abstract class Settings {
 
     /** Query Settings. */
     FIELD_TYPE_TOLERANCE("plugins.query.field_type_tolerance"),
+    FLAT_OBJECT_MAX_DEPTH("plugins.query.flat_object.max_depth"),
 
     /** Common Settings for SQL and PPL. */
     QUERY_MEMORY_LIMIT("plugins.query.memory_limit"),
     QUERY_SIZE_LIMIT("plugins.query.size_limit"),
+    QUERY_PRUNING_ENABLED("plugins.query.pruning.enabled"),
     MAX_EXPRESSION_DEPTH("plugins.query.max_expression_depth"),
+    DESERIALIZATION_MAX_DEPTH("plugins.query.deserialization.max_depth"),
+    DESERIALIZATION_MAX_REFS("plugins.query.deserialization.max_refs"),
+    DESERIALIZATION_MAX_BYTES("plugins.query.deserialization.max_bytes"),
     QUERY_BUCKET_SIZE("plugins.query.buckets"),
     SEARCH_MAX_BUCKETS("search.max_buckets"),
     ENCYRPTION_MASTER_KEY("plugins.query.datasources.encryption.masterkey"),

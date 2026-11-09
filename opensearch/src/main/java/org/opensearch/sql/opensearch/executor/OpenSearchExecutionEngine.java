@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.opensearch.executor;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Suppliers;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -60,12 +59,12 @@ import org.opensearch.sql.executor.ExecutionContext;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.Schema.Column;
 import org.opensearch.sql.executor.Explain;
+import org.opensearch.sql.executor.Warning;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 import org.opensearch.sql.monitor.profile.MetricName;
-import org.opensearch.sql.monitor.profile.ProfileMetric;
-import org.opensearch.sql.monitor.profile.QueryProfiling;
+import org.opensearch.sql.monitor.profile.ProfileScope;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprGeoPointValue;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
@@ -75,6 +74,7 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.storage.TableScanOperator;
 import org.opensearch.transport.client.node.NodeClient;
+import tools.jackson.databind.ObjectMapper;
 
 /** OpenSearch execution engine implementation. */
 public class OpenSearchExecutionEngine implements ExecutionEngine {
@@ -331,14 +331,13 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     client.schedule(
         () -> {
           try (PreparedStatement statement = OpenSearchRelRunners.run(context, rel)) {
-            ProfileMetric metric = QueryProfiling.current().getOrCreateMetric(MetricName.EXECUTE);
-            long execTime = System.nanoTime();
-            ResultSet result = statement.executeQuery();
-            QueryResponse response =
-                buildResultSet(result, rel.getRowType(), context.sysLimit.querySizeLimit());
-            metric.add(System.nanoTime() - execTime);
+            QueryResponse response;
+            try (ProfileScope executePhase = ProfileScope.open(MetricName.EXECUTE)) {
+              ResultSet result = statement.executeQuery();
+              response =
+                  buildResultSet(result, rel.getRowType(), context.sysLimit.querySizeLimit());
+            }
             listener.onResponse(response);
-
           } catch (SQLException e) {
             if (isPitContextLimitReached(e)) {
               // reason (title) comes from the wrapped cause's message; keep it short and put the
@@ -473,6 +472,9 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       }
       columns.add(new Column(columnName, null, exprType));
     }
+    // Drain before the timewrap block: its finally clears the same thread-local.
+    List<Warning> warnings = CalcitePlanContext.drainWarnings();
+
     // Timewrap post-processing: pivot unpivoted rows into period columns. The pivot is shared with
     // the analytics route (AnalyticsExecutionEngine) so both engines produce identical output.
     if (TimewrapPivot.isTimewrap()) {
@@ -492,6 +494,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
 
     Schema schema = new Schema(columns);
     QueryResponse response = new QueryResponse(schema, values, null);
+    response.setWarnings(warnings);
     return response;
   }
 

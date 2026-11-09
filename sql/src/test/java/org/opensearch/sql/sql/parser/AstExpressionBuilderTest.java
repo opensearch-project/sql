@@ -47,12 +47,15 @@ import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
+import org.opensearch.sql.ast.expression.Span;
+import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.WindowFrame;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.common.antlr.AstBuildGuard;
 import org.opensearch.sql.common.antlr.CaseInsensitiveCharStream;
 import org.opensearch.sql.common.antlr.SyntaxAnalysisErrorListener;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
 
@@ -858,6 +861,103 @@ class AstExpressionBuilderTest {
       expr = wrap.apply(expr);
     }
     return expr;
+  }
+
+  @Test
+  public void canBuildDateHistogramAsSpan() {
+    assertEquals(
+        new Span(qualifiedName("ts"), intLiteral(1), SpanUnit.H),
+        buildExprAst("date_histogram(field=ts, interval='1h')"));
+  }
+
+  /** Bare argument names are the spelling the legacy engine accepts; both forms lower alike. */
+  @Test
+  public void canBuildBucketFunctionWithUnquotedArgumentNames() {
+    assertEquals(
+        new Span(qualifiedName("ts"), intLiteral(1), SpanUnit.H),
+        buildExprAst("date_histogram(field=ts, interval='1h')"));
+    assertEquals(
+        new Span(qualifiedName("age"), intLiteral(10), SpanUnit.NONE),
+        buildExprAst("histogram(field=age, interval=10)"));
+  }
+
+  @Test
+  public void canBuildDateHistogramWithIntervalSynonyms() {
+    Span expected = new Span(qualifiedName("ts"), intLiteral(1), SpanUnit.D);
+    assertEquals(expected, buildExprAst("date_histogram(field=ts, fixed_interval='1d')"));
+    assertEquals(expected, buildExprAst("date_histogram(field=ts, calendar_interval='1d')"));
+  }
+
+  @Test
+  public void canBuildDateHistogramWithStringFieldName() {
+    assertEquals(
+        new Span(qualifiedName("ts"), intLiteral(30), SpanUnit.m),
+        buildExprAst("date_histogram(field='ts', interval='30m')"));
+  }
+
+  /** A numeric literal field is left alone rather than coerced to a column reference. */
+  @Test
+  public void bucketFieldGivenNonStringLiteralIsPassedThrough() {
+    assertEquals(
+        new Span(intLiteral(1), intLiteral(10), SpanUnit.NONE),
+        buildExprAst("histogram(field=1, interval=10)"));
+  }
+
+  @Test
+  public void canBuildNumericHistogramAsSpan() {
+    assertEquals(
+        new Span(qualifiedName("age"), intLiteral(10), SpanUnit.NONE),
+        buildExprAst("histogram(field=age, interval=10)"));
+  }
+
+  /**
+   * A parameter with no lowering here has to raise SyntaxCheckException -- the one type
+   * RestSQLQueryAction falls back on -- because the legacy engine implements alias, min_doc_count
+   * and order, and has answered queries using them for years.
+   */
+  @Test
+  public void unsupportedBucketParameterDefersToLegacyEngine() {
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> buildExprAst("date_histogram(field=ts, interval='1d', 'alias'='days')"));
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> buildExprAst("histogram(field=age, interval=10, 'min_doc_count'=1)"));
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> buildExprAst("date_histogram(field=ts, interval='1d', 'format'='yyyy-MM-dd')"));
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> buildExprAst("date_histogram(field=ts, interval='1h', 'time_zone'='+05:30')"));
+    for (String name : List.of("children", "extended_bounds", "nested", "reverse_nested")) {
+      assertThrows(
+          SyntaxCheckException.class,
+          () ->
+              buildExprAst(
+                  String.format("date_histogram(field=ts, interval='1d', '%s'='x')", name)));
+    }
+  }
+
+  /** A shape the grammar does not admit is a syntax error, which routes to the legacy engine. */
+  @Test
+  public void badBucketArgumentIsASyntaxError() {
+    for (String call :
+        List.of(
+            "date_histogram(interval='1d')",
+            "date_histogram(field=ts)",
+            "date_histogram(field=ts, interval='1d', fixed_interval='2d')",
+            "date_histogram(field=ts, interval=ts)",
+            "date_histogram(field=ts, interval='1d', interval='2d')")) {
+      assertThrows(SyntaxCheckException.class, () -> buildExprAst(call));
+    }
+  }
+
+  /** A name the grammar does not list is a parse error, which routes to the legacy engine. */
+  @Test
+  public void unknownBucketParameterIsASyntaxError() {
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> buildExprAst("date_histogram(field=ts, interval='1d', 'feild'='ts')"));
   }
 
   private Node buildExprAst(String expr) {

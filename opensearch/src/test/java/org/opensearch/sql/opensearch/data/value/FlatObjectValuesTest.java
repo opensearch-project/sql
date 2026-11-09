@@ -1,0 +1,219 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.opensearch.data.value;
+
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.opensearch.sql.data.model.ExprValueUtils.nullValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
+
+import java.util.AbstractMap;
+import java.util.AbstractSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.junit.jupiter.api.Test;
+import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.opensearch.data.utils.ObjectContent;
+
+class FlatObjectValuesTest {
+
+  private static ExprValue flatten(Object source) {
+    return FlatObjectValues.flatten(new ObjectContent(source));
+  }
+
+  // A leaf has no type of its own in the index, so every value reads as its text -- the same rule
+  // spath applies to a JSON string.
+  @Test
+  void everyLeafReadsAsText() {
+    Map<String, Object> source = new LinkedHashMap<>();
+    source.put("n", 12.5);
+    source.put("i", 503);
+    source.put("s", "4");
+    source.put("b", true);
+    source.put("z", null);
+    ExprValue value = flatten(source);
+    assertAll(
+        () -> assertEquals(stringValue("12.5"), value.tupleValue().get("n")),
+        () -> assertEquals(stringValue("503"), value.tupleValue().get("i")),
+        () -> assertEquals(stringValue("4"), value.tupleValue().get("s")),
+        () -> assertEquals(stringValue("true"), value.tupleValue().get("b")),
+        () -> assertEquals(nullValue(), value.tupleValue().get("z")));
+  }
+
+  // Both spellings of a path reach the same leaf, which is what the index holds: one term with the
+  // path folded in, whichever way the document wrote it.
+  @Test
+  void bothSpellingsOfAPathReachTheSameLeaf() {
+    assertAll(
+        () ->
+            assertEquals(
+                stringValue("1"), flatten(Map.of("a", Map.of("b", 1))).tupleValue().get("a.b")),
+        () -> assertEquals(stringValue("1"), flatten(Map.of("a.b", 1)).tupleValue().get("a.b")));
+  }
+
+  // The index files a term per value, so a path that receives several holds them all, as the JSON
+  // of those values -- again what spath returns for an array inside a JSON string.
+  @Test
+  void aPathWithSeveralValuesReadsAsJson() {
+    LinkedHashMap<String, Object> collide = new LinkedHashMap<>();
+    collide.put("a", Map.of("b", 1));
+    collide.put("a.b", 2);
+    LinkedHashMap<String, Object> collideOtherOrder = new LinkedHashMap<>();
+    collideOtherOrder.put("a.b", 2);
+    collideOtherOrder.put("a", Map.of("b", 1));
+    assertAll(
+        // an array leaf
+        () ->
+            assertEquals(
+                stringValue("[\"a\",\"b\"]"),
+                flatten(Map.of("tags", List.of("a", "b"))).tupleValue().get("tags")),
+        // elements of different types still read as text
+        () ->
+            assertEquals(
+                stringValue("[\"1\",\"x\"]"),
+                flatten(Map.of("mixed", List.of(1, "x"))).tupleValue().get("mixed")),
+        // an object inside an array folds into the dotted path, one term per element
+        () ->
+            assertEquals(
+                stringValue("[\"1\",\"2\"]"),
+                flatten(Map.of("nested", List.of(Map.of("k", 1), Map.of("k", 2))))
+                    .tupleValue()
+                    .get("nested.k")),
+        // an array at the top level, which OpenSearch also accepts
+        () ->
+            assertEquals(
+                stringValue("[\"1\",\"2\"]"),
+                flatten(List.of(Map.of("p", 1), Map.of("p", 2))).tupleValue().get("p")),
+        // both spellings present in one document: neither value may be dropped. The order follows
+        // the document, as _source order does, so the two spellings read in the order written
+        () -> assertEquals(stringValue("[\"1\",\"2\"]"), flatten(collide).tupleValue().get("a.b")),
+        () ->
+            assertEquals(
+                stringValue("[\"2\",\"1\"]"), flatten(collideOtherOrder).tupleValue().get("a.b")));
+  }
+
+  /**
+   * A leaf whose own value looks like a JSON array is still one value. The merge used to recover
+   * the values a path already held by re-reading the JSON it had written, which could not tell its
+   * own output from a value the record wrote, and took such a value apart.
+   */
+  @Test
+  void aValueThatLooksLikeJsonIsNotTakenApart() {
+    LinkedHashMap<String, Object> collide = new LinkedHashMap<>();
+    collide.put("x", Map.of("y", "[1,2]"));
+    collide.put("x.y", "plain");
+    assertEquals(stringValue("[\"[1,2]\",\"plain\"]"), flatten(collide).tupleValue().get("x.y"));
+    // and on its own it is the value as written
+    assertEquals(stringValue("[1,2]"), flatten(Map.of("x", "[1,2]")).tupleValue().get("x"));
+  }
+
+  /**
+   * An element of the array at the root may itself be an array, which the index flattens just the
+   * same -- it files a term for every value it reaches, however deeply the arrays nest.
+   */
+  @Test
+  void anArrayInsideTheRootArrayIsFlattenedToo() {
+    assertEquals(
+        stringValue("[\"1\",\"2\"]"),
+        flatten(List.of(List.of(Map.of("a", 1)), Map.of("a", 2))).tupleValue().get("a"));
+    assertEquals(
+        stringValue("1"), flatten(List.of(List.of(List.of(Map.of("a", 1))))).tupleValue().get("a"));
+  }
+
+  @Test
+  void aScalarWhereAnObjectWasPromisedIsNull() {
+    assertEquals(nullValue(), flatten(5));
+  }
+
+  private static String deepestKey(int levels) {
+    Map<String, Object> source = Map.of("leaf", "v");
+    for (int i = 0; i < levels; i++) {
+      source = Map.of("l" + i, source);
+    }
+    ExprValue value = flatten(source);
+    assertEquals(1, value.tupleValue().size());
+    return value.tupleValue().keySet().iterator().next();
+  }
+
+  // A flat_object exists so documents can escape the mapping depth limit, so the depth comes from
+  // the document: levels past the cap are kept as one leaf rather than dropped.
+  @Test
+  void depthIsCapped() {
+    // the cap's levels are descended, so the key is that many prefixes plus the leaf's own name
+    assertEquals(FlatObjectValues.DEFAULT_MAX_DEPTH + 1, deepestKey(25).split("\\.").length);
+  }
+
+  // plugins.query.flat_object.max_depth moves the cap both ways
+  @Test
+  void depthCapFollowsTheSetting() {
+    try {
+      // raised past the document's depth: the leaf is reached under its full path
+      FlatObjectValues.setMaxDepth(30);
+      assertEquals(26, deepestKey(25).split("\\.").length);
+      FlatObjectValues.setMaxDepth(3);
+      assertEquals(4, deepestKey(25).split("\\.").length);
+    } finally {
+      FlatObjectValues.setMaxDepth(FlatObjectValues.DEFAULT_MAX_DEPTH);
+    }
+  }
+
+  /** A map that moves the cap once it has handed out its first entry. */
+  private static Map<String, Object> movesTheCapAfterTheFirstEntry(
+      Map<String, Object> entries, int newDepth) {
+    return new AbstractMap<>() {
+      @Override
+      public Set<Entry<String, Object>> entrySet() {
+        return new AbstractSet<>() {
+          @Override
+          public Iterator<Entry<String, Object>> iterator() {
+            Iterator<Entry<String, Object>> delegate = entries.entrySet().iterator();
+            return new Iterator<>() {
+              private int handedOut = 0;
+
+              @Override
+              public boolean hasNext() {
+                return delegate.hasNext();
+              }
+
+              @Override
+              public Entry<String, Object> next() {
+                if (handedOut++ == 1) {
+                  FlatObjectValues.setMaxDepth(newDepth);
+                }
+                return delegate.next();
+              }
+            };
+          }
+
+          @Override
+          public int size() {
+            return entries.size();
+          }
+        };
+      }
+    };
+  }
+
+  // The first subtree is folded before the second entry is pulled, so a cap read per node rather
+  // than per document would apply a different one to each.
+  @Test
+  void theCapIsReadOncePerDocument() {
+    Map<String, Object> subtree = Map.of("l2", Map.of("l1", Map.of("l0", Map.of("leaf", "v"))));
+    Map<String, Object> entries = new LinkedHashMap<>();
+    entries.put("a", subtree);
+    entries.put("b", subtree);
+    try {
+      FlatObjectValues.setMaxDepth(10);
+      ExprValue value = flatten(movesTheCapAfterTheFirstEntry(entries, 1));
+      assertEquals(Set.of("a.l2.l1.l0.leaf", "b.l2.l1.l0.leaf"), value.tupleValue().keySet());
+    } finally {
+      FlatObjectValues.setMaxDepth(FlatObjectValues.DEFAULT_MAX_DEPTH);
+    }
+  }
+}

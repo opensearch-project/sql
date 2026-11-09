@@ -67,3 +67,5 @@ fetched rows / total rows = 2/2
 ## Limitations
 
 The `transpose` command converts a specified number of rows into columns. If fewer rows are available, the missing values are represented as `null` columns.
+
+The `transpose` command only supports scalar fields. If any field in the input is a `struct` or an `array`, the command results in an error. Object and flat_object fields have the type `struct`, and a nested field or the result of `stats list()` has the type `array`. Use the `fields` command before `transpose` to keep only scalar fields, such as the scalar subfields of an object field.

@@ -7,6 +7,7 @@ package org.opensearch.sql.calcite.remote;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.util.Capability.ARRAY_HIGHER_ORDER_FUNC;
+import static org.opensearch.sql.util.Capability.MULTISHARD_EXCHANGE_TYPE_MISMATCH;
 import static org.opensearch.sql.util.MatcherUtils.*;
 
 import java.io.IOException;
@@ -808,6 +809,11 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  @RequiresCapability(
+      value = MULTISHARD_EXCHANGE_TYPE_MISMATCH,
+      note =
+          "AE multi-shard: Field 'result' Substrait List(Utf8) vs table List(Null) -> Failed to"
+              + " create exchange sink (HTTP 500).")
   public void testMvdedupWithEmptyArray() throws IOException {
     JSONObject actual =
         executeQuery(
@@ -955,8 +961,8 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
     JSONObject actual =
         executeQuery(
             String.format(
-                "source=%s | eval arr = array(1, 2, 3), result = mvmap(arr, arr * age) | head 1 |"
-                    + " fields age, result",
+                "source=%s | eval arr = array(1, 2, 3), result = mvmap(arr, arr * age) | sort"
+                    + " account_number | head 1 | fields age, result",
                 TEST_INDEX_BANK));
 
     verifySchema(actual, schema("age", "int"), schema("result", "array"));

@@ -534,7 +534,9 @@ public class CalcitePPLMapPathIT extends PPLIntegTestCase {
     }
     createIndexByRestClient(client(), index, null);
     Request request = new Request("POST", "/" + index + "/_bulk?refresh=true");
-    request.setJsonEntity(bulkData);
+    // On the analytics route the append-only store rejects the inline custom _ids; strip them
+    // (auto-ids) so the fixture seeds instead of leaving an empty, catalog-invisible index.
+    request.setJsonEntity(org.opensearch.sql.legacy.TestUtils.adaptBulkBody(bulkData));
     performRequest(client(), request);
   }
 

@@ -5,12 +5,15 @@
 
 package org.opensearch.sql.plugin.request;
 
+import java.time.Duration;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.format.Format;
@@ -33,6 +36,9 @@ public class PPLQueryRequestFactory {
   private static final String QUERY_PARAMS_ANALYZE = "analyze";
   private static final String QUERY_PARAMS_FETCH_SIZE = "fetch_size";
   private static final String QUERY_PARAMS_INCLUDE_METADATA = "include_metadata";
+  private static final String QUERY_PARAMS_WAIT_FOR_COMPLETION_TIMEOUT =
+      "wait_for_completion_timeout";
+  private static final String QUERY_PARAMS_KEEP_ALIVE = "keep_alive";
 
   /**
    * Build {@link PPLQueryRequest} from {@link RestRequest}.
@@ -131,6 +137,22 @@ public class PPLQueryRequestFactory {
       if (queryId != null) {
         pplRequest.queryId(queryId);
       }
+      if (jsonContent.has(QUERY_PARAMS_WAIT_FOR_COMPLETION_TIMEOUT)) {
+        pplRequest.waitForCompletionTimeout(
+            parseDuration(
+                jsonContent.getString(QUERY_PARAMS_WAIT_FOR_COMPLETION_TIMEOUT),
+                QUERY_PARAMS_WAIT_FOR_COMPLETION_TIMEOUT,
+                Duration.ZERO,
+                Duration.ofSeconds(60)));
+      }
+      if (jsonContent.has(QUERY_PARAMS_KEEP_ALIVE)) {
+        pplRequest.keepAlive(
+            parseDuration(
+                jsonContent.getString(QUERY_PARAMS_KEEP_ALIVE),
+                QUERY_PARAMS_KEEP_ALIVE,
+                Duration.ofMillis(1),
+                Duration.ofHours(24)));
+      }
       return pplRequest;
     } catch (JSONException e) {
       throw new IllegalArgumentException("Failed to parse request payload", e);
@@ -180,6 +202,21 @@ public class PPLQueryRequestFactory {
     boolean isJdbcFormat =
         format != null && DEFAULT_RESPONSE_FORMAT.equalsIgnoreCase(format.getFormatName());
     return !explainPath && !explainQuery && isJdbcFormat;
+  }
+
+  /**
+   * Parses an OpenSearch-style time value ({@code "5s"}, {@code "0"}, {@code "10m"}) into a {@link
+   * Duration}. Delegates to {@link TimeValue#parseTimeValue} for consistent grammar with other
+   * request-body time fields.
+   */
+  private static Duration parseDuration(
+      String value, String fieldName, Duration min, Duration max) {
+    Duration parsed = Duration.ofMillis(TimeValue.parseTimeValue(value, fieldName).millis());
+    if (parsed.compareTo(min) < 0 || parsed.compareTo(max) > 0) {
+      throw new IllegalArgumentException(
+          String.format(Locale.ROOT, "%s=%s is out of range [%s, %s]", fieldName, value, min, max));
+    }
+    return parsed;
   }
 
   private static String getExplainMode(Map<String, String> requestParams, String path) {

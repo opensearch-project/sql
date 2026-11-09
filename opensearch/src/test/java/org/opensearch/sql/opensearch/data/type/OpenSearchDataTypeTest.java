@@ -568,4 +568,16 @@ class OpenSearchDataTypeTest {
             new OpenSearchAliasType("col1", OpenSearchDataType.of(MappingType.Invalid))),
         OpenSearchDataType.parseMapping(indexMapping2));
   }
+
+  @Test
+  // A flat_object declares no `properties`, so it must survive parseMapping as a leaf of its own
+  // type -- an unknown mapping type used to be dropped, which is why the field was invisible.
+  public void of_flat_object() {
+    Map<String, OpenSearchDataType> parsed =
+        OpenSearchDataType.parseMapping(Map.of("attributes", Map.of("type", "flat_object")));
+    assertAll(
+        () -> assertEquals(1, parsed.size()),
+        () -> assertEquals(OpenSearchFlatObjectType.of(), parsed.get("attributes")),
+        () -> assertEquals(1, OpenSearchDataType.traverseAndFlatten(parsed).size()));
+  }
 }

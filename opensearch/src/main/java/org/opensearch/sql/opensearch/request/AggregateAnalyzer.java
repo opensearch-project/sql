@@ -90,6 +90,7 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
+import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.NamedFieldExpression;
 import org.opensearch.sql.opensearch.request.PredicateAnalyzer.ScriptQueryExpression;
@@ -626,6 +627,12 @@ public class AggregateAnalyzer {
         // (ASC -> NULLS FIRST, DESC -> NULLS LAST) so dedup picks the same row whether
         // pushdown is on or off.
         for (PPLHintUtils.DedupSortKey key : dedupSortKeys) {
+          // The hint carries a raw field name, so it never reaches the binary refusal in
+          // NamedFieldExpression. A field sort on a binary field is rejected by the shard.
+          if (helper.fieldTypes.get(key.field()) instanceof OpenSearchBinaryType) {
+            throw new AggregateAnalyzer.AggregateAnalyzerException(
+                String.format("Cannot push down a dedup sort on binary field [%s]", key.field()));
+          }
           SortOrder order = "DESC".equals(key.order()) ? SortOrder.DESC : SortOrder.ASC;
           String missing = order == SortOrder.ASC ? "_first" : "_last";
           topHitsAggregationBuilder.sort(

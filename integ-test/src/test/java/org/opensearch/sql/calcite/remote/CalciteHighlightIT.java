@@ -9,6 +9,7 @@ import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.plugin.rest.RestPPLQueryAction.QUERY_API_ENDPOINT;
+import static org.opensearch.sql.util.Capability.HIGHLIGHT_FUNCTION;
 
 import java.io.IOException;
 import org.json.JSONArray;
@@ -19,8 +20,10 @@ import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.util.RequiresCapability;
 
 /** Integration tests for PPL highlight parameter. */
+@RequiresCapability(HIGHLIGHT_FUNCTION)
 public class CalciteHighlightIT extends PPLIntegTestCase {
 
   @Override
