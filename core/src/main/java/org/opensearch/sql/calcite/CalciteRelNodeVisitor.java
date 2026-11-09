@@ -3923,38 +3923,45 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     visitAggregation(aggregation, context, nonNullGroupMask, false, true);
     RelBuilder relBuilder = context.relBuilder;
 
-    // If a second split does not present or limit equals 0, we go no further for limit, nullstr,
-    // otherstr parameters because all truncating & renaming is performed on the column split
-    if (node.getRowSplit() == null
-        || node.getColumnSplit() == null
-        || Objects.equals(config.limit, 0)) {
+    // If a second split does not present, we go no further for limit, nullstr, otherstr
+    // parameters because all truncating & renaming is performed on the column split
+    if (node.getRowSplit() == null || node.getColumnSplit() == null) {
       // The output of chart is expected to be ordered by row split names
+      relBuilder.sort(relBuilder.nullsLast(relBuilder.field(0)));
+      return relBuilder.peek();
+    }
+    // limit=0 keeps every column split value, so only nullstr renaming applies. Non-scalar splits
+    // are kept as they are since they cannot be coerced to a string label.
+    if (Objects.equals(config.limit, 0)) {
+      if (config.useNull && SqlTypeUtil.isAtomic(relBuilder.field(1).getType())) {
+        String columnSplitName = relBuilder.peek().getRowType().getFieldNames().get(1);
+        RexNode colSplit = castColumnSplitToString(context, relBuilder.field(1), columnSplitName);
+        relBuilder.project(
+            relBuilder.field(0),
+            relBuilder.alias(
+                relBuilder.call(
+                    SqlStdOperatorTable.CASE,
+                    relBuilder.isNull(colSplit),
+                    relBuilder.literal(config.nullStr),
+                    colSplit),
+                columnSplitName),
+            relBuilder.field(2));
+      }
       relBuilder.sort(relBuilder.nullsLast(relBuilder.field(0)));
       return relBuilder.peek();
     }
 
     // Convert the column split to string if necessary: column split was supposed to be pivoted to
     // column names. This guarantees that its type compatibility with useother and usenull
-    RexNode colSplit = relBuilder.field(1);
     String columnSplitName = relBuilder.peek().getRowType().getFieldNames().get(1);
-    if (!SqlTypeUtil.isCharacter(colSplit.getType())) {
-      // Object, array and other non-scalar types have no string representation to pivot on
-      if (!SqlTypeUtil.isAtomic(colSplit.getType())) {
-        String containerType = OpenSearchTypeFactory.getContainerTypeName(colSplit.getType());
-        String reason =
-            "object".equals(containerType) ? "it is an object" : "it holds multiple values";
-        throw new IllegalArgumentException(
-            StringUtils.format(
-                "Cannot chart by [%s] because %s.",
-                StringUtils.unquoteIdentifier(columnSplitName), reason));
-      }
-      colSplit =
-          relBuilder.alias(
-              context.rexBuilder.makeCast(
-                  UserDefinedFunctionUtils.NULLABLE_STRING, colSplit, true, true),
-              columnSplitName);
-    }
-    relBuilder.project(relBuilder.field(0), colSplit, relBuilder.field(2));
+    RexNode colSplit = relBuilder.field(1);
+    RexNode castColSplit = castColumnSplitToString(context, colSplit, columnSplitName);
+    // Only alias an actual cast: re-aliasing a plain field ref would turn the identity projection
+    // into a real one and rename the row split
+    relBuilder.project(
+        relBuilder.field(0),
+        castColSplit == colSplit ? colSplit : relBuilder.alias(castColSplit, columnSplitName),
+        relBuilder.field(2));
     RelNode aggregated = relBuilder.peek();
     // 1: column-split, 2: agg
     RelNode ranked = rankByColumnSplit(context, 1, 2, config.top);
@@ -3972,10 +3979,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             SqlStdOperatorTable.LESS_THAN_OR_EQUAL,
             relBuilder.field(PlanUtils.ROW_NUMBER_COLUMN_FOR_CHART),
             relBuilder.literal(config.limit));
-    if (!config.useOther) {
-      relBuilder.filter(lteCondition);
-    }
     RexNode nullCondition = relBuilder.isNull(colSplitPostJoin);
+    if (!config.useOther) {
+      // Null column splits have no rank; keep them so that usenull/nullstr still apply
+      relBuilder.filter(config.useNull ? relBuilder.or(nullCondition, lteCondition) : lteCondition);
+    }
 
     RexNode columnSplitExpr;
     if (config.useNull) {
@@ -4154,6 +4162,31 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     b.sort(b.field(tsFieldName), b.field("__period__"));
 
     return b.peek();
+  }
+
+  /**
+   * Casts the chart column split to string: column split values are pivoted to column names, and
+   * the cast keeps them type compatible with the useother and usenull labels. Returns the input
+   * unchanged if it is already a string. The result is not aliased, so callers can nest it in other
+   * expressions and alias it at the top level.
+   */
+  private RexNode castColumnSplitToString(
+      CalcitePlanContext context, RexNode colSplit, String columnSplitName) {
+    if (SqlTypeUtil.isCharacter(colSplit.getType())) {
+      return colSplit;
+    }
+    // Object, array and other non-scalar types have no string representation to pivot on
+    if (!SqlTypeUtil.isAtomic(colSplit.getType())) {
+      String containerType = OpenSearchTypeFactory.getContainerTypeName(colSplit.getType());
+      String reason =
+          "object".equals(containerType) ? "it is an object" : "it holds multiple values";
+      throw new IllegalArgumentException(
+          StringUtils.format(
+              "Cannot chart by [%s] because %s.",
+              StringUtils.unquoteIdentifier(columnSplitName), reason));
+    }
+    return context.rexBuilder.makeCast(
+        UserDefinedFunctionUtils.NULLABLE_STRING, colSplit, true, true);
   }
 
   /**

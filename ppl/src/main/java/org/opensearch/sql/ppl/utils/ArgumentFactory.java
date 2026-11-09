@@ -221,25 +221,13 @@ public class ArgumentFactory {
         }
         arguments.add(new Argument("limit", limit));
       } else if (ctx.USEOTHER() != null) {
-        Literal useOther;
-        if (ctx.booleanLiteral() != null) {
-          useOther = getArgumentValue(ctx.booleanLiteral());
-        } else if (ctx.ident() != null) {
-          String identLiteral = expressionBuilder.visitIdentifiers(List.of(ctx.ident())).toString();
-          if ("true".equalsIgnoreCase(identLiteral) || "t".equalsIgnoreCase(identLiteral)) {
-            useOther = AstDSL.booleanLiteral(true);
-          } else if ("false".equalsIgnoreCase(identLiteral) || "f".equalsIgnoreCase(identLiteral)) {
-            useOther = AstDSL.booleanLiteral(false);
-          } else {
-            throw new IllegalArgumentException(
-                "Invalid useOther value: "
-                    + ctx.ident().getText()
-                    + ". Expected true/false or t/f");
-          }
-        } else {
-          throw new IllegalArgumentException("value for useOther must be a boolean or identifier");
-        }
-        arguments.add(new Argument("useother", useOther));
+        arguments.add(
+            new Argument("useother", parseTimechartBoolean(ctx, expressionBuilder, "useOther")));
+      } else if (ctx.USENULL() != null) {
+        arguments.add(
+            new Argument("usenull", parseTimechartBoolean(ctx, expressionBuilder, "useNull")));
+      } else if (ctx.NULLSTR() != null) {
+        arguments.add(new Argument("nullstr", getArgumentValue(ctx.stringLiteral())));
       } else if (ctx.TIMEFIELD() != null) {
         Literal timeField;
         if (ctx.ident() != null) {
@@ -253,11 +241,39 @@ public class ArgumentFactory {
       } else {
         throw new IllegalArgumentException(
             String.format(
-                "A parameter of timechart must be a span, limit, useother, or timefield, got %s",
+                "A parameter of timechart must be a span, limit, useother, usenull, nullstr, or"
+                    + " timefield, got %s",
                 ctx));
       }
     }
     return arguments;
+  }
+
+  /** Parses a timechart boolean option, which accepts true/false as well as t/f. */
+  private static Literal parseTimechartBoolean(
+      OpenSearchPPLParser.TimechartParameterContext ctx,
+      AstExpressionBuilder expressionBuilder,
+      String optionName) {
+    if (ctx.booleanLiteral() != null) {
+      return getArgumentValue(ctx.booleanLiteral());
+    }
+    if (ctx.ident() != null) {
+      String identLiteral = expressionBuilder.visitIdentifiers(List.of(ctx.ident())).toString();
+      if ("true".equalsIgnoreCase(identLiteral) || "t".equalsIgnoreCase(identLiteral)) {
+        return AstDSL.booleanLiteral(true);
+      }
+      if ("false".equalsIgnoreCase(identLiteral) || "f".equalsIgnoreCase(identLiteral)) {
+        return AstDSL.booleanLiteral(false);
+      }
+      throw new IllegalArgumentException(
+          "Invalid "
+              + optionName
+              + " value: "
+              + ctx.ident().getText()
+              + ". Expected true/false or t/f");
+    }
+    throw new IllegalArgumentException(
+        "value for " + optionName + " must be a boolean or identifier");
   }
 
   public static Map<String, Argument> getArgumentList(

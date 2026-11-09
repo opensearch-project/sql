@@ -371,6 +371,125 @@ public class CalciteTimechartCommandIT extends PPLIntegTestCase {
         rows("2024-07-01 00:00:00", "NULL", 1));
   }
 
+  @Test
+  public void testTimechartWithUseNullFalse() throws IOException {
+    JSONObject result =
+        executeQuery("source=events_null | timechart span=1d usenull=false count() by host");
+
+    verifySchema(
+        result,
+        schema("@timestamp", "timestamp"),
+        schema("host", "string"),
+        schema("count()", "bigint"));
+
+    verifyDataRows(
+        result,
+        rows("2024-07-01 00:00:00", "db-01", 1),
+        rows("2024-07-01 00:00:00", "web-01", 2),
+        rows("2024-07-01 00:00:00", "web-02", 2));
+  }
+
+  @Test
+  public void testTimechartWithUseNullFalseAndLimit() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=events_null | timechart span=1d limit=2 usenull=false count() by host");
+
+    verifyDataRows(
+        result,
+        rows("2024-07-01 00:00:00", "OTHER", 1),
+        rows("2024-07-01 00:00:00", "web-01", 2),
+        rows("2024-07-01 00:00:00", "web-02", 2));
+  }
+
+  @Test
+  public void testTimechartWithNullStr() throws IOException {
+    JSONObject result =
+        executeQuery("source=events_null | timechart span=1d count() by host nullstr='unknown'");
+
+    verifySchema(
+        result,
+        schema("@timestamp", "timestamp"),
+        schema("host", "string"),
+        schema("count()", "bigint"));
+
+    verifyDataRows(
+        result,
+        rows("2024-07-01 00:00:00", "db-01", 1),
+        rows("2024-07-01 00:00:00", "web-01", 2),
+        rows("2024-07-01 00:00:00", "web-02", 2),
+        rows("2024-07-01 00:00:00", "unknown", 1));
+  }
+
+  @Test
+  public void testTimechartWithUseNullTrueAndNullStr() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=events_null | timechart span=1d usenull=true nullstr='no-host' count() by"
+                + " host");
+
+    verifyDataRows(
+        result,
+        rows("2024-07-01 00:00:00", "db-01", 1),
+        rows("2024-07-01 00:00:00", "web-01", 2),
+        rows("2024-07-01 00:00:00", "web-02", 2),
+        rows("2024-07-01 00:00:00", "no-host", 1));
+  }
+
+  @Test
+  public void testTimechartWithUseNullShortForm() throws IOException {
+    JSONObject result =
+        executeQuery("source=events_null | timechart span=1d usenull=f count() by host");
+
+    verifyDataRows(
+        result,
+        rows("2024-07-01 00:00:00", "db-01", 1),
+        rows("2024-07-01 00:00:00", "web-01", 2),
+        rows("2024-07-01 00:00:00", "web-02", 2));
+  }
+
+  @Test
+  public void testTimechartWithLimitZeroAndNullStr() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=events_null | timechart span=1d limit=0 nullstr='unknown' count() by host");
+
+    verifyDataRows(
+        result,
+        rows("2024-07-01 00:00:00", "db-01", 1),
+        rows("2024-07-01 00:00:00", "web-01", 2),
+        rows("2024-07-01 00:00:00", "web-02", 2),
+        rows("2024-07-01 00:00:00", "unknown", 1));
+  }
+
+  @Test
+  public void testTimechartWithUseOtherFalseAndNullStr() throws IOException {
+    JSONObject result =
+        executeQuery(
+            "source=events_null | timechart span=1d limit=2 useother=false nullstr='unknown'"
+                + " count() by host");
+
+    verifyDataRows(
+        result,
+        rows("2024-07-01 00:00:00", "web-01", 2),
+        rows("2024-07-01 00:00:00", "web-02", 2),
+        rows("2024-07-01 00:00:00", "unknown", 1));
+  }
+
+  @Test
+  public void testTimechartWithLimitZeroAndNumericByField() throws IOException {
+    // status_code is mapped as integer but absent in every document, so all rows are null
+    JSONObject result =
+        executeQuery("source=events_many_hosts | timechart span=1h limit=0 count() by status_code");
+
+    verifySchema(
+        result,
+        schema("@timestamp", "timestamp"),
+        schema("status_code", "string"),
+        schema("count()", "bigint"));
+    verifyDataRows(result, rows("2024-07-01 00:00:00", "NULL", 11));
+  }
+
   private void createEventsManyHostsIndex() throws IOException {
     String eventsMapping =
         "{\"mappings\":{\"properties\":{\"@timestamp\":{\"type\":\"date\"},\"host\":{\"type\":\"keyword\"},\"service\":{\"type\":\"keyword\"},\"response_time\":{\"type\":\"integer\"},\"status_code\":{\"type\":\"integer\"},\"bytes_sent\":{\"type\":\"long\"},\"cpu_usage\":{\"type\":\"double\"},\"memory_usage\":{\"type\":\"double\"},\"region\":{\"type\":\"keyword\"},\"environment\":{\"type\":\"keyword\"}}}}";
