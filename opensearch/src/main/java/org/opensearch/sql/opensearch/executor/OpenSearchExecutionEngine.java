@@ -6,6 +6,7 @@
 package org.opensearch.sql.opensearch.executor;
 
 import com.google.common.base.Suppliers;
+import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -20,6 +21,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import org.apache.calcite.avatica.util.Cursor;
 import org.apache.calcite.avatica.util.StructImpl;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rel.RelNode;
@@ -430,31 +432,37 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     return value;
   }
 
-  private QueryResponse buildResultSet(
-      ResultSet resultSet, RelDataType rowTypes, Integer querySizeLimit) throws SQLException {
-    // Get the ResultSet metadata to know about columns
+  QueryResponse buildResultSet(ResultSet resultSet, RelDataType rowTypes, Integer querySizeLimit)
+      throws SQLException {
     ResultSetMetaData metaData = resultSet.getMetaData();
     int columnCount = metaData.getColumnCount();
     List<RelDataType> fieldTypes =
         rowTypes.getFieldList().stream().map(RelDataTypeField::getType).toList();
+    // Materialise cells via the Avatica accessor list to avoid Avatica's per-cell case-insensitive
+    // column-name scan, which makes getObject(String) O(rows x columns^2) on wide schemas (#5939).
+    String[] columnNames = new String[columnCount];
+    for (int i = 1; i <= columnCount; i++) {
+      columnNames[i - 1] = metaData.getColumnName(i);
+    }
+    List<Cursor.Accessor> accessors = resolveAvaticaAccessors(resultSet);
     List<ExprValue> values = new ArrayList<>();
-    // Iterate through the ResultSet
     while (resultSet.next() && (querySizeLimit == null || values.size() < querySizeLimit)) {
       Map<String, ExprValue> row = new LinkedHashMap<String, ExprValue>();
-      // Loop through each column
       for (int i = 1; i <= columnCount; i++) {
-        String columnName = metaData.getColumnName(i);
-        Object value = resultSet.getObject(columnName);
+        Object value =
+            accessors != null
+                ? accessors.get(i - 1).getObject()
+                : resultSet.getObject(columnNames[i - 1]);
         Object converted = processValue(value, fieldTypes.get(i - 1));
         ExprValue exprValue = ExprValueUtils.fromObjectValue(converted);
-        row.put(columnName, exprValue);
+        row.put(columnNames[i - 1], exprValue);
       }
       values.add(ExprTupleValue.fromExprValueMap(row));
     }
 
     List<Column> columns = new ArrayList<>(metaData.getColumnCount());
     for (int i = 1; i <= columnCount; ++i) {
-      String columnName = metaData.getColumnName(i);
+      String columnName = columnNames[i - 1];
       RelDataType fieldType = fieldTypes.get(i - 1);
       // TODO: Correct this after fixing issue github.com/opensearch-project/sql/issues/3751
       //  The element type of struct and array is currently set to ANY.
@@ -496,6 +504,48 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
     QueryResponse response = new QueryResponse(schema, values, null);
     response.setWarnings(warnings);
     return response;
+  }
+
+  // Resolved once at class-load. Any failure (Avatica renamed/removed the field, module
+  // restrictions block setAccessible) raises ExceptionInInitializerError so an Avatica upgrade
+  // surfaces immediately instead of silently reintroducing the #5939 O(cols^2) hot path.
+  private static final Class<?> AVATICA_RESULT_SET_CLASS;
+  private static final Field AVATICA_ACCESSOR_LIST_FIELD;
+
+  static {
+    try {
+      AVATICA_RESULT_SET_CLASS = Class.forName("org.apache.calcite.avatica.AvaticaResultSet");
+      AVATICA_ACCESSOR_LIST_FIELD = AVATICA_RESULT_SET_CLASS.getDeclaredField("accessorList");
+      AVATICA_ACCESSOR_LIST_FIELD.setAccessible(true);
+    } catch (ReflectiveOperationException e) {
+      throw new ExceptionInInitializerError(
+          new IllegalStateException(
+              "AvaticaResultSet.accessorList is no longer reachable via reflection", e));
+    }
+  }
+
+  /**
+   * Returns the {@code AvaticaResultSet}'s per-column {@link Cursor.Accessor} list, or {@code null}
+   * if {@code resultSet} is not an {@code AvaticaResultSet}. Reflection is required because neither
+   * public {@code getObject} overload returns the raw value at ordinal cost: {@code getObject(int)}
+   * applies {@code AvaticaSite.get} type coercion (geopoint→WKT, list→ {@code ArrayImpl},
+   * float→double), and {@code getObject(String)} runs an O(cols) label scan per cell (#5939).
+   */
+  @SuppressWarnings("unchecked")
+  private static List<Cursor.Accessor> resolveAvaticaAccessors(ResultSet resultSet)
+      throws SQLException {
+    if (!resultSet.isWrapperFor(AVATICA_RESULT_SET_CLASS)) return null;
+    try {
+      return (List<Cursor.Accessor>)
+          AVATICA_ACCESSOR_LIST_FIELD.get(resultSet.unwrap(AVATICA_RESULT_SET_CLASS));
+    } catch (IllegalAccessException e) {
+      // setAccessible succeeded at init; losing access here would be a JVM-level regression, not
+      // an Avatica change. Surface loudly rather than falling back to O(cols^2).
+      throw new IllegalStateException(
+          "AvaticaResultSet.accessorList became inaccessible after setAccessible; #5939 fast path"
+              + " broken.",
+          e);
+    }
   }
 
   /** Registers opensearch-dependent functions */
