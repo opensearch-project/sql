@@ -21,8 +21,10 @@ import org.opensearch.core.index.Index;
 import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.query.QueryShardException;
+import org.opensearch.sql.common.error.ErrorCode;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.common.error.QueryProcessingStage;
+import org.opensearch.sql.common.error.ResourceLimitExceededException;
 import org.opensearch.sql.exception.NonFallbackCalciteException;
 import org.opensearch.sql.opensearch.executor.WorkerPoolSaturatedException;
 
@@ -41,6 +43,19 @@ public class SyncErrorReportRendererTest {
     assertEquals(429, SyncErrorReportRenderer.statusCodeFor(new RuntimeException(saturated)));
     assertEquals(
         "Too Many Requests", SyncErrorReportRenderer.renderErrorMap(saturated).get("reason"));
+  }
+
+  @Test
+  public void exceededResourceLimitReturns429() {
+    ResourceLimitExceededException exceeded = new ResourceLimitExceededException("limit reached");
+    assertEquals(429, SyncErrorReportRenderer.statusCodeFor(exceeded));
+    assertEquals(429, SyncErrorReportRenderer.statusCodeFor(new RuntimeException(exceeded)));
+    assertEquals(
+        429,
+        SyncErrorReportRenderer.statusCodeFor(
+            ErrorReport.wrap(exceeded).code(ErrorCode.RESOURCE_LIMIT_EXCEEDED).build()));
+    assertEquals(
+        "Too Many Requests", SyncErrorReportRenderer.renderErrorMap(exceeded).get("reason"));
   }
 
   @Test

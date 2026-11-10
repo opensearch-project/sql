@@ -41,6 +41,7 @@ import org.mockito.ArgumentCaptor;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.sql.common.error.ResourceLimitExceededException;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.job.exceptions.QueryJobForbiddenException;
@@ -411,6 +412,65 @@ class OpenSearchQueryJobServiceTest {
     assertFalse(runner.wasRun());
     assertTrue(store.jobs().isEmpty());
     verifyNoInteractions(threadPool);
+  }
+
+  @Test
+  void submit_refusedWhileTheStoreIsFullNeverStartsTheRunner() {
+    useLimitedStore(1);
+    RecordingRunner finished = new RecordingRunner();
+    submitRunning(finished);
+    finished.complete(RESULT);
+    RecordingRunner refused = new RecordingRunner();
+
+    assertThrows(
+        ResourceLimitExceededException.class,
+        () -> service.submit(refused, ALICE, WAIT, KEEP_ALIVE));
+
+    assertFalse(refused.wasRun());
+  }
+
+  @Test
+  void submit_retainedResultIsCountedOnceFinishedUntilDeleted() {
+    useLimitedStore(1);
+    RecordingRunner runner = new RecordingRunner();
+    QueryResult.Running running = submitRunning(runner);
+    assertTrue(admitsAnotherJob());
+
+    runner.complete(RESULT);
+    assertFalse(admitsAnotherJob());
+
+    service.delete(running.id(), ALICE);
+    assertTrue(admitsAnotherJob());
+  }
+
+  @Test
+  void submit_inlineResultIsNotCounted() {
+    useLimitedStore(1);
+    RecordingRunner runner = new RecordingRunner();
+    runner.complete(RESULT);
+
+    service.submit(runner, ALICE, WAIT, KEEP_ALIVE).toCompletableFuture().join();
+
+    assertTrue(admitsAnotherJob());
+  }
+
+  /** Registers and removes a fresh job; returns whether the store admitted it. */
+  private boolean admitsAnotherJob() {
+    QueryJob probe =
+        new QueryJob(QueryJobId.create("node-a"), ALICE, new RecordingRunner(), Clock.systemUTC());
+    try {
+      store.register(probe);
+    } catch (ResourceLimitExceededException e) {
+      return false;
+    }
+    store.remove(probe.id(), probe);
+    return true;
+  }
+
+  private void useLimitedStore(int maxRetainedResults) {
+    store = new InMemoryQueryJobStore(() -> maxRetainedResults);
+    retentionPolicy = new RetentionPolicy(store, threadPool);
+    service = newService(retentionPolicy);
   }
 
   private QueryResult.Running submitRunning(RecordingRunner runner) {
