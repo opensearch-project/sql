@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -160,11 +161,39 @@ class AsyncQueryExecutorServiceRoutingTest {
                 OptionalLong.empty(),
                 Optional.empty(),
                 Optional.empty(),
-                new QueryProgress(0.4D)));
+                new QueryProgress(0.4D),
+                Optional.empty()));
     assertEquals(0.4D, fetch().getProgress().fractionDone());
 
     stubSnapshot(QueryJobState.FAILED, Optional.empty(), Optional.empty());
     assertEquals(0D, fetch().getProgress().fractionDone());
+  }
+
+  @Test
+  void runningSnapshotCarriesRowsSoFar() {
+    Schema schema = new Schema(List.of(new Schema.Column("count", null, INTEGER)));
+    QueryResult.Rows current =
+        new QueryResult.Rows(schema, List.of(tupleValue(Map.of("count", 3))), null, null, 0);
+    when(securityAdapter.current()).thenReturn(ALICE);
+    when(jobService.get(JOB_ID, ALICE))
+        .thenReturn(
+            new QueryJobStatus(
+                JOB_ID,
+                QueryJobState.RUNNING,
+                0,
+                OptionalLong.of(1),
+                OptionalLong.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                new QueryProgress(0.4D),
+                Optional.of(current)));
+
+    AsyncQueryExecutionResponse response = fetch();
+
+    assertEquals("RUNNING", response.getStatus());
+    assertSame(schema, response.getSchema());
+    assertEquals(current.rows(), response.getResults());
+    assertTrue(response.isQueryJob());
   }
 
   @Test
@@ -213,7 +242,7 @@ class AsyncQueryExecutorServiceRoutingTest {
   void runningMarkerIsNotRenderedAsFinalRows() {
     stubSnapshot(
         QueryJobState.SUCCEEDED,
-        Optional.of(new QueryResult.Running(JOB_ID, QueryProgress.NONE)),
+        Optional.of(new QueryResult.Running(JOB_ID, QueryProgress.NONE, Optional.empty())),
         Optional.empty());
 
     AsyncQueryExecutionResponse response = fetch();
@@ -400,7 +429,8 @@ class AsyncQueryExecutorServiceRoutingTest {
         state.isTerminal() ? OptionalLong.of(2) : OptionalLong.empty(),
         failure,
         result,
-        state == QueryJobState.SUCCEEDED ? QueryProgress.DONE : QueryProgress.NONE);
+        state == QueryJobState.SUCCEEDED ? QueryProgress.DONE : QueryProgress.NONE,
+        Optional.empty());
   }
 
   private void assertEmptyResults(AsyncQueryExecutionResponse response) {

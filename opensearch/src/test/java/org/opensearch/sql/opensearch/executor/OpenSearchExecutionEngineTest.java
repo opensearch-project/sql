@@ -9,6 +9,7 @@ import static com.google.common.collect.ImmutableMap.of;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -54,6 +55,7 @@ import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
+import org.opensearch.sql.opensearch.executor.progress.QueryProgressTracker;
 import org.opensearch.sql.opensearch.executor.protector.OpenSearchExecutionProtector;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
@@ -62,6 +64,7 @@ import org.opensearch.sql.planner.SerializablePlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.TableScanOperator;
 import org.opensearch.sql.storage.split.Split;
+import org.opensearch.tasks.CancellableTask;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -338,6 +341,43 @@ class OpenSearchExecutionEngineTest {
 
     assertEquals(rowCount, response.getResults().size());
     assertEquals(columnCount, response.getSchema().getColumns().size());
+  }
+
+  @Test
+  void build_result_set_discards_partial_rows_when_the_result_set_fails() throws SQLException {
+    ResultSetMetaData metaData = mock(ResultSetMetaData.class);
+    when(metaData.getColumnCount()).thenReturn(1);
+    when(metaData.getColumnName(1)).thenReturn("c");
+    ResultSet resultSet = mock(ResultSet.class);
+    when(resultSet.getMetaData()).thenReturn(metaData);
+    AtomicReference<Integer> consumed = new AtomicReference<>(0);
+    when(resultSet.next())
+        .thenAnswer(
+            invocation -> {
+              if (consumed.get() == 3) {
+                throw new SQLException("scan failed");
+              }
+              consumed.set(consumed.get() + 1);
+              return true;
+            });
+    when(resultSet.getObject(anyString())).thenReturn("v");
+    RelDataTypeFactory typeFactory = new JavaTypeFactoryImpl();
+    RelDataType rowType =
+        typeFactory.builder().add("c", typeFactory.createSqlType(SqlTypeName.VARCHAR)).build();
+
+    CancellableTask task = mock(CancellableTask.class);
+    QueryProgressTracker tracker = QueryProgressTracker.attach(task);
+    OpenSearchQueryManager.setCancellableTask(task);
+    try {
+      OpenSearchExecutionEngine engine =
+          new OpenSearchExecutionEngine(client, protector, new PlanSerializer(null));
+      assertThrows(SQLException.class, () -> engine.buildResultSet(resultSet, rowType, null));
+    } finally {
+      OpenSearchQueryManager.clearCancellableTask();
+    }
+
+    assertEquals(3, consumed.get());
+    assertTrue(tracker.partialRows().snapshot().isEmpty());
   }
 
   @Test
