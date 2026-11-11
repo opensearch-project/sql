@@ -29,6 +29,8 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -411,24 +413,68 @@ public class OpenSearchExprValueFactory {
    */
   private ExprValue parseStruct(Content content, String prefix, boolean supportArrays) {
     ExprTupleValue result = ExprTupleValue.empty();
+    Iterator<Map.Entry<String, Content>> fields = content.map();
+    while (fields.hasNext()) {
+      Map.Entry<String, Content> entry = fields.next();
+      String fieldKey = entry.getKey();
+      String fullFieldPath = makeField(prefix, fieldKey);
+      // Check for malformed field names before creating JsonPath.
+      // See isFieldNameMalformed() for details on what constitutes a malformed field name.
+      if (isFieldNameMalformed(fieldKey)) {
+        result.tupleValue().put(fieldKey, ExprNullValue.of());
+      } else if (!populateValueRecursive(
+          result,
+          new JsonPath(fieldKey),
+          parse(entry.getValue(), fullFieldPath, type(fullFieldPath), supportArrays))) {
+        return parseStructWithPathConflict(content, prefix, supportArrays);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Parse struct content in which a dotted field name collides with another field on its path, such
+   * as {@code peer.name} next to {@code "peer": "svc-a"}. Objects with dynamic mapping disabled or
+   * enabled: false accept such documents.
+   *
+   * <p>The dotted field name keeps its literal name, as a malformed one does. All fields are parsed
+   * before any is placed, so a sibling like {@code peer} keeps its own name whatever the key order.
+   */
+  private ExprValue parseStructWithPathConflict(
+      Content content, String prefix, boolean supportArrays) {
+    Map<String, ExprValue> fields = new LinkedHashMap<>();
     content
         .map()
         .forEachRemaining(
             entry -> {
               String fieldKey = entry.getKey();
               String fullFieldPath = makeField(prefix, fieldKey);
-              // Check for malformed field names before creating JsonPath.
-              // See isFieldNameMalformed() for details on what constitutes a malformed field name.
-              if (isFieldNameMalformed(fieldKey)) {
-                result.tupleValue().put(fieldKey, ExprNullValue.of());
-              } else {
-                populateValueRecursive(
-                    result,
-                    new JsonPath(fieldKey),
-                    parse(entry.getValue(), fullFieldPath, type(fullFieldPath), supportArrays));
-              }
+              fields.put(
+                  fieldKey,
+                  isFieldNameMalformed(fieldKey)
+                      ? ExprNullValue.of()
+                      : parse(entry.getValue(), fullFieldPath, type(fullFieldPath), supportArrays));
             });
+    ExprTupleValue result = ExprTupleValue.empty();
+    fields.forEach(
+        (fieldKey, value) -> {
+          if (isFieldNameMalformed(fieldKey)
+              || isUnderNonObjectSibling(fieldKey, fields)
+              || !populateValueRecursive(result, new JsonPath(fieldKey), value)) {
+            result.tupleValue().put(fieldKey, value);
+          }
+        });
     return result;
+  }
+
+  /** Check if a dotted field name starts with a sibling field that holds a non-object value. */
+  private static boolean isUnderNonObjectSibling(String fieldKey, Map<String, ExprValue> fields) {
+    int dot = fieldKey.indexOf('.');
+    if (dot < 0) {
+      return false;
+    }
+    ExprValue sibling = fields.get(fieldKey.substring(0, dot));
+    return sibling != null && !(sibling instanceof ExprTupleValue);
   }
 
   /**
@@ -473,19 +519,31 @@ public class OpenSearchExprValueFactory {
    * children recursively until the leaf node.
    *
    * <p>If there is existing vale for the JsonPath, we need to merge the new value to the old.
+   *
+   * @return false, leaving result unchanged, if a value already on the path is not an object where
+   *     an object is needed, or the other way round
    */
-  static void populateValueRecursive(ExprTupleValue result, JsonPath path, ExprValue value) {
+  static boolean populateValueRecursive(ExprTupleValue result, JsonPath path, ExprValue value) {
+    Map<String, ExprValue> fields = result.tupleValue();
+    ExprValue existing = fields.get(path.getRootPath());
     if (path.getPaths().size() == 1) {
-      // Update the current ExprValue by using mergeTo if exists
-      result
-          .tupleValue()
-          .computeIfPresent(path.getRootPath(), (key, oldValue) -> value.mergeTo(oldValue));
-      result.tupleValue().putIfAbsent(path.getRootPath(), value);
-    } else {
-      result.tupleValue().putIfAbsent(path.getRootPath(), ExprTupleValue.empty());
-      populateValueRecursive(
-          (ExprTupleValue) result.tupleValue().get(path.getRootPath()), path.getChildPath(), value);
+      if (existing == null) {
+        fields.put(path.getRootPath(), value);
+      } else if ((existing instanceof ExprTupleValue) == (value instanceof ExprTupleValue)) {
+        // Update the current ExprValue by using mergeTo if exists
+        fields.put(path.getRootPath(), value.mergeTo(existing));
+      } else {
+        return false;
+      }
+      return true;
     }
+    if (existing == null) {
+      existing = ExprTupleValue.empty();
+      fields.put(path.getRootPath(), existing);
+    } else if (!(existing instanceof ExprTupleValue)) {
+      return false;
+    }
+    return populateValueRecursive((ExprTupleValue) existing, path.getChildPath(), value);
   }
 
   @Getter

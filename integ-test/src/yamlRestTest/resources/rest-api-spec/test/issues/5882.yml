@@ -1,0 +1,125 @@
+# Issue: https://github.com/opensearch-project/sql/issues/5882
+# An object field with dynamic: false or enabled: false accepts a document holding both a leaf key and
+# a dotted sub-key of it, such as "peer" and "peer.name". Parsing such a document used to fail the query,
+# drop the row, or null the whole object. The dotted key is now returned under its literal name.
+
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: true
+  - do:
+      indices.create:
+        index: dotted_dynamic_false_5882
+        body:
+          mappings:
+            properties:
+              id: { type: keyword }
+              attributes: { type: object, dynamic: false }
+  - do:
+      indices.create:
+        index: dotted_disabled_5882
+        body:
+          mappings:
+            properties:
+              id: { type: keyword }
+              attributes: { type: object, enabled: false }
+  - do:
+      indices.create:
+        index: dotted_root_5882
+        body:
+          mappings:
+            dynamic: false
+            properties:
+              id: { type: keyword }
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "dotted_dynamic_false_5882", "_id": "1"}}'
+          - '{"id": "1", "attributes": {"peer": "svc-a", "peer.name": "svc-a-name"}}'
+          - '{"index": {"_index": "dotted_dynamic_false_5882", "_id": "2"}}'
+          - '{"id": "2", "attributes": {"method": "GET"}}'
+          - '{"index": {"_index": "dotted_dynamic_false_5882", "_id": "3"}}'
+          - '{"id": "3", "attributes": {"peer.name": "svc-a-name", "peer": "svc-a"}}'
+          - '{"index": {"_index": "dotted_disabled_5882", "_id": "1"}}'
+          - '{"id": "1", "attributes": {"peer": "svc-a", "peer.name": "svc-a-name"}}'
+          - '{"index": {"_index": "dotted_disabled_5882", "_id": "2"}}'
+          - '{"id": "2", "attributes": {"peer.name": "svc-a-name", "peer": "svc-a"}}'
+          - '{"index": {"_index": "dotted_root_5882", "_id": "1"}}'
+          - '{"id": "1", "peer": "svc-a", "peer.name": "svc-a-name"}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled: false
+            plugins.calcite.pushdown.enabled: null
+  - do:
+      indices.delete:
+        index: dotted_dynamic_false_5882,dotted_disabled_5882,dotted_root_5882
+        ignore: 404
+
+---
+"Leaf and dotted sub-key under an object with dynamic false":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=dotted_dynamic_false_5882 | sort id | fields id, attributes"
+  - match: {"total": 3}
+  - match: {"datarows": [["1", {"peer": "svc-a", "peer.name": "svc-a-name"}], ["2", {"method": "GET"}], ["3", {"peer": "svc-a", "peer.name": "svc-a-name"}]]}
+
+---
+"Leaf and dotted sub-key under an object with enabled false":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=dotted_disabled_5882 | sort id | fields id, attributes"
+  - match: {"total": 2}
+  - match: {"datarows": [["1", {"peer": "svc-a", "peer.name": "svc-a-name"}], ["2", {"peer": "svc-a", "peer.name": "svc-a-name"}]]}
+
+---
+"Leaf and dotted sub-key in source order with pushdown disabled":
+  - skip:
+      features:
+        - headers
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.pushdown.enabled: false
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=dotted_dynamic_false_5882 | sort id | fields id, attributes"
+  - match: {"total": 3}
+  - match: {"datarows": [["1", {"peer": "svc-a", "peer.name": "svc-a-name"}], ["2", {"method": "GET"}], ["3", {"peer": "svc-a", "peer.name": "svc-a-name"}]]}
+
+---
+"Leaf and dotted sub-key at the document root keep the row":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=dotted_root_5882 | fields id"
+  - match: {"total": 1}
+  - match: {"datarows": [["1"]]}

@@ -1156,6 +1156,97 @@ class OpenSearchExprValueFactoryTest {
     assertEquals(stringValue("value"), structValue.get("good"));
   }
 
+  // ==================== Dotted Field Name Conflict Tests ====================
+
+  @Test
+  public void constructStructWithLeafAndDottedSubKey_keepsDottedKeyLiteral() {
+    assertEquals(
+        orderedTuple("peer", "svc-a", "peer.name", "svc-a-name"),
+        tupleValue("{\"structV\":{\"peer\":\"svc-a\",\"peer.name\":\"svc-a-name\"}}")
+            .get("structV"));
+  }
+
+  @Test
+  public void constructStructWithDottedSubKeyBeforeLeaf_keepsDottedKeyLiteral() {
+    assertEquals(
+        orderedTuple("peer.name", "svc-a-name", "peer", "svc-a"),
+        tupleValue("{\"structV\":{\"peer.name\":\"svc-a-name\",\"peer\":\"svc-a\"}}")
+            .get("structV"));
+  }
+
+  @Test
+  public void constructStructWithUnmappedObjectAndDottedSubKey_keepsDottedKeyLiteral() {
+    // An unmapped object is parsed into its JSON text, so a.b cannot be expanded under it.
+    assertEquals(
+        orderedTuple("a", "{\"b\":1}", "a.b", "x"),
+        tupleValue("{\"structV\":{\"a\":{\"b\":1},\"a.b\":\"x\"}}").get("structV"));
+    assertEquals(
+        orderedTuple("a.b", "x", "a", "{\"b\":1}"),
+        tupleValue("{\"structV\":{\"a.b\":\"x\",\"a\":{\"b\":1}}}").get("structV"));
+  }
+
+  @Test
+  public void constructStructWithConflictingDottedKeys_keepsBothValues() {
+    assertEquals(
+        orderedTuple("a", Map.of("b", "x"), "a.b.c", "y"),
+        tupleValue("{\"structV\":{\"a.b\":\"x\",\"a.b.c\":\"y\"}}").get("structV"));
+    assertEquals(
+        orderedTuple("a", Map.of("b", Map.of("c", "y")), "a.b", "x"),
+        tupleValue("{\"structV\":{\"a.b.c\":\"y\",\"a.b\":\"x\"}}").get("structV"));
+  }
+
+  @Test
+  public void constructStructWithDottedKeyConflict_parsesOtherFieldsAsBefore() {
+    assertEquals(
+        orderedTuple("http", Map.of("method", "GET"), "peer.name", "n", ".", null, "peer", "svc-a"),
+        tupleValue(
+                "{\"structV\":{\"http.method\":\"GET\",\"peer.name\":\"n\",\".\":\"bad\","
+                    + "\"peer\":\"svc-a\"}}")
+            .get("structV"));
+  }
+
+  @Test
+  public void constructWithDottedKeyConflictAtRoot_keepsDocument() {
+    // A dotted key under a mapped object still merges into it.
+    Map<String, ExprValue> doc =
+        tupleValue(
+            "{\"structV.state\":\"WA\",\"peer.name\":\"svc-a-name\",\"structV\":{\"id\":1},"
+                + "\"peer\":\"svc-a\"}");
+    assertEquals(orderedTuple("id", 1, "state", "WA"), doc.get("structV"));
+    assertEquals(stringValue("svc-a-name"), doc.get("peer.name"));
+    assertEquals(stringValue("svc-a"), doc.get("peer"));
+  }
+
+  @Test
+  public void populateValueRecursive_conflictLeavesResultUnchanged() {
+    ExprTupleValue leafFirst = ExprTupleValue.empty();
+    assertTrue(
+        OpenSearchExprValueFactory.populateValueRecursive(
+            leafFirst, new JsonPath("peer"), stringValue("svc-a")));
+    assertFalse(
+        OpenSearchExprValueFactory.populateValueRecursive(
+            leafFirst, new JsonPath("peer.name"), stringValue("svc-a-name")));
+    assertEquals(orderedTuple("peer", "svc-a"), leafFirst);
+
+    ExprTupleValue dottedFirst = ExprTupleValue.empty();
+    assertTrue(
+        OpenSearchExprValueFactory.populateValueRecursive(
+            dottedFirst, new JsonPath("peer.name"), stringValue("svc-a-name")));
+    assertFalse(
+        OpenSearchExprValueFactory.populateValueRecursive(
+            dottedFirst, new JsonPath("peer"), stringValue("svc-a")));
+    assertEquals(orderedTuple("peer", Map.of("name", "svc-a-name")), dottedFirst);
+  }
+
+  /** A tuple with fields in the given order, which tuple equality compares. */
+  private static ExprValue orderedTuple(Object... keysAndValues) {
+    LinkedHashMap<String, Object> fields = new LinkedHashMap<>();
+    for (int i = 0; i < keysAndValues.length; i += 2) {
+      fields.put((String) keysAndValues[i], keysAndValues[i + 1]);
+    }
+    return ExprValueUtils.tupleValue(fields);
+  }
+
   @EqualsAndHashCode(callSuper = false)
   @ToString
   private static class TestType extends OpenSearchDataType {
