@@ -14,7 +14,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
 import org.opensearch.tasks.CancellableTask;
 
-/** Progress of one query: the mean of its index scans, each added at code generation. */
+/** Progress and rows so far of one async query. */
 public final class QueryProgressTracker {
 
   /**
@@ -25,6 +25,7 @@ public final class QueryProgressTracker {
       Collections.synchronizedMap(new WeakHashMap<>());
 
   private final List<SourceProgress> sources = new CopyOnWriteArrayList<>();
+  private final PartialRows partialRows = new PartialRows();
 
   /** Starts tracking the progress of the query run by {@code task}. */
   public static QueryProgressTracker attach(CancellableTask task) {
@@ -42,6 +43,10 @@ public final class QueryProgressTracker {
     SourceProgress source = new SourceProgress();
     sources.add(source);
     return source;
+  }
+
+  public PartialRows partialRows() {
+    return partialRows;
   }
 
   public double fractionDone() {

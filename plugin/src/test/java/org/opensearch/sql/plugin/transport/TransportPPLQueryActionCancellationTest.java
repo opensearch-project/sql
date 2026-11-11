@@ -69,6 +69,9 @@ public class TransportPPLQueryActionCancellationTest {
     ThreadPool pool = mock(ThreadPool.class);
     when(client.threadPool()).thenReturn(pool);
     when(pool.getThreadContext()).thenReturn(threadContext);
+    when(pool.generic())
+        .thenReturn(
+            org.opensearch.common.util.concurrent.OpenSearchExecutors.newDirectExecutorService());
     submitAsync =
         TransportPPLQueryAction.class.getDeclaredMethod(
             "submitAsync",
@@ -101,7 +104,8 @@ public class TransportPPLQueryActionCancellationTest {
             CompletableFuture.completedFuture(
                 new QueryResult.Running(
                     new QueryJobId("owner-node", "query-context"),
-                    org.opensearch.sql.job.QueryProgress.NONE)));
+                    org.opensearch.sql.job.QueryProgress.NONE,
+                    java.util.Optional.empty())));
 
     submit(foreignTask);
 
@@ -133,7 +137,8 @@ public class TransportPPLQueryActionCancellationTest {
             CompletableFuture.completedFuture(
                 new QueryResult.Running(
                     new QueryJobId("owner-node", "query-context"),
-                    org.opensearch.sql.job.QueryProgress.NONE)));
+                    org.opensearch.sql.job.QueryProgress.NONE,
+                    java.util.Optional.empty())));
 
     submit(task);
 
