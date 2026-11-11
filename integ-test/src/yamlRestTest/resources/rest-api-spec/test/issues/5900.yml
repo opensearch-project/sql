@@ -1,0 +1,208 @@
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+            plugins.calcite.pushdown.enabled : true
+  # min and max on a text field without a keyword subfield push a top_hits of size 1.
+  # Before the fix it had no sort, so both returned the first document's value. The
+  # values mix digits and case, so string order puts "10" first and "c" last.
+  - do:
+      indices.create:
+        index: text_minmax_5900
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              name:
+                type: text
+              kw:
+                type: keyword
+              category:
+                type: keyword
+  - do:
+      bulk:
+        index: text_minmax_5900
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"category": "a", "name": "b", "kw": "b"}'
+          - '{"index": {}}'
+          - '{"category": "a", "name": "9", "kw": "9"}'
+          - '{"index": {}}'
+          - '{"category": "a", "name": "c", "kw": "c"}'
+          - '{"index": {}}'
+          - '{"category": "b", "name": "10", "kw": "10"}'
+          - '{"index": {}}'
+          - '{"category": "b", "name": "C", "kw": "C"}'
+          - '{"index": {}}'
+          - '{"category": "b", "name": "a", "kw": "a"}'
+          - '{"index": {}}'
+          - '{"category": "b"}'
+          - '{"index": {}}'
+          - '{"category": "c"}'
+  # each shard returns its own top hit, so the sort has to hold when the hits are reduced
+  - do:
+      indices.create:
+        index: text_minmax_5900_shards
+        body:
+          settings:
+            number_of_shards: 3
+            number_of_replicas: 0
+          mappings:
+            properties:
+              name:
+                type: text
+  - do:
+      bulk:
+        index: text_minmax_5900_shards
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"name": "e"}'
+          - '{"index": {}}'
+          - '{"name": "d"}'
+          - '{"index": {}}'
+          - '{"name": "h"}'
+          - '{"index": {}}'
+          - '{"name": "b"}'
+          - '{"index": {}}'
+          - '{"name": "a"}'
+          - '{"index": {}}'
+          - '{"name": "g"}'
+          - '{"index": {}}'
+          - '{"name": "c"}'
+          - '{"index": {}}'
+          - '{"name": "f"}'
+  # text against keyword merges to text without a subfield across a wildcard
+  - do:
+      indices.create:
+        index: text_minmax_5900_merge_text
+        body:
+          mappings:
+            properties:
+              name:
+                type: text
+  - do:
+      indices.create:
+        index: text_minmax_5900_merge_kw
+        body:
+          mappings:
+            properties:
+              name:
+                type: keyword
+  - do:
+      bulk:
+        refresh: true
+        body:
+          - '{"index": {"_index": "text_minmax_5900_merge_kw"}}'
+          - '{"name": "b"}'
+          - '{"index": {"_index": "text_minmax_5900_merge_text"}}'
+          - '{"name": "c"}'
+          - '{"index": {"_index": "text_minmax_5900_merge_text"}}'
+          - '{"name": "a"}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+            plugins.calcite.pushdown.enabled : null
+  - do:
+      indices.delete:
+        index: text_minmax_5900,text_minmax_5900_shards,text_minmax_5900_merge_text,text_minmax_5900_merge_kw
+        ignore_unavailable: true
+
+---
+"max and min on a text field follow string order":
+  # Two documents lack name. A missing value sorts last in both orders, so min is not null.
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=text_minmax_5900 | stats max(name), min(name)"
+  - match: {"total": 1}
+  - match: {"datarows": [["c", "10"]]}
+
+---
+"max and min on a keyword field with the same values match the text field":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=text_minmax_5900 | stats max(kw), min(kw)"
+  - match: {"total": 1}
+  - match: {"datarows": [["c", "10"]]}
+
+---
+"max and min on a text field grouped by another field return each group's values":
+  # Group c has no name at all, so both values are null.
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=text_minmax_5900 | stats max(name), min(name) by category"
+  - match: {"total": 3}
+  - match: {"datarows": [["c", "9", "a"], ["a", "10", "b"], [null, null, "c"]]}
+
+---
+"max and min on a text field spread over three shards":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=text_minmax_5900_shards | stats max(name), min(name)"
+  - match: {"total": 1}
+  - match: {"datarows": [["h", "a"]]}
+
+---
+"max and min on a field merged from text and keyword across indices":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=text_minmax_5900_merge_* | stats max(name), min(name)"
+  - match: {"total": 1}
+  - match: {"datarows": [["c", "a"]]}
+
+---
+"max and min on a text field push down a top_hits sorted by a script":
+  # the cases above return the same rows when the aggregation runs in memory, so this
+  # pins that it pushes down, with a missing value sorting last in both orders
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl.explain:
+        body:
+          query: "source=text_minmax_5900 | stats max(name), min(name)"
+  - match: { "calcite.physical": "/AGGREGATION/" }
+  - match: { "calcite.physical": "/\"MISSING_MAX\":false[^}]*\\}\\},\"type\":\"string\",\"order\":\"desc\"/" }
+  - match: { "calcite.physical": "/\"MISSING_MAX\":true[^}]*\\}\\},\"type\":\"string\",\"order\":\"asc\"/" }
