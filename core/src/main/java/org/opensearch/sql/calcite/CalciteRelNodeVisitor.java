@@ -198,6 +198,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.executor.TimeBounds;
 import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
@@ -280,6 +281,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     if (scan instanceof AliasFieldsWrappable) {
       ((AliasFieldsWrappable) scan).wrapProjectForAliasFields(context.relBuilder);
+    }
+
+    // Name the relation as the query did, not by the time bounds encoded into its table name.
+    List<String> parts = node.getTableQualifiedName().getParts();
+    TimeBounds.Decoded decoded = TimeBounds.decode(parts.get(parts.size() - 1));
+    if (decoded.bounds() != null) {
+      context.relBuilder.as(decoded.tableName());
     }
 
     return context.relBuilder.peek();
