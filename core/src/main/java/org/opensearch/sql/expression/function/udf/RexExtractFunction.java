@@ -67,7 +67,7 @@ public final class RexExtractFunction extends ImplementorUDF {
    * @param groupIndex The 1-based group index to extract
    * @return The extracted value or null if not found or invalid
    */
-  public static String extractGroup(String text, String pattern, int groupIndex) {
+  public static String extractGroup(String text, String pattern, long groupIndex) {
     if (text == null || pattern == null) {
       return null;
     }
@@ -77,7 +77,7 @@ public final class RexExtractFunction extends ImplementorUDF {
         pattern,
         matcher -> {
           if (groupIndex > 0 && groupIndex <= matcher.groupCount()) {
-            return matcher.group(groupIndex);
+            return matcher.group((int) groupIndex);
           }
           return null;
         });
