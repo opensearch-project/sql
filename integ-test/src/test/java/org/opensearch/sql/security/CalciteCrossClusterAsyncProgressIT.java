@@ -11,6 +11,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Test;
@@ -44,6 +45,44 @@ public class CalciteCrossClusterAsyncProgressIT extends CrossClusterTestBase {
     Assert.assertTrue(
         "a 1,000-page remote scan must report progress before it finishes: " + running,
         running.stream().anyMatch(value -> value > 0D));
+  }
+
+  @Test
+  public void remoteScanReturnsRowsBeforeCompletion() throws Exception {
+    String query = "source=" + REMOTE_FIXTURE + " | fields n";
+    JSONObject submit =
+        post(new JSONObject().put("query", query).put("wait_for_completion_timeout", "0"));
+    String id = submit.getString("id");
+    List<JSONObject> running = new ArrayList<>();
+    JSONObject terminal = null;
+    long deadline = System.currentTimeMillis() + TIMEOUT_MILLIS;
+    while (terminal == null && System.currentTimeMillis() < deadline) {
+      JSONObject response =
+          new JSONObject(
+              getResponseBody(
+                  client().performRequest(new Request("GET", "/_plugins/_async_query/" + id)),
+                  true));
+      if ("RUNNING".equals(response.getString("status"))) {
+        running.add(response);
+        Thread.sleep(20);
+      } else {
+        terminal = response;
+      }
+    }
+
+    Assert.assertNotNull("async job did not finish", terminal);
+    Assert.assertEquals("SUCCEEDED", terminal.getString("status"));
+    assertSameRows(query, terminal);
+    JSONArray finalRows = terminal.getJSONArray("datarows");
+    boolean sawRows = false;
+    for (JSONObject response : running) {
+      JSONArray partial = response.getJSONArray("datarows");
+      sawRows |= partial.length() > 0;
+      for (int i = 0; i < partial.length(); i++) {
+        Assert.assertTrue(finalRows.getJSONArray(i).similar(partial.getJSONArray(i)));
+      }
+    }
+    Assert.assertTrue("a 1,000-page remote scan must return rows before it finishes", sawRows);
   }
 
   @Test

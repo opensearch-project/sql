@@ -364,9 +364,7 @@ public class AsyncPPLQueryLifecycleIT extends PPLIntegTestCase {
     JSONObject fetched = pollUntilTerminal(client(), queryId, 30_000);
 
     Assert.assertEquals("SUCCEEDED", fetched.getString("status"));
-    // Async GET formatter emits raw engine type ("long"), not the JDBC family ("bigint") emitted
-    // by the sync formatter above.
-    verifySchema(fetched, schema("c", "long"));
+    verifySchema(fetched, schema("c", "bigint"));
     verifyDataRows(fetched, rows(1000));
     verifyNumOfRows(fetched, 1);
   }
