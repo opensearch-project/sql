@@ -198,6 +198,50 @@ class SearchLiteralTest {
   }
 
   // -------------------------------------------------------------------------
+  // UNFIELDED (free text): no index type, so honor the user's quoting as on text.
+  // -------------------------------------------------------------------------
+
+  /**
+   * A quoted free-text value the analyzer splits must not become an OR of tokens. These values hold
+   * no whitespace, so the legacy space check emitted them unquoted.
+   */
+  @Test
+  void unfielded_quoted_value_the_analyzer_splits_emits_phrase() {
+    assertEquals("\"foo\\-bar\"", q("foo-bar").toQueryString());
+    assertEquals("\"foo=bar\"", q("foo=bar").toQueryString());
+    assertEquals("\"user@example.com\"", q("user@example.com").toQueryString());
+  }
+
+  @Test
+  void unfielded_quoted_with_whitespace_emits_phrase() {
+    assertEquals("\"foo bar\"", q("foo bar").toQueryString());
+    assertEquals("\"foo bar*\"", q("foo bar*").toQueryString());
+  }
+
+  @Test
+  void unfielded_quoted_wildcard_term_stays_unquoted() {
+    assertEquals("foo*", q("foo*").toQueryString());
+    assertEquals("log_?", q("log_?").toQueryString());
+  }
+
+  @Test
+  void unfielded_quoted_escaped_wildcard_emits_phrase() {
+    assertEquals("\"foo\\*\"", q("foo\\*").toQueryString());
+  }
+
+  @Test
+  void unfielded_unquoted_keeps_bare_term() {
+    assertEquals("foo", bare("foo").toQueryString());
+    assertEquals("foo\\-bar", bare("foo-bar").toQueryString());
+    assertEquals("foo*", bare("foo*").toQueryString());
+  }
+
+  @Test
+  void unfielded_non_string_literals_are_unchanged() {
+    assertEquals("42", new SearchLiteral(new Literal(42, DataType.INTEGER), false).toQueryString());
+  }
+
+  // -------------------------------------------------------------------------
   // End-to-end via SearchComparison + resolver — the actual planner call path.
   // -------------------------------------------------------------------------
 
