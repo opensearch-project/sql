@@ -300,4 +300,40 @@ public class CalcitePPLFunctionTypeTest extends CalcitePPLAbstractTest {
         "source=EMP | eval result = mvjoin(42, ',') | fields result | head 1",
         "MVJOIN function expects {[ARRAY,STRING]|[ARRAY,STRING,STRING]}, but got [INTEGER,STRING]");
   }
+
+  // mvjoin (and nomv, which rewrites to mvjoin) should reject arrays whose known element type is
+  // not a string, during analysis instead of failing at run time.
+  @Test
+  public void testMvjoinRejectsNonStringArrayElements() {
+    final String expectedMessage = "only supports string arrays";
+    // SHORT elements
+    verifyQueryThrowsException(
+        "source=EMP | eval result = mvjoin(array(EMPNO), ',') | fields result | head 1",
+        expectedMessage);
+    // DECIMAL elements
+    verifyQueryThrowsException(
+        "source=EMP | eval result = mvjoin(array(SAL), ',') | fields result | head 1",
+        expectedMessage);
+    // BOOLEAN elements
+    verifyQueryThrowsException(
+        "source=EMP | eval result = mvjoin(array(EMPNO > 1), ',') | fields result | head 1",
+        expectedMessage);
+    // nomv rewrites to mvjoin
+    verifyQueryThrowsException(
+        "source=EMP | eval arr = array(EMPNO) | nomv arr | fields arr | head 1", expectedMessage);
+  }
+
+  @Test
+  public void testMvjoinAcceptsStringLikeArrayElements() {
+    // VARCHAR elements
+    assertNotNull(
+        getRelNode("source=EMP | eval result = mvjoin(array(ENAME), ',') | fields result"));
+    // Mixed VARCHAR and numeric elements widen to VARCHAR
+    assertNotNull(
+        getRelNode("source=EMP | eval result = mvjoin(array(ENAME, EMPNO), ',') | fields result"));
+    // Empty array defaults to VARCHAR elements
+    assertNotNull(getRelNode("source=EMP | eval result = mvjoin(array(), ',') | fields result"));
+    // HIREDATE is intentionally not covered here: in this test schema it is a plain Calcite DATE,
+    // not a VARCHAR-backed UDT, so array(HIREDATE) is covered by the integration and YAML tests.
+  }
 }
