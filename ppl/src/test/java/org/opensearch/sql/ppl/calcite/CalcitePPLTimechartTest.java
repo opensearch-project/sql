@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 
@@ -283,11 +284,134 @@ public class CalcitePPLTimechartTest extends CalcitePPLAbstractTest {
             + "GROUP BY `host`, SPAN(`@timestamp`, 1, 'h')) `t6`\n"
             + "WHERE `host` IS NOT NULL\n"
             + "GROUP BY `host`) `t9` ON `t2`.`host` = `t9`.`host`\n"
-            + "WHERE `t9`.`_row_number_chart_` <= 3\n"
+            + "WHERE `t2`.`host` IS NULL OR `t9`.`_row_number_chart_` <= 3\n"
             + "GROUP BY `t2`.`@timestamp`, CASE WHEN `t2`.`host` IS NULL THEN 'NULL' WHEN"
             + " `t9`.`_row_number_chart_` <= 3 THEN `t2`.`host` ELSE 'OTHER' END\n"
             + "ORDER BY `t2`.`@timestamp` NULLS LAST, 2 NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testTimechartWithUseNullFalse() {
+    String ppl = "source=events | timechart span=1h usenull=false count() by host";
+    RelNode root = getRelNode(ppl);
+    String expectedSparkSql =
+        "SELECT `t2`.`@timestamp`, CASE WHEN `t9`.`_row_number_chart_` <= 10 THEN"
+            + " `t2`.`host` ELSE 'OTHER' END `host`, SUM(`t2`.`count()`) `count()`\n"
+            + "FROM (SELECT SPAN(`@timestamp`, 1, 'h') `@timestamp`, `host`, COUNT(*)"
+            + " `count()`\n"
+            + "FROM `scott`.`events`\n"
+            + "WHERE `@timestamp` IS NOT NULL AND `host` IS NOT NULL\n"
+            + "GROUP BY `host`, SPAN(`@timestamp`, 1, 'h')) `t2`\n"
+            + "LEFT JOIN (SELECT `host`, SUM(`count()`) `__grand_total__`, ROW_NUMBER() OVER"
+            + " (ORDER BY SUM(`count()`) DESC) `_row_number_chart_`\n"
+            + "FROM (SELECT `host`, COUNT(*) `count()`\n"
+            + "FROM `scott`.`events`\n"
+            + "WHERE `@timestamp` IS NOT NULL AND `host` IS NOT NULL\n"
+            + "GROUP BY `host`, SPAN(`@timestamp`, 1, 'h')) `t6`\n"
+            + "WHERE `host` IS NOT NULL\n"
+            + "GROUP BY `host`) `t9` ON `t2`.`host` = `t9`.`host`\n"
+            + "GROUP BY `t2`.`@timestamp`, CASE WHEN `t9`.`_row_number_chart_` <= 10 THEN"
+            + " `t2`.`host` ELSE 'OTHER' END\n"
+            + "ORDER BY `t2`.`@timestamp` NULLS LAST, 2 NULLS LAST";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testTimechartWithNullStr() {
+    String ppl = "source=events | timechart span=1h nullstr='unknown' count() by host";
+    RelNode root = getRelNode(ppl);
+    String expectedSparkSql =
+        "SELECT `t2`.`@timestamp`, CASE WHEN `t2`.`host` IS NULL THEN 'unknown' WHEN"
+            + " `t9`.`_row_number_chart_` <= 10 THEN `t2`.`host` ELSE 'OTHER' END `host`,"
+            + " SUM(`t2`.`count()`) `count()`\n"
+            + "FROM (SELECT SPAN(`@timestamp`, 1, 'h') `@timestamp`, `host`, COUNT(*)"
+            + " `count()`\n"
+            + "FROM `scott`.`events`\n"
+            + "WHERE `@timestamp` IS NOT NULL\n"
+            + "GROUP BY `host`, SPAN(`@timestamp`, 1, 'h')) `t2`\n"
+            + "LEFT JOIN (SELECT `host`, SUM(`count()`) `__grand_total__`, ROW_NUMBER() OVER"
+            + " (ORDER BY SUM(`count()`) DESC) `_row_number_chart_`\n"
+            + "FROM (SELECT `host`, COUNT(*) `count()`\n"
+            + "FROM `scott`.`events`\n"
+            + "WHERE `@timestamp` IS NOT NULL\n"
+            + "GROUP BY `host`, SPAN(`@timestamp`, 1, 'h')) `t6`\n"
+            + "WHERE `host` IS NOT NULL\n"
+            + "GROUP BY `host`) `t9` ON `t2`.`host` = `t9`.`host`\n"
+            + "GROUP BY `t2`.`@timestamp`, CASE WHEN `t2`.`host` IS NULL THEN 'unknown' WHEN"
+            + " `t9`.`_row_number_chart_` <= 10 THEN `t2`.`host` ELSE 'OTHER' END\n"
+            + "ORDER BY `t2`.`@timestamp` NULLS LAST, 2 NULLS LAST";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testTimechartWithLimitZeroAndNullStr() {
+    String ppl = "source=events | timechart span=1h limit=0 nullstr='unknown' count() by host";
+    RelNode root = getRelNode(ppl);
+    String expectedSparkSql =
+        "SELECT SPAN(`@timestamp`, 1, 'h') `@timestamp`, CASE WHEN `host` IS NULL THEN"
+            + " 'unknown' ELSE `host` END `host`, COUNT(*) `count()`\n"
+            + "FROM `scott`.`events`\n"
+            + "WHERE `@timestamp` IS NOT NULL\n"
+            + "GROUP BY `host`, SPAN(`@timestamp`, 1, 'h')\n"
+            + "ORDER BY 1 NULLS LAST";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testTimechartWithUseOtherFalseKeepsNullStr() {
+    String ppl =
+        "source=events | timechart span=1h limit=1 useother=false nullstr='unknown' count() by"
+            + " host";
+    RelNode root = getRelNode(ppl);
+    String expectedSparkSql =
+        "SELECT `t2`.`@timestamp`, CASE WHEN `t2`.`host` IS NULL THEN 'unknown' WHEN"
+            + " `t9`.`_row_number_chart_` <= 1 THEN `t2`.`host` ELSE 'OTHER' END `host`,"
+            + " SUM(`t2`.`count()`) `count()`\n"
+            + "FROM (SELECT SPAN(`@timestamp`, 1, 'h') `@timestamp`, `host`, COUNT(*)"
+            + " `count()`\n"
+            + "FROM `scott`.`events`\n"
+            + "WHERE `@timestamp` IS NOT NULL\n"
+            + "GROUP BY `host`, SPAN(`@timestamp`, 1, 'h')) `t2`\n"
+            + "LEFT JOIN (SELECT `host`, SUM(`count()`) `__grand_total__`, ROW_NUMBER() OVER"
+            + " (ORDER BY SUM(`count()`) DESC) `_row_number_chart_`\n"
+            + "FROM (SELECT `host`, COUNT(*) `count()`\n"
+            + "FROM `scott`.`events`\n"
+            + "WHERE `@timestamp` IS NOT NULL\n"
+            + "GROUP BY `host`, SPAN(`@timestamp`, 1, 'h')) `t6`\n"
+            + "WHERE `host` IS NOT NULL\n"
+            + "GROUP BY `host`) `t9` ON `t2`.`host` = `t9`.`host`\n"
+            + "WHERE `t2`.`host` IS NULL OR `t9`.`_row_number_chart_` <= 1\n"
+            + "GROUP BY `t2`.`@timestamp`, CASE WHEN `t2`.`host` IS NULL THEN 'unknown' WHEN"
+            + " `t9`.`_row_number_chart_` <= 1 THEN `t2`.`host` ELSE 'OTHER' END\n"
+            + "ORDER BY `t2`.`@timestamp` NULLS LAST, 2 NULLS LAST";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testTimechartWithUseNullFalseShortForm() {
+    assertEquals(
+        getRelNode("source=events | timechart span=1h usenull=false count() by host").explain(),
+        getRelNode("source=events | timechart span=1h usenull=f count() by host").explain());
+    assertEquals(
+        getRelNode("source=events | timechart span=1h usenull=true count() by host").explain(),
+        getRelNode("source=events | timechart span=1h usenull=t count() by host").explain());
+  }
+
+  @Test
+  public void testTimechartWithInvalidUseNull() {
+    IllegalArgumentException e =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> parsePPL("source=events | timechart usenull=maybe count() by host"));
+    assertEquals("Invalid useNull value: maybe. Expected true/false or t/f", e.getMessage());
+  }
+
+  @Test
+  public void testTimechartWithNullParametersAfterByClause() {
+    String ppl = "source=events | timechart span=1h count() by host usenull=true nullstr='none'";
+    UnresolvedPlan plan = parsePPL(ppl);
+    assertNotNull(plan);
   }
 
   @Test

@@ -178,12 +178,41 @@ public class CalcitePPLChartTest extends CalcitePPLAbstractTest {
 
     RelNode root = getRelNode(ppl);
     String expectedSparkSql =
-        "SELECT `state`, `gender`, AVG(`balance`) `avg(balance)`\n"
+        "SELECT `state`, CASE WHEN `gender` IS NULL THEN 'NULL' ELSE `gender` END `gender`,"
+            + " AVG(`balance`) `avg(balance)`\n"
             + "FROM `scott`.`bank`\n"
             + "WHERE `state` IS NOT NULL AND `balance` IS NOT NULL\n"
             + "GROUP BY `state`, `gender`\n"
             + "ORDER BY `state` NULLS LAST";
     verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testChartWithLimitZeroAndUseNullFalse() {
+    String ppl = "source=bank | chart limit=0 usenull=false avg(balance) over state by gender";
+
+    RelNode root = getRelNode(ppl);
+    String expectedSparkSql =
+        "SELECT `state`, `gender`, AVG(`balance`) `avg(balance)`\n"
+            + "FROM `scott`.`bank`\n"
+            + "WHERE `state` IS NOT NULL AND `gender` IS NOT NULL AND `balance` IS NOT NULL\n"
+            + "GROUP BY `state`, `gender`\n"
+            + "ORDER BY `state` NULLS LAST";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testChartWithLimitZeroAndNumericColumnSplit() {
+    // A numeric column split is cast to string before nullstr labeling; the plan must execute
+    RelNode root = getRelNode("source=bank | chart limit=0 count() over gender by age");
+    verifyResult(
+        root,
+        "gender=F; age=39; count()=1\n"
+            + "gender=F; age=28; count()=1\n"
+            + "gender=F; age=34; count()=1\n"
+            + "gender=M; age=32; count()=1\n"
+            + "gender=M; age=33; count()=1\n"
+            + "gender=M; age=36; count()=1\n");
   }
 
   @Test

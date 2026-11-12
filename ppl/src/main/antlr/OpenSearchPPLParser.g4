@@ -411,6 +411,8 @@ timechartParameter
    : LIMIT EQUAL integerLiteral
    | SPAN EQUAL spanLiteral
    | USEOTHER EQUAL (booleanLiteral | ident)
+   | USENULL EQUAL (booleanLiteral | ident)
+   | NULLSTR EQUAL stringLiteral
    | TIMEFIELD EQUAL (ident | stringLiteral)
    ;
 
