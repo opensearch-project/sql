@@ -572,9 +572,16 @@ public class CalciteEnumerableGraphLookup extends GraphLookup implements Enumera
      * @return query builder
      */
     private QueryBuilder getQueryBuilder(int fieldIdx, Collection<Object> values) {
-      String fieldName =
-          new NamedFieldExpression(fieldIdx, lookupFields, lookupScan.getOsIndex().getFieldTypes())
-              .getReferenceForTermQuery();
+      NamedFieldExpression field =
+          new NamedFieldExpression(fieldIdx, lookupFields, lookupScan.getOsIndex().getFieldTypes());
+      String fieldName = field.getReferenceForTermQuery();
+      // binary and text without a keyword subfield have no exact terms for a terms query
+      if (fieldName == null) {
+        throw new IllegalStateException(
+            String.format(
+                "Cannot look up graphLookup edges on field [%s], which has no exact terms",
+                field.getRootName()));
+      }
       return termsQuery(fieldName, values);
     }
 
