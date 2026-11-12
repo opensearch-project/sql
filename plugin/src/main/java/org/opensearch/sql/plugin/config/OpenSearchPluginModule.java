@@ -135,8 +135,9 @@ public class OpenSearchPluginModule extends AbstractModule {
 
   @Provides
   @Singleton
-  public QueryJobStore queryJobStore() {
-    return new InMemoryQueryJobStore();
+  public QueryJobStore queryJobStore(Settings settings) {
+    return new InMemoryQueryJobStore(
+        () -> settings.getSettingValue(Settings.Key.QUERY_ASYNC_MAX_RETAINED_RESULTS));
   }
 
   @Provides
