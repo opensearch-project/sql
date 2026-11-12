@@ -202,6 +202,60 @@ class ShardStatsTest {
     return failure;
   }
 
+  @Test
+  void a_skipped_remote_cluster_makes_the_result_partial() {
+    // A skipped cluster's shards are never collected, so the shard counts look complete.
+    ShardStats stats = ShardStats.from(withClusters(searchResponse(90, 90, 0, 0, false), 6, 5, 1));
+
+    assertFalse(stats.isComplete());
+    Warning warning = stats.toWarning().orElseThrow();
+    assertEquals(Warning.TYPE_PARTIAL_RESULT, warning.getType());
+    assertEquals("Results are partial: 1 of 6 clusters was skipped.", warning.getMessage());
+    assertEquals(
+        "_shards: total 90, successful 90, skipped 0, failed 0;"
+            + " _clusters: total 6, successful 5, skipped 1",
+        warning.getDetail());
+  }
+
+  @Test
+  void several_skipped_clusters_are_counted() {
+    ShardStats stats = ShardStats.from(withClusters(searchResponse(60, 60, 0, 0, false), 6, 4, 2));
+
+    assertEquals(
+        "Results are partial: 2 of 6 clusters were skipped.",
+        stats.toWarning().orElseThrow().getMessage());
+  }
+
+  @Test
+  void a_cross_cluster_search_that_reached_every_cluster_raises_nothing() {
+    ShardStats stats = ShardStats.from(withClusters(searchResponse(90, 90, 0, 0, false), 6, 6, 0));
+
+    assertTrue(stats.isComplete());
+    assertEquals(Optional.empty(), stats.toWarning());
+  }
+
+  @Test
+  void a_failed_shard_leads_the_message_and_a_skipped_cluster_stays_in_the_detail() {
+    ShardStats stats =
+        ShardStats.from(
+            withClusters(
+                searchResponse(2, 1, 0, 1, false, failure("logs-2024", 0, "circuit_breaking")),
+                3,
+                2,
+                1));
+
+    Warning warning = stats.toWarning().orElseThrow();
+    assertEquals("Results are partial: 1 of 2 shards failed.", warning.getMessage());
+    assertTrue(warning.getDetail().contains("_clusters: total 3, successful 2, skipped 1"));
+  }
+
+  private static SearchResponse withClusters(
+      SearchResponse response, int total, int successful, int skipped) {
+    when(response.getClusters())
+        .thenReturn(new SearchResponse.Clusters(total, successful, skipped));
+    return response;
+  }
+
   private static SearchResponse searchResponse(
       int total,
       int successful,
