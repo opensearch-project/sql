@@ -5,9 +5,6 @@
 
 package org.opensearch.sql.prometheus.client;
 
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.dataformat.yaml.YAMLFactory;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -30,6 +27,9 @@ import org.json.JSONObject;
 import org.opensearch.secure_sm.AccessController;
 import org.opensearch.sql.prometheus.exception.PrometheusClientException;
 import org.opensearch.sql.prometheus.model.MetricMetadata;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.dataformat.yaml.YAMLFactory;
 
 /*
  * @opensearch.experimental
@@ -49,6 +49,30 @@ public class PrometheusClientImpl implements PrometheusClient {
   // use identical credentials for both query and ruler endpoints.
   private final URI rulerUri;
 
+  /**
+   * Shuts down the OkHttp dispatcher and evicts pooled connections for both clients.
+   *
+   * <p>The two-argument constructor passes the same OkHttpClient for Prometheus and Alertmanager,
+   * so the second shutdown is guarded on identity rather than repeated - shutting the same
+   * dispatcher down twice is harmless, but evicting an already-evicted pool hides whether the
+   * Alertmanager really had a client of its own.
+   */
+  @Override
+  public void close() {
+    shutdown(prometheusHttpClient);
+    if (alertmanagerHttpClient != prometheusHttpClient) {
+      shutdown(alertmanagerHttpClient);
+    }
+  }
+
+  private static void shutdown(OkHttpClient client) {
+    if (client == null) {
+      return;
+    }
+    client.dispatcher().executorService().shutdown();
+    client.connectionPool().evictAll();
+  }
+
   public PrometheusClientImpl(OkHttpClient prometheusHttpClient, URI prometheusUri) {
     this(
         prometheusHttpClient,
@@ -63,7 +87,11 @@ public class PrometheusClientImpl implements PrometheusClient {
       URI prometheusUri,
       OkHttpClient alertmanagerHttpClient,
       URI alertmanagerUri) {
-    this(prometheusHttpClient, prometheusUri, alertmanagerHttpClient, alertmanagerUri,
+    this(
+        prometheusHttpClient,
+        prometheusUri,
+        alertmanagerHttpClient,
+        alertmanagerUri,
         prometheusUri);
   }
 
@@ -110,7 +138,9 @@ public class PrometheusClientImpl implements PrometheusClient {
     Request request = new Request.Builder().url(queryUrl).build();
 
     logger.debug("Executing Prometheus request with headers: {}", request.headers().toString());
-    Response response = AccessController.doPrivilegedChecked(() -> this.prometheusHttpClient.newCall(request).execute());
+    Response response =
+        AccessController.doPrivilegedChecked(
+            () -> this.prometheusHttpClient.newCall(request).execute());
 
     logger.debug("Received Prometheus response for query_range: code={}", response);
 
@@ -148,7 +178,9 @@ public class PrometheusClientImpl implements PrometheusClient {
     Request request = new Request.Builder().url(queryUrl).build();
 
     logger.info("Executing Prometheus request with headers: {}", request.headers().toString());
-    Response response = AccessController.doPrivilegedChecked(() -> this.prometheusHttpClient.newCall(request).execute());
+    Response response =
+        AccessController.doPrivilegedChecked(
+            () -> this.prometheusHttpClient.newCall(request).execute());
 
     logger.info("Received Prometheus response for instant query: code={}", response);
     JSONObject jsonObject = readResponse(response);
@@ -171,7 +203,9 @@ public class PrometheusClientImpl implements PrometheusClient {
             "%s/api/v1/labels%s", prometheusUri.toString().replaceAll("/$", ""), queryString);
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = AccessController.doPrivilegedChecked(() -> this.prometheusHttpClient.newCall(request).execute());
+    Response response =
+        AccessController.doPrivilegedChecked(
+            () -> this.prometheusHttpClient.newCall(request).execute());
     JSONObject jsonObject = readResponse(response);
     if (!jsonObject.has("data")) {
       return new ArrayList<>();
@@ -189,7 +223,9 @@ public class PrometheusClientImpl implements PrometheusClient {
             prometheusUri.toString().replaceAll("/$", ""), labelName, queryString);
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = AccessController.doPrivilegedChecked(() -> this.prometheusHttpClient.newCall(request).execute());
+    Response response =
+        AccessController.doPrivilegedChecked(
+            () -> this.prometheusHttpClient.newCall(request).execute());
     JSONObject jsonObject = readResponse(response);
     if (!jsonObject.has("data")) {
       return new ArrayList<>();
@@ -206,7 +242,9 @@ public class PrometheusClientImpl implements PrometheusClient {
             "%s/api/v1/metadata%s", prometheusUri.toString().replaceAll("/$", ""), queryString);
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = AccessController.doPrivilegedChecked(() -> this.prometheusHttpClient.newCall(request).execute());
+    Response response =
+        AccessController.doPrivilegedChecked(
+            () -> this.prometheusHttpClient.newCall(request).execute());
     JSONObject jsonObject = readResponse(response);
     if (!jsonObject.has("data")) {
       return new HashMap<>();
@@ -228,7 +266,9 @@ public class PrometheusClientImpl implements PrometheusClient {
             "%s/api/v1/series%s", prometheusUri.toString().replaceAll("/$", ""), queryString);
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = AccessController.doPrivilegedChecked(() -> this.prometheusHttpClient.newCall(request).execute());
+    Response response =
+        AccessController.doPrivilegedChecked(
+            () -> this.prometheusHttpClient.newCall(request).execute());
     JSONObject jsonObject = readResponse(response);
     if (!jsonObject.has("data")) {
       return new ArrayList<>();
@@ -248,7 +288,9 @@ public class PrometheusClientImpl implements PrometheusClient {
             end);
     logger.debug("queryUrl: " + queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = AccessController.doPrivilegedChecked(() -> this.prometheusHttpClient.newCall(request).execute());
+    Response response =
+        AccessController.doPrivilegedChecked(
+            () -> this.prometheusHttpClient.newCall(request).execute());
     JSONObject jsonObject = readResponse(response);
     if (!jsonObject.has("data")) {
       return new JSONArray();
@@ -262,7 +304,9 @@ public class PrometheusClientImpl implements PrometheusClient {
         String.format("%s/api/v1/alerts", prometheusUri.toString().replaceAll("/$", ""));
     logger.debug("Making Prometheus alerts request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).build();
-    Response response = AccessController.doPrivilegedChecked(() -> this.prometheusHttpClient.newCall(request).execute());
+    Response response =
+        AccessController.doPrivilegedChecked(
+            () -> this.prometheusHttpClient.newCall(request).execute());
     JSONObject jsonObject = readResponse(response);
     if (!jsonObject.has("data")) {
       return new JSONObject();
@@ -364,8 +408,7 @@ public class PrometheusClientImpl implements PrometheusClient {
                 response.body(), "Alertmanager create silence response body is null")
             .string();
       } else {
-        String errorBody =
-            response.body() != null ? response.body().string() : "No response body";
+        String errorBody = response.body() != null ? response.body().string() : "No response body";
         logger.error(
             "Create Alertmanager Silence request failed with code: {}, error body: {}",
             response.code(),
@@ -383,8 +426,7 @@ public class PrometheusClientImpl implements PrometheusClient {
     String baseUrl = alertmanagerUri.toString().replaceAll("/$", "");
     String queryUrl =
         String.format(
-            "%s/api/v2/silence/%s",
-            baseUrl, URLEncoder.encode(silenceId, StandardCharsets.UTF_8));
+            "%s/api/v2/silence/%s", baseUrl, URLEncoder.encode(silenceId, StandardCharsets.UTF_8));
 
     logger.debug("Making Delete Alertmanager silence request: {}", queryUrl);
     Request request = new Request.Builder().url(queryUrl).delete().build();
@@ -394,8 +436,7 @@ public class PrometheusClientImpl implements PrometheusClient {
       if (response.isSuccessful()) {
         return "{\"status\":\"success\"}";
       } else {
-        String errorBody =
-            response.body() != null ? response.body().string() : "No response body";
+        String errorBody = response.body() != null ? response.body().string() : "No response body";
         logger.error(
             "Delete Alertmanager Silence request failed with code: {}, error body: {}",
             response.code(),
@@ -422,8 +463,7 @@ public class PrometheusClientImpl implements PrometheusClient {
         String bodyString = Objects.requireNonNull(response.body()).string();
         return new JSONObject(bodyString);
       } else {
-        String errorBody =
-            response.body() != null ? response.body().string() : "No response body";
+        String errorBody = response.body() != null ? response.body().string() : "No response body";
         logger.error(
             "Alertmanager status request failed with code: {}, error body: {}",
             response.code(),
@@ -535,8 +575,7 @@ public class PrometheusClientImpl implements PrometheusClient {
           errorBody);
       throw new PrometheusClientException(
           String.format(
-              "Ruler request failed with code: %s. Error details: %s",
-              response.code(), errorBody));
+              "Ruler request failed with code: %s. Error details: %s", response.code(), errorBody));
     }
   }
 
@@ -592,8 +631,7 @@ public class PrometheusClientImpl implements PrometheusClient {
         return new JSONObject().put("groups", groupsArray);
       } catch (Exception listEx) {
         logger.warn(
-            "Failed to parse rules response body, returning empty groups: {}",
-            listEx.getMessage());
+            "Failed to parse rules response body, returning empty groups: {}", listEx.getMessage());
         return new JSONObject().put("groups", new JSONArray());
       }
     }
