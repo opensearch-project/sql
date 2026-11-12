@@ -76,6 +76,8 @@ public abstract class Settings {
     RESULT_INDEX_TTL("plugins.query.executionengine.spark.result.index.ttl"),
     AUTO_INDEX_MANAGEMENT_ENABLED(
         "plugins.query.executionengine.spark.auto_index_management.enabled"),
+    AUTO_INDEX_MANAGEMENT_INTERVAL(
+        "plugins.query.executionengine.spark.auto_index_management.interval"),
     SESSION_INACTIVITY_TIMEOUT_MILLIS(
         "plugins.query.executionengine.spark.session_inactivity_timeout_millis"),
 

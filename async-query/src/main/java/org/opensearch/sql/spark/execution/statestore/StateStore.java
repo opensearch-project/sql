@@ -31,8 +31,6 @@ import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.action.update.UpdateResponse;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.action.ActionFuture;
-import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -42,6 +40,7 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.seqno.SequenceNumbers;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.sql.opensearch.client.PluginClient;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.dispatcher.model.IndexDMLResult;
 import org.opensearch.sql.spark.execution.session.SessionModel;
@@ -59,11 +58,11 @@ import org.opensearch.sql.spark.execution.xcontent.XContentSerializer;
 import org.opensearch.sql.spark.execution.xcontent.XContentSerializerUtil;
 import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexStateModel;
-import org.opensearch.transport.client.Client;
 
 /**
- * State Store maintain the state of Session and Statement. State State create/update/get doc on
- * index regardless user FGAC permissions.
+ * State Store maintain the state of Session and Statement. Documents are read and written as the
+ * plugin's own subject rather than as the requesting user, because the async query state index is
+ * owned by the plugin and is not part of the user's data.
  */
 @RequiredArgsConstructor
 public class StateStore {
@@ -73,7 +72,7 @@ public class StateStore {
 
   private static final Logger LOG = LogManager.getLogger();
 
-  private final Client client;
+  private final PluginClient client;
   private final ClusterService clusterService;
 
   @VisibleForTesting
@@ -92,23 +91,20 @@ public class StateStore {
               .setIfPrimaryTerm(getPrimaryTerm(st))
               .create(true)
               .setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL);
-      try (ThreadContext.StoredContext ignored =
-          client.threadPool().getThreadContext().stashContext()) {
-        IndexResponse indexResponse = client.index(indexRequest).actionGet();
-        if (indexResponse.getResult().equals(DocWriteResponse.Result.CREATED)) {
-          LOG.debug("Successfully created doc. id: {}", st.getId());
-          return builder.of(
-              st,
-              XContentSerializerUtil.buildMetadata(
-                  indexResponse.getSeqNo(), indexResponse.getPrimaryTerm()));
-        } else {
-          throw new RuntimeException(
-              String.format(
-                  Locale.ROOT,
-                  "Failed create doc. id: %s, error: %s",
-                  st.getId(),
-                  indexResponse.getResult().getLowercase()));
-        }
+      IndexResponse indexResponse = client.index(indexRequest).actionGet();
+      if (indexResponse.getResult().equals(DocWriteResponse.Result.CREATED)) {
+        LOG.debug("Successfully created doc. id: {}", st.getId());
+        return builder.of(
+            st,
+            XContentSerializerUtil.buildMetadata(
+                indexResponse.getSeqNo(), indexResponse.getPrimaryTerm()));
+      } else {
+        throw new RuntimeException(
+            String.format(
+                Locale.ROOT,
+                "Failed create doc. id: %s, error: %s",
+                st.getId(),
+                indexResponse.getResult().getLowercase()));
       }
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -124,23 +120,20 @@ public class StateStore {
         return Optional.empty();
       }
       GetRequest getRequest = new GetRequest().index(indexName).id(sid).refresh(true);
-      try (ThreadContext.StoredContext ignored =
-          client.threadPool().getThreadContext().stashContext()) {
-        GetResponse getResponse = client.get(getRequest).actionGet();
-        if (getResponse.isExists()) {
-          XContentParser parser =
-              XContentType.JSON
-                  .xContent()
-                  .createParser(
-                      NamedXContentRegistry.EMPTY,
-                      LoggingDeprecationHandler.INSTANCE,
-                      getResponse.getSourceAsString());
-          parser.nextToken();
-          return Optional.of(
-              builder.fromXContent(parser, getResponse.getSeqNo(), getResponse.getPrimaryTerm()));
-        } else {
-          return Optional.empty();
-        }
+      GetResponse getResponse = client.get(getRequest).actionGet();
+      if (getResponse.isExists()) {
+        XContentParser parser =
+            XContentType.JSON
+                .xContent()
+                .createParser(
+                    NamedXContentRegistry.EMPTY,
+                    LoggingDeprecationHandler.INSTANCE,
+                    getResponse.getSourceAsString());
+        parser.nextToken();
+        return Optional.of(
+            builder.fromXContent(parser, getResponse.getSeqNo(), getResponse.getPrimaryTerm()));
+      } else {
+        return Optional.empty();
       }
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -162,16 +155,13 @@ public class StateStore {
               .doc(serializer.toXContent(model, ToXContent.EMPTY_PARAMS))
               .fetchSource(true)
               .setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL);
-      try (ThreadContext.StoredContext ignored =
-          client.threadPool().getThreadContext().stashContext()) {
-        UpdateResponse updateResponse = client.update(updateRequest).actionGet();
-        LOG.debug("Successfully update doc. id: {}", st.getId());
-        return builder.of(
-            model,
-            state,
-            XContentSerializerUtil.buildMetadata(
-                updateResponse.getSeqNo(), updateResponse.getPrimaryTerm()));
-      }
+      UpdateResponse updateResponse = client.update(updateRequest).actionGet();
+      LOG.debug("Successfully update doc. id: {}", st.getId());
+      return builder.of(
+          model,
+          state,
+          XContentSerializerUtil.buildMetadata(
+              updateResponse.getSeqNo(), updateResponse.getPrimaryTerm()));
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -202,12 +192,9 @@ public class StateStore {
         return true;
       }
 
-      try (ThreadContext.StoredContext ignored =
-          client.threadPool().getThreadContext().stashContext()) {
-        DeleteRequest deleteRequest = new DeleteRequest(indexName, sid);
-        DeleteResponse deleteResponse = client.delete(deleteRequest).actionGet();
-        return deleteResponse.getResult() == DocWriteResponse.Result.DELETED;
-      }
+      DeleteRequest deleteRequest = new DeleteRequest(indexName, sid);
+      DeleteResponse deleteResponse = client.delete(deleteRequest).actionGet();
+      return deleteResponse.getResult() == DocWriteResponse.Result.DELETED;
     } catch (Exception e) {
       throw new RuntimeException(
           String.format("Failed to delete index state doc %s in index %s", sid, indexName), e);
@@ -220,12 +207,8 @@ public class StateStore {
       createIndexRequest
           .mapping(loadConfigFromResource(MAPPING_FILE_NAME), XContentType.YAML)
           .settings(loadConfigFromResource(SETTINGS_FILE_NAME), XContentType.YAML);
-      ActionFuture<CreateIndexResponse> createIndexResponseActionFuture;
-      try (ThreadContext.StoredContext ignored =
-          client.threadPool().getThreadContext().stashContext()) {
-        createIndexResponseActionFuture = client.admin().indices().create(createIndexRequest);
-      }
-      CreateIndexResponse createIndexResponse = createIndexResponseActionFuture.actionGet();
+      CreateIndexResponse createIndexResponse =
+          client.admin().indices().create(createIndexRequest).actionGet();
       if (createIndexResponse.isAcknowledged()) {
         LOG.info("Index: {} creation Acknowledged", indexName);
       } else {
@@ -250,12 +233,7 @@ public class StateStore {
             .preference("_primary_first")
             .source(searchSourceBuilder);
 
-    ActionFuture<SearchResponse> searchResponseActionFuture;
-    try (ThreadContext.StoredContext ignored =
-        client.threadPool().getThreadContext().stashContext()) {
-      searchResponseActionFuture = client.search(searchRequest);
-    }
-    SearchResponse searchResponse = searchResponseActionFuture.actionGet();
+    SearchResponse searchResponse = client.search(searchRequest).actionGet();
     if (searchResponse.status().getStatus() != 200) {
       throw new RuntimeException(
           "Fetching job metadata information failed with status : " + searchResponse.status());

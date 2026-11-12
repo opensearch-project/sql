@@ -20,11 +20,11 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.opensearch.client.PluginClient;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.threadpool.Scheduler.Cancellable;
 import org.opensearch.threadpool.ThreadPool;
-import org.opensearch.transport.client.Client;
 
 public class ClusterManagerEventListener implements LocalNodeClusterManagerListener {
 
@@ -32,25 +32,27 @@ public class ClusterManagerEventListener implements LocalNodeClusterManagerListe
   private Cancellable flintStreamingJobHouseKeeperCron;
   private final ClusterService clusterService;
   private final ThreadPool threadPool;
-  private final Client client;
+  private final PluginClient client;
   private final Clock clock;
   private final DataSourceService dataSourceService;
   private final FlintIndexMetadataService flintIndexMetadataService;
   private final FlintIndexOpFactory flintIndexOpFactory;
   private Duration sessionTtlDuration;
   private Duration resultTtlDuration;
+  private TimeValue retentionInterval;
   private TimeValue streamingJobHouseKeepingInterval;
   private boolean isAutoIndexManagementEnabled;
 
   public ClusterManagerEventListener(
       ClusterService clusterService,
       ThreadPool threadPool,
-      Client client,
+      PluginClient client,
       Clock clock,
       Setting<TimeValue> sessionTtl,
       Setting<TimeValue> resultTtl,
       Setting<TimeValue> streamingJobHouseKeepingInterval,
       Setting<Boolean> isAutoIndexManagementEnabledSetting,
+      Setting<TimeValue> retentionInterval,
       Settings settings,
       DataSourceService dataSourceService,
       FlintIndexMetadataService flintIndexMetadataService,
@@ -66,6 +68,7 @@ public class ClusterManagerEventListener implements LocalNodeClusterManagerListe
     this.sessionTtlDuration = toDuration(sessionTtl.get(settings));
     this.resultTtlDuration = toDuration(resultTtl.get(settings));
     this.streamingJobHouseKeepingInterval = streamingJobHouseKeepingInterval.get(settings);
+    this.retentionInterval = retentionInterval.get(settings);
 
     clusterService
         .getClusterSettings()
@@ -85,6 +88,19 @@ public class ClusterManagerEventListener implements LocalNodeClusterManagerListe
               this.resultTtlDuration = toDuration(it);
               cancel(flintIndexRetentionCron);
               reInitializeFlintIndexRetention();
+            });
+
+    clusterService
+        .getClusterSettings()
+        .addSettingsUpdateConsumer(
+            retentionInterval,
+            it -> {
+              this.retentionInterval = it;
+              // Reschedule a retention this node already runs; never start one here.
+              if (flintIndexRetentionCron != null) {
+                cancel(flintIndexRetentionCron);
+                reInitializeFlintIndexRetention();
+              }
             });
 
     isAutoIndexManagementEnabled = isAutoIndexManagementEnabledSetting.get(settings);
@@ -163,7 +179,7 @@ public class ClusterManagerEventListener implements LocalNodeClusterManagerListe
                 indexCleanup,
                 SPARK_REQUEST_BUFFER_INDEX_NAME + "*",
                 DataSourceMetadata.DEFAULT_RESULT_INDEX + "*"),
-            TimeValue.timeValueHours(24),
+            retentionInterval,
             executorName());
   }
 

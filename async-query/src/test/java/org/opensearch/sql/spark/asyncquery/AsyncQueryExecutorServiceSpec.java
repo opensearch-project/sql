@@ -56,6 +56,7 @@ import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
 import org.opensearch.sql.datasources.storage.OpenSearchDataSourceMetadataStorage;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.metrics.Metrics;
+import org.opensearch.sql.opensearch.client.PluginClient;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
@@ -101,6 +102,7 @@ import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.response.OpenSearchJobExecutionResponseReader;
 import org.opensearch.sql.spark.scheduler.AsyncQueryScheduler;
 import org.opensearch.sql.spark.scheduler.OpenSearchAsyncQueryScheduler;
+import org.opensearch.sql.spark.utils.TestPluginClient;
 import org.opensearch.sql.spark.validator.DefaultGrammarElementValidator;
 import org.opensearch.sql.spark.validator.GrammarElementValidatorProvider;
 import org.opensearch.sql.spark.validator.PPLQueryValidator;
@@ -123,6 +125,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
   protected org.opensearch.sql.common.setting.Settings pluginSettings;
   protected SessionConfigSupplier sessionConfigSupplier;
   protected NodeClient client;
+  protected PluginClient pluginClient;
   protected FlintIndexClient flintIndexClient;
   protected DataSourceServiceImpl dataSourceService;
   protected ClusterSettings clusterSettings;
@@ -158,6 +161,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
     sessionConfigSupplier = new OpenSearchSessionConfigSupplier(pluginSettings);
     Metrics.getInstance().registerDefaultMetrics();
     client = (NodeClient) cluster().client();
+    pluginClient = TestPluginClient.of(client);
     client
         .admin()
         .cluster()
@@ -201,7 +205,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
                     "noauth"))
             .build();
     dataSourceService.createDataSource(otherDm);
-    stateStore = new StateStore(client, clusterService);
+    stateStore = new StateStore(pluginClient, clusterService);
     createIndexWithMappings(dm.getResultIndex(), loadResultIndexMappings());
     createIndexWithMappings(otherDm.getResultIndex(), loadResultIndexMappings());
     flintIndexMetadataService = new FlintIndexMetadataServiceImpl(client);
@@ -254,7 +258,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
     String masterKey = "a57d991d9b573f75b9bba1df";
     DataSourceMetadataStorage dataSourceMetadataStorage =
         new OpenSearchDataSourceMetadataStorage(
-            client,
+            pluginClient,
             clusterService,
             new EncryptorImpl(masterKey),
             (OpenSearchSettings) pluginSettings);
@@ -276,7 +280,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
   protected AsyncQueryExecutorService createAsyncQueryExecutorService(
       EMRServerlessClientFactory emrServerlessClientFactory,
       JobExecutionResponseReader jobExecutionResponseReader) {
-    StateStore stateStore = new StateStore(client, clusterService);
+    StateStore stateStore = new StateStore(pluginClient, clusterService);
     AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService =
         new OpenSearchAsyncQueryJobMetadataStorageService(
             stateStore, new AsyncQueryJobMetadataXContentSerializer());
