@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Copyright OpenSearch Contributors
+# SPDX-License-Identifier: Apache-2.0
+
 # Utility functions for publishing artifacts to Maven and managing commit mappings
 
 set -e
