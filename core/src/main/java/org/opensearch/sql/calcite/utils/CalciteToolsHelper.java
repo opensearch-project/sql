@@ -102,6 +102,8 @@ import org.apache.calcite.util.Util;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.plan.Scannable;
+import org.opensearch.sql.calcite.plan.metadata.EmptyValuesFactory;
+import org.opensearch.sql.calcite.plan.metadata.OpenSearchRelMetadataProvider;
 import org.opensearch.sql.calcite.plan.rule.OpenSearchRules;
 import org.opensearch.sql.calcite.plan.rule.PPLSimplifyDedupRule;
 import org.opensearch.sql.calcite.profile.PlanProfileBuilder;
@@ -206,7 +208,16 @@ public class CalciteToolsHelper {
   /** do nothing, just extend for a public construct for new */
   public static class OpenSearchRelBuilder extends RelBuilder {
     public OpenSearchRelBuilder(Context context, RelOptCluster cluster, RelOptSchema relOptSchema) {
-      super(context, cluster, relOptSchema);
+      super(withEmptyValuesFactory(context), cluster, relOptSchema);
+    }
+
+    /**
+     * Put {@link EmptyValuesFactory} ahead of the given context, so {@code empty()} (e.g. for an
+     * always-false filter) does not derive O(n^2) collations on a wide row type.
+     */
+    private static Context withEmptyValuesFactory(@Nullable Context context) {
+      Context factory = Contexts.of(EmptyValuesFactory.INSTANCE);
+      return context == null ? factory : Contexts.chain(factory, context);
     }
 
     @Override
@@ -252,6 +263,14 @@ public class CalciteToolsHelper {
       registerCustomizedRules(planner);
       final RelOptCluster cluster = createCluster(planner, rexBuilder);
       return action.apply(cluster, catalogReader, prepareContext.getRootSchema().plus(), statement);
+    }
+
+    /** Use {@link OpenSearchRelMetadataProvider} so OpenSearch metadata overrides apply. */
+    @Override
+    protected RelOptCluster createCluster(RelOptPlanner planner, RexBuilder rexBuilder) {
+      RelOptCluster cluster = super.createCluster(planner, rexBuilder);
+      cluster.setMetadataProvider(OpenSearchRelMetadataProvider.INSTANCE);
+      return cluster;
     }
 
     private void registerCustomizedRules(RelOptPlanner planner) {
@@ -560,7 +579,14 @@ public class CalciteToolsHelper {
 
   /** Try to optimize the plan by using HepPlanner */
   private static final List<RelOptRule> hepRuleList =
-      List.of(FilterMergeRule.Config.DEFAULT.toRule(), PPLSimplifyDedupRule.DEDUP_SIMPLIFY_RULE);
+      List.of(
+          // Build with OpenSearchRelBuilder so a merged always-false filter goes through
+          // EmptyValuesFactory instead of deriving O(n^2) collations.
+          FilterMergeRule.Config.DEFAULT
+              .withRelBuilderFactory(proto(Contexts.empty()))
+              .as(FilterMergeRule.Config.class)
+              .toRule(),
+          PPLSimplifyDedupRule.DEDUP_SIMPLIFY_RULE);
 
   private static final HepProgram HEP_PROGRAM =
       new HepProgramBuilder().addRuleCollection(hepRuleList).build();
