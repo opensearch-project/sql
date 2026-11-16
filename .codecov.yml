@@ -7,5 +7,14 @@ coverage:
   status:
     project:
       default:
-        target: 99%    # the required coverage value
-        threshold: 1%  # the leniency in hitting the target 
+        target: auto    # no lower than the base commit
+        threshold: 1%   # integration test coverage can vary a little between runs
+    patch:
+      default:
+        target: 80%
+
+flags:
+  unit:
+    carryforward: true
+  integration:
+    carryforward: true

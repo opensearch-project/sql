@@ -249,6 +249,8 @@ For faster local iterations, skip integration tests. ``./gradlew build -x integT
      - Run all integration test (this takes time).
    * - ./gradlew :integ-test:yamlRestTest
      - Run rest integration test.
+   * - ./gradlew :integ-test:integTest -Dtests.coverage=true jacocoIntegTestReport
+     - Run all integration tests and generate a code coverage report of the code they run on the test cluster in build/reports/jacoco/jacocoIntegTestReport.
    * - ./gradlew :doctest:doctest
      - Run doctests in docs folder. You can use ``-Pdocs=file1,file2`` to run specific file(s). See more info in `Documentation <#documentation>`_ section.
    * - ./gradlew build
@@ -359,7 +361,7 @@ Here is a sample for integration test for your reference:
        }
    }
 
-Finally thanks to JaCoCo library, you can check out the test coverage in ``<module_name>/build/reports/jacoco`` for your changes easily. A module's report only counts the tests of that module. To also count tests in other modules (for example ``ppl`` tests of ``core`` classes), which is the coverage that Codecov reports, run ``./gradlew test jacocoAggregatedReport`` and open ``build/reports/jacoco/jacocoAggregatedReport/html/index.html``.
+Finally thanks to JaCoCo library, you can check out the test coverage in ``<module_name>/build/reports/jacoco`` for your changes easily. A module's report only counts the tests of that module. To also count tests in other modules (for example ``ppl`` tests of ``core`` classes), run ``./gradlew test jacocoAggregatedReport`` and open ``build/reports/jacoco/jacocoAggregatedReport/html/index.html``. Codecov reports this coverage together with the coverage of the integration tests, which ``-Dtests.coverage=true`` records and ``jacocoIntegTestReport`` reports.
 
 Deploying Locally
 -----------------

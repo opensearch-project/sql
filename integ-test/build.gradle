@@ -31,6 +31,7 @@ import org.gradle.api.internal.tasks.testing.junitplatform.JUnitPlatformTestFram
 import groovy.xml.XmlParser
 import java.nio.file.Paths
 import java.util.concurrent.Callable
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.stream.Collectors
 
 plugins {
@@ -926,6 +927,57 @@ configureSecurityPlugin(testClusters.runWithSecurity)
 
 yamlRestTest {
     systemProperty 'tests.security.manager', 'false'
+}
+
+// With -Dtests.coverage=true, records which plugin code the integration tests run on the test
+// cluster nodes. The root project's jacocoIntegTestReport turns the recorded data into a report.
+//
+// Each node runs the JaCoCo agent as a TCP server on its own port. Test clusters stop their nodes
+// with kill -9, so the agent cannot write its data when the node exits. Instead, the data of every
+// node is fetched when the task's tests finish, while the nodes are still running. This also
+// works when some tests fail.
+if (Boolean.getBoolean('tests.coverage')) {
+    configurations {
+        jacocoNodeAgent
+        jacocoNodeAnt
+    }
+
+    dependencies {
+        jacocoNodeAgent "org.jacoco:org.jacoco.agent:${rootProject.jacoco.toolVersion}:runtime"
+        jacocoNodeAnt "org.jacoco:org.jacoco.ant:${rootProject.jacoco.toolVersion}"
+    }
+
+    // Shared by all tasks, so that no two nodes in the build listen on the same port.
+    def nextAgentPort = new AtomicInteger(6300)
+
+    tasks.withType(StandaloneRestIntegTestTask).configureEach { task ->
+        def agentPorts = [:]
+
+        setBeforeStart {
+            def agentJar = configurations.jacocoNodeAgent.singleFile
+            clusters.each { cluster ->
+                cluster.nodes.each { node ->
+                    int port = nextAgentPort.getAndIncrement()
+                    agentPorts[node.name] = port
+                    node.jvmArgs("-javaagent:${agentJar}=output=tcpserver,address=127.0.0.1,port=${port}," +
+                            "includes=org.opensearch.sql.*")
+                }
+            }
+        }
+
+        afterSuite { descriptor, result ->
+            // Only the root suite, which finishes after all tests of the task
+            if (descriptor.parent != null || agentPorts.isEmpty()) {
+                return
+            }
+            ant.taskdef(name: 'jacocoDump', classname: 'org.jacoco.ant.DumpTask',
+                    classpath: configurations.jacocoNodeAnt.asPath)
+            agentPorts.each { nodeName, port ->
+                ant.jacocoDump(address: '127.0.0.1', port: port, append: false,
+                        destfile: file("${buildDir}/jacoco/cluster/${task.name}-${nodeName}.exec"))
+            }
+        }
+    }
 }
 
 // Run PPL ITs and new, legacy and comparison SQL ITs with new SQL engine enabled
