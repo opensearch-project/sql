@@ -22,22 +22,21 @@ import org.opensearch.sql.common.setting.Settings;
 /**
  * Node-local, in-memory {@link QueryJobStore}.
  *
- * <p>{@link #register(QueryJob)} refuses a job while the store retains the maximum number of
- * results. A job's result is retained from the moment the job finishes until the job is removed;
- * the service removes a job as soon as its result is returned inline, so only results kept for
- * polling stay counted. Running jobs are not counted, so jobs admitted while there was room can
- * take the count past its limit when they finish. The limit is read on every register, so a lowered
- * limit applies to the next submit and retained results are not evicted. Cluster visibility is
- * intentionally not modelled.
+ * <p>The store retains at most a maximum number of jobs. A job is retained by {@link
+ * #retain(QueryJob)}, before its id is returned for polling, whether it is still running or has
+ * finished, and stays retained until it is removed. {@link #register(QueryJob)} refuses a job while
+ * the maximum is retained, and {@link #retain(QueryJob)} refuses one that would exceed it. The
+ * limit is read on every call, so a lowered limit applies to the next submit and retained jobs are
+ * not evicted. Cluster visibility is intentionally not modelled.
  */
 public final class InMemoryQueryJobStore implements QueryJobStore {
 
   private final ConcurrentMap<QueryJobId, QueryJob> jobs = new ConcurrentHashMap<>();
-  private final IntSupplier maxRetainedResults;
-  private volatile boolean closed;
+  private final IntSupplier maxRetainedJobs;
 
-  // Registered jobs that have finished, whose results the store retains; guarded by this.
-  private final Set<QueryJob> results = Collections.newSetFromMap(new IdentityHashMap<>());
+  // Guarded by this.
+  private boolean closed;
+  private final Set<QueryJob> retained = Collections.newSetFromMap(new IdentityHashMap<>());
 
   /** Creates a store without a limit. */
   public InMemoryQueryJobStore() {
@@ -45,43 +44,48 @@ public final class InMemoryQueryJobStore implements QueryJobStore {
   }
 
   /**
-   * @param maxRetainedResults maximum number of results the store retains; read on every {@link
-   *     #register}
+   * @param maxRetainedJobs maximum number of jobs the store retains; read on every {@link
+   *     #register} and {@link #retain}
    */
-  public InMemoryQueryJobStore(IntSupplier maxRetainedResults) {
-    this.maxRetainedResults =
-        Objects.requireNonNull(maxRetainedResults, "maxRetainedResults must not be null");
+  public InMemoryQueryJobStore(IntSupplier maxRetainedJobs) {
+    this.maxRetainedJobs =
+        Objects.requireNonNull(maxRetainedJobs, "maxRetainedJobs must not be null");
   }
 
   /**
    * {@inheritDoc}
    *
-   * @throws ResourceLimitExceededException when the store retains the maximum number of results
+   * @throws ResourceLimitExceededException when the store retains the maximum number of jobs
    */
   @Override
-  public QueryJob register(QueryJob job) {
+  public synchronized QueryJob register(QueryJob job) {
     Objects.requireNonNull(job, "job must not be null");
     if (closed) {
       throw new IllegalStateException("Query job store is closed");
     }
-    int limit = maxRetainedResults.getAsInt();
-    QueryJob existing;
-    synchronized (this) {
-      if (results.size() >= limit) {
-        throw new ResourceLimitExceededException(
-            String.format(
-                Locale.ROOT,
-                "Too many asynchronous query results are retained on this node [%s]; retry later,"
-                    + " or delete queries you no longer need with DELETE"
-                    + " /_plugins/_async_query/{id}",
-                Settings.Key.QUERY_ASYNC_MAX_RETAINED_RESULTS.getKeyValue()));
-      }
-      existing = jobs.putIfAbsent(job.id(), job);
+    checkCapacity();
+    return jobs.putIfAbsent(job.id(), job);
+  }
+
+  @Override
+  public synchronized void retain(QueryJob job) {
+    Objects.requireNonNull(job, "job must not be null");
+    if (jobs.get(job.id()) != job || retained.contains(job)) {
+      return;
     }
-    if (existing == null) {
-      job.onTerminal(() -> retainResult(job));
+    checkCapacity();
+    retained.add(job);
+  }
+
+  private void checkCapacity() {
+    if (retained.size() >= maxRetainedJobs.getAsInt()) {
+      throw new ResourceLimitExceededException(
+          String.format(
+              Locale.ROOT,
+              "Too many asynchronous queries are retained on this node [%s]; retry later, or"
+                  + " delete queries you no longer need with DELETE /_plugins/_async_query/{id}",
+              Settings.Key.QUERY_ASYNC_MAX_RETAINED_JOBS.getKeyValue()));
     }
-    return existing;
   }
 
   @Override
@@ -97,7 +101,7 @@ public final class InMemoryQueryJobStore implements QueryJobStore {
     if (!jobs.remove(id, job)) {
       return false;
     }
-    results.remove(job);
+    retained.remove(job);
     return true;
   }
 
@@ -106,22 +110,21 @@ public final class InMemoryQueryJobStore implements QueryJobStore {
     return List.copyOf(jobs.values());
   }
 
-  private synchronized void retainResult(QueryJob job) {
-    // A job removed before it finished retains no result.
-    if (jobs.get(job.id()) == job) {
-      results.add(job);
-    }
-  }
-
   @Override
   public void close() {
-    if (closed) {
-      return;
+    List<QueryJob> residual;
+    synchronized (this) {
+      if (closed) {
+        return;
+      }
+      closed = true;
+      residual = List.copyOf(jobs.values());
+      jobs.clear();
+      retained.clear();
     }
-    closed = true;
-    for (QueryJob job : jobs.values()) {
+    // Cancelled outside the lock: a job's terminal callbacks may call back into the store.
+    for (QueryJob job : residual) {
       job.cancel();
     }
-    jobs.clear();
   }
 }

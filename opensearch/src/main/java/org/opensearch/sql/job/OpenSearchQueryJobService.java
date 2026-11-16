@@ -91,14 +91,31 @@ public final class OpenSearchQueryJobService implements QueryJobService {
     return job.await(waitForCompletion)
         .whenComplete(
             (result, error) -> {
-              if (error == null && result instanceof QueryResult.Running) {
-                if (retentionPolicy != null) {
-                  retentionPolicy.arm(job, keepAlive);
-                }
-              } else {
+              if (error != null || !(result instanceof QueryResult.Running)) {
                 store.remove(job.id(), job);
               }
-            });
+            })
+        .thenApply(
+            result ->
+                result instanceof QueryResult.Running ? retain(job, keepAlive, result) : result);
+  }
+
+  /**
+   * Retains {@code job} before its id is returned. A job that cannot be retained, or whose
+   * retention cannot be armed, is removed and cancelled, and the submit fails with that error.
+   */
+  private QueryResult retain(QueryJob job, Duration keepAlive, QueryResult running) {
+    try {
+      store.retain(job);
+      if (retentionPolicy != null) {
+        retentionPolicy.arm(job, keepAlive);
+      }
+    } catch (RuntimeException e) {
+      store.remove(job.id(), job);
+      job.cancel();
+      throw e;
+    }
+    return running;
   }
 
   @Override

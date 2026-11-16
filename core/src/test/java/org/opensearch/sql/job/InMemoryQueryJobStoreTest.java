@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -95,12 +96,12 @@ class InMemoryQueryJobStoreTest {
   @Test
   void register_refusesWhileTheLimitIsReached() {
     InMemoryQueryJobStore store = new InMemoryQueryJobStore(() -> 1);
-    QueryJob finished = finishedJob(store, "ctx-finished");
+    QueryJob retained = retainedJob(store, "ctx-retained");
     ResourceLimitExceededException e =
         assertThrows(
             ResourceLimitExceededException.class, () -> store.register(newJob("ctx-second")));
-    assertTrue(e.getMessage().contains("plugins.query.async.max_retained_results"), e.getMessage());
-    assertTrue(store.remove(finished.id(), finished));
+    assertTrue(e.getMessage().contains("plugins.query.async.max_retained_jobs"), e.getMessage());
+    assertTrue(store.remove(retained.id(), retained));
     assertEquals(null, store.register(newJob("ctx-second")));
   }
 
@@ -108,54 +109,120 @@ class InMemoryQueryJobStoreTest {
   void register_readsTheLimitOnEveryCall() {
     AtomicInteger limit = new AtomicInteger(2);
     InMemoryQueryJobStore store = new InMemoryQueryJobStore(limit::get);
-    finishedJob(store, "ctx-1");
+    retainedJob(store, "ctx-1");
     limit.set(1);
     assertThrows(ResourceLimitExceededException.class, () -> store.register(newJob("ctx-2")));
   }
 
   @Test
-  void runningJob_isNotCountedUntilItFinishes() {
+  void registeredJob_isNotCountedUntilRetained() {
+    InMemoryQueryJobStore store = new InMemoryQueryJobStore(() -> 1);
+    QueryJob job = newJob("ctx-registered");
+    store.register(job);
+    assertTrue(admitsAnotherJob(store));
+    store.retain(job);
+    assertFalse(admitsAnotherJob(store));
+  }
+
+  @Test
+  void retain_refusesAJobBeyondTheLimitAndLeavesItRegistered() {
+    InMemoryQueryJobStore store = new InMemoryQueryJobStore(() -> 1);
+    QueryJob first = newJob("ctx-first");
+    QueryJob second = newJob("ctx-second");
+    store.register(first);
+    store.register(second);
+    store.retain(first);
+    assertThrows(ResourceLimitExceededException.class, () -> store.retain(second));
+    assertSame(second, store.find(second.id()).orElseThrow());
+    assertTrue(store.remove(second.id(), second));
+    assertFalse(admitsAnotherJob(store));
+  }
+
+  @Test
+  void retain_isIdempotent() {
+    InMemoryQueryJobStore store = new InMemoryQueryJobStore(() -> 1);
+    QueryJob job = retainedJob(store, "ctx-twice");
+    store.retain(job);
+    assertTrue(store.remove(job.id(), job));
+    assertTrue(admitsAnotherJob(store));
+  }
+
+  @Test
+  void retain_ignoresAJobThatIsNotRegistered() {
+    InMemoryQueryJobStore store = new InMemoryQueryJobStore(() -> 1);
+    QueryJob job = newJob("ctx-unregistered");
+    store.retain(job);
+    assertTrue(admitsAnotherJob(store));
+  }
+
+  @Test
+  void retainedJob_staysCountedAfterItFinishesUntilRemoved() {
     InMemoryQueryJobStore store = new InMemoryQueryJobStore(() -> 1);
     CompletableFuture<QueryResult> result = new CompletableFuture<>();
-    startedJob(store, "ctx-running", result);
-    assertTrue(admitsAnotherJob(store));
+    QueryJob job = startedJob(store, "ctx-finishing", result);
+    store.retain(job);
+    assertFalse(admitsAnotherJob(store));
     result.complete(RESULT);
     assertFalse(admitsAnotherJob(store));
-  }
-
-  @Test
-  void jobRemovedBeforeItFinishes_isNotCounted() {
-    InMemoryQueryJobStore store = new InMemoryQueryJobStore(() -> 1);
-    QueryJob job = startedJob(store, "ctx-deleted", new CompletableFuture<>());
-    store.remove(job.id(), job);
-    job.cancel();
+    assertTrue(store.remove(job.id(), job));
     assertTrue(admitsAnotherJob(store));
   }
 
   @Test
-  void failedJob_isCountedLikeASucceededOne() {
-    InMemoryQueryJobStore store = new InMemoryQueryJobStore(() -> 1);
-    CompletableFuture<QueryResult> result = new CompletableFuture<>();
-    startedJob(store, "ctx-failed", result);
-    result.completeExceptionally(new IllegalStateException("boom"));
-    assertFalse(admitsAnotherJob(store));
+  void concurrentRetains_neverExceedTheLimit() throws Exception {
+    int limit = 5;
+    int submits = 50;
+    InMemoryQueryJobStore store = new InMemoryQueryJobStore(() -> limit);
+    List<QueryJob> registered = new ArrayList<>();
+    for (int i = 0; i < submits; i++) {
+      QueryJob job = newJob("ctx-" + i);
+      store.register(job);
+      registered.add(job);
+    }
+    ExecutorService pool = Executors.newFixedThreadPool(8);
+    AtomicInteger accepted = new AtomicInteger();
+    try {
+      CountDownLatch start = new CountDownLatch(1);
+      List<Future<?>> retains = new ArrayList<>();
+      for (QueryJob job : registered) {
+        retains.add(
+            pool.submit(
+                () ->
+                    await(
+                        start,
+                        () -> {
+                          try {
+                            store.retain(job);
+                            accepted.incrementAndGet();
+                          } catch (ResourceLimitExceededException e) {
+                            // Refused: the limit is reached.
+                          }
+                        })));
+      }
+      start.countDown();
+      for (Future<?> retain : retains) {
+        retain.get(10, TimeUnit.SECONDS);
+      }
+    } finally {
+      pool.shutdownNow();
+    }
+    assertEquals(limit, accepted.get());
   }
 
   @Test
-  void jobsRemovedWhileTheyFinish_areCountedExactlyOnce() throws Exception {
+  void retainedJobsRemovedConcurrently_areReleasedExactlyOnce() throws Exception {
     AtomicInteger limit = new AtomicInteger(Integer.MAX_VALUE);
     InMemoryQueryJobStore store = new InMemoryQueryJobStore(limit::get);
     ExecutorService pool = Executors.newFixedThreadPool(2);
     try {
       for (int i = 0; i < 2000; i++) {
-        CompletableFuture<QueryResult> result = new CompletableFuture<>();
-        QueryJob job = startedJob(store, "ctx-" + i, result);
+        QueryJob job = retainedJob(store, "ctx-" + i);
         CountDownLatch start = new CountDownLatch(1);
-        Future<?> finish = pool.submit(() -> await(start, () -> result.complete(RESULT)));
-        Future<?> remove = pool.submit(() -> await(start, () -> store.remove(job.id(), job)));
+        Future<?> first = pool.submit(() -> await(start, () -> store.remove(job.id(), job)));
+        Future<?> second = pool.submit(() -> await(start, () -> store.remove(job.id(), job)));
         start.countDown();
-        finish.get(10, TimeUnit.SECONDS);
-        remove.get(10, TimeUnit.SECONDS);
+        first.get(10, TimeUnit.SECONDS);
+        second.get(10, TimeUnit.SECONDS);
       }
     } finally {
       pool.shutdownNow();
@@ -163,8 +230,8 @@ class InMemoryQueryJobStoreTest {
     limit.set(1);
     // Nothing stays counted after every job was removed...
     assertTrue(admitsAnotherJob(store));
-    // ...and nothing was released twice, so one finished job still fills a limit of one.
-    finishedJob(store, "ctx-last");
+    // ...and nothing was released twice, so one retained job still fills a limit of one.
+    retainedJob(store, "ctx-last");
     assertFalse(admitsAnotherJob(store));
   }
 
@@ -192,10 +259,10 @@ class InMemoryQueryJobStoreTest {
     return job;
   }
 
-  private static QueryJob finishedJob(InMemoryQueryJobStore store, String contextId) {
-    CompletableFuture<QueryResult> result = new CompletableFuture<>();
-    QueryJob job = startedJob(store, contextId, result);
-    result.complete(RESULT);
+  private static QueryJob retainedJob(InMemoryQueryJobStore store, String contextId) {
+    QueryJob job = newJob(contextId);
+    assertEquals(null, store.register(job));
+    store.retain(job);
     return job;
   }
 

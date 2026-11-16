@@ -8,7 +8,6 @@ package org.opensearch.sql.ppl;
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.deleteAsyncQuery;
-import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.pollUntilTerminal;
 import static org.opensearch.sql.ppl.AsyncPPLTestHelpers.postPpl;
 
 import java.io.IOException;
@@ -23,18 +22,17 @@ import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.setting.Settings.Key;
 
 /**
- * End-to-end IT for {@code plugins.query.async.max_retained_results}, the limit on asynchronous PPL
- * results a node retains for polling.
+ * End-to-end IT for {@code plugins.query.async.max_retained_jobs}, the limit on asynchronous PPL
+ * queries a node retains for polling.
  *
- * <p>Results left by earlier test classes may still be retained on the node. With a limit of one, a
- * submit is refused either at once, because such a result fills the limit, or after one result of
+ * <p>Queries left by earlier test classes may still be retained on the node. With a limit of one, a
+ * submit is refused either at once, because such a query fills the limit, or after one query of
  * this test fills it.
  */
-public class AsyncPPLRetainedResultLimitIT extends PPLIntegTestCase {
+public class AsyncPPLRetainedJobLimitIT extends PPLIntegTestCase {
 
-  private static final String MAX_RESULTS = Key.QUERY_ASYNC_MAX_RETAINED_RESULTS.getKeyValue();
+  private static final String MAX_JOBS = Key.QUERY_ASYNC_MAX_RETAINED_JOBS.getKeyValue();
   private static final String QUERY = "source=" + TEST_INDEX_ACCOUNT + " | stats count() as c";
-  private static final long POLL_TIMEOUT_MILLIS = 30_000;
 
   private final List<String> jobIds = new ArrayList<>();
 
@@ -59,13 +57,12 @@ public class AsyncPPLRetainedResultLimitIT extends PPLIntegTestCase {
   }
 
   @Test
-  public void submitIsRejectedWith429WhileRetainedResultsReachTheLimit() throws Exception {
+  public void submitIsRejectedWith429WhileRetainedJobsReachTheLimit() throws Exception {
     setLimit(1);
     ResponseException rejected;
     try {
-      String id = submitRetained();
-      // The retained result fills the limit once the query finishes, even after GET fetches it.
-      pollUntilTerminal(client(), id, POLL_TIMEOUT_MILLIS);
+      submitRetained();
+      // The retained query fills the limit from the moment its id is returned, running or not.
       rejected = Assert.assertThrows(ResponseException.class, this::submitRetained);
     } catch (ResponseException e) {
       rejected = e;
@@ -73,7 +70,7 @@ public class AsyncPPLRetainedResultLimitIT extends PPLIntegTestCase {
 
     Assert.assertEquals(429, rejected.getResponse().getStatusLine().getStatusCode());
     String body = getResponseBody(rejected.getResponse(), true);
-    Assert.assertTrue(body, body.contains(MAX_RESULTS));
+    Assert.assertTrue(body, body.contains(MAX_JOBS));
   }
 
   /** Submits {@link #QUERY} with a zero wait and returns the id of the retained job. */
@@ -91,7 +88,7 @@ public class AsyncPPLRetainedResultLimitIT extends PPLIntegTestCase {
         new JSONObject()
             .put(
                 "transient",
-                new JSONObject().put(MAX_RESULTS, limit == null ? JSONObject.NULL : limit))
+                new JSONObject().put(MAX_JOBS, limit == null ? JSONObject.NULL : limit))
             .toString());
     client().performRequest(request);
   }

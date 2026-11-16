@@ -220,9 +220,9 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
-  public static final Setting<Integer> QUERY_ASYNC_MAX_RETAINED_RESULTS_SETTING =
+  public static final Setting<Integer> QUERY_ASYNC_MAX_RETAINED_JOBS_SETTING =
       Setting.intSetting(
-          Key.QUERY_ASYNC_MAX_RETAINED_RESULTS.getKeyValue(),
+          Key.QUERY_ASYNC_MAX_RETAINED_JOBS.getKeyValue(),
           1000,
           1,
           Setting.Property.NodeScope,
@@ -585,9 +585,9 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
-        Key.QUERY_ASYNC_MAX_RETAINED_RESULTS,
-        QUERY_ASYNC_MAX_RETAINED_RESULTS_SETTING,
-        new Updater(Key.QUERY_ASYNC_MAX_RETAINED_RESULTS));
+        Key.QUERY_ASYNC_MAX_RETAINED_JOBS,
+        QUERY_ASYNC_MAX_RETAINED_JOBS_SETTING,
+        new Updater(Key.QUERY_ASYNC_MAX_RETAINED_JOBS));
     register(
         settingBuilder,
         clusterSettings,
@@ -827,7 +827,7 @@ public class OpenSearchSettings extends Settings {
         .add(PPL_JOIN_SUBSEARCH_MAXOUT_SETTING)
         .add(QUERY_MEMORY_LIMIT_SETTING)
         .add(QUERY_SIZE_LIMIT_SETTING)
-        .add(QUERY_ASYNC_MAX_RETAINED_RESULTS_SETTING)
+        .add(QUERY_ASYNC_MAX_RETAINED_JOBS_SETTING)
         .add(QUERY_PRUNING_ENABLED_SETTING)
         .add(QUERY_BUCKET_SIZE_SETTING)
         .add(METRICS_ROLLING_WINDOW_SETTING)
