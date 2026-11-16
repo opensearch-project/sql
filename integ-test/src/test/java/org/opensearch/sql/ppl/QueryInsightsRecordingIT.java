@@ -190,7 +190,8 @@ public class QueryInsightsRecordingIT extends PPLIntegTestCase {
     assertEquals(record.getString("id"), finished.getString("top_n_id"));
     // Its two searches are folded into its entry, as Live Queries shows them, not listed alone.
     for (JSONObject entry : QueryInsightsRecords.finishedQueries(client())) {
-      assertNotEquals("search listed on its own: " + entry, marker, entry.optString("derived_from"));
+      assertNotEquals(
+          "search listed on its own: " + entry, marker, entry.optString("derived_from"));
     }
   }
 
