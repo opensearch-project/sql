@@ -202,41 +202,6 @@ public class PPLQueryTaskTest {
   }
 
   @Test
-  public void testInlineExplainIsNotReported() {
-    // "explain source=t | ..." reaches the execute route because isExplainRequest() only looks at
-    // the path, so the sink's flag is what keeps it out of Top N.
-    PPLQueryTask task = newTask();
-    task.setQueryInsightsQueryText("explain source=table | fields identifier");
-    task.setQueryInsightsExplain(true);
-    assertFalse(TransportPPLQueryAction.shouldReportToQueryInsights(task));
-  }
-
-  @Test
-  public void testSyntaxErrorIsNotReported() {
-    // A parse failure throws before the sink runs, leaving no query text to report.
-    assertFalse(TransportPPLQueryAction.shouldReportToQueryInsights(newTask()));
-  }
-
-  @Test
-  public void testRuntimeFailureAfterPlanningIsReported() {
-    // Planning succeeded, so the metadata is present; a later execution failure must still report.
-    PPLQueryTask task = newTask();
-    task.setQueryInsightsQueryText("source=table | where identifier > 42");
-    task.setQueryInsightsFailed(true);
-    assertTrue(TransportPPLQueryAction.shouldReportToQueryInsights(task));
-  }
-
-  @Test
-  public void testNestedQueryIsNotReported() {
-    // An outer marker was already in the context, so the child searches rolled up into that query.
-    // Reporting here would advertise a marker no child references and double count their cost.
-    PPLQueryTask task = newTask();
-    task.setQueryInsightsQueryText("source=table | where identifier > 42");
-    task.setQueryInsightsNested(true);
-    assertFalse(TransportPPLQueryAction.shouldReportToQueryInsights(task));
-  }
-
-  @Test
   public void testParentMarkerIsAbsentUntilStamped() {
     // The record sends whatever marker was stamped. A task whose stamp never happened must carry
     // none, so the record does not advertise a marker no child search references.
@@ -244,15 +209,6 @@ public class PPLQueryTaskTest {
     assertNull(task.getQueryInsightsParentMarker());
     task.setQueryInsightsParentMarker("PPL:node-1:42");
     assertEquals("PPL:node-1:42", task.getQueryInsightsParentMarker());
-  }
-
-  @Test
-  public void testNonNestedQueryIsReportedByDefault() {
-    // Guards the default: a plain query must not be mistaken for a nested one.
-    PPLQueryTask task = newTask();
-    task.setQueryInsightsQueryText("source=table | where identifier > 42");
-    assertFalse("nested must default to false", task.isQueryInsightsNested());
-    assertTrue(TransportPPLQueryAction.shouldReportToQueryInsights(task));
   }
 
   @Test

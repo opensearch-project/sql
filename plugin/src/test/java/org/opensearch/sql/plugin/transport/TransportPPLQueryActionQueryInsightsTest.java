@@ -86,7 +86,7 @@ public class TransportPPLQueryActionQueryInsightsTest {
   /** Registered by the Query Insights plugin, so absent when it is not installed. */
   private static final Setting<Boolean> PPL_RECORDING =
       Setting.boolSetting(
-          TransportPPLQueryAction.QUERY_INSIGHTS_PPL_ENABLED_KEY,
+          PPLQueryInsightsCoordinator.RECORDING_ENABLED_KEY,
           false,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
@@ -150,8 +150,9 @@ public class TransportPPLQueryActionQueryInsightsTest {
     setField("injector", injector);
     setField("tracer", NoopTracer.INSTANCE);
     setField("clientRef", client);
-    setField("clusterServiceRef", clusterService);
-    setField("transportServiceRef", transportService);
+    setField(
+        "queryInsights",
+        new PPLQueryInsightsCoordinator(clusterService, transportService, threadPool));
     setField("taskResourceTrackingService", tracking);
 
     registerMetricIfAbsent(MetricName.PPL_REQ_TOTAL);

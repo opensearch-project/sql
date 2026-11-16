@@ -32,10 +32,8 @@ import org.opensearch.common.inject.Guice;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.inject.Injector;
 import org.opensearch.common.inject.ModulesBuilder;
-import org.opensearch.common.settings.Setting;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.core.action.NotifyOnceListener;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
@@ -111,10 +109,10 @@ public class TransportPPLQueryAction
   private final NodeClient clientRef;
   private final ClusterService clusterServiceRef;
   private final org.opensearch.sql.common.setting.Settings pluginSettingsRef;
-  private final TransportService transportServiceRef;
   private final QueryJobService queryJobService;
   private final SecurityAdapter securityAdapter;
   private final TaskResourceTrackingService taskResourceTrackingService;
+  private final PPLQueryInsightsCoordinator queryInsights;
 
   @Inject
   public TransportPPLQueryAction(
@@ -133,10 +131,11 @@ public class TransportPPLQueryAction
     super(PPLQueryAction.NAME, transportService, actionFilters, TransportPPLQueryRequest::new);
     this.clientRef = client;
     this.clusterServiceRef = clusterService;
-    this.transportServiceRef = transportService;
     this.queryJobService = queryJobService;
     this.securityAdapter = securityAdapter;
     this.taskResourceTrackingService = taskResourceTrackingService;
+    this.queryInsights =
+        new PPLQueryInsightsCoordinator(clusterService, transportService, client.threadPool());
     // The plugin's components are created before any TransportService exists; fill it here.
     remoteClusters.set(transportService.getRemoteClusterService());
 
@@ -202,61 +201,6 @@ public class TransportPPLQueryAction
   }
 
   /**
-   * Stamp the parent marker so child DSL searches carry it back to this PPL query. The marker is
-   * stored on the task only once it is actually in the thread context, and the record later sends
-   * whatever was stored: if stamping fails the record goes out with no marker rather than one that
-   * no child search carries.
-   */
-  private void stampQueryInsightsParentHeader(PPLQueryTask pplQueryTask) {
-    try {
-      ThreadContext threadContext = clientRef.threadPool().getThreadContext();
-      String value =
-          QueryInsightsMarker.value(
-              "PPL", clusterServiceRef.localNode().getId(), pplQueryTask.getId());
-      // An outer marker is kept rather than replaced: putHeader rejects a duplicate key, and
-      // clearing the context first would drop the authenticated-user headers the child searches
-      // need. The child searches then belong to that outer query, so this one does not report a
-      // record -- see shouldReportToQueryInsights.
-      if (threadContext.getHeader(QueryInsightsMarker.PARENT_HEADER) == null) {
-        threadContext.putHeader(QueryInsightsMarker.PARENT_HEADER, value);
-        pplQueryTask.setQueryInsightsParentMarker(value);
-      } else {
-        pplQueryTask.setQueryInsightsNested(true);
-      }
-      // Capture the user here; the report listener runs on a thread without the transient.
-      pplQueryTask.setQueryInsightsUserInfo(
-          threadContext.getTransient(SECURITY_USER_INFO_TRANSIENT));
-    } catch (Exception e) {
-      LOG.warn("Failed to stamp Query Insights parent header for query association", e);
-    }
-  }
-
-  /** Security plugin's authenticated-user transient ({@code name|backendroles|roles|...}). */
-  private static final String SECURITY_USER_INFO_TRANSIENT = "_opendistro_security_user_info";
-
-  /**
-   * Toggle for recording PPL queries into Query Insights. Registered by the Query Insights plugin
-   * ({@code QueryInsightsSettings.TOP_N_PPL_QUERIES_ENABLED}, default false).
-   */
-  static final String QUERY_INSIGHTS_PPL_ENABLED_KEY = "search.insights.top_queries.ppl.enabled";
-
-  /** True when Query Insights is installed and the toggle is on; disabled on any failure. */
-  private boolean isQueryInsightsRecordingEnabled() {
-    try {
-      Setting<?> setting =
-          clusterServiceRef.getClusterSettings().get(QUERY_INSIGHTS_PPL_ENABLED_KEY);
-      if (setting == null) {
-        return false;
-      }
-      Object value = clusterServiceRef.getClusterSettings().get(setting);
-      return Boolean.TRUE.equals(value);
-    } catch (Exception e) {
-      LOG.debug("Failed to evaluate Query Insights PPL recording gate; defaulting to disabled", e);
-      return false;
-    }
-  }
-
-  /**
    * Has the engine's thread scopes track this query's threads through core, so its CPU and memory
    * show in {@code _tasks} (and Live Queries) while it runs and in its Top N record after. Core
    * records nothing unless it registered the task, which it does only when {@code
@@ -265,99 +209,6 @@ public class TransportPPLQueryAction
   private void trackEngineThreads(PPLQueryTask pplQueryTask) {
     if (pplQueryTask != null) {
       pplQueryTask.setResourceTracking(taskResourceTrackingService);
-    }
-  }
-
-  /**
-   * Report the finished PPL query once the task is unregistered and every accounting scope has
-   * closed, so the measured usage is final.
-   */
-  private void registerQueryInsightsReport(PPLQueryTask pplQueryTask) {
-    try {
-      boolean registered =
-          pplQueryTask.addResourceTrackingCompletionListener(
-              new NotifyOnceListener<>() {
-                @Override
-                protected void innerOnResponse(Task task) {
-                  writeQueryInsightsRecord((PPLQueryTask) task);
-                }
-
-                @Override
-                protected void innerOnFailure(Exception e) {}
-              });
-      if (registered == false) {
-        LOG.debug(
-            "Query Insights report listener not registered; resource tracking already complete");
-      }
-    } catch (Exception e) {
-      LOG.warn("Failed to register Query Insights report listener", e);
-    }
-  }
-
-  /**
-   * Whether a finished task should produce a Top N record. Decided from what the metadata sink
-   * captured rather than from the route, because the route cannot see either case: {@code explain}
-   * is valid inside the query text (not just on {@code /_explain}), and a query that fails to parse
-   * never reaches the sink at all, so there is no parsed query to report.
-   *
-   * <p>A nested query is also skipped: its child searches carry the outer query's marker, so a
-   * record built from this task's own id would advertise a marker no child references, and the
-   * children's cost would be counted against both records.
-   */
-  static boolean shouldReportToQueryInsights(PPLQueryTask pplQueryTask) {
-    return pplQueryTask.getQueryInsightsQueryText() != null
-        && !pplQueryTask.isQueryInsightsExplain()
-        && !pplQueryTask.isQueryInsightsNested();
-  }
-
-  /** Serialize a completed PPL query and send it to Query Insights; errors are ignored. */
-  private void writeQueryInsightsRecord(PPLQueryTask pplQueryTask) {
-    if (!shouldReportToQueryInsights(pplQueryTask)) {
-      return;
-    }
-    try {
-      String nodeId = clusterServiceRef.localNode().getId();
-      String queryText = pplQueryTask.getQueryInsightsQueryText();
-
-      long cpuNanos = pplQueryTask.getCpuNanos();
-      long memoryBytes = pplQueryTask.getAllocatedBytes();
-
-      // Taken when the response was sent (see recordCompletion), not now: this runs once the last
-      // thread scope closes, which a lookahead search still running on the background pool can
-      // hold open well past the response.
-      long latencyMillis = pplQueryTask.getQueryInsightsLatencyMillis();
-      if (latencyMillis < 0) {
-        latencyMillis = elapsedMillis(pplQueryTask);
-      }
-
-      // Start time, not report time: Query Insights stamps a search record with the request's
-      // start (SearchRequest#getOrCreateAbsoluteStartMillis). Stamping completion here would put a
-      // query that crosses a Top N window boundary in a later window than its own child searches,
-      // and the marker roll-up would then miss them.
-      long timestampMillis = pplQueryTask.getStartTime();
-
-      // The marker stamped on child DSL tasks, so their cpu/memory rolls up into this parent; null
-      // when stamping failed, which the reporter sends as an empty marker.
-      String parentMarker = pplQueryTask.getQueryInsightsParentMarker();
-
-      String userInfo = pplQueryTask.getQueryInsightsUserInfo();
-      boolean failed = pplQueryTask.isQueryInsightsFailed();
-
-      QueryInsightsReporter.report(
-          transportServiceRef,
-          clusterServiceRef.localNode(),
-          "PPL",
-          parentMarker,
-          nodeId,
-          queryText,
-          timestampMillis,
-          latencyMillis,
-          cpuNanos,
-          memoryBytes,
-          userInfo,
-          failed);
-    } catch (Exception e) {
-      LOG.debug("Failed to write PPL query to Query Insights", e);
     }
   }
 
@@ -421,8 +272,8 @@ public class TransportPPLQueryAction
         TraceableActionListener.create(listener, rootSpan, tracer);
     ActionListener<TransportPPLQueryResponse> clearingListener =
         wrapWithProfilingClear(tracedListener);
-    // Read back later by writeQueryInsightsRecord, which runs after this listener completes.
-    clearingListener = recordCompletion(clearingListener, pplQueryTask);
+    // Notes on the task how the query ended, which its Query Insights record reads after it.
+    clearingListener = queryInsights.recordCompletion(clearingListener, pplQueryTask);
 
     try {
       // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices.
@@ -456,57 +307,42 @@ public class TransportPPLQueryAction
         return;
       }
 
-      Consumer<QueryInsightsMetadata> queryInsightsSink =
-          metadata -> {
-            rootSpan.addAttribute("db.query.text", metadata.anonymizedQuery());
-            if (pplQueryTask != null) {
-              // The record keeps the query as written, literals included, as Query Insights does
-              // for a DSL search's source; the span above stays anonymized.
-              pplQueryTask.setQueryInsightsQueryText(transformedRequest.getRequest());
-              pplQueryTask.setQueryInsightsExplain(metadata.explain());
-            }
-          };
+      // The span keeps the anonymized query; the Query Insights record keeps it as written.
+      Consumer<QueryInsightsMetadata> tracingSink =
+          metadata -> rootSpan.addAttribute("db.query.text", metadata.anonymizedQuery());
+      Consumer<QueryInsightsMetadata> metadataSink =
+          tracingSink.andThen(queryInsights.sink(pplQueryTask, transformedRequest.getRequest()));
       PPLService pplService = injector.getInstance(PPLService.class);
       if (transformedRequest.isExplainRequest()) {
         pplService.explain(
             transformedRequest,
             createExplainResponseListener(transformedRequest, clearingListener),
-            queryInsightsSink);
+            metadataSink);
       } else if (transformedRequest.analyze()) {
         pplService.analyze(
             transformedRequest,
             createAnalyzeResponseListener(transformedRequest, clearingListener),
-            queryInsightsSink);
+            metadataSink);
       } else if (transformedRequest.shouldRunAsync()) {
         // Async submission answers RUNNING and the query outlives this task, so the task's
         // completion is not the query's end: a record stamped from it would carry near-zero
         // latency and reference child searches that have not run yet. Left out of Top N until the
         // job path reports for itself.
-        submitAsync(task, pplService, transformedRequest, clearingListener, queryInsightsSink);
-      } else if (pplQueryTask != null && isQueryInsightsRecordingEnabled()) {
+        submitAsync(task, pplService, transformedRequest, clearingListener, metadataSink);
+      } else if (queryInsights.isEnabledFor(pplQueryTask)) {
         // Query Insights is set up only on this execute route: explain, analyze, and the analytics
         // engine run no search, so stamping their child searches would orphan them under a parent
         // that never reports, and reporting the query itself would put an empty record in Top N.
-        final ThreadContext threadContext = clientRef.threadPool().getThreadContext();
-        // Capture the caller's context before stamping, so the callback runs without our header.
-        // The worker thread that completes the query carries it, and an in-process caller invoked
-        // via NodeClient would otherwise inherit it in onResponse.
-        ActionListener<TransportPPLQueryResponse> callerListener =
-            ContextPreservingActionListener.wrapPreservingContext(clearingListener, threadContext);
-        // Stamp inside a stored context so the header is dropped from this thread when doExecute
-        // returns, keeping a caller that issues several PPL queries from tagging later ones (or a
-        // plain DSL search) with this query's marker. Child searches still see it: the executor
-        // captures the thread context when the work is scheduled, which happens inside this block.
-        try (ThreadContext.StoredContext ignored = threadContext.newStoredContext(true)) {
-          trackEngineThreads(pplQueryTask);
-          stampQueryInsightsParentHeader(pplQueryTask);
-          registerQueryInsightsReport(pplQueryTask);
-          executePplQuery(pplService, transformedRequest, callerListener, queryInsightsSink);
-        }
+        trackEngineThreads(pplQueryTask);
+        queryInsights.runRecorded(
+            pplQueryTask,
+            clearingListener,
+            callerListener ->
+                executePplQuery(pplService, transformedRequest, callerListener, metadataSink));
       } else {
         // Tracked without Query Insights recording too: _tasks and Live Queries read the task.
         trackEngineThreads(pplQueryTask);
-        executePplQuery(pplService, transformedRequest, clearingListener, queryInsightsSink);
+        executePplQuery(pplService, transformedRequest, clearingListener, metadataSink);
       }
     } catch (Exception e) {
       clearingListener.onFailure(e);
@@ -522,7 +358,7 @@ public class TransportPPLQueryAction
       PPLService pplService,
       PPLQueryRequest transformedRequest,
       ActionListener<TransportPPLQueryResponse> listener,
-      Consumer<QueryInsightsMetadata> queryInsightsSink) {
+      Consumer<QueryInsightsMetadata> metadataSink) {
     if (!(task instanceof CancellableTask cancellableTask)) {
       throw new IllegalArgumentException("Async PPL queries require a cancellable task");
     }
@@ -532,7 +368,7 @@ public class TransportPPLQueryAction
         new PPLQueryRunner(
             pplService,
             transformedRequest,
-            queryInsightsSink,
+            metadataSink,
             Clock.systemUTC(),
             cancelExecution,
             () -> new QueryProgress(progressTracker.fractionDone()));
@@ -710,7 +546,7 @@ public class TransportPPLQueryAction
       PPLService pplService,
       PPLQueryRequest request,
       ActionListener<TransportPPLQueryResponse> listener,
-      Consumer<QueryInsightsMetadata> queryInsightsSink) {
+      Consumer<QueryInsightsMetadata> metadataSink) {
     // Time sync executions only; explain/analyze/async responses don't reflect query latency.
     ActionListener<TransportPPLQueryResponse> timedListener =
         QueryLatencyMetrics.timedListener(listener, LatencyMetricName.PPL);
@@ -718,40 +554,7 @@ public class TransportPPLQueryAction
         request,
         createListener(request, timedListener),
         createExplainResponseListener(request, listener),
-        queryInsightsSink);
-  }
-
-  /**
-   * Records on the task how the query ended and its latency as the response goes out, for the Query
-   * Insights record written later. Returns {@code delegate} unchanged when there is no PPL task.
-   */
-  private ActionListener<TransportPPLQueryResponse> recordCompletion(
-      ActionListener<TransportPPLQueryResponse> delegate, PPLQueryTask pplQueryTask) {
-    if (pplQueryTask == null) {
-      return delegate;
-    }
-    return new ActionListener<>() {
-      @Override
-      public void onResponse(TransportPPLQueryResponse response) {
-        pplQueryTask.setQueryInsightsLatencyMillis(elapsedMillis(pplQueryTask));
-        delegate.onResponse(response);
-      }
-
-      @Override
-      public void onFailure(Exception e) {
-        pplQueryTask.setQueryInsightsLatencyMillis(elapsedMillis(pplQueryTask));
-        pplQueryTask.setQueryInsightsFailed(true);
-        delegate.onFailure(e);
-      }
-    };
-  }
-
-  /**
-   * Wall-clock (monotonic) time since the task started. The profile total is not used: it collapses
-   * to ~0 across the thread that finishes the query.
-   */
-  private static long elapsedMillis(PPLQueryTask pplQueryTask) {
-    return Math.max(0L, (System.nanoTime() - pplQueryTask.getStartTimeNanos()) / 1_000_000L);
+        metadataSink);
   }
 
   private ActionListener<TransportPPLQueryResponse> wrapWithProfilingClear(
