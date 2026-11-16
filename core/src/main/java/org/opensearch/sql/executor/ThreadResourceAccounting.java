@@ -12,6 +12,13 @@ package org.opensearch.sql.executor;
  * plugin pool cannot opt into, so the engine brackets its own threads instead. It does so through
  * this interface rather than calling core directly: whether and how a stretch of work is measured
  * is the task's decision, not the engine's.
+ *
+ * <p>It lives in core although only the opensearch module calls it ({@code OpenSearchQueryManager},
+ * {@code ThreadPoolExecutionDispatcher} and {@code BackgroundSearchScanner}), because {@code
+ * PPLQueryTask} implements it and must not reference opensearch module types: plugins such as
+ * alerting load that task with only core, ppl and protocol (#5923, checked by {@code
+ * ThinJarClassesTest}). The plugin module, where the task lives, is not visible to the opensearch
+ * module either.
  */
 public interface ThreadResourceAccounting {
 
