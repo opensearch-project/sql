@@ -937,16 +937,6 @@ yamlRestTest {
 // node is fetched when the task's tests finish, while the nodes are still running. This also
 // works when some tests fail.
 if (Boolean.getBoolean('tests.coverage')) {
-    configurations {
-        jacocoNodeAgent
-        jacocoNodeAnt
-    }
-
-    dependencies {
-        jacocoNodeAgent "org.jacoco:org.jacoco.agent:${rootProject.jacoco.toolVersion}:runtime"
-        jacocoNodeAnt "org.jacoco:org.jacoco.ant:${rootProject.jacoco.toolVersion}"
-    }
-
     // Shared by all tasks, so that no two nodes in the build listen on the same port.
     def nextAgentPort = new AtomicInteger(6300)
 
@@ -954,7 +944,10 @@ if (Boolean.getBoolean('tests.coverage')) {
         def agentPorts = [:]
 
         setBeforeStart {
-            def agentJar = configurations.jacocoNodeAgent.singleFile
+            // The jacoco plugin's agent artifact wraps the agent jar that the JVM loads.
+            def agentJar = zipTree(configurations.jacocoAgent.singleFile).matching {
+                include 'jacocoagent.jar'
+            }.singleFile
             clusters.each { cluster ->
                 cluster.nodes.each { node ->
                     int port = nextAgentPort.getAndIncrement()
@@ -971,7 +964,7 @@ if (Boolean.getBoolean('tests.coverage')) {
                 return
             }
             ant.taskdef(name: 'jacocoDump', classname: 'org.jacoco.ant.DumpTask',
-                    classpath: configurations.jacocoNodeAnt.asPath)
+                    classpath: configurations.jacocoAnt.asPath)
             agentPorts.each { nodeName, port ->
                 ant.jacocoDump(address: '127.0.0.1', port: port, append: false,
                         destfile: file("${buildDir}/jacoco/cluster/${task.name}-${nodeName}.exec"))
