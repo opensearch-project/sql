@@ -272,7 +272,9 @@ public class TransportPPLQueryAction
         TraceableActionListener.create(listener, rootSpan, tracer);
     ActionListener<TransportPPLQueryResponse> clearingListener =
         wrapWithProfilingClear(tracedListener);
-    // Notes on the task how the query ended, which its Query Insights record reads after it.
+    // Notes on the task how the query ended, which its Query Insights record reads after it. Only
+    // the recorded route reads it, but it wraps every route here so that a failure thrown into the
+    // catch below still marks the task failed.
     clearingListener = queryInsights.recordCompletion(clearingListener, pplQueryTask);
 
     try {

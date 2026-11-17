@@ -157,6 +157,20 @@ public class PPLServiceTest {
   }
 
   @Test
+  public void testInlineExplainOnTheExecuteRouteIsFlaggedAsAnExplain() {
+    // The execute route's path doesn't say the statement is an explain, so the flag is what keeps
+    // it out of Query Insights.
+    AtomicReference<QueryInsightsMetadata> metadata = new AtomicReference<>();
+    pplService.execute(
+        new PPLQueryRequest("explain search source=t a=42", null, QUERY),
+        getQueryListener(false),
+        getExplainListener(false),
+        metadata::set);
+    Assert.assertNotNull(metadata.get());
+    Assert.assertTrue(metadata.get().explain());
+  }
+
+  @Test
   public void testExplainPassesAnonymizedQueryToSink() {
     AtomicReference<QueryInsightsMetadata> metadata = new AtomicReference<>();
     pplService.explain(

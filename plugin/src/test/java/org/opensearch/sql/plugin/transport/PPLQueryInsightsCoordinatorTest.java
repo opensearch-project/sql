@@ -115,7 +115,7 @@ public class PPLQueryInsightsCoordinatorTest {
   }
 
   @Test
-  public void testInlineExplainIsNotReported() {
+  public void inlineExplainIsNotReported() {
     // "explain source=t | ..." reaches the execute route because isExplainRequest() only looks at
     // the path, so the sink's flag is what keeps it out of Top N.
     PPLQueryTask task = newTask();
@@ -125,13 +125,13 @@ public class PPLQueryInsightsCoordinatorTest {
   }
 
   @Test
-  public void testSyntaxErrorIsNotReported() {
+  public void syntaxErrorIsNotReported() {
     // A parse failure throws before the sink runs, leaving no query text to report.
     assertFalse(PPLQueryInsightsCoordinator.shouldReport(newTask()));
   }
 
   @Test
-  public void testRuntimeFailureAfterPlanningIsReported() {
+  public void runtimeFailureAfterPlanningIsReported() {
     // Planning succeeded, so the metadata is present; a later execution failure must still report.
     PPLQueryTask task = newTask();
     task.setQueryInsightsQueryText("source=table | where identifier > 42");
@@ -140,7 +140,7 @@ public class PPLQueryInsightsCoordinatorTest {
   }
 
   @Test
-  public void testNestedQueryIsNotReported() {
+  public void nestedQueryIsNotReported() {
     // An outer marker was already in the context, so the child searches rolled up into that query.
     // Reporting here would advertise a marker no child references and double count their cost.
     PPLQueryTask task = newTask();
@@ -150,7 +150,7 @@ public class PPLQueryInsightsCoordinatorTest {
   }
 
   @Test
-  public void testNonNestedQueryIsReportedByDefault() {
+  public void nonNestedQueryIsReportedByDefault() {
     // Guards the default: a plain query must not be mistaken for a nested one.
     PPLQueryTask task = newTask();
     task.setQueryInsightsQueryText("source=table | where identifier > 42");

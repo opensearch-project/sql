@@ -191,7 +191,11 @@ public class QueryInsightsRecordingIT extends PPLIntegTestCase {
       cpu += measurement(search, "cpu");
       memory += measurement(search, "memory");
     }
-    assertTrue("the search reports no memory", memory > 0);
+    // The check below proves the roll-up only while the search outweighs the engine (about 23 MB
+    // to 1 MB when written); fail rather than pass without proving anything.
+    assertTrue(
+        "the search allocated " + memory + " B, too little to tell its cost apart",
+        memory > 5_000_000);
     // Query Insights adds the cost of the searches to the query's record, so Top N ranks the query
     // by what it cost as a whole.
     long searchCpu = cpu;
