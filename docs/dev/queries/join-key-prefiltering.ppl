@@ -1,0 +1,6 @@
+source=request_logs
+| lookup dim_lookup host_key append _lookup, service_name, environment, region
+| where _lookup = "host"
+| where service_name = "payment-service"
+| head 10
+| fields request_id, host_key, region;
