@@ -16,6 +16,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -24,6 +25,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
@@ -41,6 +43,7 @@ import org.mockito.ArgumentCaptor;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.sql.common.error.ResourceLimitExceededException;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.job.exceptions.QueryJobForbiddenException;
@@ -411,6 +414,168 @@ class OpenSearchQueryJobServiceTest {
     assertFalse(runner.wasRun());
     assertTrue(store.jobs().isEmpty());
     verifyNoInteractions(threadPool);
+  }
+
+  @Test
+  void submit_refusedWhileTheStoreIsFullNeverStartsTheRunner() {
+    useLimitedStore(1);
+    submitRunning(new RecordingRunner());
+    RecordingRunner refused = new RecordingRunner();
+
+    assertThrows(
+        ResourceLimitExceededException.class,
+        () -> service.submit(refused, ALICE, WAIT, KEEP_ALIVE));
+
+    assertFalse(refused.wasRun());
+  }
+
+  @Test
+  void submit_runningJobIsCountedFromItsIdUntilDeleted() {
+    useLimitedStore(1);
+    RecordingRunner runner = new RecordingRunner();
+    QueryResult.Running running = submitRunning(runner);
+    assertFalse(admitsAnotherJob());
+
+    runner.complete(RESULT);
+    assertFalse(admitsAnotherJob());
+
+    service.delete(running.id(), ALICE);
+    assertTrue(admitsAnotherJob());
+  }
+
+  @Test
+  void submit_jobTheStoreCannotRetainIsCancelledAndRefused() {
+    useLimitedStore(1);
+    // Both pass the register check while nothing is retained; only one can be retained.
+    RecordingRunner first = new RecordingRunner();
+    RecordingRunner second = new RecordingRunner();
+    CompletableFuture<QueryResult> firstSubmit =
+        service.submit(first, ALICE, Duration.ofMillis(200), KEEP_ALIVE).toCompletableFuture();
+    CompletableFuture<QueryResult> secondSubmit =
+        service.submit(second, ALICE, Duration.ofMillis(200), KEEP_ALIVE).toCompletableFuture();
+
+    boolean firstRetained = isRetained(firstSubmit);
+    boolean secondRetained = isRetained(secondSubmit);
+
+    assertNotEquals(firstRetained, secondRetained);
+    assertEquals(!firstRetained, first.wasCancelled());
+    assertEquals(!secondRetained, second.wasCancelled());
+    assertEquals(1, store.jobs().size());
+  }
+
+  /** Whether the submit returned an id; otherwise asserts it was refused for capacity. */
+  private static boolean isRetained(CompletableFuture<QueryResult> submit) {
+    try {
+      assertInstanceOf(QueryResult.Running.class, submit.join());
+      return true;
+    } catch (CompletionException e) {
+      assertInstanceOf(ResourceLimitExceededException.class, e.getCause());
+      return false;
+    }
+  }
+
+  @Test
+  void concurrentSubmits_retainNoMoreJobsThanTheLimit() throws Exception {
+    int limit = 5;
+    int submits = 50;
+    useLimitedStore(limit);
+    List<RecordingRunner> runners = new ArrayList<>();
+    for (int i = 0; i < submits; i++) {
+      runners.add(new RecordingRunner());
+    }
+    AtomicInteger retained = new AtomicInteger();
+    AtomicInteger refused = new AtomicInteger();
+    ExecutorService pool = Executors.newFixedThreadPool(16);
+    try {
+      CountDownLatch start = new CountDownLatch(1);
+      List<Future<?>> futures = new ArrayList<>();
+      for (RecordingRunner runner : runners) {
+        futures.add(
+            pool.submit(
+                () -> {
+                  start.await();
+                  try {
+                    service
+                        .submit(runner, ALICE, Duration.ZERO, KEEP_ALIVE)
+                        .toCompletableFuture()
+                        .join();
+                    retained.incrementAndGet();
+                  } catch (ResourceLimitExceededException | CompletionException e) {
+                    Throwable cause = e instanceof CompletionException ? e.getCause() : e;
+                    assertInstanceOf(ResourceLimitExceededException.class, cause);
+                    refused.incrementAndGet();
+                  }
+                  return null;
+                }));
+      }
+      start.countDown();
+      for (Future<?> future : futures) {
+        future.get(10, TimeUnit.SECONDS);
+      }
+    } finally {
+      pool.shutdownNow();
+    }
+    // Every retained job finishes; the store still holds no more than the limit.
+    runners.forEach(runner -> runner.complete(RESULT));
+
+    assertEquals(limit, retained.get());
+    assertEquals(submits - limit, refused.get());
+    assertEquals(limit, store.jobs().size());
+    assertFalse(admitsAnotherJob());
+  }
+
+  @Test
+  void submit_jobWhoseRetentionCannotBeArmedIsReleasedAndCancelled() {
+    useLimitedStore(1);
+    RetentionPolicy failingPolicy = spy(retentionPolicy);
+    IllegalStateException armFailure = new IllegalStateException("arm failed");
+    doThrow(armFailure).when(failingPolicy).arm(any(QueryJob.class), eq(KEEP_ALIVE));
+    service = newService(failingPolicy);
+    RecordingRunner runner = new RecordingRunner();
+
+    CompletionException e =
+        assertThrows(
+            CompletionException.class,
+            () ->
+                service
+                    .submit(runner, ALICE, Duration.ZERO, KEEP_ALIVE)
+                    .toCompletableFuture()
+                    .join());
+
+    assertSame(armFailure, e.getCause());
+    assertTrue(runner.wasCancelled());
+    assertTrue(store.jobs().isEmpty());
+    assertTrue(admitsAnotherJob());
+  }
+
+  @Test
+  void submit_inlineResultIsNotCounted() {
+    useLimitedStore(1);
+    RecordingRunner runner = new RecordingRunner();
+    runner.complete(RESULT);
+
+    service.submit(runner, ALICE, WAIT, KEEP_ALIVE).toCompletableFuture().join();
+
+    assertTrue(admitsAnotherJob());
+  }
+
+  /** Registers and removes a fresh job; returns whether the store admitted it. */
+  private boolean admitsAnotherJob() {
+    QueryJob probe =
+        new QueryJob(QueryJobId.create("node-a"), ALICE, new RecordingRunner(), Clock.systemUTC());
+    try {
+      store.register(probe);
+    } catch (ResourceLimitExceededException e) {
+      return false;
+    }
+    store.remove(probe.id(), probe);
+    return true;
+  }
+
+  private void useLimitedStore(int maxRetainedJobs) {
+    store = new InMemoryQueryJobStore(() -> maxRetainedJobs);
+    retentionPolicy = new RetentionPolicy(store, threadPool);
+    service = newService(retentionPolicy);
   }
 
   private QueryResult.Running submitRunning(RecordingRunner runner) {

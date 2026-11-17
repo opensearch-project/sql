@@ -110,6 +110,27 @@ Expected output:
 }
 ```
   
+## plugins.query.async.max_retained_jobs
+
+### Version
+
+3.10
+
+### Description
+
+This setting limits how many asynchronous PPL queries a node retains for polling. A query is retained from the moment its submit returns an `id`, while it runs and after it finishes, until it is deleted with `DELETE /_plugins/_async_query/{id}` or its `keep_alive` expires; fetching its result with GET does not release it. Queries whose results are returned inline and synchronous queries are not counted. While the limit is reached, an asynchronous submit fails with `429`. A query that is still running when its wait ends and finds the limit reached is cancelled, and its submit fails with `429`.
+1. The default value is 1000. The minimum is 1.
+2. This setting is node scope.
+3. This setting can be updated dynamically. A lowered limit applies to the next submit; retained queries are not removed.
+
+### Example
+
+```bash ignore
+curl -sS -H 'Content-Type: application/json' \
+-X PUT localhost:9200/_plugins/_query/settings \
+-d '{"transient" : {"plugins.query.async.max_retained_jobs" : 100}}'
+```
+
 ## plugins.query.memory_limit
 
 ### Version
