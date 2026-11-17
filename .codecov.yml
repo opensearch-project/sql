@@ -7,5 +7,14 @@ coverage:
   status:
     project:
       default:
-        target: 99%    # the required coverage value
-        threshold: 1%  # the leniency in hitting the target 
+        target: auto      # compare with the base commit
+        threshold: 0.5%   # how much a PR may lower the coverage
+    patch:
+      default:
+        target: 75%       # coverage of the lines a PR changes
+
+flags:
+  unit:
+    carryforward: true
+  integration:
+    carryforward: true
