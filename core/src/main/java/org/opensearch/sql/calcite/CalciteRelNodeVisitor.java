@@ -577,6 +577,13 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<RexNode> expandedFields = new ArrayList<>();
     Set<String> addedFields = new HashSet<>();
 
+    // Resolve expanded field names to ordinals through a single name->index map rather than
+    // RelBuilder.field(String), which does a linear scan (AbstractList.indexOf) of the row type on
+    // every call. With AllFields or a broad wildcard that is one scan per field, i.e. O(fields^2)
+    // on wide schemas. The map is built lazily so queries that never expand a group don't pay for
+    // it. See issue #5913 for the same fix applied to tryToRemoveNestedFields.
+    Map<String, Integer> fieldIndex = null;
+
     for (UnresolvedExpression expr : projectList) {
       switch (expr) {
         case Field field -> {
@@ -590,7 +597,12 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
             if (matchingFields.isEmpty()) {
               continue;
             }
-            matchingFields.forEach(f -> expandedFields.add(context.relBuilder.field(f)));
+            if (fieldIndex == null) {
+              fieldIndex = buildFieldIndex(currentFields);
+            }
+            for (String f : matchingFields) {
+              expandedFields.add(context.relBuilder.field(fieldIndex.get(f)));
+            }
           } else if (addedFields.add(fieldName)) {
             RexNode resolved = rexVisitor.analyze(field, context);
             /*
@@ -605,10 +617,17 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
           }
         }
         case AllFields ignored -> {
-          currentFields.stream()
-              .filter(field -> !isMetadataField(field))
-              .filter(addedFields::add)
-              .forEach(field -> expandedFields.add(context.relBuilder.field(field)));
+          List<String> allFieldNames =
+              currentFields.stream()
+                  .filter(field -> !isMetadataField(field))
+                  .filter(addedFields::add)
+                  .toList();
+          if (!allFieldNames.isEmpty() && fieldIndex == null) {
+            fieldIndex = buildFieldIndex(currentFields);
+          }
+          for (String field : allFieldNames) {
+            expandedFields.add(context.relBuilder.field(fieldIndex.get(field)));
+          }
         }
         case Alias alias -> {
           // SQL aggregate aliases (e.g., COUNT(*) AS cnt): reference the already-computed field
@@ -635,6 +654,21 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     }
 
     return expandedFields;
+  }
+
+  /**
+   * Builds a name->ordinal index over the current row's field names so a group of fields can be
+   * resolved to {@link org.apache.calcite.tools.RelBuilder#field(int)} refs in one pass instead of
+   * one linear {@code field(String)} scan each. First occurrence wins, matching Calcite's {@code
+   * RelBuilder.field(String)}, which resolves a name through {@code List.indexOf} and so returns
+   * the first field with that name.
+   */
+  private static Map<String, Integer> buildFieldIndex(List<String> fieldNames) {
+    Map<String, Integer> index = new HashMap<>(fieldNames.size() * 2);
+    for (int i = 0; i < fieldNames.size(); i++) {
+      index.putIfAbsent(fieldNames.get(i), i);
+    }
+    return index;
   }
 
   private void validateExclusion(List<RexNode> fieldsToExclude, List<String> currentFields) {
