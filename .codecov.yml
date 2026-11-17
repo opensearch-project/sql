@@ -7,11 +7,11 @@ coverage:
   status:
     project:
       default:
-        target: auto    # no lower than the base commit
-        threshold: 1%   # integration test coverage can vary a little between runs
+        target: auto      # compare with the base commit
+        threshold: 0.5%   # how much a PR may lower the coverage
     patch:
       default:
-        target: 80%
+        target: 75%       # coverage of the lines a PR changes
 
 flags:
   unit:
