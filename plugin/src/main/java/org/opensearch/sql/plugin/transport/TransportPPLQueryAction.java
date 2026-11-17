@@ -67,6 +67,7 @@ import org.opensearch.sql.plugin.rest.AnalyticsExecutorHolder;
 import org.opensearch.sql.plugin.rest.RestUnifiedQueryAction;
 import org.opensearch.sql.ppl.PPLQueryRunner;
 import org.opensearch.sql.ppl.PPLService;
+import org.opensearch.sql.ppl.QueryInsightsMetadata;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.CsvResponseFormatter;
@@ -80,6 +81,7 @@ import org.opensearch.sql.protocol.response.format.VisualizationResponseFormatte
 import org.opensearch.sql.protocol.response.format.YamlResponseFormatter;
 import org.opensearch.tasks.CancellableTask;
 import org.opensearch.tasks.Task;
+import org.opensearch.tasks.TaskResourceTrackingService;
 import org.opensearch.telemetry.tracing.Span;
 import org.opensearch.telemetry.tracing.SpanCreationContext;
 import org.opensearch.telemetry.tracing.SpanScope;
@@ -109,6 +111,8 @@ public class TransportPPLQueryAction
   private final org.opensearch.sql.common.setting.Settings pluginSettingsRef;
   private final QueryJobService queryJobService;
   private final SecurityAdapter securityAdapter;
+  private final TaskResourceTrackingService taskResourceTrackingService;
+  private final PPLQueryInsightsCoordinator queryInsights;
 
   @Inject
   public TransportPPLQueryAction(
@@ -122,12 +126,16 @@ public class TransportPPLQueryAction
       Tracer tracer,
       OpenSearchQueryJobService queryJobService,
       OpenSearchSecurityAdapter securityAdapter,
-      RemoteClusterServiceProvider remoteClusters) {
+      RemoteClusterServiceProvider remoteClusters,
+      TaskResourceTrackingService taskResourceTrackingService) {
     super(PPLQueryAction.NAME, transportService, actionFilters, TransportPPLQueryRequest::new);
     this.clientRef = client;
     this.clusterServiceRef = clusterService;
     this.queryJobService = queryJobService;
     this.securityAdapter = securityAdapter;
+    this.taskResourceTrackingService = taskResourceTrackingService;
+    this.queryInsights =
+        new PPLQueryInsightsCoordinator(clusterService, transportService, client.threadPool());
     // The plugin's components are created before any TransportService exists; fill it here.
     remoteClusters.set(transportService.getRemoteClusterService());
 
@@ -193,6 +201,18 @@ public class TransportPPLQueryAction
   }
 
   /**
+   * Has the engine's thread scopes track this query's threads through core, so its CPU and memory
+   * show in {@code _tasks} (and Live Queries) while it runs and in its Top N record after. Core
+   * records nothing unless it registered the task, which it does only when {@code
+   * task_resource_tracking.enabled} is on, the same switch that governs the child searches.
+   */
+  private void trackEngineThreads(PPLQueryTask pplQueryTask) {
+    if (pplQueryTask != null) {
+      pplQueryTask.setResourceTracking(taskResourceTrackingService);
+    }
+  }
+
+  /**
    * {@inheritDoc} Transform the request and call super.doExecute() to support call from other
    * plugins.
    */
@@ -215,6 +235,9 @@ public class TransportPPLQueryAction
       return;
     }
 
+    // Null for a task that another plugin's copy of the SQL classes created: it is still bound for
+    // cancellation below, but its query is not tracked or recorded in Query Insights.
+    final PPLQueryTask pplQueryTask = task instanceof PPLQueryTask ? (PPLQueryTask) task : null;
     if (task instanceof CancellableTask cancellableTask) {
       OpenSearchQueryManager.setCancellableTask(cancellableTask);
     }
@@ -249,6 +272,10 @@ public class TransportPPLQueryAction
         TraceableActionListener.create(listener, rootSpan, tracer);
     ActionListener<TransportPPLQueryResponse> clearingListener =
         wrapWithProfilingClear(tracedListener);
+    // Notes on the task how the query ended, which its Query Insights record reads after it. Only
+    // the recorded route reads it, but it wraps every route here so that a failure thrown into the
+    // catch below still marks the task failed.
+    clearingListener = queryInsights.recordCompletion(clearingListener, pplQueryTask);
 
     try {
       // Route to analytics engine for non-Lucene (e.g., Parquet-backed) indices.
@@ -282,35 +309,49 @@ public class TransportPPLQueryAction
         return;
       }
 
-      Consumer<String> anonymizedQuerySink =
-          anonymized -> rootSpan.addAttribute("db.query.text", anonymized);
+      // The span keeps the anonymized query; the Query Insights record keeps it as written.
+      Consumer<QueryInsightsMetadata> tracingSink =
+          metadata -> rootSpan.addAttribute("db.query.text", metadata.anonymizedQuery());
+      Consumer<QueryInsightsMetadata> metadataSink =
+          tracingSink.andThen(queryInsights.sink(pplQueryTask, transformedRequest.getRequest()));
       PPLService pplService = injector.getInstance(PPLService.class);
       if (transformedRequest.isExplainRequest()) {
         pplService.explain(
             transformedRequest,
             createExplainResponseListener(transformedRequest, clearingListener),
-            anonymizedQuerySink);
+            metadataSink);
       } else if (transformedRequest.analyze()) {
         pplService.analyze(
             transformedRequest,
             createAnalyzeResponseListener(transformedRequest, clearingListener),
-            anonymizedQuerySink);
+            metadataSink);
       } else if (transformedRequest.shouldRunAsync()) {
-        submitAsync(task, pplService, transformedRequest, clearingListener, anonymizedQuerySink);
+        // Async submission answers RUNNING and the query outlives this task, so the task's
+        // completion is not the query's end: a record stamped from it would carry near-zero
+        // latency and reference child searches that have not run yet. Left out of Top N until the
+        // job path reports for itself.
+        submitAsync(task, pplService, transformedRequest, clearingListener, metadataSink);
+      } else if (queryInsights.isEnabledFor(pplQueryTask)) {
+        // Query Insights is set up only on this execute route: explain, analyze, and the analytics
+        // engine run no search, so stamping their child searches would orphan them under a parent
+        // that never reports, and reporting the query itself would put an empty record in Top N.
+        trackEngineThreads(pplQueryTask);
+        queryInsights.runRecorded(
+            pplQueryTask,
+            clearingListener,
+            callerListener ->
+                executePplQuery(pplService, transformedRequest, callerListener, metadataSink));
       } else {
-        // Time sync executions only; explain/analyze/async responses don't reflect query latency.
-        ActionListener<TransportPPLQueryResponse> timedListener =
-            QueryLatencyMetrics.timedListener(clearingListener, LatencyMetricName.PPL);
-        pplService.execute(
-            transformedRequest,
-            createListener(transformedRequest, timedListener),
-            createExplainResponseListener(transformedRequest, clearingListener),
-            anonymizedQuerySink);
+        // Tracked without Query Insights recording too: _tasks and Live Queries read the task.
+        trackEngineThreads(pplQueryTask);
+        executePplQuery(pplService, transformedRequest, clearingListener, metadataSink);
       }
     } catch (Exception e) {
       clearingListener.onFailure(e);
     } finally {
       spanScope.close();
+      // Clear the task in case an early return/throw skipped submit() and left it on this thread.
+      OpenSearchQueryManager.clearCancellableTask();
     }
   }
 
@@ -319,7 +360,7 @@ public class TransportPPLQueryAction
       PPLService pplService,
       PPLQueryRequest transformedRequest,
       ActionListener<TransportPPLQueryResponse> listener,
-      Consumer<String> anonymizedQuerySink) {
+      Consumer<QueryInsightsMetadata> metadataSink) {
     if (!(task instanceof CancellableTask cancellableTask)) {
       throw new IllegalArgumentException("Async PPL queries require a cancellable task");
     }
@@ -329,7 +370,7 @@ public class TransportPPLQueryAction
         new PPLQueryRunner(
             pplService,
             transformedRequest,
-            anonymizedQuerySink,
+            metadataSink,
             Clock.systemUTC(),
             cancelExecution,
             () -> new QueryProgress(progressTracker.fractionDone()));
@@ -501,6 +542,21 @@ public class TransportPPLQueryAction
       throw new IllegalArgumentException(
           String.format(Locale.ROOT, "response in %s format is not supported.", format));
     }
+  }
+
+  private void executePplQuery(
+      PPLService pplService,
+      PPLQueryRequest request,
+      ActionListener<TransportPPLQueryResponse> listener,
+      Consumer<QueryInsightsMetadata> metadataSink) {
+    // Time sync executions only; explain/analyze/async responses don't reflect query latency.
+    ActionListener<TransportPPLQueryResponse> timedListener =
+        QueryLatencyMetrics.timedListener(listener, LatencyMetricName.PPL);
+    pplService.execute(
+        request,
+        createListener(request, timedListener),
+        createExplainResponseListener(request, listener),
+        metadataSink);
   }
 
   private ActionListener<TransportPPLQueryResponse> wrapWithProfilingClear(
