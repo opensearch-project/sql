@@ -224,6 +224,20 @@ class QueryJobTest {
   }
 
   @Test
+  void await_zeroBudget_failsWithRefusalWhenRunThrows() {
+    RecordingRunner runner = new RecordingRunner();
+    IllegalStateException refusal = new IllegalStateException("[sql-worker] saturated");
+    runner.runError = refusal;
+    QueryJob job = newJob(runner, 132L);
+    job.startRunner();
+    CompletableFuture<QueryResult> stage = job.await(Duration.ZERO).toCompletableFuture();
+    assertTrue(stage.isDone(), "a refusal must answer the submission inline");
+    ExecutionException ex = assertThrows(ExecutionException.class, stage::get);
+    assertSame(refusal, ex.getCause());
+    assertEquals(QueryJobState.FAILED, job.status().state());
+  }
+
+  @Test
   void await_cancellationSurfacesAsExceptionalCompletion() {
     RecordingRunner runner = new RecordingRunner();
     QueryJob job = newJob(runner, 140L);
@@ -329,17 +343,17 @@ class QueryJobTest {
   }
 
   @Test
-  void await_failureAfterExpiryWithoutPollReportsOutcome() {
+  void await_failureBeforeZeroBudget_stillReturnsRunning() {
     RecordingRunner runner = new RecordingRunner();
     QueryJob job = newJob(runner, 226L);
     job.startRunner();
     IllegalStateException cause = new IllegalStateException("boom");
     runner.fail(cause);
-    ExecutionException ex =
-        assertThrows(
-            ExecutionException.class,
-            () -> job.await(Duration.ZERO).toCompletableFuture().get(1, TimeUnit.SECONDS));
-    assertSame(cause, ex.getCause());
+    // A failure delivered through the stage is observable via status()/GET, not the submit.
+    QueryResult result = job.await(Duration.ZERO).toCompletableFuture().getNow(null);
+    assertInstanceOf(QueryResult.Running.class, result);
+    assertEquals(QueryJobState.FAILED, job.status().state());
+    assertEquals("boom", job.status().failure().orElseThrow().reason());
   }
 
   @Test
@@ -401,10 +415,14 @@ class QueryJobTest {
     private volatile double progress;
     private volatile RuntimeException progressError;
     private volatile int progressCalls;
+    private RuntimeException runError;
 
     @Override
     public CompletionStage<QueryResult> run() {
       runInvocations++;
+      if (runError != null) {
+        throw runError;
+      }
       return future;
     }
 

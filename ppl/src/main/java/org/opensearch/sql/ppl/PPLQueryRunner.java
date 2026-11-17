@@ -11,6 +11,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.opensearch.sql.common.response.ResponseListener;
@@ -77,6 +78,9 @@ public final class PPLQueryRunner implements QueryRunner {
       throw new IllegalStateException("PPLQueryRunner is single-use");
     }
     long startMillis = clock.millis();
+    Thread submitter = Thread.currentThread();
+    AtomicBoolean submitting = new AtomicBoolean(true);
+    AtomicReference<RuntimeException> refusal = new AtomicReference<>();
     pplService.execute(
         request,
         new ResponseListener<QueryResponse>() {
@@ -87,7 +91,15 @@ public final class PPLQueryRunner implements QueryRunner {
 
           @Override
           public void onFailure(Exception e) {
-            future.completeExceptionally(e);
+            // execute reports a query it could not hand to a worker on this thread before it
+            // returns; engine failures arrive on worker threads, possibly before execute returns.
+            if (Thread.currentThread() == submitter
+                && submitting.get()
+                && e instanceof RuntimeException rejected) {
+              refusal.set(rejected);
+            } else {
+              future.completeExceptionally(e);
+            }
           }
         },
         new ResponseListener<ExplainResponse>() {
@@ -102,6 +114,10 @@ public final class PPLQueryRunner implements QueryRunner {
           }
         },
         queryInsightsSink);
+    submitting.set(false);
+    if (refusal.get() != null) {
+      throw refusal.get();
+    }
     return future;
   }
 

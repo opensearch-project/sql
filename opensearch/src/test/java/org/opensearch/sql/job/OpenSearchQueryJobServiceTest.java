@@ -172,6 +172,33 @@ class OpenSearchQueryJobServiceTest {
   }
 
   @Test
+  void submit_zeroWaitReturnsRunningWhenEngineFailsBeforeAwait() {
+    RecordingRunner runner = new RecordingRunner();
+    runner.fail(new IllegalArgumentException("Field [nonexistent_field] not found."));
+
+    QueryResult.Running running = submitRunning(runner);
+
+    assertEquals(QueryJobState.FAILED, service.get(running.id(), ALICE).state());
+    expireRetainedJob();
+    assertThrows(QueryJobNotFoundException.class, () -> service.get(running.id(), ALICE));
+  }
+
+  @Test
+  void submit_zeroWaitRefusalFailsSubmissionAndRemovesJob() {
+    QueryRunner runner = mock(QueryRunner.class);
+    IllegalStateException refusal = new IllegalStateException("[sql-worker] saturated");
+    when(runner.run()).thenThrow(refusal);
+
+    CompletableFuture<QueryResult> response =
+        service.submit(runner, ALICE, Duration.ZERO, KEEP_ALIVE).toCompletableFuture();
+
+    CompletionException failure = assertThrows(CompletionException.class, response::join);
+    assertSame(refusal, failure.getCause());
+    assertTrue(store.jobs().isEmpty());
+    verifyNoInteractions(threadPool);
+  }
+
+  @Test
   void submit_runningResultRetainsCompletionUntilTtl() {
     RecordingRunner runner = new RecordingRunner();
     QueryResult.Running running = submitRunning(runner);

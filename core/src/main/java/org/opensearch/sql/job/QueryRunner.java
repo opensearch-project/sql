@@ -20,7 +20,10 @@ import java.util.concurrent.CompletionStage;
  */
 public interface QueryRunner {
 
-  /** Starts execution and returns the future that carries the final result. */
+  /**
+   * Starts execution and returns the future that carries the final result. Throws instead when the
+   * query is refused before it starts, so the submission itself fails.
+   */
   CompletionStage<QueryResult> run();
 
   /** Requests cooperative cancellation. Safe to call from any state. */
