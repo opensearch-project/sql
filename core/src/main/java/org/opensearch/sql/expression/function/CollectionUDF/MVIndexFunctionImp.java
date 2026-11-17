@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.expression.function.CollectionUDF;
 
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY_LENGTH;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.ARRAY_SLICE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IF;
@@ -15,6 +16,7 @@ import java.math.BigDecimal;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.opensearch.sql.expression.function.PPLFuncImpTable;
 
 /**
@@ -28,6 +30,11 @@ import org.opensearch.sql.expression.function.PPLFuncImpTable;
  * </ul>
  *
  * <p>Supports negative indexing where -1 refers to the last element.
+ *
+ * <p>As in SPL, a non-array (single-value) first argument is treated as a one-element array:
+ * indexes {@code 0} and {@code -1} return the value, any other index returns null, and a range
+ * returns a one-element array when it covers the value. A null single value returns null rather
+ * than an array holding null, so {@code isnull(mvindex(field, 0))} keeps working.
  *
  * <p>Implementation notes:
  *
@@ -49,6 +56,13 @@ public class MVIndexFunctionImp implements PPLFuncImpTable.FunctionImp {
     RexNode array = args[0];
     RexNode startIdx = args[1];
 
+    if (!isArray(array)) {
+      if (args.length == 2) {
+        return resolveSingleValueElement(builder, array, startIdx);
+      }
+      array = wrapAsArray(builder, array);
+    }
+
     // Use resolve to get array length instead of direct makeCall
     RexNode arrayLen = PPLFuncImpTable.INSTANCE.resolve(builder, ARRAY_LENGTH, array);
 
@@ -60,6 +74,41 @@ public class MVIndexFunctionImp implements PPLFuncImpTable.FunctionImp {
       RexNode endIdx = args[2];
       return resolveRange(builder, array, startIdx, endIdx, arrayLen);
     }
+  }
+
+  private static boolean isArray(RexNode node) {
+    return node.getType().getSqlTypeName() == SqlTypeName.ARRAY;
+  }
+
+  /**
+   * Resolves mvindex(value, index) for a single (non-array) value, which behaves as a one-element
+   * array: CASE WHEN index = 0 OR index = -1 THEN value ELSE NULL END. The value keeps its own
+   * type, and a null value returns null.
+   */
+  private static RexNode resolveSingleValueElement(
+      RexBuilder builder, RexNode value, RexNode index) {
+    RexNode isFirst =
+        builder.makeCall(
+            SqlStdOperatorTable.EQUALS, index, builder.makeExactLiteral(BigDecimal.ZERO));
+    RexNode isLast =
+        builder.makeCall(
+            SqlStdOperatorTable.EQUALS, index, builder.makeExactLiteral(BigDecimal.ONE.negate()));
+    RexNode coversValue = builder.makeCall(SqlStdOperatorTable.OR, isFirst, isLast);
+    return builder.makeCall(
+        SqlStdOperatorTable.CASE, coversValue, value, builder.makeNullLiteral(value.getType()));
+  }
+
+  /**
+   * Wraps a single (non-array) value as a one-element array for range access. A null value stays
+   * null instead of becoming an array holding null.
+   */
+  private static RexNode wrapAsArray(RexBuilder builder, RexNode value) {
+    RexNode wrapped = PPLFuncImpTable.INSTANCE.resolve(builder, ARRAY, value);
+    return builder.makeCall(
+        SqlStdOperatorTable.CASE,
+        builder.makeCall(SqlStdOperatorTable.IS_NULL, value),
+        builder.makeNullLiteral(wrapped.getType()),
+        wrapped);
   }
 
   /** Non-widening integer addition for internal, int-domain array-index math. */

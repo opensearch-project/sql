@@ -1,0 +1,97 @@
+# Issue #5948: mvindex treats a single-value field as a one-element array, and split accepts a
+# date/time value through an implicit cast to string, as in SPL.
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  - do:
+      indices.create:
+        index: mvdemo_5948
+        body:
+          mappings:
+            properties:
+              s:
+                type: keyword
+              n:
+                type: integer
+              ts:
+                type: date
+  - do:
+      bulk:
+        index: mvdemo_5948
+        refresh: true
+        body:
+          - '{"index": {"_id": "1"}}'
+          - '{"s": "abc", "n": 7, "ts": "2026-01-02T03:04:05Z"}'
+          - '{"index": {"_id": "2"}}'
+          - '{"n": 8}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : null
+  - do:
+      indices.delete:
+        index: mvdemo_5948
+        ignore_unavailable: true
+
+---
+"mvindex on a single-value string field":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvdemo_5948 | where n = 7 | eval first = mvindex(s, 0), last = mvindex(s, -1), other = mvindex(s, 1) | fields first, last, other"
+  - match: { total: 1 }
+  - match: { datarows: [ [ "abc", "abc", null ] ] }
+
+---
+"mvindex on a single-value number field":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvdemo_5948 | where n = 7 | eval r = mvindex(n, 0) | fields r"
+  - match: { total: 1 }
+  - match: { datarows: [ [ 7 ] ] }
+
+---
+"mvindex on a missing single value returns null":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvdemo_5948 | where n = 8 | eval r = mvindex(s, 0), missing = isnull(mvindex(s, 0)) | fields r, missing"
+  - match: { total: 1 }
+  - match: { datarows: [ [ null, true ] ] }
+
+---
+"split on a date field":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvdemo_5948 | where n = 7 | eval p = split(ts, '-'), c = split(cast(ts as string), '-') | fields p, c"
+  - match: { total: 1 }
+  - match: { datarows: [ [ [ "2026", "01", "02 03:04:05" ], [ "2026", "01", "02 03:04:05" ] ] ] }

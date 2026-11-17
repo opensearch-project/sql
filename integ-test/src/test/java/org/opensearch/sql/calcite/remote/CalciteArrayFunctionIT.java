@@ -951,6 +951,53 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testMvindexSingleValueField() throws IOException {
+    // #5948: a single-value field is treated as a one-element array, as in SPL
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where account_number = 1 | eval first = mvindex(firstname, 0), last ="
+                    + " mvindex(firstname, -1), other = mvindex(firstname, 1), age0 = mvindex(age,"
+                    + " 0), birth0 = mvindex(birthdate, 0), range = mvindex(firstname, 0, 0) |"
+                    + " fields first, last, other, age0, birth0, range",
+                TEST_INDEX_BANK));
+
+    verifySchema(
+        actual,
+        schema("first", "string"),
+        schema("last", "string"),
+        schema("other", "string"),
+        schema("age0", "int"),
+        schema("birth0", "timestamp"),
+        schema("range", "array"));
+    verifyDataRows(
+        actual,
+        rows(
+            "Amber JOHnny",
+            "Amber JOHnny",
+            null,
+            32,
+            "2017-10-23 00:00:00",
+            List.of("Amber JOHnny")));
+  }
+
+  @Test
+  public void testSplitDateField() throws IOException {
+    // #5948: a date value is split on its string form, as split(cast(birthdate as string), '-')
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where account_number = 1 | eval result = split(birthdate, '-'),"
+                    + " expected = split(cast(birthdate as string), '-') | fields result,"
+                    + " expected",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "array"), schema("expected", "array"));
+    verifyDataRows(
+        actual, rows(List.of("2017", "10", "23 00:00:00"), List.of("2017", "10", "23 00:00:00")));
+  }
+
+  @Test
   public void testSplitWithEmptyDelimiter() throws IOException {
     JSONObject actual =
         executeQuery(
