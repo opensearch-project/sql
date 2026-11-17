@@ -89,17 +89,44 @@ public final class QueryInsightsRecords {
 
   /** Creates {@code index} with two documents over a keyword {@code k} and an integer {@code v}. */
   public static void indexWithDocs(RestClient client, String index) throws IOException {
+    createIndex(client, index);
+    Request bulk = new Request("POST", "/" + index + "/_bulk");
+    bulk.addParameter("refresh", "true");
+    bulk.setJsonEntity(
+        "{\"index\": {}}\n{\"k\": \"a\", \"v\": 1}\n{\"index\": {}}\n{\"k\": \"b\", \"v\": 2}\n");
+    client.performRequest(bulk);
+  }
+
+  /**
+   * Creates {@code index} like {@link #indexWithDocs(RestClient, String)}, with {@code count}
+   * documents.
+   */
+  public static void indexWithDocs(RestClient client, String index, int count) throws IOException {
+    createIndex(client, index);
+    final int batch = 10_000;
+    for (int from = 0; from < count; from += batch) {
+      StringBuilder body = new StringBuilder();
+      for (int i = from; i < Math.min(count, from + batch); i++) {
+        body.append("{\"index\": {}}\n{\"k\": \"")
+            .append(i % 2 == 0 ? "a" : "b")
+            .append("\", \"v\": ")
+            .append(i % 1000)
+            .append("}\n");
+      }
+      Request bulk = new Request("POST", "/" + index + "/_bulk");
+      bulk.addParameter("refresh", from + batch >= count ? "true" : "false");
+      bulk.setJsonEntity(body.toString());
+      client.performRequest(bulk);
+    }
+  }
+
+  private static void createIndex(RestClient client, String index) throws IOException {
     Request create = new Request("PUT", "/" + index);
     create.setJsonEntity(
         "{\"settings\": {\"number_of_shards\": 1, \"number_of_replicas\": 0},"
             + " \"mappings\": {\"properties\": {\"k\": {\"type\": \"keyword\"},"
             + " \"v\": {\"type\": \"integer\"}}}}");
     client.performRequest(create);
-    Request bulk = new Request("POST", "/" + index + "/_bulk");
-    bulk.addParameter("refresh", "true");
-    bulk.setJsonEntity(
-        "{\"index\": {}}\n{\"k\": \"a\", \"v\": 1}\n{\"index\": {}}\n{\"k\": \"b\", \"v\": 2}\n");
-    client.performRequest(bulk);
   }
 
   /**

@@ -15,8 +15,10 @@ import static org.opensearch.sql.util.QueryInsightsRecords.pplRecordFor;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import org.json.JSONObject;
@@ -169,6 +171,47 @@ public class QueryInsightsRecordingIT extends PPLIntegTestCase {
     }
     // The record names no indices; its searches carry the join's two sides.
     assertEquals(Set.of("qi_it_join_left", "qi_it_join_right"), childIndices);
+  }
+
+  @Test
+  public void recordIncludesTheCostOfItsSearches() throws Exception {
+    // The filter's script runs inside the search, once per document, so the search costs well above
+    // the engine's own work on a single count: a record that left the search out would come in
+    // below the search alone. The same query on a small index first takes planning's one-off cost
+    // out of the measured run.
+    String query = "source=%s | where v * 2 > 100 | stats count() as c";
+    indexWithDocs("qi_it_cost_warmup");
+    executeQuery(String.format(Locale.ROOT, query, "qi_it_cost_warmup"));
+    QueryInsightsRecords.indexWithDocs(client(), "qi_it_cost", 50_000);
+    executeQuery(String.format(Locale.ROOT, query, "qi_it_cost"));
+    String marker = awaitPplRecord("qi_it_cost").getString("parent_marker");
+    long cpu = 0;
+    long memory = 0;
+    for (JSONObject search : awaitChildren(client(), marker, 1)) {
+      cpu += measurement(search, "cpu");
+      memory += measurement(search, "memory");
+    }
+    assertTrue("the search reports no memory", memory > 0);
+    // Query Insights adds the cost of the searches to the query's record, so Top N ranks the query
+    // by what it cost as a whole.
+    long searchCpu = cpu;
+    long searchMemory = memory;
+    assertBusy(
+        () -> {
+          JSONObject record = awaitPplRecord("qi_it_cost");
+          assertTrue(
+              "record memory "
+                  + measurement(record, "memory")
+                  + " B, search "
+                  + searchMemory
+                  + " B",
+              measurement(record, "memory") >= searchMemory);
+          assertTrue(
+              "record CPU " + measurement(record, "cpu") + " ns, search " + searchCpu + " ns",
+              measurement(record, "cpu") >= searchCpu);
+        },
+        60,
+        TimeUnit.SECONDS);
   }
 
   @Test
