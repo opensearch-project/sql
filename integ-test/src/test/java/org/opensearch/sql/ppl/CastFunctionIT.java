@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ppl;
 
+import static org.junit.Assert.assertEquals;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATATYPE_NUMERIC;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_FORMATS;
@@ -19,6 +20,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Locale;
 import org.json.JSONObject;
 import org.junit.Test;
@@ -470,5 +472,35 @@ public class CastFunctionIT extends PPLIntegTestCase {
                 TEST_INDEX_STATE_COUNTRY));
     verifySchema(actual, schema("s", "string"));
     verifyDataRows(actual, rows("0.0"));
+  }
+
+  /**
+   * A redundant date/time cast on the filtered field changes only how the predicate is executed
+   * (native range query instead of a per-document script), never which rows match. Compare the
+   * wrapped forms against the bare-field form to keep that guarantee enforced.
+   */
+  @Test
+  public void testRedundantDateCastOnFilteredFieldDoesNotChangeRows() throws IOException {
+    String template =
+        "source=%s | where %s | sort strict_date_optional_time | fields strict_date_optional_time";
+    JSONObject bare =
+        executeQuery(
+            String.format(
+                Locale.ROOT,
+                template,
+                TEST_INDEX_DATE_FORMATS,
+                "strict_date_optional_time >= '1984-04-12 09:07:42'"));
+
+    for (String wrapped :
+        List.of(
+            "timestamp(strict_date_optional_time) >= timestamp('1984-04-12 09:07:42')",
+            "cast(strict_date_optional_time as timestamp) >= timestamp('1984-04-12 09:07:42')")) {
+      JSONObject actual =
+          executeQuery(String.format(Locale.ROOT, template, TEST_INDEX_DATE_FORMATS, wrapped));
+      assertEquals(
+          "wrapping the filtered field in a redundant date cast must not change the result",
+          bare.getJSONArray("datarows").toString(),
+          actual.getJSONArray("datarows").toString());
+    }
   }
 }

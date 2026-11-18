@@ -1,0 +1,20 @@
+root:
+  name: ProjectOperator
+  description:
+    fields: "[yyyy-MM-dd]"
+  children:
+    - name: FilterOperator
+      description:
+        conditions: "=(last_day(yyyy-MM-dd), date(\"2018-11-30\"))"
+      children:
+        - name: ProjectOperator
+          description:
+            fields: "[yyyy-MM-dd]"
+          children:
+            - name: OpenSearchIndexScan
+              description:
+                request: "OpenSearchQueryRequest(indexName=opensearch-sql_test_index_date_formats,\
+                  \ sourceBuilder={\"from\":0,\"size\":10000,\"timeout\":\"1m\",\"\
+                  _source\":{\"includes\":[\"yyyy-MM-dd\"]}}, pitId=*,\
+                  \ cursorKeepAlive=1m, searchAfter=null, searchResponse=null)"
+              children: []
