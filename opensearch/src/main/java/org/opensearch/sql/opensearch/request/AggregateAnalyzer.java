@@ -33,6 +33,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.expression.function.PPLBuiltinOperators.WIDTH_BUCKET;
 import static org.opensearch.sql.opensearch.request.PredicateAnalyzer.ScriptQueryExpression.getScriptSortType;
+import static org.opensearch.sql.opensearch.storage.serde.ScriptParameterHelper.MISSING_MAX;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -905,11 +906,25 @@ public class AggregateAnalyzer {
                   sourceSpecific.add(name);
                 } else {
                   fields.add(name);
-                  // text or struct type cannot apply sort
                   if (sortNeeded && sortField == null) {
                     String keyword = fieldExpression.getReferenceForTermQuery();
                     if (keyword != null) {
                       builder.sort(keyword, sortOrder);
+                    } else if (aggCall.getAggregation().kind == SqlKind.MIN
+                        || aggCall.getAggregation().kind == SqlKind.MAX) {
+                      // text without a keyword subfield has no doc values, so sort by _source
+                      // arg_min and arg_max would sort by the value here, not their sort argument
+                      Script script =
+                          new ScriptQueryExpression(
+                                  rex.getKey(),
+                                  helper.rowType,
+                                  helper.fieldTypes,
+                                  helper.cluster,
+                                  Map.of(MISSING_MAX, sortOrder == SortOrder.ASC))
+                              .getScript();
+                      builder.sort(
+                          SortBuilders.scriptSort(script, getScriptSortType(rex.getKey().getType()))
+                              .order(sortOrder));
                     }
                   }
                 }

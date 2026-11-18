@@ -179,6 +179,28 @@ public class CalciteChartCommandIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testChartLimitZeroByTimestampSpanDayAndWeek() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | chart limit=0 max(value) by timestamp span=1day, @timestamp"
+                    + " span=2weeks",
+                TEST_INDEX_TIME_DATA));
+    verifySchema(
+        result,
+        schema("timestamp", "timestamp"),
+        schema("@timestamp", "string"),
+        schema("max(value)", "int"));
+    verifyDataRows(
+        result,
+        rows("2025-07-28 00:00:00", "2025-07-28 00:00:00", 9367),
+        rows("2025-07-29 00:00:00", "2025-07-28 00:00:00", 9521),
+        rows("2025-07-30 00:00:00", "2025-07-28 00:00:00", 9234),
+        rows("2025-07-31 00:00:00", "2025-07-28 00:00:00", 9318),
+        rows("2025-08-01 00:00:00", "2025-07-28 00:00:00", 9015));
+  }
+
+  @Test
   @RequiresCapability(
       value = MULTI_VALUE_FIELD_LOAD,
       note =
@@ -315,6 +337,25 @@ public class CalciteChartCommandIT extends PPLIntegTestCase {
         schema("avg(balance)", "double"));
     verifyDataRows(
         result, rows("M", "30", 21702.5), rows("F", "30", 48086.0), rows("F", "20", 32838.0));
+  }
+
+  @Test
+  public void testChartWithLimitZeroAndNumericColumnSplit() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | chart limit=0 nullstr='unknown' count() over gender by age",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(
+        result, schema("gender", "string"), schema("age", "string"), schema("count()", "bigint"));
+    verifyDataRows(
+        result,
+        rows("F", "28", 1),
+        rows("F", "34", 1),
+        rows("F", "unknown", 1),
+        rows("M", "32", 1),
+        rows("M", "33", 1),
+        rows("M", "36", 2));
   }
 
   @Test

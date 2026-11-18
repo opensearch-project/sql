@@ -78,7 +78,7 @@ public class ToNumberFunction extends ImplementorUDF {
   }
 
   @Strict
-  public static Number toNumber(String numStr, int base) {
+  public static Number toNumber(String numStr, long base) {
     if (base < 2 || base > 36) {
       throw new IllegalArgumentException("Base has to be between 2 and 36.");
     }
@@ -91,7 +91,7 @@ public class ToNumberFunction extends ImplementorUDF {
           result = Long.parseLong(numStr);
         }
       } else {
-        BigInteger bigInteger = new BigInteger(numStr, base);
+        BigInteger bigInteger = new BigInteger(numStr, (int) base);
         result = bigInteger.longValue();
       }
     } catch (Exception e) {

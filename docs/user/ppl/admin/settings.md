@@ -110,6 +110,27 @@ Expected output:
 }
 ```
   
+## plugins.query.async.max_retained_jobs
+
+### Version
+
+3.10
+
+### Description
+
+This setting limits how many asynchronous PPL queries a node retains for polling. A query is retained from the moment its submit returns an `id`, while it runs and after it finishes, until it is deleted with `DELETE /_plugins/_async_query/{id}` or its `keep_alive` expires; fetching its result with GET does not release it. Queries whose results are returned inline and synchronous queries are not counted. While the limit is reached, an asynchronous submit fails with `429`. A query that is still running when its wait ends and finds the limit reached is cancelled, and its submit fails with `429`.
+1. The default value is 1000. The minimum is 1.
+2. This setting is node scope.
+3. This setting can be updated dynamically. A lowered limit applies to the next submit; retained queries are not removed.
+
+### Example
+
+```bash ignore
+curl -sS -H 'Content-Type: application/json' \
+-X PUT localhost:9200/_plugins/_query/settings \
+-d '{"transient" : {"plugins.query.async.max_retained_jobs" : 100}}'
+```
+
 ## plugins.query.memory_limit
 
 ### Version
@@ -473,3 +494,37 @@ Expected output:
 }
 ```
   
+
+## search.insights.top_queries.ppl.enabled
+
+### Version
+
+3.11
+
+### Description
+
+This setting controls whether completed PPL queries are recorded into Query Insights Top N. When enabled, the PPL plugin reports each PPL query it runs through `_plugins/_ppl` to the Query Insights plugin when the query finishes: its query text, latency, CPU, memory, whether it failed, and, on a security-enabled cluster, the requesting user. It also tags the DSL searches the query runs, so Query Insights lists them as the query's sub-queries.
+
+These are not recorded: `explain` (on the `_explain` endpoint or in the query text), `analyze`, asynchronous submissions, queries routed to the analytics engine, queries that fail to parse, and a PPL query that starts inside another one, whose searches belong to the outer query.
+
+1. The default value is false (opt-in).
+2. This setting is node scope, matching the rest of the `search.insights.top_queries.*` family.
+3. It is dynamic: update it through the cluster settings API, as in the example below.
+
+Note on query text and user identity: the record stores the query as it was submitted, including any literal values in it, the same way Query Insights stores the source of a DSL search. When a security plugin is installed, the record also includes the requesting user (username, roles, backend roles). Who can see these in Top N results is governed by the Query Insights plugin's own RBAC filter, `search.insights.top_queries.filter_by_mode` — default `none` (no per-user filtering), `username` (a user sees only their own queries; admins see all), or `backend_roles`. Set it to `username` or `backend_roles` if other users' queries and identities should not be visible to every Top N reader.
+
+Note on CPU and memory: the PPL plugin reports the CPU time and the bytes allocated by the query's own engine threads, the same values `_tasks` shows for the PPL task. Query Insights adds the CPU and memory of the searches the query ran, so the figures in Top N cover the whole query. OpenSearch records these only while the cluster setting `task_resource_tracking.enabled` is on (the default). With it off, a PPL record reports 0 CPU and 0 memory.
+
+Note: This setting is **registered by the Query Insights plugin** (it belongs to the `search.insights.top_queries.*` family), not by the PPL plugin. The PPL plugin reads its value to decide whether to report. It therefore only takes effect when the Query Insights plugin is installed; when Query Insights is absent the setting is unregistered and PPL reporting is a no-op.
+
+### Example
+
+With the Query Insights plugin installed, you can enable PPL recording like this:
+
+```shell
+curl -sS -H 'Content-Type: application/json' \
+-X PUT localhost:9200/_cluster/settings \
+-d '{"persistent" : {"search.insights.top_queries.ppl.enabled" : "true"}}'
+```
+
+This example is not executed as part of the documentation tests because the setting is registered by the Query Insights plugin, which is not installed in the PPL documentation test cluster.

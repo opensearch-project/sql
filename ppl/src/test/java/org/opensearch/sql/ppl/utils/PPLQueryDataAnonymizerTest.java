@@ -298,6 +298,10 @@ public class PPLQueryDataAnonymizerTest {
     assertEquals(
         "source=table | timechart timefield=time_identifier max(identifier)",
         anonymize("source=t | timechart timefield=month max(revenue)"));
+
+    assertEquals(
+        "source=table | timechart usenull=*** nullstr=*** count() by identifier",
+        anonymize("source=t | timechart usenull=false nullstr='none' count() by host"));
   }
 
   @Test

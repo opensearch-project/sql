@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.expression.function.udf;
 
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.toIntArg;
+
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -48,8 +50,8 @@ public abstract class CryptographicFunction extends ImplementorUDF {
       return Expressions.call(Sha2Implementor.class, "getDigest", translatedOperands);
     }
 
-    public static String getDigest(String input, int algorithm) {
-      return switch (algorithm) {
+    public static String getDigest(String input, long algorithm) {
+      return switch (toIntArg(algorithm)) {
         case 224 ->
             Hex.encodeHexString(
                 DigestUtils.getDigest(MessageDigestAlgorithms.SHA_224).digest(input.getBytes()));

@@ -31,6 +31,7 @@ import org.gradle.api.internal.tasks.testing.junitplatform.JUnitPlatformTestFram
 import groovy.xml.XmlParser
 import java.nio.file.Paths
 import java.util.concurrent.Callable
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.stream.Collectors
 
 plugins {
@@ -205,6 +206,11 @@ configurations.all {
 
 configurations {
     zipArchive
+    // Resolved only by integTestWithQueryInsights, so no other task depends on a Query Insights
+    // snapshot being published.
+    queryInsightsZip {
+        transitive = false
+    }
 }
 
 dependencies {
@@ -237,6 +243,9 @@ dependencies {
 
     // For GeoIP PPL functions
     zipArchive group: 'org.opensearch.plugin', name:'geospatial', version: "${opensearch_build}"
+
+    // Installed alongside the plugin by integTestWithQueryInsights
+    queryInsightsZip group: 'org.opensearch.plugin', name:'query-insights', version: "${opensearch_build}"
 
 }
 
@@ -278,6 +287,17 @@ def getGeoSpatialPlugin() {
         configurations.zipArchive.asFileTree.matching {
             include '**/geospatia*'
         }.singleFile )
+    }
+}
+
+// The published Query Insights snapshot, or a local build via -PqueryInsightsZip=/path/to.zip.
+def getQueryInsightsPlugin() {
+    provider { (RegularFile) (() ->
+        project.findProperty('queryInsightsZip')
+            ? file(project.findProperty('queryInsightsZip'))
+            : configurations.queryInsightsZip.asFileTree.matching {
+                include '**/query-insights*'
+            }.singleFile )
     }
 }
 
@@ -571,6 +591,23 @@ testClusters {
         plugin(getJobSchedulerPlugin())
         plugin ":opensearch-sql-plugin"
     }
+    // Query Insights installed, so the PPL -> Query Insights reporting path actually runs.
+    integTestWithQueryInsights {
+        testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
+        plugin(getQueryInsightsPlugin())
+        plugin ":opensearch-sql-plugin"
+        setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
+    }
+    // The same, plus the security plugin (added by configureSecurityPlugin below), so records carry
+    // the requesting user and Top N reads go through Query Insights' RBAC filter.
+    integTestWithQueryInsightsAndSecurity {
+        testDistribution = 'archive'
+        plugin(getJobSchedulerPlugin())
+        plugin(getQueryInsightsPlugin())
+        plugin ":opensearch-sql-plugin"
+        setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
+    }
     // Smoke test: verify sql loads cleanly alongside analytics-engine.
     analyticsEngineCompat {
         testDistribution = 'archive'
@@ -847,6 +884,58 @@ task workerPoolSaturationIT(type: RestIntegTestTask) {
 
 check.dependsOn workerPoolSaturationIT
 
+// Asserts that PPL queries are recorded into Query Insights. Not part of `check` yet: the published
+// Query Insights snapshot does not include the PPL consumer until that change merges there, so run
+// it against a local build until then:
+//   ./gradlew :integ-test:integTestWithQueryInsights -PqueryInsightsZip=/path/to/query-insights.zip
+task integTestWithQueryInsights(type: RestIntegTestTask) {
+    useCluster testClusters.integTestWithQueryInsights
+
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+
+    systemProperty 'tests.security.manager', 'false'
+    systemProperty 'project.root', project.projectDir.absolutePath
+    systemProperty 'defaultQuerySizeLimit', '10000'
+    systemProperty 'defaultQueryBucketSize', '1000'
+    systemProperty 'defaultMaxResultWindow', '10000'
+    doFirst {
+        systemProperty 'cluster.debug', getDebug()
+    }
+
+    filter {
+        includeTestsMatching 'org.opensearch.sql.ppl.QueryInsightsRecordingIT'
+    }
+}
+
+// The reporting path on a secured cluster: whose identity a record carries and who can read it
+// back. Not part of `check` yet, for the same reason as integTestWithQueryInsights:
+//   ./gradlew :integ-test:integTestWithQueryInsightsAndSecurity -PqueryInsightsZip=/path/to.zip
+task integTestWithQueryInsightsAndSecurity(type: RestIntegTestTask) {
+    useCluster testClusters.integTestWithQueryInsightsAndSecurity
+
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+
+    // This task installs the security plugin, so its absence is a breakage rather than a skip.
+    systemProperty 'tests.required.plugins', 'opensearch-security'
+    systemProperty 'tests.security.manager', 'false'
+    systemProperty 'project.root', project.projectDir.absolutePath
+    systemProperty 'defaultQuerySizeLimit', '10000'
+    systemProperty 'defaultQueryBucketSize', '1000'
+    systemProperty 'defaultMaxResultWindow', '10000'
+    doFirst {
+        systemProperty 'cluster.debug', getDebug()
+        systemProperty "https", "false"
+        systemProperty "user", "admin"
+        systemProperty "password", "admin"
+    }
+
+    filter {
+        includeTestsMatching 'org.opensearch.sql.security.QueryInsightsRecordingSecurityIT'
+    }
+}
+
+configureSecurityPlugin(testClusters.integTestWithQueryInsightsAndSecurity)
+
 task integTestWithSecurity(type: RestIntegTestTask) {
     useCluster testClusters.integTestWithSecurity
     useCluster testClusters.remoteIntegTestWithSecurity
@@ -876,6 +965,8 @@ task integTestWithSecurity(type: RestIntegTestTask) {
     // Exclude tests that require the analytics engine plugin stack (run separately via analyticsEngineSecurityIT)
     filter {
         excludeTestsMatching 'org.opensearch.sql.security.AnalyticsEngineSecurityIT'
+        // Needs Query Insights installed; runs via integTestWithQueryInsightsAndSecurity.
+        excludeTestsMatching 'org.opensearch.sql.security.QueryInsightsRecordingSecurityIT'
     }
 
     systemProperty 'tests.security.manager', 'false'
@@ -926,6 +1017,50 @@ configureSecurityPlugin(testClusters.runWithSecurity)
 
 yamlRestTest {
     systemProperty 'tests.security.manager', 'false'
+}
+
+// With -Dtests.coverage=true, records which plugin code the integration tests run on the test
+// cluster nodes. The root project's jacocoIntegTestReport turns the recorded data into a report.
+//
+// Each node runs the JaCoCo agent as a TCP server on its own port. Test clusters stop their nodes
+// with kill -9, so the agent cannot write its data when the node exits. Instead, the data of every
+// node is fetched when the task's tests finish, while the nodes are still running. This also
+// works when some tests fail.
+if (Boolean.getBoolean('tests.coverage')) {
+    // Shared by all tasks, so that no two nodes in the build listen on the same port.
+    def nextAgentPort = new AtomicInteger(6300)
+
+    tasks.withType(StandaloneRestIntegTestTask).configureEach { task ->
+        def agentPorts = [:]
+
+        setBeforeStart {
+            // The jacoco plugin's agent artifact wraps the agent jar that the JVM loads.
+            def agentJar = zipTree(configurations.jacocoAgent.singleFile).matching {
+                include 'jacocoagent.jar'
+            }.singleFile
+            clusters.each { cluster ->
+                cluster.nodes.each { node ->
+                    int port = nextAgentPort.getAndIncrement()
+                    agentPorts[node.name] = port
+                    node.jvmArgs("-javaagent:${agentJar}=output=tcpserver,address=127.0.0.1,port=${port}," +
+                            "includes=org.opensearch.sql.*")
+                }
+            }
+        }
+
+        afterSuite { descriptor, result ->
+            // Only the root suite, which finishes after all tests of the task
+            if (descriptor.parent != null || agentPorts.isEmpty()) {
+                return
+            }
+            ant.taskdef(name: 'jacocoDump', classname: 'org.jacoco.ant.DumpTask',
+                    classpath: configurations.jacocoAnt.asPath)
+            agentPorts.each { nodeName, port ->
+                ant.jacocoDump(address: '127.0.0.1', port: port, append: false,
+                        destfile: file("${buildDir}/jacoco/cluster/${task.name}-${nodeName}.exec"))
+            }
+        }
+    }
 }
 
 // Run PPL ITs and new, legacy and comparison SQL ITs with new SQL engine enabled
@@ -1011,6 +1146,9 @@ integTest {
     exclude 'org/opensearch/sql/ppl/AsyncPPLMultiNodeRoutingIT.class'
     // Runs on the dedicated workerPoolSaturationIT cluster.
     exclude 'org/opensearch/sql/ppl/WorkerPoolSaturationIT.class'
+
+    // Needs Query Insights installed; runs via :integ-test:integTestWithQueryInsights.
+    exclude 'org/opensearch/sql/ppl/QueryInsightsRecordingIT.class'
 
     // Exclude tests that require the analytics engine plugin stack (run separately via dedicated tasks)
     exclude 'org/opensearch/sql/analytics/AnalyticsEngineProfileIT.class'
@@ -1399,6 +1537,10 @@ task integTestRemote(type: RestIntegTestTask) {
         if (System.getProperty("tests.rest.bwcsuite") == null) {
             excludeTestsMatching "org.opensearch.sql.bwc.*IT"
         }
+
+        // Need Query Insights installed; run via the integTestWithQueryInsights* tasks.
+        excludeTestsMatching 'org.opensearch.sql.ppl.QueryInsightsRecordingIT'
+        excludeTestsMatching 'org.opensearch.sql.security.QueryInsightsRecordingSecurityIT'
 
         if (analyticsEnabled) {
             // Full-text search (search-filter syntax -> Lucene query_string) needs an inverted-index

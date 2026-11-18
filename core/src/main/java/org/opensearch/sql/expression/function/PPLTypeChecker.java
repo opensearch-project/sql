@@ -27,6 +27,7 @@ import org.apache.calcite.sql.type.SqlTypeFamily;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.type.SqlTypeUtil;
 import org.apache.calcite.util.Pair;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.type.AbstractExprRelDataType;
 import org.opensearch.sql.calcite.type.ExprIPType;
 import org.opensearch.sql.calcite.utils.OpenSearchTypeFactory;
@@ -66,6 +67,55 @@ public interface PPLTypeChecker {
    * @return a list of lists, where each inner list represents an allowed parameter type combination
    */
   List<List<RelDataType>> getParameterTypes();
+
+  /**
+   * Returns the operand type families of the signature alternative that accepts {@code types}, or
+   * {@code null} when no alternative accepts them or the checker does not expose per-position
+   * families.
+   */
+  default @Nullable List<SqlTypeFamily> matchedFamilies(List<RelDataType> types) {
+    return null;
+  }
+
+  /**
+   * Returns the operand type families of the alternative of a Calcite {@code checker} that accepts
+   * {@code types}, or {@code null} when none does or the checker's structure cannot be read.
+   * Handles family checkers, OR compositions, and SEQUENCE compositions of single-operand checkers.
+   */
+  static @Nullable List<SqlTypeFamily> matchedFamilies(
+      @Nullable SqlOperandTypeChecker checker, List<RelDataType> types) {
+    if (checker == null || !checker.getOperandCountRange().isValidCount(types.size())) {
+      return null;
+    }
+    if (checker instanceof CompositeOperandTypeChecker composite) {
+      CompositeOperandTypeChecker.Composition composition = compositionOf(composite);
+      if (composition == CompositeOperandTypeChecker.Composition.OR) {
+        for (SqlOperandTypeChecker rule : composite.getRules()) {
+          List<SqlTypeFamily> families = matchedFamilies(rule, types);
+          if (families != null) {
+            return families;
+          }
+        }
+      } else if (composition == CompositeOperandTypeChecker.Composition.SEQUENCE
+          && composite.getRules().size() == types.size()) {
+        List<SqlTypeFamily> families = new ArrayList<>();
+        for (SqlOperandTypeChecker rule : composite.getRules()) {
+          if (!(rule instanceof ImplicitCastOperandTypeChecker singleOperand)) {
+            return null;
+          }
+          families.add(singleOperand.getOperandSqlTypeFamily(0));
+        }
+        return validateOperands(families, types) ? families : null;
+      }
+      return null;
+    }
+    if (checker instanceof ImplicitCastOperandTypeChecker implicitCast) {
+      List<SqlTypeFamily> families =
+          IntStream.range(0, types.size()).mapToObj(implicitCast::getOperandSqlTypeFamily).toList();
+      return validateOperands(families, types) ? families : null;
+    }
+    return null;
+  }
 
   private static boolean validateOperands(
       List<SqlTypeFamily> funcTypeFamilies, List<RelDataType> operandTypes) {
@@ -112,6 +162,11 @@ public interface PPLTypeChecker {
     @Override
     public List<List<RelDataType>> getParameterTypes() {
       return PPLTypeChecker.getRelDataTypeSignatures(families);
+    }
+
+    @Override
+    public @Nullable List<SqlTypeFamily> matchedFamilies(List<RelDataType> types) {
+      return checkOperandTypes(types) ? families : null;
     }
 
     @Override
@@ -165,6 +220,13 @@ public interface PPLTypeChecker {
         // parameter types.
         return Collections.emptyList();
       }
+    }
+
+    @Override
+    public @Nullable List<SqlTypeFamily> matchedFamilies(List<RelDataType> types) {
+      return innerTypeChecker instanceof SqlOperandTypeChecker sqlOperandTypeChecker
+          ? PPLTypeChecker.matchedFamilies(sqlOperandTypeChecker, types)
+          : null;
     }
   }
 
@@ -242,6 +304,17 @@ public interface PPLTypeChecker {
         }
       }
       return parameterTypes;
+    }
+
+    @Override
+    public @Nullable List<SqlTypeFamily> matchedFamilies(List<RelDataType> types) {
+      for (SqlOperandTypeChecker rule : allowedRules) {
+        List<SqlTypeFamily> families = PPLTypeChecker.matchedFamilies(rule, types);
+        if (families != null) {
+          return families;
+        }
+      }
+      return null;
     }
   }
 
@@ -418,6 +491,11 @@ public interface PPLTypeChecker {
           return parameterTypes;
         }
       }
+    }
+
+    @Override
+    public @Nullable List<SqlTypeFamily> matchedFamilies(List<RelDataType> types) {
+      return PPLTypeChecker.matchedFamilies(internal, types);
     }
   }
 
@@ -702,6 +780,43 @@ public interface PPLTypeChecker {
    */
   private static String getFamilySignature(List<SqlTypeFamily> families) {
     return formatSignatures(getRelDataTypeSignatures(families));
+  }
+
+  /**
+   * Returns the composition of {@code typeChecker}, read reflectively from its protected field, or
+   * {@code null} if the field cannot be accessed.
+   */
+  private static CompositeOperandTypeChecker.@Nullable Composition compositionOf(
+      CompositeOperandTypeChecker typeChecker) {
+    if (CompositionField.FIELD == null) {
+      return null;
+    }
+    try {
+      return (CompositeOperandTypeChecker.Composition) CompositionField.FIELD.get(typeChecker);
+    } catch (ReflectiveOperationException | RuntimeException e) {
+      return null;
+    }
+  }
+
+  /**
+   * Caches the accessible {@code CompositeOperandTypeChecker.composition} field, looked up once on
+   * first use, or {@code null} if it cannot be accessed. Interfaces cannot declare private fields,
+   * so the cache lives in this holder.
+   */
+  final class CompositionField {
+    private static final @Nullable Field FIELD = lookup();
+
+    private CompositionField() {}
+
+    private static @Nullable Field lookup() {
+      try {
+        Field field = CompositeOperandTypeChecker.class.getDeclaredField("composition");
+        field.setAccessible(true);
+        return field;
+      } catch (ReflectiveOperationException | InaccessibleObjectException | SecurityException e) {
+        return null;
+      }
+    }
   }
 
   /**

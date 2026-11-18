@@ -17,6 +17,7 @@ import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
 import static org.opensearch.sql.util.MatcherUtils.verifyErrorMessageContains;
+import static org.opensearch.sql.util.MatcherUtils.verifyNumOfRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
@@ -341,6 +342,75 @@ public class CalcitePPLBuiltinFunctionIT extends PPLIntegTestCase {
 
     verifySchema(actual, schema("name", "string"));
     verifyDataRows(actual, rows("Jake"), rows("Hello"), rows("Jane"), rows("John"));
+  }
+
+  @Test
+  public void testRandWithArithmeticSeed() throws IOException {
+    // RAND with an arithmetic seed. PPL arithmetic widens 1 + 1 to BIGINT, but RAND's seed is a
+    // Java int parameter — the seed must be narrowed to INTEGER or codegen fails.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval rand = rand(1 + 1) | where rand >= 0 | where rand < 1 | fields"
+                    + " name",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(actual, schema("name", "string"));
+    verifyDataRows(actual, rows("Jake"), rows("Hello"), rows("Jane"), rows("John"));
+  }
+
+  @Test
+  public void testWeekWithArithmeticMode() throws IOException {
+    // WEEK with an arithmetic mode. PPL arithmetic widens 1 + 0 to BIGINT, but WEEK's mode is a
+    // Java int parameter — the mode must be narrowed to INTEGER or codegen fails.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval w = week(date('2020-01-02'), 1 + 0) | head 1 | fields w",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(actual, schema("w", "int"));
+    verifyDataRows(actual, rows(1));
+  }
+
+  @Test
+  public void testToNumberWithArithmeticBase() throws IOException {
+    // TONUMBER's base is a Java int parameter, so the widened BIGINT base must be narrowed.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval n = tonumber('ff', 8 + 8) | head 1 | fields n",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(actual, schema("n", "double"));
+    verifyDataRows(actual, rows(255.0));
+  }
+
+  @Test
+  public void testSysdateWithArithmeticPrecision() throws IOException {
+    // SYSDATE's precision is a Java int parameter, so the widened BIGINT precision must be
+    // narrowed.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval t = sysdate(1 + 2) | where isnotnull(t) | head 1 | fields name",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(actual, schema("name", "string"));
+    verifyNumOfRows(actual, 1);
+  }
+
+  @Test
+  public void testAddDateWithBigintDays() throws IOException {
+    // ADDDATE's day count is a long at runtime and must not be narrowed to INTEGER.
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval d = adddate(date('2020-01-01'), 1 + 1) | head 1 | fields d",
+                TEST_INDEX_STATE_COUNTRY));
+
+    verifySchema(actual, schema("d", "date"));
+    verifyDataRows(actual, rows("2020-01-03"));
   }
 
   @Test

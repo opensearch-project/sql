@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.expression.function.udf.math;
 
+import static org.opensearch.sql.calcite.utils.UserDefinedFunctionUtils.toIntArg;
+
 import java.util.List;
 import org.apache.calcite.adapter.enumerable.NotNullImplementor;
 import org.apache.calcite.adapter.enumerable.NullPolicy;
@@ -68,8 +70,8 @@ public class ConvFunction extends ImplementorUDF {
      *     null if bases are out of range.
      */
     @Strict
-    public static String conv(String numStr, int fromBase, int toBase) {
-      return Long.toString(Long.parseLong(numStr, fromBase), toBase);
+    public static String conv(String numStr, long fromBase, long toBase) {
+      return Long.toString(Long.parseLong(numStr, toIntArg(fromBase)), toIntArg(toBase));
     }
   }
 }

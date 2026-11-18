@@ -26,6 +26,15 @@ public interface QueryJobStore extends Closeable {
    */
   QueryJob register(QueryJob job);
 
+  /**
+   * Retains a registered {@code job} for polling, until it is removed. Called before the job's id
+   * is returned to the client. Does nothing when {@code job} is not registered.
+   *
+   * @throws org.opensearch.sql.common.error.ResourceLimitExceededException when the store retains
+   *     the maximum number of jobs; {@code job} stays registered and not retained
+   */
+  void retain(QueryJob job);
+
   /** Looks up a job by ID. */
   Optional<QueryJob> find(QueryJobId id);
 

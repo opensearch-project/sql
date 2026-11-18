@@ -88,6 +88,21 @@ When ``log`` is an object field with ``enabled: false``, subfields with malforme
 
 **Recommendation:** Avoid using field names that contain leading dots, trailing dots, consecutive dots, or consist only of dots. This aligns with OpenSearch's default field naming requirements.
 
+## Dotted Field Names That Collide With a Sibling Field
+
+When an object field has `dynamic: false` or `enabled: false`, OpenSearch accepts a document in which a dotted field name runs into a sibling field's value, such as `peer.name` next to `peer`. PPL returns the dotted field under its literal name, next to the sibling.
+
+```json
+{
+    "attributes": {
+    "peer": "svc-a",
+    "peer.name": "svc-a-name"
+    }
+}
+```
+
+Here `attributes` is returned as `{"peer": "svc-a", "peer.name": "svc-a-name"}`.
+
 ## Bucket aggregation result may be approximate in large dataset
 
 In OpenSearch, `doc_count` values for a terms bucket aggregation may be approximate. As a result, any aggregations (such as `sum` and `avg`) on the terms bucket aggregation may also be approximate.

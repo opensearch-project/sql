@@ -330,8 +330,36 @@ def jacocoAggregatedReport = tasks.register('jacocoAggregatedReport', JacocoRepo
         csv.required = false
     }
 }
+// Coverage of the same classes by the integration tests, from the data that integ-test/build.gradle
+// records on the test cluster nodes. CI uploads it to Codecov next to the unit test report.
+def jacocoIntegTestReport = tasks.register('jacocoIntegTestReport', JacocoReport) {
+    group = 'verification'
+    description = 'Generates a code coverage report of all modules from the integration tests. Does not run ' +
+            'the tests; use ./gradlew :integ-test:integTest -Dtests.coverage=true jacocoIntegTestReport.'
+    executionData fileTree('integ-test/build/jacoco/cluster').include('*.exec')
+    reports {
+        html.required = true
+        xml.required = true
+        csv.required = false
+    }
+}
 // The module reports set their excludes in afterEvaluate, so read them once every project is evaluated.
 gradle.projectsEvaluated {
+    [jacocoAggregatedReport, jacocoIntegTestReport].each { report ->
+        report.configure {
+            aggregatedCoverageModules.each { path ->
+                def moduleReport = project(path).tasks.named('jacocoTestReport', JacocoReport).get()
+                classDirectories.from(moduleReport.classDirectories)
+                sourceDirectories.from(moduleReport.sourceDirectories)
+            }
+        }
+    }
+    def integTestProject = findProject(':integ-test')
+    if (integTestProject != null) {
+        jacocoIntegTestReport.configure {
+            mustRunAfter integTestProject.tasks.withType(org.opensearch.gradle.testclusters.StandaloneRestIntegTestTask)
+        }
+    }
     jacocoAggregatedReport.configure {
         subprojects.findAll { it.plugins.hasPlugin('jacoco') }.each { p ->
             // 'junit4' is the JUnit 4 test task of async-query, direct-query and direct-query-core.
@@ -341,11 +369,6 @@ gradle.projectsEvaluated {
                 mustRunAfter testTask
                 executionData testTask
             }
-        }
-        aggregatedCoverageModules.each { path ->
-            def moduleReport = project(path).tasks.named('jacocoTestReport', JacocoReport).get()
-            classDirectories.from(moduleReport.classDirectories)
-            sourceDirectories.from(moduleReport.sourceDirectories)
         }
     }
 }
