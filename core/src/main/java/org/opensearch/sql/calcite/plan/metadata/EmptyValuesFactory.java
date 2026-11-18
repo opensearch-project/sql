@@ -10,9 +10,11 @@ import java.util.List;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.rel.RelCollations;
+import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalValues;
+import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
 
@@ -37,7 +39,13 @@ public final class EmptyValuesFactory implements RelFactories.ValuesFactory {
     if (tuples.isEmpty()) {
       return new LogicalValues(
           cluster,
-          cluster.traitSetOf(Convention.NONE).replace(RelCollations.EMPTY),
+          // Same traits as LogicalValues.create, minus the O(n^2) collation derivation.
+          cluster
+              .traitSetOf(Convention.NONE)
+              .replace(RelCollations.EMPTY)
+              .replaceIf(
+                  RelDistributionTraitDef.INSTANCE,
+                  () -> RelMdDistribution.values(rowType, ImmutableList.of())),
           rowType,
           ImmutableList.of());
     }

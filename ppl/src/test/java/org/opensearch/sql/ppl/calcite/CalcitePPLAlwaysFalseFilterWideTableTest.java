@@ -5,10 +5,14 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
 
 import java.util.List;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelCollations;
@@ -16,6 +20,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Values;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.schema.ScannableTable;
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.impl.AbstractTable;
 import org.apache.calcite.sql.parser.SqlParser;
@@ -40,6 +45,8 @@ public class CalcitePPLAlwaysFalseFilterWideTableTest extends CalcitePPLAbstract
   private static final int FIELD_COUNT = 4000;
   // Before the fix, each of these queries allocated gigabytes and took seconds to minutes.
   private static final long TIMEOUT_MS = 30_000;
+  // Each query takes well under 100 ms with the fix, and several seconds without it.
+  private static final long MAX_PLAN_AND_RUN_MS = 1_000;
 
   public CalcitePPLAlwaysFalseFilterWideTableTest() {
     super(CalciteAssert.SchemaSpec.SCOTT_WITH_TEMPORAL);
@@ -89,6 +96,26 @@ public class CalcitePPLAlwaysFalseFilterWideTableTest extends CalcitePPLAbstract
     assertEmptyValuesHasNoCollation(root);
   }
 
+  /**
+   * All fields are top-level, so the empty {@code Values} keeps every field in the output. The
+   * Volcano planner then prunes it and converts it to {@code EnumerableValues}; both steps used to
+   * derive O(n^2) collations again (several seconds at 4,000 fields).
+   */
+  @Test(timeout = TIMEOUT_MS)
+  public void testWideOutputThroughProductionPlanner() {
+    // Run each query once to warm up code generation, then time the second run.
+    for (String ppl :
+        List.of(
+            "source=WIDE | where 'a' = 'b' | head 10",
+            "source=WIDE | where status = 'a' | where status = 'b' | eval x = 1 | head 10")) {
+      assertEquals(0, runWithProductionRunner(ppl));
+      long start = System.nanoTime();
+      assertEquals(0, runWithProductionRunner(ppl));
+      long elapsedMs = (System.nanoTime() - start) / 1_000_000;
+      assertTrue(ppl + " took " + elapsedMs + " ms", elapsedMs < MAX_PLAN_AND_RUN_MS);
+    }
+  }
+
   private static void assertEmptyValuesHasNoCollation(RelNode root) {
     Values values = findValues(root);
     assertTrue("expected an empty Values in:\n" + root.explain(), values != null);
@@ -116,11 +143,16 @@ public class CalcitePPLAlwaysFalseFilterWideTableTest extends CalcitePPLAbstract
   }
 
   /** A table with {@code status}, {@code code} and {@code fieldCount - 2} keyword-like fields. */
-  private static class WideTable extends AbstractTable {
+  private static class WideTable extends AbstractTable implements ScannableTable {
     private final int fieldCount;
 
     WideTable(int fieldCount) {
       this.fieldCount = fieldCount;
+    }
+
+    @Override
+    public Enumerable<Object[]> scan(DataContext root) {
+      return Linq4j.emptyEnumerable();
     }
 
     @Override

@@ -57,6 +57,7 @@ import org.apache.calcite.plan.Context;
 import org.apache.calcite.plan.Contexts;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.plan.RelOptCostFactory;
 import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptSchema;
@@ -103,6 +104,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.plan.Scannable;
 import org.opensearch.sql.calcite.plan.metadata.EmptyValuesFactory;
+import org.opensearch.sql.calcite.plan.metadata.EmptyValuesRules;
 import org.opensearch.sql.calcite.plan.metadata.OpenSearchRelMetadataProvider;
 import org.opensearch.sql.calcite.plan.rule.OpenSearchRules;
 import org.opensearch.sql.calcite.plan.rule.PPLSimplifyDedupRule;
@@ -265,6 +267,21 @@ public class CalciteToolsHelper {
       return action.apply(cluster, catalogReader, prepareContext.getRootSchema().plus(), statement);
     }
 
+    /**
+     * Replace Calcite's empty-pruning and values conversion rules with ones that do not derive
+     * O(n^2) collations for empty values. Covers both the analysis planner and the planner that
+     * {@code RelRunner.prepareStatement} creates.
+     */
+    @Override
+    protected RelOptPlanner createPlanner(
+        CalcitePrepare.Context prepareContext,
+        org.apache.calcite.plan.@Nullable Context externalContext,
+        @Nullable RelOptCostFactory costFactory) {
+      RelOptPlanner planner = super.createPlanner(prepareContext, externalContext, costFactory);
+      EmptyValuesRules.register(planner);
+      return planner;
+    }
+
     /** Use {@link OpenSearchRelMetadataProvider} so OpenSearch metadata overrides apply. */
     @Override
     protected RelOptCluster createCluster(RelOptPlanner planner, RexBuilder rexBuilder) {
@@ -395,6 +412,8 @@ public class CalciteToolsHelper {
     protected RelRoot trimUnusedFields(RelRoot root) {
       final SqlToRelConverter.Config config =
           SqlToRelConverter.config()
+              // Trimming an empty Values must not derive O(n^2) collations either.
+              .withRelBuilderFactory(proto(Contexts.empty()))
               .withTrimUnusedFields(shouldTrim(root.rel))
               .withExpand(THREAD_EXPAND.get())
               .withInSubQueryThreshold(requireNonNull(THREAD_INSUBQUERY_THRESHOLD.get()));

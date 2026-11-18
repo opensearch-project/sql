@@ -25,6 +25,11 @@ public class CalcitePPLAlwaysFalseFilterWideIndexIT extends PPLIntegTestCase {
   private static final int ATTRIBUTE_COUNT = 2000;
   private static final double MAX_PLANNING_MS = 1000;
 
+  // All fields top-level, so every field stays in the output of the empty result. Without the fix,
+  // the Volcano planner's empty pruning and EnumerableValues conversion took seconds here.
+  private static final String FLAT_INDEX = "wide_flat";
+  private static final int FLAT_FIELD_COUNT = 4000;
+
   @Override
   protected void init() throws Exception {
     super.init();
@@ -32,6 +37,20 @@ public class CalcitePPLAlwaysFalseFilterWideIndexIT extends PPLIntegTestCase {
     if (!isIndexExist(client(), INDEX)) {
       createWideIndex();
     }
+    if (!isIndexExist(client(), FLAT_INDEX)) {
+      createFlatWideIndex();
+    }
+  }
+
+  @Test
+  public void literalComparedToLiteralOnFlatWideIndex() throws IOException {
+    assertFastAndEmpty("source=" + FLAT_INDEX + " | where 'a' = 'b' | head 10");
+  }
+
+  @Test
+  public void filtersThatContradictOnlyAfterMergeOnFlatWideIndex() throws IOException {
+    assertFastAndEmpty(
+        "source=" + FLAT_INDEX + " | where f0 = 'a' | where f0 = 'b' | eval x = 1 | head 10");
   }
 
   @Test
@@ -122,6 +141,27 @@ public class CalcitePPLAlwaysFalseFilterWideIndexIT extends PPLIntegTestCase {
             .put("body", "hello")
             .put("attributes", new JSONObject().put("attr_0", "v"))
             .toString());
+    client().performRequest(doc);
+  }
+
+  /** An index with {@value #FLAT_FIELD_COUNT} top-level keyword fields and one document. */
+  private void createFlatWideIndex() throws IOException {
+    JSONObject properties = new JSONObject();
+    for (int i = 0; i < FLAT_FIELD_COUNT; i++) {
+      properties.put("f" + i, type("keyword"));
+    }
+    JSONObject body =
+        new JSONObject()
+            .put(
+                "settings",
+                new JSONObject().put("index.mapping.total_fields.limit", FLAT_FIELD_COUNT + 100))
+            .put("mappings", new JSONObject().put("properties", properties));
+    Request create = new Request("PUT", "/" + FLAT_INDEX);
+    create.setJsonEntity(body.toString());
+    client().performRequest(create);
+
+    Request doc = new Request("PUT", "/" + FLAT_INDEX + "/_doc/1?refresh=true");
+    doc.setJsonEntity(new JSONObject().put("f0", "v").toString());
     client().performRequest(doc);
   }
 
