@@ -95,6 +95,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.CalciteUnsupportedException;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.executor.QueryType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.CoercionUtils;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
@@ -763,6 +764,17 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
             .toList();
     List<RexNode> orderKeys = translateOrderKeys(node.getSortList(), context);
     return BuiltinFunctionName.ofWindowFunction(funcName)
+        // rank/dense_rank were added to WINDOW_FUNC_MAPPING to support SQL's RANK()/DENSE_RANK()
+        // OVER (...), but PPL only ever reaches this visitor through eventstats/streamstats
+        // (there's no other PPL syntax that builds a WindowFunction node), which don't support
+        // them - PPL has no ORDER BY syntax for eventstats/streamstats, so ranking would be
+        // meaningless there. Excluding them here for PPL keeps that restriction despite the
+        // shared mapping, without needing a PPL-specific grammar change.
+        .filter(
+            functionName ->
+                !(context.queryType == QueryType.PPL
+                    && (functionName == BuiltinFunctionName.RANK
+                        || functionName == BuiltinFunctionName.DENSE_RANK)))
         .map(
             functionName -> {
               RexNode field = arguments.isEmpty() ? null : arguments.getFirst();
@@ -808,7 +820,14 @@ public class CalciteRexNodeVisitor extends AbstractNodeVisitor<RexNode, CalciteP
                       node.getWindowFrame());
             })
         .orElseThrow(
-            () -> new CalciteUnsupportedException("Unexpected window function: " + funcName));
+            () ->
+                new CalciteUnsupportedException(
+                    "Window function '"
+                        + funcName
+                        + "' is not supported in eventstats/streamstats."
+                        + " Supported functions: avg, count, dc, distinct_count, earliest,"
+                        + " latest, max, min, row_number, stddev_pop, stddev_samp, sum,"
+                        + " var_pop, var_samp."));
   }
 
   private List<RexNode> translateOrderKeys(
