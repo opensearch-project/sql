@@ -45,6 +45,7 @@ import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.calcite.CalcitePlanContext;
 import org.opensearch.sql.calcite.CalciteRelNodeVisitor;
 import org.opensearch.sql.calcite.SysLimit;
+import org.opensearch.sql.calcite.utils.CalciteToolsHelper;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
@@ -122,6 +123,28 @@ public class CalcitePPLAbstractTest {
     RelNode root = context.relBuilder.build();
     System.out.println(root.explain());
     return root;
+  }
+
+  /**
+   * Plan the query, then prepare and run it through the production runner ({@link
+   * org.opensearch.sql.calcite.utils.CalciteToolsHelper.OpenSearchRelRunners}), which runs the
+   * Volcano planner the way query execution does. Returns the number of rows.
+   */
+  public int runWithProductionRunner(String ppl) {
+    CalcitePlanContext context = createBuilderContext();
+    Query query = (Query) plan(pplParser, ppl);
+    planTransformer.analyze(query.getPlan(), context);
+    RelNode root = CalciteToolsHelper.optimize(context.relBuilder.build(), context);
+    try (PreparedStatement statement = CalciteToolsHelper.OpenSearchRelRunners.run(context, root);
+        java.sql.ResultSet resultSet = statement.executeQuery()) {
+      int rows = 0;
+      while (resultSet.next()) {
+        rows++;
+      }
+      return rows;
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private RelNode mergeAdjacentFilters(RelNode relNode) {
