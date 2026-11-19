@@ -105,6 +105,22 @@ public class SQLQueryRequestTest {
   }
 
   @Test
+  public void should_support_explain_with_json_format() {
+    // Regression test for https://github.com/opensearch-project/sql/issues/4373.
+    // ?format=json was accepted before OpenSearch 3.0 and should continue to be valid.
+    // The explain endpoint always returns JSON regardless of this parameter.
+    SQLQueryRequest explainRequest =
+        SQLQueryRequestBuilder.request("SELECT 1")
+            .path("_plugins/_sql/_explain")
+            .params(Map.of("format", "json"))
+            .build();
+
+    assertAll(
+        () -> assertTrue(explainRequest.isExplainRequest()),
+        () -> assertTrue(explainRequest.isSupported()));
+  }
+
+  @Test
   public void should_not_support_explain_with_unsupported_explain_format() {
     SQLQueryRequest explainRequest =
         SQLQueryRequestBuilder.request("SELECT 1")
