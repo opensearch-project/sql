@@ -5047,6 +5047,8 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
 
     List<RexNode> projectList = new ArrayList<>();
 
+    Map<String, Integer> fieldIndex = buildFieldIndex(fieldNames);
+
     // Project all fields, replacing specified ones in-place
     for (String fieldName : fieldNames) {
       if (fieldsToReplace.contains(fieldName)) {
@@ -5095,7 +5097,7 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
         projectList.add(fieldRef);
       } else {
         // Keep original field unchanged
-        projectList.add(context.relBuilder.field(fieldName));
+        projectList.add(context.relBuilder.field(fieldIndex.get(fieldName)));
       }
     }
 
