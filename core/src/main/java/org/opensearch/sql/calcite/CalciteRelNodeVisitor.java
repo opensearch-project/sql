@@ -1469,9 +1469,11 @@ public class CalciteRelNodeVisitor extends AbstractNodeVisitor<RelNode, CalciteP
     List<String> originalFields = context.relBuilder.peek().getRowType().getFieldNames();
     List<RexNode> projectList = new ArrayList<>();
 
+    Map<String, Integer> fieldIndex = buildFieldIndex(originalFields);
     for (String fieldName : originalFields) {
       projectList.add(
-          state.replacements.getOrDefault(fieldName, context.relBuilder.field(fieldName)));
+          state.replacements.getOrDefault(
+              fieldName, context.relBuilder.field(fieldIndex.get(fieldName))));
     }
 
     Set<String> addedAsNames = new HashSet<>();
