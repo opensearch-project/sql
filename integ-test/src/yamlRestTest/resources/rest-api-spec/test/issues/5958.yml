@@ -1,0 +1,86 @@
+# Issue #5958: convert resolves every column of the input when it builds its projection.
+# The columns it does not convert must keep their names, order, types and values.
+
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  - do:
+      indices.create:
+        index: issue5958
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              "@timestamp":
+                type: date
+              status:
+                type: keyword
+              code:
+                type: long
+              attributes:
+                properties:
+                  f0:
+                    type: keyword
+                  f1:
+                    type: keyword
+                  f2:
+                    type: keyword
+  - do:
+      bulk:
+        index: issue5958
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"@timestamp": "2026-11-09T00:00:00Z", "status": "s1", "code": 201, "attributes": {"f1": "v1", "f2": "1,234"}}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : null
+  - do:
+      indices.delete:
+        index: issue5958
+        ignore_unavailable: true
+
+---
+"Convert keeps the unconverted columns":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=issue5958 | convert num(code), rmcomma(attributes.f2) AS f2_num | head 10"
+  - match: { total: 1 }
+  - match:
+      schema:
+        - { name: attributes, type: struct }
+        - { name: "@timestamp", type: timestamp }
+        - { name: code, type: double }
+        - { name: status, type: string }
+        - { name: f2_num, type: double }
+  - match: { datarows: [ [ { f1: "v1", f2: "1,234" }, "2026-11-09 00:00:00", 201.0, "s1", 1234.0 ] ] }
+
+---
+"Convert keeps the values of flattened sub-fields":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=issue5958 | convert num(code), rmcomma(attributes.f2) AS f2_num | fields code, status, attributes.f1, attributes.f2, f2_num"
+  - match: { total: 1 }
+  - match: { datarows: [ [ 201.0, "s1", "v1", "1,234", 1234.0 ] ] }
