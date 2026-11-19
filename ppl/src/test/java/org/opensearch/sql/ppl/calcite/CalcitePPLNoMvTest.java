@@ -433,7 +433,10 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
 
   @Test
   public void testNoMvWithMultipleNullableFields() {
-    String ppl = "source=EMP | eval arr = array(MGR, COMM) | nomv arr | head 1 | fields EMPNO, arr";
+    // MGR and COMM are numeric, and nomv only supports string arrays, so cast them to string.
+    String ppl =
+        "source=EMP | eval arr = array(cast(MGR as string), cast(COMM as string)) | nomv arr |"
+            + " head 1 | fields EMPNO, arr";
 
     RelNode root = getRelNode(ppl);
 
@@ -441,19 +444,30 @@ public class CalcitePPLNoMvTest extends CalcitePPLAbstractTest {
         "LogicalProject(EMPNO=[$0], arr=[$8])\n"
             + "  LogicalSort(fetch=[1])\n"
             + "    LogicalProject(EMPNO=[$0], ENAME=[$1], JOB=[$2], MGR=[$3], HIREDATE=[$4],"
-            + " SAL=[$5], COMM=[$6], DEPTNO=[$7], arr=[COALESCE(ARRAY_JOIN(ARRAY_COMPACT(array($3,"
-            + " $6)), '\n"
+            + " SAL=[$5], COMM=[$6], DEPTNO=[$7],"
+            + " arr=[COALESCE(ARRAY_JOIN(ARRAY_COMPACT(array(SAFE_CAST($3), NUMBER_TO_STRING($6))),"
+            + " '\n"
             + "'), '':VARCHAR)])\n"
             + "      LogicalTableScan(table=[[scott, EMP]])\n";
     verifyLogical(root, expectedLogical);
 
     String expectedSparkSql =
-        "SELECT `EMPNO`, COALESCE(ARRAY_JOIN(ARRAY_COMPACT(ARRAY(`MGR`, `COMM`)), '\n'), '') `arr`"
+        "SELECT `EMPNO`, COALESCE(ARRAY_JOIN(ARRAY_COMPACT(ARRAY(TRY_CAST(`MGR` AS STRING),"
+            + " NUMBER_TO_STRING(`COMM`))), '\n"
+            + "'), '') `arr`"
             + LS
             + "FROM `scott`.`EMP`"
             + LS
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testNoMvNumericArrayError() {
+    // nomv only supports string arrays, so an array of a numeric field is rejected at analysis
+    final String ppl = "source=EMP | eval arr = array(EMPNO) | nomv arr | head 1";
+
+    verifyQueryThrowsException(ppl, "only supports string arrays");
   }
 
   @Test

@@ -434,6 +434,71 @@ public class CalciteArrayFunctionIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testMvjoinRejectsIntegerArray() {
+    verifyMvjoinRejectsNonStringArray("array(age)", "INTEGER");
+  }
+
+  @Test
+  public void testMvjoinRejectsLongArray() {
+    verifyMvjoinRejectsNonStringArray("array(balance)", "LONG");
+  }
+
+  @Test
+  public void testMvjoinRejectsBooleanArray() {
+    verifyMvjoinRejectsNonStringArray("array(male)", "BOOLEAN");
+  }
+
+  @Test
+  public void testMvjoinAcceptsDateArray() throws IOException {
+    // birthdate is a date field. Date, time and timestamp values are string-backed, so they stay
+    // accepted. The rendered value is only checked by its date part to stay format-agnostic.
+    final JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where account_number = 1 | eval result = mvjoin(array(birthdate), ',')"
+                    + " | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "string"));
+    final JSONArray dataRows = actual.getJSONArray("datarows");
+    assertEquals(1, dataRows.length());
+    assertTrue(dataRows.getJSONArray(0).getString(0).startsWith("2017-10-23"));
+  }
+
+  @Test
+  public void testMvjoinAcceptsCastNumberToStringArray() throws IOException {
+    final JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | where account_number = 1 | eval result = mvjoin(array(cast(age as"
+                    + " string)), ',') | fields result",
+                TEST_INDEX_BANK));
+
+    verifySchema(actual, schema("result", "string"));
+    verifyDataRows(actual, rows("32"));
+  }
+
+  private void verifyMvjoinRejectsNonStringArray(
+      final String arrayExpression, final String expectedElementType) {
+    final Class<? extends Exception> expectedException =
+        isStandaloneTest() ? RuntimeException.class : ResponseException.class;
+    final Exception e =
+        assertThrows(
+            expectedException,
+            () ->
+                executeQuery(
+                    String.format(
+                        "source=%s | eval result = mvjoin(%s, ',') | fields result | head 1",
+                        TEST_INDEX_BANK, arrayExpression)));
+
+    verifyErrorMessageContains(
+        e, "MVJOIN only supports string arrays, but got an array of " + expectedElementType);
+    if (e instanceof ResponseException) {
+      assertEquals(400, ((ResponseException) e).getResponse().getStatusLine().getStatusCode());
+    }
+  }
+
+  @Test
   public void testMvindexSingleElementPositive() throws IOException {
     JSONObject actual =
         executeQuery(
