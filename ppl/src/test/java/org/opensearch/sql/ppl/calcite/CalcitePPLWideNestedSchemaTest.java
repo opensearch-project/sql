@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.junit.Assert.assertEquals;
+
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.apache.calcite.DataContext;
@@ -80,6 +82,32 @@ public class CalcitePPLWideNestedSchemaTest extends CalcitePPLAbstractTest {
             + "])\n"
             + "  LogicalTableScan(table=[[scott, WIDE]])\n";
     verifyLogical(root, expectedLogical);
+  }
+
+  /**
+   * {@code fields ID, *} mixes an explicit field with {@code *}, so it expands through the
+   * AllFields branch of {@code expandProjectFields} rather than the single-AllFields fast path. ID
+   * is already first, so the expansion is an identity projection Calcite elides to the bare scan —
+   * but every column is still resolved to a ref first. Resolving each by name was O(columns^2); the
+   * timeout catches a regression to that. Same hot path as #5913 / #5956.
+   */
+  @Test(timeout = 10_000)
+  public void testWideMixedAllFieldsExpansionIsLinear() {
+    RelNode root = getRelNode("source=WIDE | fields ID, *");
+    verifyLogical(root, "LogicalTableScan(table=[[scott, WIDE]])\n");
+  }
+
+  /**
+   * A broad wildcard ({@code ATTRS.F*}) matches every flattened leaf. Each match was resolved with
+   * a linear {@code field(String)} scan, so expanding m matches over n columns was O(n*m); here
+   * that is ~100k^2. The timeout catches a regression; the row type must carry exactly the matched
+   * leaves.
+   */
+  @Test(timeout = 10_000)
+  public void testWideWildcardExpansionIsLinear() {
+    RelNode root = getRelNode("source=WIDE | fields ATTRS.F*");
+    assertEquals(WIDE_SUBFIELDS, root.getRowType().getFieldCount());
+    assertEquals("ATTRS.F0", root.getRowType().getFieldNames().get(0));
   }
 
   /**
