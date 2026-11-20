@@ -261,7 +261,8 @@ public class SQLPlugin extends Plugin
     return Arrays.asList(
         new RestPPLQueryAction(),
         new RestPPLGrammarAction(),
-        new RestSqlAction(settings, injector, createSqlAnalyticsRouter()),
+        new RestSqlAction(
+            settings, injector, createSqlAnalyticsRouter(indexNameExpressionResolver)),
         new RestSqlStatsAction(settings, restController),
         new RestPPLStatsAction(settings, restController),
         new RestQuerySettingsAction(settings, restController),
@@ -281,7 +282,8 @@ public class SQLPlugin extends Plugin
    * Guice injector is built, i.e. after {@code getRestHandlers}. If the executor is still
    * unavailable when a SQL request arrives, the router falls through to the legacy SQL path.
    */
-  private BiFunction<SQLQueryRequest, RestChannel, Boolean> createSqlAnalyticsRouter() {
+  private BiFunction<SQLQueryRequest, RestChannel, Boolean> createSqlAnalyticsRouter(
+      IndexNameExpressionResolver indexNameExpressionResolver) {
     final RestUnifiedQueryAction[] cached = new RestUnifiedQueryAction[1];
     java.util.function.Supplier<RestUnifiedQueryAction> handlerSupplier =
         () -> {
@@ -295,6 +297,7 @@ public class SQLPlugin extends Plugin
                 new RestUnifiedQueryAction(
                     client,
                     clusterService,
+                    indexNameExpressionResolver,
                     executor,
                     contextProvider,
                     pluginSettings,
