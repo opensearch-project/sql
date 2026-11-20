@@ -56,6 +56,7 @@ public final class QueryJob {
   private OptionalLong startedAtMillis = OptionalLong.empty();
   private OptionalLong completedAtMillis = OptionalLong.empty();
   private Optional<QueryFailure> failure = Optional.empty();
+  private volatile boolean refusedAtStart;
   private Optional<QueryResult> result = Optional.empty();
   private double runningFraction;
 
@@ -133,10 +134,19 @@ public final class QueryJob {
    * callers needing {@code ThreadContext} preserved must wrap their listener with {@code
    * ContextPreservingActionListener} before registering.
    *
+   * <p>A zero budget answers {@link QueryResult.Running} unless {@link QueryRunner#run()} threw, in
+   * which case the stage fails with that refusal.
+   *
    * <p>Non-{@link Exception} throwables re-throw so JVM-level errors (e.g. {@link
    * OutOfMemoryError}) are not silently downgraded to an application-level failure.
    */
   public CompletionStage<QueryResult> await(Duration budget) {
+    long millis = budget == null ? 0L : budget.toMillis();
+    // Decided before subscribing: an engine failure that lands before this call belongs to the
+    // job, and subscribing to an already-failed completion would beat the Running answer.
+    if (millis <= 0L && !refusedAtStart) {
+      return CompletableFuture.completedStage(running());
+    }
     CompletableFuture<QueryResult> out = new CompletableFuture<>();
     completion.whenComplete(
         (value, throwable) -> {
@@ -150,10 +160,7 @@ public final class QueryJob {
           }
           out.completeExceptionally(cause);
         });
-    long millis = budget == null ? 0L : budget.toMillis();
-    if (millis <= 0L) {
-      out.complete(running());
-    } else {
+    if (millis > 0L) {
       // Cancellable, so an early outcome does not keep the job reachable until the timeout.
       CompletableFuture<Void> timer = new CompletableFuture<>();
       timer
@@ -232,6 +239,7 @@ public final class QueryJob {
       stage = Objects.requireNonNull(runner.run(), "runner must not return null");
     } catch (RuntimeException e) {
       onRunnerFailure(e);
+      refusedAtStart = true;
       return;
     }
     stage.whenComplete(

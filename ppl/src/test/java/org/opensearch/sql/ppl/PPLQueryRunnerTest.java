@@ -6,6 +6,7 @@
 package org.opensearch.sql.ppl;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -57,12 +58,40 @@ public class PPLQueryRunnerTest {
   }
 
   @Test
-  public void run_propagatesQueryFailure() {
+  public void run_throwsWhenExecuteRejectsOnTheCallingThread() {
     PPLService service = mock(PPLService.class);
+    IllegalStateException refusal = new IllegalStateException("[sql-worker] saturated");
     doAnswer(
             invocation -> {
               ResponseListener<QueryResponse> listener = invocation.getArgument(1);
-              listener.onFailure(new IllegalStateException("boom"));
+              listener.onFailure(refusal);
+              return null;
+            })
+        .when(service)
+        .execute(any(PPLQueryRequest.class), any(), any(), any());
+
+    PPLQueryRunner runner =
+        new PPLQueryRunner(
+            service,
+            new PPLQueryRequest("source=logs", null, "/_plugins/_ppl", "jdbc"),
+            s -> {},
+            Clock.systemUTC(),
+            () -> {},
+            () -> QueryProgress.NONE);
+    assertSame(refusal, assertThrows(IllegalStateException.class, runner::run));
+  }
+
+  @Test
+  public void run_reportsWorkerFailureThroughFutureEvenBeforeExecuteReturns() throws Exception {
+    PPLService service = mock(PPLService.class);
+    IllegalArgumentException failure =
+        new IllegalArgumentException("Field [nonexistent_field] not found.");
+    doAnswer(
+            invocation -> {
+              ResponseListener<QueryResponse> listener = invocation.getArgument(1);
+              Thread worker = new Thread(() -> listener.onFailure(failure), "sql-worker");
+              worker.start();
+              worker.join();
               return null;
             })
         .when(service)
@@ -78,7 +107,7 @@ public class PPLQueryRunnerTest {
             () -> QueryProgress.NONE);
     ExecutionException e =
         assertThrows(ExecutionException.class, () -> runner.run().toCompletableFuture().get());
-    assertEquals("boom", e.getCause().getMessage());
+    assertSame(failure, e.getCause());
   }
 
   @Test
