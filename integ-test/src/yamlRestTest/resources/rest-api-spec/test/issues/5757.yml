@@ -11,7 +11,7 @@ setup:
   # returned 200 with zero rows. That last one is the case a user would never notice.
   #
   # Most cases assert the answer, which is what fails on both the 500 and the silently
-  # empty result. The last case asserts the plan instead, because the pushdown it pins is
+  # empty result. The explain cases assert the plan instead, because a pushdown is
   # invisible to an answer assertion, both outcomes being correct rows.
   - do:
       indices.create:
@@ -32,25 +32,28 @@ setup:
                 type: text
               payload:
                 type: binary
+              t:
+                type: text
   - do:
       bulk:
         index: binary_pushdown_5757
         refresh: true
         body:
           # payload values differ only in their last character, so their sorted order is
-          # obvious from the assertions below.
+          # obvious from the assertions below. t runs against @timestamp within each host.
           - '{"index": {}}'
-          - '{"@timestamp": "2026-01-01T00:01:00Z", "host": "host-a", "latency": 1.5, "message": "disk error on host a", "payload": "Y210"}'
+          - '{"@timestamp": "2026-01-01T00:01:00Z", "host": "host-a", "latency": 1.5, "message": "disk error on host a", "payload": "Y210", "t": "b"}'
           - '{"index": {}}'
-          - '{"@timestamp": "2026-01-01T00:02:00Z", "host": "host-a", "latency": 2.5, "message": "all clear", "payload": "Y211"}'
+          - '{"@timestamp": "2026-01-01T00:02:00Z", "host": "host-a", "latency": 2.5, "message": "all clear", "payload": "Y211", "t": "a"}'
           - '{"index": {}}'
-          - '{"@timestamp": "2026-01-01T00:03:00Z", "host": "host-b", "latency": 3.5, "message": "disk error on host b", "payload": "Y212"}'
+          - '{"@timestamp": "2026-01-01T00:03:00Z", "host": "host-b", "latency": 3.5, "message": "disk error on host b", "payload": "Y212", "t": "d"}'
           - '{"index": {}}'
-          - '{"@timestamp": "2026-01-01T00:04:00Z", "host": "host-b", "latency": 4.5, "message": "all clear", "payload": "Y213"}'
+          - '{"@timestamp": "2026-01-01T00:04:00Z", "host": "host-b", "latency": 4.5, "message": "all clear", "payload": "Y213", "t": "c"}'
   # Second index carrying a repeated payload. The main index has four distinct values, so a
   # dedup or top assertion over it passes even when dedup does nothing. Here Y210 occurs twice
   # and Y211 once, so the distinct count differs from the document count and the top bucket is
-  # not a tie.
+  # not a tie. The fourth document has no payload, so a dedup sort shows where a missing value
+  # goes.
   - do:
       indices.create:
         index: binary_pushdown_5757_dup
@@ -75,6 +78,8 @@ setup:
           - '{"host": "host-b", "payload": "Y210"}'
           - '{"index": {}}'
           - '{"host": "host-c", "payload": "Y211"}'
+          - '{"index": {}}'
+          - '{"host": "host-a"}'
   # Third index carrying field aliases. An alias never enters the table row type, it is added
   # back as a project over its target, so payload_alias resolves to payload before any pushdown
   # site inspects the type. host_alias is the control, since an alias over an aggregatable field
@@ -211,7 +216,7 @@ teardown:
 ---
 "a binary sort key beside an expression key returns every row in order":
   # This reaches the sort-expression pushdown rather than the plain sort pushdown, which
-  # needs a separate guard. The rule only fires when at least one key is a non
+  # builds its own script sort. The rule only fires when at least one key is a non
   # order-equivalent expression, so the expression key is what makes the case reach it.
   - skip:
       features:
@@ -228,7 +233,7 @@ teardown:
 ---
 "sorting on an expression over a binary field returns every row in order":
   # cast(payload as string) is order-equivalent to payload, both VARCHAR, so the rewrite sends
-  # this to the same field-sort guard as the case above rather than to the script sort.
+  # this down the same path as a sort on payload itself.
   - skip:
       features:
         - headers
@@ -260,9 +265,8 @@ teardown:
 ---
 "a binary sort key ahead of a dedup on another field returns every distinct value":
   # The dedup pushdown absorbs the preceding sort into a hint that carries the raw field name,
-  # bypassing the reference accessors entirely, so this needs its own guard in AggregateAnalyzer.
-  # It only reaches that hint when the dedup key differs from the sort key, since otherwise the
-  # plain sort guard declines first.
+  # bypassing the reference accessors entirely, so AggregateAnalyzer builds the script sort from
+  # the hint itself. It only reaches that hint when the dedup key differs from the sort key.
   - skip:
       features:
         - headers
@@ -276,8 +280,84 @@ teardown:
   - match: {"datarows": [["host-a"], ["host-b"]]}
 
 ---
+"a descending binary sort key ahead of a dedup keeps each group's largest value":
+  # Each host keeps the document its sort puts first, so this fails if the pushed sort
+  # ignores the direction or the field.
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=binary_pushdown_5757 | sort - payload | dedup host | fields host, payload"
+  - match: {"total": 2}
+  - match: {"datarows": [["host-b", "Y213"], ["host-a", "Y211"]]}
+
+---
+"a binary sort key ahead of a dedup keeps a missing value first":
+  # host-a holds Y210 and a document with no payload. An ascending sort puts the missing
+  # value first, as the keyword field sort does, so host-a keeps the empty document.
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=binary_pushdown_5757_dup | sort payload | dedup host | fields host, payload"
+  - match: {"total": 3}
+  - match: {"datarows": [["host-a", null], ["host-b", "Y210"], ["host-c", "Y211"]]}
+
+---
+"a descending binary sort key ahead of a dedup keeps a missing value last":
+  # host-a holds Y210 and a document with no payload, so a descending sort keeps Y210. The
+  # trailing sort fixes the row order, since host-a and host-b tie on Y210.
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=binary_pushdown_5757_dup | sort - payload | dedup host | sort host | fields host, payload"
+  - match: {"total": 3}
+  - match: {"datarows": [["host-a", "Y210"], ["host-b", "Y210"], ["host-c", "Y211"]]}
+
+---
+"a descending binary sort puts a missing value last":
+  # host-c has no payload, so it ends the descending order as it does on a keyword field.
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=binary_pushdown_5757_alias | sort - payload_alias | fields payload_alias"
+  - match: {"total": 5}
+  - match: {"datarows": [["Y213"], ["Y212"], ["Y211"], ["Y210"], [null]]}
+
+---
+"a count over a binary field pushes a script value_count":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl.explain:
+        body:
+          query: "source=binary_pushdown_5757 | stats count(payload)"
+  - match: {"calcite.physical": "/\"value_count\":\\{\"script\":/"}
+
+---
 "dedup on a binary field keeps every distinct value":
-  # dedup is guarded at the aggregate pushdown site, not at the collapse site.
+  # The dedup key becomes a composite terms source, which reads payload in a script.
   - skip:
       features:
         - headers
@@ -292,10 +372,10 @@ teardown:
 
 ---
 "dedup on a binary field without a sort keeps every distinct value":
-  # The case above pairs dedup with a sort, which engages the sort guard too. This one
-  # has no sort, so it fails unless the aggregate guard declines dedup on its own. Run
-  # against the repeated-payload index so 2 distinct values out of 3 documents means the
-  # assertion fails if dedup is skipped, which a count over the main index would not catch.
+  # The case above pairs dedup with a sort, which reads payload in a script too. This one
+  # has no sort, so only the dedup key reads it. Run against the repeated-payload index so 2
+  # distinct values out of 3 payloads means the assertion fails if dedup is skipped, which a
+  # count over the main index would not catch.
   - skip:
       features:
         - headers
@@ -417,7 +497,7 @@ teardown:
 ---
 "xyseries pivoting on a binary field returns the pivoted values":
   # payload reaches the request through the aggregate call's filter argument here rather
-  # than through the group set, which is host, so this covers a different guard from the
+  # than through the group set, which is host, so this covers a different path from the
   # cases above.
   - skip:
       features:
@@ -433,9 +513,9 @@ teardown:
 
 ---
 "a binary field projected without a pushdown is unaffected":
-  # Control. It sorts on latency rather than on payload, so no guard applies and the sort
-  # still pushes down. It passes with and without the fix, and it fails if declining a
-  # pushdown elsewhere ever costs the field its values.
+  # Control. It sorts on latency rather than on payload, so payload is only fetched and the sort
+  # still pushes down. It passes with and without the fix, and it fails if a pushdown
+  # elsewhere ever costs the field its values.
   - skip:
       features:
         - headers
@@ -467,9 +547,10 @@ teardown:
 
 ---
 "sort on an alias to a binary field returns every row in order":
-  # The guards name OpenSearchBinaryType while the type map holds OpenSearchAliasType under the
-  # alias key, so reading them alone suggests an alias slips past. It does not, because the name
-  # is already payload by then. Before the fix this was the same fielddata 500 as the raw field.
+  # The binary checks name OpenSearchBinaryType while the type map holds OpenSearchAliasType
+  # under the alias key, so reading them alone suggests an alias slips past. It does not,
+  # because the name is already payload by then. Before the fix this was the same fielddata
+  # 500 as the raw field.
   - skip:
       features:
         - headers
@@ -556,11 +637,9 @@ teardown:
   - match: {"calcite.physical": "/\"sort\":\\[\\{\"host\":/"}
 
 ---
-"sort on an alias to a binary field declines its pushdown":
-  # The rows above prove the answer, not that the sort declined. CalciteEnumerableTopK is the
-  # decline itself, appearing only when Calcite sorts in memory. Before the fix this plan pushed
-  # SORT->{payload asc} and carried no TopK. The keyword-alias case above bounds the other
-  # direction, so the pair together shows the decline is caused by the type.
+"sort on an alias to a binary field pushes a script sort":
+  # The rows above prove the answer, not that the sort pushed. A field sort on payload fails
+  # at the shard, so the sort reads payload from _source in a script instead.
   - skip:
       features:
         - headers
@@ -570,12 +649,68 @@ teardown:
       ppl.explain:
         body:
           query: "source=binary_pushdown_5757_alias | sort payload_alias | fields payload_alias"
-  - match: {"calcite.physical": "/CalciteEnumerableTopK/"}
+  - match: {"calcite.physical": "/\"sort\":\\[\\{\"_script\":/"}
+
+---
+"sort on a binary field pushes a script sort":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl.explain:
+        body:
+          query: "source=binary_pushdown_5757 | sort payload | fields payload"
+  - match: {"calcite.physical": "/\"sort\":\\[\\{\"_script\":/"}
+
+---
+"a binary sort key beside an expression key pushes a script sort":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl.explain:
+        body:
+          query: "source=binary_pushdown_5757 | eval e = length(host) | sort payload, e | fields payload"
+  - match: {"calcite.physical": "/SORT_EXPR->/"}
+  - match: {"calcite.physical": "/\"sort\":\\[\\{\"_script\":/"}
+
+---
+"stats grouped by a binary field pushes a script terms source":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl.explain:
+        body:
+          query: "source=binary_pushdown_5757 | stats count() by payload"
+  - match: {"calcite.physical": "/AGGREGATION/"}
+  - match: {"calcite.physical": "/\"payload\":\\{\"terms\":\\{\"script\":/"}
+
+---
+"a binary sort key ahead of a dedup pushes a script sort inside top_hits":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl.explain:
+        body:
+          query: "source=binary_pushdown_5757 | sort payload | dedup host | fields host"
+  - match: {"calcite.physical": "/top_hits/"}
+  - match: {"calcite.physical": "/\"sort\":\\[\\{\"_script\":/"}
 
 ---
 "a graphLookup filter on a binary field keeps only edges to documents that have it":
-  # The binary guards make this filter unanalyzable, and graphLookup cannot build the script
-  # fallback, so before the call-site fix it was a 500 reading "Can't convert IS NOT NULL".
+  # A binary reference makes this filter unanalyzable as a query, and graphLookup cannot build
+  # the script fallback, so before the call-site fix it was a 500 reading "Can't convert IS
+  # NOT NULL".
   # Read against the unfiltered case below: b and d drop to no edges because their only edge is
   # c, the one document without a payload, while a keeps its edge to b.
   - skip:
@@ -656,3 +791,154 @@ teardown:
           query: "source=binary_pushdown_5757_graph | graphLookup binary_pushdown_5757_graph start=parent edge=parent-->name filter=(n > 2) as h | eval c = array_length(h) | fields name, c | sort name"
   - match: {"total": 4}
   - match: {"datarows": [["a", 0], ["b", 1], ["c", 0], ["d", 1]]}
+
+---
+"first and last over a binary field return the first and last documents' values":
+  # first and last push down as a top_hits fetch of payload. The response parse used to type
+  # that column from the Calcite row type and fail with Unsupported type: BINARY, a 500.
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=binary_pushdown_5757 | stats first(payload), last(payload)"
+  - match: {"total": 1}
+  - match: {"datarows": [["Y210", "Y213"]]}
+
+---
+"first and last over a binary field grouped by another field return one row per group":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=binary_pushdown_5757 | stats first(payload), last(payload) by host"
+  - match: {"total": 2}
+  - match: {"datarows": [["Y210", "Y211", "host-a"], ["Y212", "Y213", "host-b"]]}
+
+---
+"earliest and latest over a binary field by a date field return the earliest and latest values":
+  # The same top_hits fetch, sorted by @timestamp.
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=binary_pushdown_5757 | stats earliest(payload, @timestamp), latest(payload, @timestamp)"
+  - match: {"total": 1}
+  - match: {"datarows": [["Y210", "Y213"]]}
+
+---
+"earliest and latest over a binary field grouped by another field return one row per group":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=binary_pushdown_5757 | stats earliest(payload, @timestamp), latest(payload, @timestamp) by host"
+  - match: {"total": 2}
+  - match: {"datarows": [["Y210", "Y211", "host-a"], ["Y212", "Y213", "host-b"]]}
+
+---
+"first over a binary field keeps its top_hits pushdown":
+  # The rows above match pushdown off, so they cannot tell the fetch apart from an in-memory
+  # aggregation.
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl.explain:
+        body:
+          query: "source=binary_pushdown_5757 | stats first(payload)"
+  - match: {"calcite.physical": "/AGGREGATION/"}
+  - match: {"calcite.physical": "/top_hits/"}
+
+---
+"min and max over a binary field return the smallest and largest values":
+  # A binary field has no doc values, so min and max sort the top_hits by a script over
+  # _source.
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=binary_pushdown_5757 | stats min(payload), max(payload)"
+  - match: {"total": 1}
+  - match: {"datarows": [["Y210", "Y213"]]}
+
+---
+"min and max over a binary field grouped by another field return one row per group":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=binary_pushdown_5757 | stats min(payload), max(payload) by host"
+  - match: {"total": 2}
+  - match: {"datarows": [["Y210", "Y211", "host-a"], ["Y212", "Y213", "host-b"]]}
+
+---
+"min over a binary field pushes a script sort inside top_hits":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl.explain:
+        body:
+          query: "source=binary_pushdown_5757 | stats min(payload)"
+  - match: {"calcite.physical": "/top_hits/"}
+  - match: {"calcite.physical": "/\"sort\":\\[\\{\"_script\":/"}
+
+---
+"earliest and latest over a binary field by a text time field return the earliest and latest values":
+  # t has no doc values either, so the top_hits sorts by a script over t. earliest differs
+  # from min and first, and latest from max and last, so a sort on payload or no sort fails.
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=binary_pushdown_5757 | stats earliest(payload, t), latest(payload, t) by host"
+  - match: {"total": 2}
+  - match: {"datarows": [["Y211", "Y210", "host-a"], ["Y213", "Y212", "host-b"]]}
+
+---
+"earliest and latest over a binary field by a text time field push a script sort on t":
+  # earliest sorts asc and latest desc on t
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl.explain:
+        body:
+          query: "source=binary_pushdown_5757 | stats earliest(payload, t), latest(payload, t)"
+  - match: {"calcite.physical": "/top_hits/"}
+  - match: {"calcite.physical": "/\"MISSING_MAX\":true[^}]*\"DIGESTS\":\\[\"t\"\\]\\}\\},\"type\":\"string\",\"order\":\"asc\"/"}
+  - match: {"calcite.physical": "/\"MISSING_MAX\":false[^}]*\"DIGESTS\":\\[\"t\"\\]\\}\\},\"type\":\"string\",\"order\":\"desc\"/"}

@@ -55,6 +55,7 @@ import org.apache.calcite.rel.core.Aggregate;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
@@ -80,7 +81,6 @@ import org.opensearch.search.aggregations.metrics.ValueCountAggregationBuilder;
 import org.opensearch.search.aggregations.support.ValueType;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.search.sort.ScriptSortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.expression.SpanUnit;
@@ -163,7 +163,7 @@ public class AggregateAnalyzer {
       if (node == null) return fieldBuilder.apply(METADATA_FIELD);
       else if (node instanceof RexInputRef ref) {
         String fieldRef = inferNamedField(node).getReferenceForTermQuery();
-        // Text field with no .keyword sub-field is not aggregatable directly. Fall back to a
+        // Binary, or text with no .keyword sub-field, is not aggregatable directly. Fall back to a
         // Calcite script that reads the value from _source.
         if (fieldRef == null) {
           return scriptBuilder.apply(inferScript(node).getScript());
@@ -628,13 +628,30 @@ public class AggregateAnalyzer {
         // (ASC -> NULLS FIRST, DESC -> NULLS LAST) so dedup picks the same row whether
         // pushdown is on or off.
         for (PPLHintUtils.DedupSortKey key : dedupSortKeys) {
-          // The hint carries a raw field name, so it never reaches the binary refusal in
-          // NamedFieldExpression. A field sort on a binary field is rejected by the shard.
-          if (helper.fieldTypes.get(key.field()) instanceof OpenSearchBinaryType) {
-            throw new AggregateAnalyzer.AggregateAnalyzerException(
-                String.format("Cannot push down a dedup sort on binary field [%s]", key.field()));
-          }
           SortOrder order = "DESC".equals(key.order()) ? SortOrder.DESC : SortOrder.ASC;
+          // A field sort on a binary field is rejected by the shard, so read it from _source.
+          if (helper.fieldTypes.get(key.field()) instanceof OpenSearchBinaryType) {
+            RelDataTypeField field = helper.rowType.getField(key.field(), true, false);
+            if (field == null) {
+              throw new AggregateAnalyzer.AggregateAnalyzerException(
+                  String.format(
+                      "Cannot push down a dedup sort on field [%s], which is not in the row type",
+                      key.field()));
+            }
+            RexNode ref = RexInputRef.of(field.getIndex(), helper.rowType);
+            // false sorts a missing value lowest, so first for ASC and last for DESC as above
+            Script script =
+                new ScriptQueryExpression(
+                        ref,
+                        helper.rowType,
+                        helper.fieldTypes,
+                        helper.cluster,
+                        Map.of(MISSING_MAX, false))
+                    .getScript();
+            topHitsAggregationBuilder.sort(
+                SortBuilders.scriptSort(script, getScriptSortType(ref.getType())).order(order));
+            continue;
+          }
           String missing = order == SortOrder.ASC ? "_first" : "_last";
           topHitsAggregationBuilder.sort(
               SortBuilders.fieldSort(key.field()).order(order).missing(missing));
@@ -870,8 +887,9 @@ public class AggregateAnalyzer {
    * @param size the aggregation size
    * @param useSingleColumn true if only one column/field will return in TopHits
    * @param sortNeeded true if sort is required in the TopHits
-   * @param sortField the specific sort field, could be null
-   * @param sortOrder the specific sort order, could be null
+   * @param sortField the specific sort field, or null to sort by a script over _source when
+   *     sortNeeded is true
+   * @param sortOrder the specific sort order, required when sortNeeded is true
    */
   private static TopHitsAggregationBuilder createTopHitsBuilder(
       AggregateCall aggCall,
@@ -888,6 +906,23 @@ public class AggregateAnalyzer {
     TopHitsAggregationBuilder builder = AggregationBuilders.topHits(aggName).from(0).size(size);
     if (sortNeeded && sortField != null && sortOrder != null) {
       builder.sort(sortField, sortOrder);
+    } else if (sortNeeded && sortField == null) {
+      // binary and text without a keyword subfield have no doc values, so sort by _source.
+      // arg_min and arg_max carry their sort key in the second argument.
+      SqlKind kind = aggCall.getAggregation().kind;
+      RexNode sortArg =
+          (kind == SqlKind.ARG_MIN || kind == SqlKind.ARG_MAX ? args.get(1) : args.getFirst())
+              .getKey();
+      Script script =
+          new ScriptQueryExpression(
+                  sortArg,
+                  helper.rowType,
+                  helper.fieldTypes,
+                  helper.cluster,
+                  Map.of(MISSING_MAX, sortOrder == SortOrder.ASC))
+              .getScript();
+      builder.sort(
+          SortBuilders.scriptSort(script, getScriptSortType(sortArg.getType())).order(sortOrder));
     }
     List<String> sourceSpecific = new ArrayList<>();
     List<String> fields = new ArrayList<>();
@@ -906,36 +941,10 @@ public class AggregateAnalyzer {
                   sourceSpecific.add(name);
                 } else {
                   fields.add(name);
-                  if (sortNeeded && sortField == null) {
-                    String keyword = fieldExpression.getReferenceForTermQuery();
-                    if (keyword != null) {
-                      builder.sort(keyword, sortOrder);
-                    } else if (aggCall.getAggregation().kind == SqlKind.MIN
-                        || aggCall.getAggregation().kind == SqlKind.MAX) {
-                      // text without a keyword subfield has no doc values, so sort by _source
-                      // arg_min and arg_max would sort by the value here, not their sort argument
-                      Script script =
-                          new ScriptQueryExpression(
-                                  rex.getKey(),
-                                  helper.rowType,
-                                  helper.fieldTypes,
-                                  helper.cluster,
-                                  Map.of(MISSING_MAX, sortOrder == SortOrder.ASC))
-                              .getScript();
-                      builder.sort(
-                          SortBuilders.scriptSort(script, getScriptSortType(rex.getKey().getType()))
-                              .order(sortOrder));
-                    }
-                  }
                 }
               } else if (rex.getKey() instanceof RexCall || rex.getKey() instanceof RexLiteral) {
                 Script script = helper.inferScript(rex.getKey()).getScript();
                 scripts.add(new SearchSourceBuilder.ScriptField(rex.getValue(), script, false));
-                if (sortNeeded && sortField == null) {
-                  ScriptSortBuilder.ScriptSortType sortType =
-                      getScriptSortType(rex.getKey().getType());
-                  builder.sort(SortBuilders.scriptSort(script, sortType));
-                }
               } else {
                 throw new AggregateAnalyzer.AggregateAnalyzerException(
                     String.format(
