@@ -10,11 +10,18 @@ import static org.opensearch.sql.legacy.TestsConstants.PERSISTENT;
 import static org.opensearch.sql.legacy.TestsConstants.TRANSIENT;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
+import java.security.cert.CertificateFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hc.client5.http.auth.AuthScope;
 import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
@@ -95,6 +102,18 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
    */
   private static RestClient remoteAdminClient;
 
+  /** Path of the keystore with the admin certificate, set by the secured test tasks. */
+  private static final String ADMIN_KEYSTORE_PROPERTY = "tests.security.admin.keystore";
+
+  /** Path of the root CA that signed the node certificates, set by the secured test tasks. */
+  private static final String ROOT_CA_PROPERTY = "tests.security.root_ca";
+
+  /** Password of that keystore and of its key, set by the secured test tasks. */
+  private static final String ADMIN_KEYSTORE_PASSWORD_PROPERTY =
+      "tests.security.admin.keystore_password";
+
+  private static RestClient superAdminClient;
+
   protected boolean isHttps() {
     boolean isHttps =
         Optional.ofNullable(System.getProperty("https"))
@@ -128,10 +147,69 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
     return remoteAdminClient;
   }
 
+  /**
+   * Get a client that authenticates with the admin certificate, the {@code
+   * plugins.security.authcz.admin_dn} of the secured test clusters. Unlike {@link #client()}, it
+   * can write to system indices. Use it only to set up or remove state that a test cannot create
+   * through the plugin.
+   *
+   * @return the client, built on first use
+   * @throws IOException if the keystore or the root CA cannot be read
+   * @throws IllegalStateException if the task did not set the certificate properties
+   */
+  protected RestClient superAdminClient() throws IOException {
+    if (superAdminClient == null) {
+      superAdminClient = buildSuperAdminClient(getClusterHosts().toArray(new HttpHost[0]));
+    }
+    return superAdminClient;
+  }
+
+  private static RestClient buildSuperAdminClient(HttpHost[] hosts) throws IOException {
+    Path keystore = Path.of(requiredProperty(ADMIN_KEYSTORE_PROPERTY));
+    Path rootCa = Path.of(requiredProperty(ROOT_CA_PROPERTY));
+    char[] password = requiredProperty(ADMIN_KEYSTORE_PASSWORD_PROPERTY).toCharArray();
+    final SSLContext sslContext;
+    try (InputStream in = Files.newInputStream(rootCa)) {
+      KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+      trustStore.load(null, null);
+      trustStore.setCertificateEntry(
+          "root-ca", CertificateFactory.getInstance("X.509").generateCertificate(in));
+      sslContext =
+          SSLContextBuilder.create()
+              .setKeyStoreType("JKS")
+              .loadKeyMaterial(keystore, password, password)
+              .loadTrustMaterial(trustStore, null)
+              .build();
+    } catch (GeneralSecurityException e) {
+      throw new IOException("Cannot load the admin certificate from " + keystore, e);
+    }
+    TlsStrategy tlsStrategy = ClientTlsStrategyBuilder.create().setSslContext(sslContext).build();
+    RestClientBuilder builder = RestClient.builder(hosts);
+    builder.setHttpClientConfigCallback(
+        httpClientBuilder ->
+            httpClientBuilder.setConnectionManager(
+                PoolingAsyncClientConnectionManagerBuilder.create()
+                    .setTlsStrategy(tlsStrategy)
+                    .build()));
+    // The same response timeout configureHttpsClient gives client() by default.
+    builder.setRequestConfigCallback(conf -> conf.setResponseTimeout(Timeout.ofSeconds(60)));
+    builder.setStrictDeprecationMode(false);
+    return builder.build();
+  }
+
+  private static String requiredProperty(String name) {
+    String value = System.getProperty(name);
+    if (value == null) {
+      throw new IllegalStateException(
+          "System property [" + name + "] is not set; only the secured test tasks provide it");
+    }
+    return value;
+  }
+
   protected RestClient buildClient(Settings settings, HttpHost[] hosts) throws IOException {
     RestClientBuilder builder = RestClient.builder(hosts);
     if (isHttps()) {
-      configureHttpsClient(builder, settings, hosts[0]);
+      configureHttpsClient(builder, settings);
     } else {
       configureClient(builder, settings);
     }
@@ -196,10 +274,11 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
   @AfterClass
   public static void closeRemoteClients() throws IOException {
     try {
-      IOUtils.close(remoteClient, remoteAdminClient);
+      IOUtils.close(remoteClient, remoteAdminClient, superAdminClient);
     } finally {
       remoteClient = null;
       remoteAdminClient = null;
+      superAdminClient = null;
     }
   }
 
@@ -261,8 +340,8 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
     OpenSearchRestTestCase.configureClient(builder, settings);
   }
 
-  protected static void configureHttpsClient(
-      RestClientBuilder builder, Settings settings, HttpHost httpHost) throws IOException {
+  protected static void configureHttpsClient(RestClientBuilder builder, Settings settings)
+      throws IOException {
     Map<String, String> headers = ThreadContext.buildDefaultHeaders(settings);
     Header[] defaultHeaders = new Header[headers.size()];
     int i = 0;
@@ -279,8 +358,9 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
               Optional.ofNullable(System.getProperty("password"))
                   .orElseThrow(() -> new RuntimeException("password is missing"));
           BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+          // Any host: the client sends requests to every node, not only the first one.
           credentialsProvider.setCredentials(
-              new AuthScope(httpHost),
+              new AuthScope(null, -1),
               new UsernamePasswordCredentials(userName, password.toCharArray()));
           try {
             final TlsStrategy tlsStrategy =
