@@ -24,6 +24,7 @@ import java.util.OptionalLong;
  * @param failure client-visible failure, present iff {@code state == FAILED}
  * @param result final result, present iff {@code state == SUCCEEDED}
  * @param progress {@code 1.0} iff {@code state == SUCCEEDED}; otherwise the last running estimate
+ * @param current rows produced so far, present only in {@code RUNNING}
  */
 public record QueryJobStatus(
     QueryJobId id,
@@ -33,7 +34,8 @@ public record QueryJobStatus(
     OptionalLong completedAtMillis,
     Optional<QueryFailure> failure,
     Optional<QueryResult> result,
-    QueryProgress progress) {
+    QueryProgress progress,
+    Optional<QueryResult.Rows> current) {
 
   /**
    * Validates the snapshot invariants at construction time so that any {@code QueryJobStatus}
@@ -47,6 +49,7 @@ public record QueryJobStatus(
    *   <li>{@code completedAtMillis} is present iff {@code state.isTerminal()};
    *   <li>{@code startedAtMillis} is empty in {@code PENDING};
    *   <li>{@code progress} is {@code 1.0} iff {@code state == SUCCEEDED};
+   *   <li>{@code current} is present only in {@code RUNNING};
    *   <li>{@code submittedAtMillis} is non-negative;
    *   <li>no field is {@code null}.
    * </ul>
@@ -62,6 +65,7 @@ public record QueryJobStatus(
     Objects.requireNonNull(failure, "failure must not be null");
     Objects.requireNonNull(result, "result must not be null");
     Objects.requireNonNull(progress, "progress must not be null");
+    Objects.requireNonNull(current, "current must not be null");
     if (submittedAtMillis < 0) {
       throw new IllegalArgumentException("submittedAtMillis must not be negative");
     }
@@ -79,6 +83,9 @@ public record QueryJobStatus(
     }
     if ((state == QueryJobState.SUCCEEDED) != (progress.fractionDone() == 1D)) {
       throw new IllegalArgumentException("progress is 1.0 only in SUCCEEDED state");
+    }
+    if (current.isPresent() && state != QueryJobState.RUNNING) {
+      throw new IllegalArgumentException("current is only valid for RUNNING state");
     }
   }
 }

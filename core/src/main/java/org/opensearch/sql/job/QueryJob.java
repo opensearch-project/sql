@@ -16,6 +16,8 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Active object that carries one query through the lifecycle state machine.
@@ -41,6 +43,8 @@ import java.util.function.Function;
  * through {@link #await(Duration)} and {@link #onTerminal(Runnable)}.
  */
 public final class QueryJob {
+
+  private static final Logger LOG = LogManager.getLogger(QueryJob.class);
 
   static final double MAX_RUNNING_FRACTION = 0.95D;
 
@@ -111,6 +115,8 @@ public final class QueryJob {
 
   /** Returns an immutable snapshot of the job's current state. */
   public QueryJobStatus status() {
+    // Rows first, so progress covers them.
+    Optional<QueryResult.Rows> current = sampleCurrentResult();
     double sample = sampleRunnerProgress();
     synchronized (this) {
       return new QueryJobStatus(
@@ -121,7 +127,8 @@ public final class QueryJob {
           completedAtMillis,
           failure,
           result,
-          progress(sample));
+          progress(sample),
+          runningOnly(current));
     }
   }
 
@@ -170,10 +177,11 @@ public final class QueryJob {
   }
 
   private QueryResult.Running running() {
+    Optional<QueryResult.Rows> current = sampleCurrentResult();
     double sample = sampleRunnerProgress();
     synchronized (this) {
       double fraction = Math.min(MAX_RUNNING_FRACTION, progress(sample).fractionDone());
-      return new QueryResult.Running(id, new QueryProgress(fraction));
+      return new QueryResult.Running(id, new QueryProgress(fraction), runningOnly(current));
     }
   }
 
@@ -204,6 +212,7 @@ public final class QueryJob {
       safeCancelRunner();
     }
     completion.cancel(false);
+    safeCloseRunner();
   }
 
   /**
@@ -263,6 +272,7 @@ public final class QueryJob {
       result = Optional.of(value);
     }
     completion.complete(value);
+    safeCloseRunner();
   }
 
   /**
@@ -284,6 +294,7 @@ public final class QueryJob {
       failure = Optional.of(QueryFailure.of(throwable, failureRenderer));
     }
     completion.completeExceptionally(throwable);
+    safeCloseRunner();
   }
 
   /** Never decreases, and stays below 1.0 until SUCCEEDED. Caller holds the monitor. */
@@ -297,6 +308,25 @@ public final class QueryJob {
     return new QueryProgress(runningFraction);
   }
 
+  private Optional<QueryResult.Rows> runningOnly(Optional<QueryResult.Rows> current) {
+    return state == QueryJobState.RUNNING ? current : Optional.empty();
+  }
+
+  private Optional<QueryResult.Rows> sampleCurrentResult() {
+    synchronized (this) {
+      if (state != QueryJobState.RUNNING) {
+        return Optional.empty();
+      }
+    }
+    try {
+      Optional<QueryResult.Rows> current = runner.currentResult();
+      return current == null ? Optional.empty() : current;
+    } catch (RuntimeException e) {
+      LOG.debug("Failed to read the rows of a running query job", e);
+      return Optional.empty();
+    }
+  }
+
   /** Called outside the monitor; the runner is foreign code. */
   private double sampleRunnerProgress() {
     synchronized (this) {
@@ -308,6 +338,7 @@ public final class QueryJob {
       QueryProgress progress = runner.progress();
       return progress == null ? 0D : progress.fractionDone();
     } catch (RuntimeException e) {
+      LOG.debug("Failed to read the progress of a running query job", e);
       return 0D;
     }
   }
@@ -322,6 +353,14 @@ public final class QueryJob {
       runner.cancel();
     } catch (RuntimeException ignored) {
       // Cancellation is best-effort; a misbehaving runner must not block the state machine.
+    }
+  }
+
+  private void safeCloseRunner() {
+    try {
+      runner.close();
+    } catch (RuntimeException ignored) {
+      // Best-effort.
     }
   }
 

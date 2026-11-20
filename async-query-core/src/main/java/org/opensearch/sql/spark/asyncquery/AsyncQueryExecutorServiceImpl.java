@@ -220,8 +220,8 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
    * Maps a neutral {@link QueryJobStatus} onto the response shape the async-query transport actions
    * already know how to format. Terminal SUCCEEDED carries schema and rows for the {@link
    * QueryResult.Rows} variant, or the explain response in {@code explain} for the {@link
-   * QueryResult.Explain} variant. FAILED carries a sanitized error; RUNNING / PENDING / CANCELLED
-   * carry no rows.
+   * QueryResult.Explain} variant. FAILED carries a sanitized error, RUNNING the rows produced so
+   * far, and PENDING / CANCELLED no rows.
    */
   private static AsyncQueryExecutionResponse toAsyncResponse(QueryJobStatus status) {
     if (status.state() == QueryJobState.SUCCEEDED && status.result().isPresent()) {
@@ -235,7 +235,8 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
             null,
             null,
             null,
-            status.progress());
+            status.progress(),
+            rows.warnings());
       }
       if (result instanceof QueryResult.Explain explain) {
         return new AsyncQueryExecutionResponse(
@@ -259,9 +260,19 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
           null,
           null,
           details,
-          status.progress());
+          status.progress(),
+          List.of());
     }
+    QueryResult.Rows current = status.current().orElse(QueryResult.Rows.EMPTY);
     return new AsyncQueryExecutionResponse(
-        status.state().name(), EMPTY_SCHEMA, List.of(), null, null, null, null, status.progress());
+        status.state().name(),
+        current.schema(),
+        current.rows(),
+        null,
+        null,
+        null,
+        null,
+        status.progress(),
+        current.warnings());
   }
 }

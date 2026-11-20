@@ -7,6 +7,7 @@ package org.opensearch.sql.job;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
@@ -20,7 +21,7 @@ import org.opensearch.sql.executor.pagination.Cursor;
  * <p>{@link Rows} and {@link Explain} are engine-produced payloads stored in {@link
  * QueryJobStatus#result()}. {@link Running} is produced only at the submit-time wait boundary when
  * the {@code wait_for_completion_timeout} budget expires; it is never persisted on a {@code
- * QueryJobStatus} and carries just the id the client polls with.
+ * QueryJobStatus} and carries the id the client polls with, the progress, and the rows so far.
  */
 public sealed interface QueryResult
     permits QueryResult.Rows, QueryResult.Explain, QueryResult.Running {
@@ -31,6 +32,9 @@ public sealed interface QueryResult
   record Rows(
       Schema schema, List<ExprValue> rows, Cursor cursor, List<Warning> warnings, long tookMillis)
       implements QueryResult {
+
+    public static final Rows EMPTY =
+        new Rows(new Schema(List.of()), List.of(), Cursor.None, List.of(), 0);
 
     public Rows {
       Objects.requireNonNull(schema, "schema must not be null");
@@ -54,11 +58,13 @@ public sealed interface QueryResult
   }
 
   /** Wait budget expired; the client polls {@link #id()} to observe the terminal outcome. */
-  record Running(QueryJobId id, QueryProgress progress) implements QueryResult {
+  record Running(QueryJobId id, QueryProgress progress, Optional<Rows> current)
+      implements QueryResult {
 
     public Running {
       Objects.requireNonNull(id, "id must not be null");
       Objects.requireNonNull(progress, "progress must not be null");
+      Objects.requireNonNull(current, "current must not be null");
     }
 
     @Override

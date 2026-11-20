@@ -6,12 +6,15 @@
 package org.opensearch.sql.spark.transport.model;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import lombok.Getter;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionEngine;
+import org.opensearch.sql.executor.Warning;
 import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.job.QueryProgress;
+import org.opensearch.sql.lang.PPLLangSpec;
 import org.opensearch.sql.protocol.response.QueryResult;
 
 /** AsyncQueryResult for async query APIs. */
@@ -32,6 +35,10 @@ public class AsyncQueryResult extends QueryResult {
   /** {@code null} on the Spark path. */
   @Getter private final QueryProgress progress;
 
+  @Getter private final String id;
+
+  @Getter private final boolean queryJob;
+
   public AsyncQueryResult(
       String status,
       ExecutionEngine.Schema schema,
@@ -48,22 +55,45 @@ public class AsyncQueryResult extends QueryResult {
       Cursor cursor,
       String error,
       Map<String, Object> errorDetails) {
-    this(status, schema, exprValues, cursor, error, errorDetails, null);
-  }
-
-  public AsyncQueryResult(
-      String status,
-      ExecutionEngine.Schema schema,
-      Collection<ExprValue> exprValues,
-      Cursor cursor,
-      String error,
-      Map<String, Object> errorDetails,
-      QueryProgress progress) {
     super(schema, exprValues, cursor);
     this.status = status;
     this.error = error;
     this.errorDetails = errorDetails;
+    this.progress = null;
+    this.id = null;
+    this.queryJob = false;
+  }
+
+  /** Query jobs are PPL, so they render as the sync PPL response. */
+  public static AsyncQueryResult forQueryJob(
+      String status,
+      ExecutionEngine.Schema schema,
+      Collection<ExprValue> exprValues,
+      String error,
+      Map<String, Object> errorDetails,
+      QueryProgress progress,
+      String id,
+      List<Warning> warnings) {
+    return new AsyncQueryResult(
+        status, schema, exprValues, error, errorDetails, progress, id, warnings);
+  }
+
+  private AsyncQueryResult(
+      String status,
+      ExecutionEngine.Schema schema,
+      Collection<ExprValue> exprValues,
+      String error,
+      Map<String, Object> errorDetails,
+      QueryProgress progress,
+      String id,
+      List<Warning> warnings) {
+    super(schema, exprValues, Cursor.None, PPLLangSpec.PPL_SPEC, warnings);
+    this.status = status;
+    this.error = error;
+    this.errorDetails = errorDetails;
     this.progress = progress;
+    this.id = id;
+    this.queryJob = true;
   }
 
   public AsyncQueryResult(
@@ -85,5 +115,7 @@ public class AsyncQueryResult extends QueryResult {
     this.error = error;
     this.errorDetails = errorDetails;
     this.progress = null;
+    this.id = null;
+    this.queryJob = false;
   }
 }

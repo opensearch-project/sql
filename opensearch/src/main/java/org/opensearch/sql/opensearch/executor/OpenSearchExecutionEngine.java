@@ -69,6 +69,8 @@ import org.opensearch.sql.monitor.profile.MetricName;
 import org.opensearch.sql.monitor.profile.ProfileScope;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprGeoPointValue;
+import org.opensearch.sql.opensearch.executor.progress.PartialRows;
+import org.opensearch.sql.opensearch.executor.progress.QueryProgressTracker;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
 import org.opensearch.sql.opensearch.functions.DistinctCountApproxAggFunction;
 import org.opensearch.sql.opensearch.functions.GeoIpFunction;
@@ -445,41 +447,48 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
       columnNames[i - 1] = metaData.getColumnName(i);
     }
     List<Cursor.Accessor> accessors = resolveAvaticaAccessors(resultSet);
+    // Timewrap reshapes rows at the end, so its rows so far are not a prefix of its result.
+    PartialRows partialRows =
+        TimewrapPivot.isTimewrap()
+            ? null
+            : QueryProgressTracker.current().map(QueryProgressTracker::partialRows).orElse(null);
+    if (partialRows != null) {
+      partialRows.open(rows -> new Schema(buildColumns(columnNames, fieldTypes, rows)));
+    }
     List<ExprValue> values = new ArrayList<>();
-    while (resultSet.next() && (querySizeLimit == null || values.size() < querySizeLimit)) {
-      Map<String, ExprValue> row = new LinkedHashMap<String, ExprValue>();
-      for (int i = 1; i <= columnCount; i++) {
-        Object value =
-            accessors != null
-                ? accessors.get(i - 1).getObject()
-                : resultSet.getObject(columnNames[i - 1]);
-        Object converted = processValue(value, fieldTypes.get(i - 1));
-        ExprValue exprValue = ExprValueUtils.fromObjectValue(converted);
-        row.put(columnNames[i - 1], exprValue);
+    int warningsPublished = 0;
+    try {
+      while (resultSet.next() && (querySizeLimit == null || values.size() < querySizeLimit)) {
+        Map<String, ExprValue> row = new LinkedHashMap<String, ExprValue>();
+        for (int i = 1; i <= columnCount; i++) {
+          Object value =
+              accessors != null
+                  ? accessors.get(i - 1).getObject()
+                  : resultSet.getObject(columnNames[i - 1]);
+          Object converted = processValue(value, fieldTypes.get(i - 1));
+          ExprValue exprValue = ExprValueUtils.fromObjectValue(converted);
+          row.put(columnNames[i - 1], exprValue);
+        }
+        ExprValue tuple = ExprTupleValue.fromExprValueMap(row);
+        values.add(tuple);
+        if (partialRows != null) {
+          // Warnings first, so a row is never shown without them.
+          if (CalcitePlanContext.warningCount() != warningsPublished) {
+            warningsPublished = CalcitePlanContext.warningCount();
+            partialRows.warnings(CalcitePlanContext.peekWarnings());
+          }
+          partialRows.add(tuple);
+        }
       }
-      values.add(ExprTupleValue.fromExprValueMap(row));
+    } catch (SQLException | RuntimeException | Error e) {
+      // A failed or fallen-back query must not keep showing these rows.
+      if (partialRows != null) {
+        partialRows.discard();
+      }
+      throw e;
     }
 
-    List<Column> columns = new ArrayList<>(metaData.getColumnCount());
-    for (int i = 1; i <= columnCount; ++i) {
-      String columnName = columnNames[i - 1];
-      RelDataType fieldType = fieldTypes.get(i - 1);
-      // TODO: Correct this after fixing issue github.com/opensearch-project/sql/issues/3751
-      //  The element type of struct and array is currently set to ANY.
-      //  We set them using the runtime type as a workaround.
-      ExprType exprType;
-      if (fieldType.getSqlTypeName() == SqlTypeName.ANY) {
-        if (!values.isEmpty()) {
-          exprType = values.getFirst().tupleValue().get(columnName).type();
-        } else {
-          // Using UNDEFINED instead of UNKNOWN to avoid throwing exception
-          exprType = ExprCoreType.UNDEFINED;
-        }
-      } else {
-        exprType = OpenSearchTypeFactory.convertRelDataTypeToExprType(fieldType);
-      }
-      columns.add(new Column(columnName, null, exprType));
-    }
+    List<Column> columns = buildColumns(columnNames, fieldTypes, values);
     // Drain before the timewrap block: its finally clears the same thread-local.
     List<Warning> warnings = CalcitePlanContext.drainWarnings();
 
@@ -546,6 +555,31 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
               + " broken.",
           e);
     }
+  }
+
+  private static List<Column> buildColumns(
+      String[] columnNames, List<RelDataType> fieldTypes, List<ExprValue> values) {
+    List<Column> columns = new ArrayList<>(columnNames.length);
+    for (int i = 0; i < columnNames.length; ++i) {
+      String columnName = columnNames[i];
+      RelDataType fieldType = fieldTypes.get(i);
+      // TODO: Correct this after fixing issue github.com/opensearch-project/sql/issues/3751
+      //  The element type of struct and array is currently set to ANY.
+      //  We set them using the runtime type as a workaround.
+      ExprType exprType;
+      if (fieldType.getSqlTypeName() == SqlTypeName.ANY) {
+        if (!values.isEmpty()) {
+          exprType = values.getFirst().tupleValue().get(columnName).type();
+        } else {
+          // Using UNDEFINED instead of UNKNOWN to avoid throwing exception
+          exprType = ExprCoreType.UNDEFINED;
+        }
+      } else {
+        exprType = OpenSearchTypeFactory.convertRelDataTypeToExprType(fieldType);
+      }
+      columns.add(new Column(columnName, null, exprType));
+    }
+    return columns;
   }
 
   /** Registers opensearch-dependent functions */
