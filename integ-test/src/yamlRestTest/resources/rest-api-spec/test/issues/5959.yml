@@ -1,0 +1,85 @@
+# Issue #5959: replace resolves every column of the input when it builds its projection.
+# The columns it does not replace must keep their names, order, types and values.
+
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  - do:
+      indices.create:
+        index: issue5959
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              "@timestamp":
+                type: date
+              status:
+                type: keyword
+              code:
+                type: long
+              attributes:
+                properties:
+                  f0:
+                    type: keyword
+                  f1:
+                    type: keyword
+                  f2:
+                    type: keyword
+  - do:
+      bulk:
+        index: issue5959
+        refresh: true
+        body:
+          - '{"index": {}}'
+          - '{"@timestamp": "2026-11-09T00:00:00Z", "status": "s1", "code": 201, "attributes": {"f1": "v1", "f2": "x2"}}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : null
+  - do:
+      indices.delete:
+        index: issue5959
+        ignore_unavailable: true
+
+---
+"Replace keeps the columns it does not replace":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=issue5959 | replace \"s1\" WITH \"S1\" IN status | head 10"
+  - match: { total: 1 }
+  - match:
+      schema:
+        - { name: attributes, type: struct }
+        - { name: "@timestamp", type: timestamp }
+        - { name: code, type: bigint }
+        - { name: status, type: string }
+  - match: { datarows: [ [ { f1: "v1", f2: "x2" }, "2026-11-09 00:00:00", 201, "S1" ] ] }
+
+---
+"Replace keeps the values of flattened sub-fields":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=issue5959 | replace \"s1\" WITH \"S1\" IN status | replace \"x*\" WITH \"y*\" IN attributes.f2 | fields code, status, attributes.f1, attributes.f2"
+  - match: { total: 1 }
+  - match: { datarows: [ [ 201, "S1", "v1", "y2" ] ] }

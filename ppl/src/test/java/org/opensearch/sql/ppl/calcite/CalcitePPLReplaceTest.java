@@ -9,16 +9,75 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertThrows;
 
+import java.util.List;
+import org.apache.calcite.DataContext;
+import org.apache.calcite.linq4j.Enumerable;
+import org.apache.calcite.linq4j.Linq4j;
+import org.apache.calcite.plan.RelTraitDef;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.schema.ScannableTable;
+import org.apache.calcite.schema.SchemaPlus;
+import org.apache.calcite.schema.impl.AbstractTable;
+import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.test.CalciteAssert;
+import org.apache.calcite.tools.Frameworks;
+import org.apache.calcite.tools.Programs;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Test;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.error.ErrorReport;
 
 public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
 
+  private static final int WIDE_SUBFIELDS = 100_000;
+
   public CalcitePPLReplaceTest() {
     super(CalciteAssert.SchemaSpec.SCOTT_WITH_TEMPORAL);
+  }
+
+  @Override
+  protected Frameworks.ConfigBuilder config(CalciteAssert.SchemaSpec... schemaSpecs) {
+    final SchemaPlus rootSchema = Frameworks.createRootSchema(true);
+    final SchemaPlus schema = CalciteAssert.addSchema(rootSchema, schemaSpecs);
+    schema.add("WIDE", new CalcitePPLWideNestedSchemaTest.WideNestedTable(WIDE_SUBFIELDS));
+    schema.add("REPEATED", new RepeatedNamesTable());
+    return Frameworks.newConfigBuilder()
+        .parserConfig(SqlParser.Config.DEFAULT)
+        .defaultSchema(schema)
+        .traitDefs((List<RelTraitDef>) null)
+        .programs(Programs.heuristicJoinOrder(Programs.RULE_SET, true, 2));
+  }
+
+  /**
+   * Resolving every column through {@code RelBuilder.field(String)}, which searches the field names
+   * linearly on each call, made replace O(columns^2); this query took about 40s. The timeout
+   * catches a regression.
+   */
+  @Test(timeout = 10_000)
+  public void testReplaceOnWideSchemaIsLinear() {
+    RelNode root = getRelNode("source=WIDE | replace \"a\" WITH \"b\" IN NAME");
+    String expectedLogical =
+        "LogicalProject(ID=[$0], ATTRS=[$1], LONE.X=[$3], NAME=[REPLACE($"
+            + (WIDE_SUBFIELDS + 5)
+            + ", 'a', 'b')])\n"
+            + "  LogicalTableScan(table=[[scott, WIDE]])\n";
+    verifyLogical(root, expectedLogical);
+  }
+
+  /**
+   * Columns left unchanged resolve the way {@code RelBuilder.field(String)} does: names match
+   * case-sensitively, and a repeated name resolves to its first column.
+   */
+  @Test
+  public void testReplaceResolvesColumnsLikeFieldByName() {
+    RelNode root = getRelNode("source=REPEATED | replace \"x\" WITH \"y\" IN B");
+    String expectedLogical =
+        "LogicalProject(A=[$0], a=[$1], B=[REPLACE($2, 'x', 'y')], A0=[$0])\n"
+            + "  LogicalTableScan(table=[[scott, REPEATED]])\n";
+    verifyLogical(root, expectedLogical);
   }
 
   @Test
@@ -408,5 +467,24 @@ public class CalcitePPLReplaceTest extends CalcitePPLAbstractTest {
             + "  LogicalTableScan(table=[[scott, EMP]])\n";
 
     verifyLogical(root, expectedLogical);
+  }
+
+  /** Columns A, a, B, A: a repeated name and a name that differs only in case. */
+  private static class RepeatedNamesTable extends AbstractTable implements ScannableTable {
+    @Override
+    public RelDataType getRowType(RelDataTypeFactory factory) {
+      return factory
+          .builder()
+          .add("A", SqlTypeName.VARCHAR)
+          .add("a", SqlTypeName.VARCHAR)
+          .add("B", SqlTypeName.VARCHAR)
+          .add("A", SqlTypeName.VARCHAR)
+          .build();
+    }
+
+    @Override
+    public Enumerable<@Nullable Object[]> scan(DataContext root) {
+      return Linq4j.emptyEnumerable();
+    }
   }
 }

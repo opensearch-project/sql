@@ -15,10 +15,14 @@ import org.hamcrest.Matcher;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.client.Request;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
+import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CalciteReplaceCommandIT extends PPLIntegTestCase {
+  private static final String WIDE_INDEX = "test_replace_wide";
+  private static final int WIDE_ATTRIBUTES = 1_000;
 
   public void init() throws Exception {
     super.init();
@@ -524,6 +528,59 @@ public class CalciteReplaceCommandIT extends PPLIntegTestCase {
     verifySchema(result, schema("test", "string"));
     // Pattern "foo\*bar" matches literal "foo*bar", not "fooXbar", so original value returned
     verifyDataRows(result, rows("fooXbar"));
+  }
+
+  /** Replace on an index with many dynamic attribute fields keeps every other column's value. */
+  @Test
+  public void testReplaceOnWideIndex() throws IOException {
+    createWideIndexIfAbsent();
+    String last = "attributes.f" + (WIDE_ATTRIBUTES - 1);
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | replace 's1' WITH 'S1' IN status | replace 'x*' WITH 'y*' IN %s |"
+                    + " fields code, status, attributes.f1, %s",
+                WIDE_INDEX, last, last));
+    verifySchema(
+        result,
+        schema("code", null, "bigint"),
+        schema("status", null, "string"),
+        schema("attributes.f1", null, "string"),
+        schema(last, null, "string"));
+    verifyDataRows(result, rows(201, "S1", "v1", "y" + (WIDE_ATTRIBUTES - 1)));
+  }
+
+  private void createWideIndexIfAbsent() throws IOException {
+    if (TestUtils.isIndexExist(client(), WIDE_INDEX)) {
+      return;
+    }
+    JSONObject attributes = new JSONObject();
+    for (int i = 0; i < WIDE_ATTRIBUTES; i++) {
+      attributes.put("f" + i, new JSONObject().put("type", "keyword"));
+    }
+    JSONObject properties =
+        new JSONObject()
+            .put("@timestamp", new JSONObject().put("type", "date"))
+            .put("status", new JSONObject().put("type", "keyword"))
+            .put("code", new JSONObject().put("type", "long"))
+            .put("attributes", new JSONObject().put("properties", attributes));
+    JSONObject fieldLimit =
+        new JSONObject().put("total_fields", new JSONObject().put("limit", WIDE_ATTRIBUTES + 100));
+    JSONObject body =
+        new JSONObject()
+            .put(
+                "settings",
+                new JSONObject().put("index", new JSONObject().put("mapping", fieldLimit)))
+            .put("mappings", new JSONObject().put("properties", properties));
+    TestUtils.createIndexByRestClient(client(), WIDE_INDEX, body.toString());
+
+    Request doc = TestUtils.seedDocRequest(WIDE_INDEX, "1");
+    doc.setJsonEntity(
+        String.format(
+            "{\"@timestamp\": \"2026-11-09T00:00:00Z\", \"status\": \"s1\", \"code\": 201,"
+                + " \"attributes\": {\"f1\": \"v1\", \"f%d\": \"x%d\"}}",
+            WIDE_ATTRIBUTES - 1, WIDE_ATTRIBUTES - 1));
+    client().performRequest(doc);
   }
 
   /**
