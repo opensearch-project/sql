@@ -8,6 +8,7 @@ package org.opensearch.sql.legacy.executor.format;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
@@ -78,12 +79,18 @@ public class PrettyFormatRestExecutor implements RestExecutor {
       LOG.warn("SQL parsing error: {}", e.getMessage(), e);
       return new Protocol(e);
     } catch (OpenSearchException e) {
-      LOG.warn("An error occurred in OpenSearch engine: {}", e.getDetailedMessage(), e);
-      return new Protocol(e);
+      return failedProtocol("An error occurred in OpenSearch engine", e);
     } catch (Exception e) {
-      LOG.warn("Error happened in pretty formatter", e);
-      return new Protocol(e);
+      return failedProtocol("Error happened in pretty formatter", e);
     }
+  }
+
+  private static Protocol failedProtocol(String message, Exception e) {
+    if (ErrorMessageFactory.isDeniedOrMissing(e)) {
+      Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_CUS).increment();
+    }
+    ErrorMessageFactory.logFailure(LOG, Level.WARN, message, e);
+    return new Protocol(e);
   }
 
   @Override

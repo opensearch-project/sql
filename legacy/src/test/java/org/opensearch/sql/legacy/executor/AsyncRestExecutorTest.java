@@ -7,7 +7,12 @@ package org.opensearch.sql.legacy.executor;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -21,12 +26,22 @@ import java.util.function.Predicate;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.OpenSearchStatusException;
 import org.opensearch.cluster.ClusterName;
 import org.opensearch.common.settings.ClusterSettings;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
+import org.opensearch.sql.legacy.metrics.BasicCounter;
+import org.opensearch.sql.legacy.metrics.MetricName;
+import org.opensearch.sql.legacy.metrics.Metrics;
+import org.opensearch.sql.legacy.metrics.NumericMetric;
 import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.request.SqlRequest;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
@@ -97,5 +112,74 @@ public class AsyncRestExecutorTest {
 
   private void verifyRunInWorkerThread() {
     verify(client, times(1)).threadPool();
+  }
+
+  @Test
+  public void asyncClientErrorKeepsItsStatusAndCountsAsClientError() throws Exception {
+    BytesRestResponse response =
+        executeAsyncFailingWith(
+            new OpenSearchSecurityException(
+                "no permissions for [indices:data/read/search]", RestStatus.FORBIDDEN));
+
+    assertEquals(RestStatus.FORBIDDEN, response.status());
+    assertEquals(1L, failedRequestCount(MetricName.FAILED_REQ_COUNT_CUS));
+    assertEquals(0L, failedRequestCount(MetricName.FAILED_REQ_COUNT_SYS));
+  }
+
+  @Test
+  public void asyncWrappedClientErrorIsNotReportedAsMemoryCircuitBreak() throws Exception {
+    BytesRestResponse response =
+        executeAsyncFailingWith(
+            new IllegalStateException(
+                "Error occurred during join query run",
+                new OpenSearchSecurityException(
+                    "no permissions for [indices:data/read/search]", RestStatus.FORBIDDEN)));
+
+    assertEquals(RestStatus.FORBIDDEN, response.status());
+    assertEquals(1L, failedRequestCount(MetricName.FAILED_REQ_COUNT_CUS));
+  }
+
+  @Test
+  public void asyncServerErrorStillReturnsInternalServerError() throws Exception {
+    BytesRestResponse response =
+        executeAsyncFailingWith(
+            new OpenSearchStatusException("unavailable", RestStatus.SERVICE_UNAVAILABLE));
+
+    assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.status());
+    assertEquals(1L, failedRequestCount(MetricName.FAILED_REQ_COUNT_SYS));
+  }
+
+  private BytesRestResponse executeAsyncFailingWith(Exception failure) throws Exception {
+    Metrics.getInstance().clear();
+    for (MetricName name :
+        new MetricName[] {MetricName.FAILED_REQ_COUNT_CUS, MetricName.FAILED_REQ_COUNT_SYS}) {
+      Metrics.getInstance().registerMetric(new NumericMetric<>(name.getName(), new BasicCounter()));
+    }
+    ThreadPool threadPool = mock(ThreadPool.class);
+    doAnswer(
+            invocation -> {
+              ((Runnable) invocation.getArgument(0)).run();
+              return null;
+            })
+        .when(threadPool)
+        .schedule(any(Runnable.class), any(TimeValue.class), anyString());
+    when(client.threadPool()).thenReturn(threadPool);
+    doThrow(failure).when(executor).execute(client, params, action, channel);
+
+    String originalName = Thread.currentThread().getName();
+    Thread.currentThread().setName(TRANSPORT_WORKER_THREAD_NAME_PREFIX);
+    try {
+      execute();
+    } finally {
+      Thread.currentThread().setName(originalName);
+    }
+
+    ArgumentCaptor<BytesRestResponse> captor = ArgumentCaptor.forClass(BytesRestResponse.class);
+    verify(channel).sendResponse(captor.capture());
+    return captor.getValue();
+  }
+
+  private static long failedRequestCount(MetricName name) {
+    return (Long) Metrics.getInstance().getNumericalMetric(name).getValue();
   }
 }

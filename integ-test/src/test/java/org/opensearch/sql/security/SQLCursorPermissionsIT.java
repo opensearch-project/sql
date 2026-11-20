@@ -6,6 +6,7 @@
 package org.opensearch.sql.security;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 
 import java.io.IOException;
 import java.util.Base64;
@@ -15,6 +16,7 @@ import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
+import org.opensearch.client.ResponseException;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.util.ClusterPlugins;
@@ -32,6 +34,10 @@ public class SQLCursorPermissionsIT extends SQLIntegTestCase {
   private static final String ACCOUNT_ROLE = "account_cursor_role";
   private static final String STRONG_PASSWORD = "StrongPassword123!";
 
+  // Reads the account index, and can see the bank index's mapping but not search it
+  private static final String BANK_MAPPING_USER = "bank_mapping_user";
+  private static final String BANK_MAPPING_ROLE = "bank_mapping_role";
+
   private boolean initialized = false;
 
   @Override
@@ -41,6 +47,7 @@ public class SQLCursorPermissionsIT extends SQLIntegTestCase {
         ClusterPlugins.SECURITY_PLUGIN,
         "opensearch-security plugin not installed on test cluster; skipping FGAC tests");
     loadIndex(Index.ACCOUNT);
+    loadIndex(Index.BANK);
     createSecurityRolesAndUsers();
   }
 
@@ -50,6 +57,8 @@ public class SQLCursorPermissionsIT extends SQLIntegTestCase {
     }
     createRole(ACCOUNT_ROLE, TEST_INDEX_ACCOUNT);
     createUser(ACCOUNT_USER, ACCOUNT_ROLE);
+    createBankMappingRole();
+    createUser(BANK_MAPPING_USER, BANK_MAPPING_ROLE);
     initialized = true;
   }
 
@@ -79,6 +88,47 @@ public class SQLCursorPermissionsIT extends SQLIntegTestCase {
             }
             """,
             indexPattern));
+    RequestOptions.Builder opts = RequestOptions.DEFAULT.toBuilder();
+    opts.addHeader("Content-Type", "application/json");
+    request.setOptions(opts);
+
+    Response response = client().performRequest(request);
+    int status = response.getStatusLine().getStatusCode();
+    assertTrue(status == 200 || status == 201);
+  }
+
+  private void createBankMappingRole() throws IOException {
+    Request request = new Request("PUT", "/_plugins/_security/api/roles/" + BANK_MAPPING_ROLE);
+    request.setJsonEntity(
+        String.format(
+            Locale.ROOT,
+            """
+            {
+              "cluster_permissions": [
+                "cluster:admin/opensearch/ppl"
+              ],
+              "index_permissions": [{
+                "index_patterns": ["%s"],
+                "allowed_actions": [
+                  "indices:data/read/search*",
+                  "indices:admin/mappings/get",
+                  "indices:admin/mappings/fields/get*",
+                  "indices:monitor/settings/get",
+                  "indices:data/read/point_in_time/create",
+                  "indices:data/read/point_in_time/delete"
+                ]
+              }, {
+                "index_patterns": ["%s"],
+                "allowed_actions": [
+                  "indices:admin/mappings/get",
+                  "indices:admin/mappings/fields/get*",
+                  "indices:monitor/settings/get"
+                ]
+              }]
+            }
+            """,
+            TEST_INDEX_ACCOUNT,
+            TEST_INDEX_BANK));
     RequestOptions.Builder opts = RequestOptions.DEFAULT.toBuilder();
     opts.addHeader("Content-Type", "application/json");
     request.setOptions(opts);
@@ -192,5 +242,29 @@ public class SQLCursorPermissionsIT extends SQLIntegTestCase {
     }
     // 234 rows / 50 per page = 5 pages
     assertEquals("expected 5 V1 cursor pages under FGAC", 5, pages);
+  }
+
+  /**
+   * A legacy cursor query on an index the user can see the mapping of but cannot search fails when
+   * it creates the point in time. The response carries the security plugin's 403 as its HTTP
+   * status, not 500.
+   */
+  @Test
+  public void cursorQueryOnUnreadableIndexReturnsForbidden() throws IOException {
+    ResponseException e =
+        expectThrows(
+            ResponseException.class,
+            () ->
+                executeSqlAsUser(
+                    String.format(
+                        Locale.ROOT,
+                        "{\"fetch_size\": 50, \"query\": \"SELECT age FROM %s LIMIT 100\"}",
+                        TEST_INDEX_BANK),
+                    BANK_MAPPING_USER));
+
+    assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
+    JSONObject body = new JSONObject(TestUtils.getResponseBody(e.getResponse(), true));
+    assertEquals(403, body.getInt("status"));
+    assertEquals("OpenSearchSecurityException", body.getJSONObject("error").getString("type"));
   }
 }
