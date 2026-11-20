@@ -19,6 +19,7 @@ import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.job.QueryJobService;
 import org.opensearch.sql.job.SecurityAdapter;
 import org.opensearch.sql.legacy.metrics.Metrics;
+import org.opensearch.sql.opensearch.client.PluginClient;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
 import org.opensearch.transport.client.node.NodeClient;
 
@@ -26,6 +27,8 @@ import org.opensearch.transport.client.node.NodeClient;
 public class AsyncExecutorServiceModuleTest {
 
   @Mock private NodeClient nodeClient;
+
+  @Mock private PluginClient pluginClient;
 
   @Mock private ClusterService clusterService;
 
@@ -44,6 +47,7 @@ public class AsyncExecutorServiceModuleTest {
     modulesBuilder.add(
         b -> {
           b.bind(NodeClient.class).toInstance(nodeClient);
+          b.bind(PluginClient.class).toInstance(pluginClient);
           b.bind(org.opensearch.sql.common.setting.Settings.class).toInstance(settings);
           b.bind(DataSourceService.class).toInstance(dataSourceService);
           b.bind(ClusterService.class).toInstance(clusterService);

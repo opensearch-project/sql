@@ -39,6 +39,7 @@ import org.opensearch.sql.spark.execution.xcontent.SessionModelXContentSerialize
 import org.opensearch.sql.spark.execution.xcontent.StatementModelXContentSerializer;
 import org.opensearch.sql.spark.rest.model.LangType;
 import org.opensearch.sql.spark.utils.IDUtils;
+import org.opensearch.sql.spark.utils.TestPluginClient;
 import org.opensearch.test.OpenSearchIntegTestCase;
 
 public class StatementTest extends OpenSearchIntegTestCase {
@@ -57,7 +58,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
   @Before
   public void setup() {
-    StateStore stateStore = new StateStore(client(), clusterService());
+    StateStore stateStore = new StateStore(TestPluginClient.of(client()), clusterService());
     statementStorageService =
         new OpenSearchStatementStorageService(stateStore, new StatementModelXContentSerializer());
     sessionStorageService =
