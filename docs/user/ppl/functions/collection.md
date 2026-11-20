@@ -563,7 +563,7 @@ Splits the string values on the delimiter and returns the string values as a mul
 
 **Parameters**:
 
-- `str` (Required): The string to split.
+- `str` (Required): The string to split. A `DATE`, `TIME`, or `TIMESTAMP` value is split on its string form, the same as `split(cast(value as string), delimiter)`.
 - `delimiter` (Required): The string to use as a delimiter for splitting.
 
 **Return type**: `ARRAY`
@@ -847,7 +847,7 @@ Returns a subset of the multivalue array using the start and optional end index 
 
 **Parameters**:
 
-- `array` (Required): The array from which to extract elements.
+- `array` (Required): The array from which to extract elements. A single (non-array) value is treated as a one-element array: indexes `0` and `-1` return the value, any other index returns `null`, and a `null` value returns `null`.
 - `start` (Required): The starting index (`0`-based).
 - `end` (Optional): The ending index (`0`-based, inclusive).
 

@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.ppl.calcite;
 
+import static org.junit.Assert.assertThrows;
+
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.test.CalciteAssert;
 import org.junit.Test;
@@ -588,6 +590,144 @@ public class CalcitePPLArrayFunctionTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`\n"
             + "LIMIT 1";
     verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMvindexSingleValueStringField() {
+    // A single-value field is treated as a one-element array, as in SPL (#5948)
+    String ppl =
+        "source=EMP | where EMPNO = 7369 | eval first = mvindex(ENAME, 0), last = mvindex(ENAME,"
+            + " -1), second = mvindex(ENAME, 1) | fields first, last, second";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(first=[$1], last=[$1], second=[null:VARCHAR(10)])\n"
+            + "  LogicalFilter(condition=[=($0, 7369)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult = "first=SMITH; last=SMITH; second=null\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT `ENAME` `first`, `ENAME` `last`, CAST(NULL AS STRING) `second`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE `EMPNO` = 7369";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testMvindexSingleValueNumericField() {
+    String ppl =
+        "source=EMP | where EMPNO = 7369 | eval first = mvindex(EMPNO, 0), other = mvindex(EMPNO,"
+            + " 2) | fields first, other";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "first=7369; other=null\n";
+    verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testMvindexSingleValueWithComputedIndex() {
+    // DEPTNO of employee 7369 is 20, so the indexes evaluate to 0, -1 and 1 at runtime
+    String ppl =
+        "source=EMP | where EMPNO = 7369 | eval first = mvindex(ENAME, DEPTNO - 20), last ="
+            + " mvindex(ENAME, 19 - DEPTNO), other = mvindex(ENAME, DEPTNO - 19) | fields first,"
+            + " last, other";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "first=SMITH; last=SMITH; other=null\n";
+    verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testMvindexSingleValueNullField() {
+    // A null single value returns null, not a one-element array holding null
+    String ppl =
+        "source=EMP | where EMPNO = 7369 | eval single = mvindex(COMM, 0), range = mvindex(COMM,"
+            + " 0, 0), isnull = isnull(mvindex(COMM, 0)) | fields single, range, isnull";
+    RelNode root = getRelNode(ppl);
+
+    String expectedResult = "single=null; range=null; isnull=true\n";
+    verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testMvindexSingleValueRange() {
+    String ppl =
+        "source=EMP | where EMPNO = 7369 | eval covered = mvindex(ENAME, 0, 0), negative ="
+            + " mvindex(ENAME, -1, -1), outside = mvindex(ENAME, 1, 2) | fields covered, negative,"
+            + " outside";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(covered=[ARRAY_SLICE(CASE(IS NULL($1), null:VARCHAR(10) ARRAY,"
+            + " array($1)), 0, +(-(0, 0), 1))], negative=[ARRAY_SLICE(CASE(IS NULL($1),"
+            + " null:VARCHAR(10) ARRAY, array($1)), +(ARRAY_LENGTH(CASE(IS NULL($1),"
+            + " null:VARCHAR(10) ARRAY, array($1))), -1), +(-(+(ARRAY_LENGTH(CASE(IS NULL($1),"
+            + " null:VARCHAR(10) ARRAY, array($1))), -1), +(ARRAY_LENGTH(CASE(IS NULL($1),"
+            + " null:VARCHAR(10) ARRAY, array($1))), -1)), 1))], outside=[ARRAY_SLICE(CASE(IS"
+            + " NULL($1), null:VARCHAR(10) ARRAY, array($1)), 1, +(-(2, 1), 1))])\n"
+            + "  LogicalFilter(condition=[=($0, 7369)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult = "covered=[SMITH]; negative=[SMITH]; outside=[]\n";
+    verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testMvindexStillRejectsNonIntegerIndex() {
+    Throwable t =
+        assertThrows(
+            Exception.class,
+            () -> getRelNode("source=EMP | eval result = mvindex(ENAME, 'a') | fields result"));
+    verifyErrorMessageContains(t, "MVINDEX function expects");
+  }
+
+  @Test
+  public void testSplitDateField() {
+    // A DATE value is split on its string form, as split(cast(HIREDATE as string), '-') (#5948)
+    String ppl =
+        "source=EMP | where EMPNO = 7369 | eval result = split(HIREDATE, '-') | fields result";
+    RelNode root = getRelNode(ppl);
+
+    String expectedLogical =
+        "LogicalProject(result=[CASE(=('-', ''), REGEXP_EXTRACT_ALL(SAFE_CAST($4), '.'),"
+            + " SPLIT(SAFE_CAST($4), '-'))])\n"
+            + "  LogicalFilter(condition=[=($0, 7369)])\n"
+            + "    LogicalTableScan(table=[[scott, EMP]])\n";
+    verifyLogical(root, expectedLogical);
+
+    String expectedResult = "result=[1980, 12, 17]\n";
+    verifyResult(root, expectedResult);
+
+    String expectedSparkSql =
+        "SELECT CASE WHEN '-' = '' THEN REGEXP_EXTRACT_ALL(TRY_CAST(`HIREDATE` AS STRING), '.')"
+            + " ELSE SPLIT(TRY_CAST(`HIREDATE` AS STRING), '-') END `result`\n"
+            + "FROM `scott`.`EMP`\n"
+            + "WHERE `EMPNO` = 7369";
+    verifyPPLToSparkSQL(root, expectedSparkSql);
+  }
+
+  @Test
+  public void testSplitDateFieldMatchesExplicitCast() {
+    String implicitCast =
+        "source=EMP | where EMPNO = 7369 | eval result = split(HIREDATE, '-') | fields result";
+    String explicitCast =
+        "source=EMP | where EMPNO = 7369 | eval result = split(cast(HIREDATE as string), '-') |"
+            + " fields result";
+    verifyResult(getRelNode(implicitCast), "result=[1980, 12, 17]\n");
+    verifyResult(getRelNode(explicitCast), "result=[1980, 12, 17]\n");
+  }
+
+  @Test
+  public void testSplitStillRejectsNumericInput() {
+    Throwable t =
+        assertThrows(
+            Exception.class,
+            () -> getRelNode("source=EMP | eval result = split(EMPNO, '-') | fields result"));
+    verifyErrorMessageContains(t, "SPLIT function expects");
   }
 
   @Test
