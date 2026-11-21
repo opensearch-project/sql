@@ -10,6 +10,7 @@ import static org.opensearch.sql.common.setting.Settings.Key.SQL_CURSOR_KEEP_ALI
 
 import java.util.Arrays;
 import java.util.Map;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
@@ -75,7 +76,8 @@ public class CursorResultExecutor implements CursorRestExecutor {
       } else if (status > 499) {
         Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
       }
-      LOG.error("Error completing cursor request", e);
+      org.opensearch.sql.legacy.executor.format.ErrorMessageFactory.logFailure(
+          LOG, Level.ERROR, "Error completing cursor request", e);
       channel.sendResponse(new BytesRestResponse(channel, e));
     }
   }

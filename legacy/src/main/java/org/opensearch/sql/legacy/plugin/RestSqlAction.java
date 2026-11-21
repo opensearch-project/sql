@@ -20,6 +20,7 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
@@ -236,6 +237,10 @@ public class RestSqlAction extends BaseRestHandler {
     if (ex instanceof OpenSearchException) {
       return ((OpenSearchException) ex).status().getStatus();
     }
+    Optional<OpenSearchException> clientError = ErrorMessageFactory.findClientErrorCause(ex);
+    if (clientError.isPresent()) {
+      return clientError.get().status().getStatus();
+    }
     if (isClientError(ex)) {
       return 400;
     }
@@ -274,7 +279,11 @@ public class RestSqlAction extends BaseRestHandler {
 
   private static void logAndPublishMetrics(final RestStatus status, final Exception e) {
     if (400 <= status.getStatus() && status.getStatus() < 500) {
-      LOG.error(QueryContext.getRequestId() + " Client side error during query execution", e);
+      ErrorMessageFactory.logFailure(
+          LOG,
+          Level.ERROR,
+          QueryContext.getRequestId() + " Client side error during query execution",
+          e);
       Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_CUS).increment();
     } else if (500 <= status.getStatus() && status.getStatus() < 600) {
       LOG.error(QueryContext.getRequestId() + " Server side error during query execution", e);

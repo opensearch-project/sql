@@ -5,7 +5,11 @@
 
 package org.opensearch.sql.legacy.executor.format;
 
+import java.util.Optional;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.sql.common.error.ErrorReport;
 
 public class ErrorMessageFactory {
@@ -43,5 +47,74 @@ public class ErrorMessageFactory {
     }
     result = unwrapCause(result.getCause());
     return result;
+  }
+
+  /**
+   * Finds the failure that OpenSearch reported with a client error status, even when the plugin
+   * wrapped it in another exception. It is the first {@link OpenSearchException} in the cause
+   * chain, the same one the error body is built from, and its status is 4xx other than 429. A 429
+   * asks the caller to retry later, so it is not reported as a client error.
+   *
+   * @param failure the failure, possibly wrapped
+   * @return the OpenSearch exception whose status the response should use, or empty if there is
+   *     none
+   */
+  public static Optional<OpenSearchException> findClientErrorCause(Throwable failure) {
+    Throwable cause = unwrapCause(failure);
+    if (cause instanceof OpenSearchException) {
+      RestStatus status = ((OpenSearchException) cause).status();
+      if (status != null
+          && status.getStatus() >= 400
+          && status.getStatus() < 500
+          && status != RestStatus.TOO_MANY_REQUESTS) {
+        return Optional.of((OpenSearchException) cause);
+      }
+    }
+    return Optional.empty();
+  }
+
+  /**
+   * Tells whether OpenSearch denied the request (401 or 403) or reported a resource it names as
+   * missing (404). Such a failure does not depend on the data a query reads, so it fails the same
+   * way on every retry, and it says nothing about the health of the plugin.
+   *
+   * @param failure the failure, possibly wrapped
+   * @return true if the client error found by {@link #findClientErrorCause} is 401, 403 or 404
+   */
+  public static boolean isDeniedOrMissing(Throwable failure) {
+    return findClientErrorCause(failure)
+        .map(OpenSearchException::status)
+        .filter(
+            status ->
+                status == RestStatus.UNAUTHORIZED
+                    || status == RestStatus.FORBIDDEN
+                    || status == RestStatus.NOT_FOUND)
+        .isPresent();
+  }
+
+  /**
+   * Logs a failed request at a level that matches the status OpenSearch reported for it. A denied
+   * request or a missing resource, see {@link #isDeniedOrMissing}, is logged at DEBUG. Another
+   * OpenSearch client error is logged at WARN, or at {@code level} if that is lower, without the
+   * stack trace. Any other failure is logged at {@code level} with the stack trace.
+   *
+   * @param log the logger to write to
+   * @param level the level for a failure that is not an OpenSearch client error
+   * @param message the log message
+   * @param failure the failure, possibly wrapped
+   */
+  public static void logFailure(Logger log, Level level, String message, Throwable failure) {
+    Optional<OpenSearchException> clientError = findClientErrorCause(failure);
+    if (clientError.isEmpty()) {
+      log.log(level, message, failure);
+    } else if (isDeniedOrMissing(failure)) {
+      log.debug(message, failure);
+    } else {
+      log.log(
+          level.isMoreSpecificThan(Level.WARN) ? Level.WARN : level,
+          "{} {}",
+          message,
+          clientError.get().getDetailedMessage());
+    }
   }
 }

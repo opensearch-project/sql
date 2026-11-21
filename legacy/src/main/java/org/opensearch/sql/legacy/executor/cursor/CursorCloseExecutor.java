@@ -8,6 +8,8 @@ package org.opensearch.sql.legacy.executor.cursor;
 import static org.opensearch.core.rest.RestStatus.OK;
 
 import java.util.Map;
+import java.util.Optional;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
@@ -16,6 +18,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.sql.legacy.cursor.CursorType;
 import org.opensearch.sql.legacy.cursor.DefaultCursor;
+import org.opensearch.sql.legacy.executor.format.ErrorMessageFactory;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.pit.PointInTimeHandler;
@@ -53,7 +56,7 @@ public class CursorCloseExecutor implements CursorRestExecutor {
       } else if (status > 499) {
         Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
       }
-      LOG.error("Error completing cursor request", e);
+      ErrorMessageFactory.logFailure(LOG, Level.ERROR, "Error completing cursor request", e);
       channel.sendResponse(new BytesRestResponse(channel, e));
     }
   }
@@ -86,6 +89,10 @@ public class CursorCloseExecutor implements CursorRestExecutor {
       pit.delete();
       return SUCCEEDED_TRUE;
     } catch (RuntimeException e) {
+      Optional<OpenSearchException> clientError = ErrorMessageFactory.findClientErrorCause(e);
+      if (clientError.isPresent()) {
+        throw clientError.get();
+      }
       Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
       return SUCCEEDED_FALSE;
     }

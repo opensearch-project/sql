@@ -5,8 +5,10 @@
 
 package org.opensearch.sql.legacy.executor.format;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -15,20 +17,42 @@ import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import org.apache.lucene.search.TotalHits;
+import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.OpenSearchStatusException;
+import org.opensearch.action.search.CreatePitAction;
+import org.opensearch.action.search.CreatePitRequest;
+import org.opensearch.action.search.CreatePitResponse;
 import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.common.action.ActionFuture;
+import org.opensearch.common.unit.TimeValue;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestChannel;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.builder.PointInTimeBuilder;
+import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.legacy.domain.Select;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
+import org.opensearch.sql.legacy.metrics.BasicCounter;
+import org.opensearch.sql.legacy.metrics.MetricName;
+import org.opensearch.sql.legacy.metrics.Metrics;
+import org.opensearch.sql.legacy.metrics.NumericMetric;
 import org.opensearch.sql.legacy.query.DefaultQueryAction;
 import org.opensearch.sql.legacy.query.SqlOpenSearchRequestBuilder;
+import org.opensearch.sql.legacy.query.join.BackOffRetryStrategy;
 import org.opensearch.sql.legacy.request.SqlRequest;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.transport.client.Client;
@@ -45,12 +69,15 @@ public class PrettyFormatRestExecutorPitTest {
   @Mock private SearchResponse searchResponse;
   @Mock private SearchHit searchHit;
 
+  @Mock private RestChannel channel;
+
   private PrettyFormatRestExecutor executor;
   private Map<String, String> params;
+  private OpenSearchSettings settings;
 
   @Before
   public void setUp() throws Exception {
-    OpenSearchSettings settings = mock(OpenSearchSettings.class);
+    settings = mock(OpenSearchSettings.class);
     LocalClusterState.state().setPluginSettings(settings);
 
     when(queryAction.getSqlRequest()).thenReturn(sqlRequest);
@@ -123,5 +150,68 @@ public class PrettyFormatRestExecutorPitTest {
       String result = executor.execute(client, params, queryAction);
       assertNotNull("Result should not be null for fetchSize=" + fetchSize, result);
     }
+  }
+
+  @Test
+  public void testPitCreationDeniedReturnsForbidden() throws Exception {
+    when(sqlRequest.fetchSize()).thenReturn(5);
+    failPitCreationWith(
+        new OpenSearchSecurityException(
+            "no permissions for [indices:data/read/search]", RestStatus.FORBIDDEN));
+
+    BytesRestResponse response = executeAndCaptureResponse();
+
+    assertEquals(RestStatus.FORBIDDEN, response.status());
+    JSONObject body = new JSONObject(response.content().utf8ToString());
+    assertEquals(403, body.getInt("status"));
+    assertEquals("OpenSearchSecurityException", body.getJSONObject("error").getString("type"));
+    assertEquals(1L, failedRequestCount(MetricName.FAILED_REQ_COUNT_CUS));
+  }
+
+  @Test
+  public void testPitCreationServerErrorStillReturnsInternalServerError() throws Exception {
+    when(sqlRequest.fetchSize()).thenReturn(5);
+    failPitCreationWith(
+        new OpenSearchStatusException("unavailable", RestStatus.SERVICE_UNAVAILABLE));
+
+    BytesRestResponse response = executeAndCaptureResponse();
+
+    assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.status());
+    assertEquals(0L, failedRequestCount(MetricName.FAILED_REQ_COUNT_CUS));
+  }
+
+  private void failPitCreationWith(Exception failure) throws Exception {
+    Metrics.getInstance().clear();
+    Metrics.getInstance()
+        .registerMetric(
+            new NumericMetric<>(MetricName.FAILED_REQ_COUNT_CUS.getName(), new BasicCounter()));
+    Select select = mock(Select.class);
+    when(select.getIndexArr()).thenReturn(new String[] {"logs"});
+    when(queryAction.getSelect()).thenReturn(select);
+    when(settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE))
+        .thenReturn(TimeValue.timeValueMinutes(1));
+    ActionFuture<CreatePitResponse> future = mock(ActionFuture.class);
+    when(future.get()).thenThrow(new ExecutionException(failure));
+    when(client.execute(any(CreatePitAction.class), any(CreatePitRequest.class)))
+        .thenReturn(future);
+  }
+
+  private BytesRestResponse executeAndCaptureResponse() {
+    // The memory check before sending reads the live heap, so it is stubbed to keep the test
+    // independent of the JVM state.
+    try (MockedStatic<BackOffRetryStrategy> backOffRetryStrategy =
+        Mockito.mockStatic(BackOffRetryStrategy.class)) {
+      backOffRetryStrategy
+          .when(() -> BackOffRetryStrategy.isHealthy(anyLong(), any()))
+          .thenReturn(true);
+      executor.execute(client, params, queryAction, channel);
+    }
+    ArgumentCaptor<BytesRestResponse> captor = ArgumentCaptor.forClass(BytesRestResponse.class);
+    verify(channel).sendResponse(captor.capture());
+    return captor.getValue();
+  }
+
+  private static long failedRequestCount(MetricName name) {
+    return (Long) Metrics.getInstance().getNumericalMetric(name).getValue();
   }
 }
