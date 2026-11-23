@@ -28,7 +28,6 @@ import org.opensearch.search.SearchHits;
 import org.opensearch.sql.legacy.domain.Field;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.ElasticHitsExecutor;
-import org.opensearch.sql.legacy.executor.format.ErrorMessageFactory;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
@@ -38,6 +37,7 @@ import org.opensearch.sql.legacy.query.join.JoinRequestBuilder;
 import org.opensearch.sql.legacy.query.join.NestedLoopsElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.TableInJoinRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.HashJoinQueryPlanRequestBuilder;
+import org.opensearch.sql.legacy.utils.OpenSearchFailures;
 import org.opensearch.transport.client.Client;
 
 /** Created by Eliran on 15/9/2015. */
@@ -95,11 +95,11 @@ public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {
       long joinTimeInMilli = System.currentTimeMillis() - timeBefore;
       this.metaResults.setTookImMilli(joinTimeInMilli);
     } catch (Exception e) {
-      ErrorMessageFactory.logFailure(LOG, Level.ERROR, "Failed during join query run.", e);
+      OpenSearchFailures.logFailure(LOG, Level.ERROR, "Failed during join query run.", e);
       throw new IllegalStateException("Error occurred during join query run", e);
     } finally {
-      // No point in time to delete if creating it failed
-      if (pit.getPitId() != null) {
+      // No point in time to delete if creating it failed or never started
+      if (pit != null && pit.getPitId() != null) {
         try {
           pit.delete();
         } catch (RuntimeException e) {

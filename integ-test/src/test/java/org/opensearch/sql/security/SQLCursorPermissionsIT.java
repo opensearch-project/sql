@@ -27,6 +27,9 @@ import org.opensearch.sql.util.ClusterPlugins;
  * <p>Exercises the legacy V1 cursor path (triggered by {@code SELECT ... LIMIT n} with {@code
  * fetch_size}). Before the fix, page 2 would return 403 because the continuation SearchRequest was
  * created with no indices, which Security resolves to a wildcard and denies under FGAC.
+ *
+ * <p>Also checks that legacy queries denied by the security plugin, such as cursor, join and minus
+ * queries in jdbc and csv format, return the plugin's 403 as their HTTP status.
  */
 public class SQLCursorPermissionsIT extends SQLIntegTestCase {
 
@@ -179,7 +182,15 @@ public class SQLCursorPermissionsIT extends SQLIntegTestCase {
   }
 
   private JSONObject executeSqlAsUser(String body, String username) throws IOException {
+    Response response = performSqlAsUser(body, username, "jdbc");
+    assertEquals(200, response.getStatusLine().getStatusCode());
+    return new JSONObject(TestUtils.getResponseBody(response, true));
+  }
+
+  private Response performSqlAsUser(String body, String username, String format)
+      throws IOException {
     Request request = new Request("POST", "/_plugins/_sql");
+    request.addParameter("format", format);
     request.setJsonEntity(body);
     RequestOptions.Builder opts = RequestOptions.DEFAULT.toBuilder();
     opts.addHeader("Content-Type", "application/json");
@@ -188,10 +199,53 @@ public class SQLCursorPermissionsIT extends SQLIntegTestCase {
         "Basic "
             + Base64.getEncoder().encodeToString((username + ":" + STRONG_PASSWORD).getBytes()));
     request.setOptions(opts);
+    return client().performRequest(request);
+  }
 
-    Response response = client().performRequest(request);
-    assertEquals(200, response.getStatusLine().getStatusCode());
-    return new JSONObject(TestUtils.getResponseBody(response, true));
+  /**
+   * Sends the query as the bank mapping user and checks that the response carries the security
+   * plugin's 403 as its HTTP status and in its body.
+   */
+  private void assertForbiddenForBankMappingUser(String body, String format) throws IOException {
+    ResponseException e =
+        expectThrows(
+            ResponseException.class, () -> performSqlAsUser(body, BANK_MAPPING_USER, format));
+
+    assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
+    String responseBody = TestUtils.getResponseBody(e.getResponse(), true);
+    JSONObject json = new JSONObject(responseBody);
+    assertEquals(403, json.getInt("status"));
+    assertEquals(
+        "error type; body=" + responseBody,
+        "OpenSearchSecurityException",
+        json.getJSONObject("error").getString("type"));
+    assertTrue(
+        "expected the security denial; body=" + responseBody,
+        responseBody.contains("no permissions for"));
+  }
+
+  private static String joinQuery() {
+    return String.format(
+        Locale.ROOT,
+        "{\"query\": \"SELECT x.firstname, y.age FROM %s x JOIN %s y"
+            + " ON x.account_number = y.account_number\"}",
+        TEST_INDEX_ACCOUNT,
+        TEST_INDEX_BANK);
+  }
+
+  private static String minusQuery() {
+    return String.format(
+        Locale.ROOT,
+        "{\"query\": \"SELECT firstname FROM %s MINUS SELECT firstname FROM %s\"}",
+        TEST_INDEX_ACCOUNT,
+        TEST_INDEX_BANK);
+  }
+
+  private static String cursorQueryOnBank() {
+    return String.format(
+        Locale.ROOT,
+        "{\"fetch_size\": 50, \"query\": \"SELECT age FROM %s LIMIT 100\"}",
+        TEST_INDEX_BANK);
   }
 
   @Test
@@ -251,20 +305,35 @@ public class SQLCursorPermissionsIT extends SQLIntegTestCase {
    */
   @Test
   public void cursorQueryOnUnreadableIndexReturnsForbidden() throws IOException {
-    ResponseException e =
-        expectThrows(
-            ResponseException.class,
-            () ->
-                executeSqlAsUser(
-                    String.format(
-                        Locale.ROOT,
-                        "{\"fetch_size\": 50, \"query\": \"SELECT age FROM %s LIMIT 100\"}",
-                        TEST_INDEX_BANK),
-                    BANK_MAPPING_USER));
+    assertForbiddenForBankMappingUser(cursorQueryOnBank(), "jdbc");
+  }
 
-    assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
-    JSONObject body = new JSONObject(TestUtils.getResponseBody(e.getResponse(), true));
-    assertEquals(403, body.getInt("status"));
-    assertEquals("OpenSearchSecurityException", body.getJSONObject("error").getString("type"));
+  /** The csv format runs the same query without a point in time, and the search is denied. */
+  @Test
+  public void cursorQueryOnUnreadableIndexInCsvReturnsForbidden() throws IOException {
+    assertForbiddenForBankMappingUser(cursorQueryOnBank(), "csv");
+  }
+
+  /** A join creates a point in time on both indices, and the security plugin denies it. */
+  @Test
+  public void joinWithUnreadableIndexReturnsForbidden() throws IOException {
+    assertForbiddenForBankMappingUser(joinQuery(), "jdbc");
+  }
+
+  /** In csv format a denied join used to return 507 instead of the denial. */
+  @Test
+  public void joinWithUnreadableIndexInCsvReturnsForbidden() throws IOException {
+    assertForbiddenForBankMappingUser(joinQuery(), "csv");
+  }
+
+  /** A minus query used to swallow the denial and then fail with a NullPointerException. */
+  @Test
+  public void minusWithUnreadableIndexReturnsForbidden() throws IOException {
+    assertForbiddenForBankMappingUser(minusQuery(), "jdbc");
+  }
+
+  @Test
+  public void minusWithUnreadableIndexInCsvReturnsForbidden() throws IOException {
+    assertForbiddenForBankMappingUser(minusQuery(), "csv");
   }
 }

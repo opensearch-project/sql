@@ -31,9 +31,9 @@ import org.opensearch.search.SearchHit;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.domain.Select;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
-import org.opensearch.sql.legacy.executor.format.ErrorMessageFactory;
 import org.opensearch.sql.legacy.query.join.JoinRequestBuilder;
 import org.opensearch.sql.legacy.query.join.TableInJoinRequestBuilder;
+import org.opensearch.sql.legacy.utils.OpenSearchFailures;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.transport.client.Client;
 
@@ -76,7 +76,7 @@ public class ElasticJoinExecutorTest {
         };
     IllegalStateException thrown = assertThrows(IllegalStateException.class, executor::run);
 
-    assertSame(denied, ErrorMessageFactory.findClientErrorCause(thrown).orElseThrow());
+    assertSame(denied, OpenSearchFailures.findClientErrorCause(thrown).orElseThrow());
     verify(client, never()).execute(any(DeletePitAction.class), any(DeletePitRequest.class));
   }
 }

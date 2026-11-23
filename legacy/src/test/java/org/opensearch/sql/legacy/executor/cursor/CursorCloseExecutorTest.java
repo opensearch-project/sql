@@ -6,22 +6,17 @@
 package org.opensearch.sql.legacy.executor.cursor;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LogEvent;
-import org.apache.logging.log4j.core.Logger;
-import org.apache.logging.log4j.core.appender.AbstractAppender;
-import org.apache.logging.log4j.core.config.Property;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -43,6 +38,7 @@ import org.opensearch.sql.legacy.metrics.BasicCounter;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.metrics.NumericMetric;
+import org.opensearch.sql.legacy.util.LogCapture;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.transport.client.Client;
 
@@ -77,31 +73,27 @@ public class CursorCloseExecutorTest {
   }
 
   @Test
-  public void closeDeniedIsNotLoggedAsError() throws Exception {
+  public void closeDeniedIsLoggedAtWarnWithoutStackTrace() throws Exception {
     failPitDeletionWith(
         new OpenSearchSecurityException(
             "no permissions for [indices:data/read/point_in_time/delete]", RestStatus.FORBIDDEN));
-    List<LogEvent> events = new ArrayList<>();
-    AbstractAppender appender =
-        new AbstractAppender("capture", null, null, true, Property.EMPTY_ARRAY) {
-          @Override
-          public void append(LogEvent event) {
-            events.add(event.toImmutable());
-          }
-        };
-    appender.start();
-    Logger logger = (Logger) LogManager.getLogger(CursorCloseExecutor.class);
-    logger.addAppender(appender);
-    try {
-      close();
-    } finally {
-      logger.removeAppender(appender);
-      appender.stop();
-    }
 
-    assertTrue(
-        events.toString(),
-        events.stream().noneMatch(event -> event.getLevel().isMoreSpecificThan(Level.WARN)));
+    List<LogEvent> events = LogCapture.capture(CursorCloseExecutor.class, this::close);
+
+    assertEquals(events.toString(), 1, events.size());
+    assertEquals(Level.WARN, events.get(0).getLevel());
+    assertNull(events.get(0).getThrown());
+  }
+
+  @Test
+  public void closeRejectedReturnsTooManyRequests() throws Exception {
+    failPitDeletionWith(new OpenSearchStatusException("busy", RestStatus.TOO_MANY_REQUESTS));
+
+    BytesRestResponse response = close();
+
+    assertEquals(RestStatus.TOO_MANY_REQUESTS, response.status());
+    assertEquals(1L, failedRequestCount(MetricName.FAILED_REQ_COUNT_CUS));
+    assertEquals(0L, failedRequestCount(MetricName.FAILED_REQ_COUNT_SYS));
   }
 
   @Test
@@ -113,6 +105,8 @@ public class CursorCloseExecutorTest {
 
     assertEquals(RestStatus.OK, response.status());
     assertEquals("{\"succeeded\":false}", response.content().utf8ToString());
+    assertEquals(0L, failedRequestCount(MetricName.FAILED_REQ_COUNT_CUS));
+    assertEquals(1L, failedRequestCount(MetricName.FAILED_REQ_COUNT_SYS));
   }
 
   private void failPitDeletionWith(Exception failure) throws Exception {

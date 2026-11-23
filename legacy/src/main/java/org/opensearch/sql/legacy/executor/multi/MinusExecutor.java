@@ -114,8 +114,8 @@ public class MinusExecutor extends ElasticHitsExecutor {
         fillMinusHitsFromOneField(fieldName, results, someHit);
       }
     } finally {
-      // No point in time to delete if creating it failed
-      if (pit.getPitId() != null) {
+      // No point in time to delete if creating it failed or never started
+      if (pit != null && pit.getPitId() != null) {
         try {
           pit.delete();
         } catch (RuntimeException e) {

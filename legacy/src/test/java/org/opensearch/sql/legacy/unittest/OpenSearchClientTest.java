@@ -142,18 +142,52 @@ public class OpenSearchClientTest {
   }
 
   @Test
-  public void multiSearchRetriesLostPointInTime() {
-    // A lost point in time is a 404 even when every index exists, so it is retried like main.
+  public void multiSearchDoesNotRetryLostPointInTimeAndThrowsIt() {
+    // A lost point in time fails the same way on every retry, so the first call throws it.
     SearchContextMissingException lostPit =
         new SearchContextMissingException(new ShardSearchContextId("session", 1L));
     Client failingClient = clientFailingEveryItemWith(lostPit);
 
-    MultiSearchResponse.Item[] res = new OpenSearchClient(failingClient).multiSearch(oneRequest());
+    SearchContextMissingException thrown =
+        assertThrows(
+            SearchContextMissingException.class,
+            () -> new OpenSearchClient(failingClient).multiSearch(oneRequest()));
 
-    assertEquals(1, res.length);
-    assertTrue(res[0].isFailure());
-    assertSame(lostPit, res[0].getFailure());
-    verify(failingClient, times(4)).multiSearch(any());
+    assertSame(lostPit, thrown);
+    verify(failingClient, times(1)).multiSearch(any());
+  }
+
+  @Test
+  public void multiSearchDoesNotRetryLostPointInTimeFromRemoteNode() {
+    RemoteTransportException lostPit =
+        new RemoteTransportException(
+            "[node][indices:data/read/search]",
+            new SearchContextMissingException(new ShardSearchContextId("session", 1L)));
+    Client failingClient = clientFailingEveryItemWith(lostPit);
+
+    RemoteTransportException thrown =
+        assertThrows(
+            RemoteTransportException.class,
+            () -> new OpenSearchClient(failingClient).multiSearch(oneRequest()));
+
+    assertSame(lostPit, thrown);
+    verify(failingClient, times(1)).multiSearch(any());
+  }
+
+  @Test
+  public void multiSearchDoesNotRetryUnauthorizedAndThrowsIt() {
+    OpenSearchSecurityException unauthorized =
+        new OpenSearchSecurityException("unauthenticated", RestStatus.UNAUTHORIZED);
+    Client failingClient =
+        clientFailingEveryItemWith(new IllegalStateException("wrapped", unauthorized));
+
+    OpenSearchSecurityException thrown =
+        assertThrows(
+            OpenSearchSecurityException.class,
+            () -> new OpenSearchClient(failingClient).multiSearch(oneRequest()));
+
+    assertSame(unauthorized, thrown);
+    verify(failingClient, times(1)).multiSearch(any());
   }
 
   @Test

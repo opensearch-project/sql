@@ -32,6 +32,7 @@ import org.opensearch.sql.legacy.domain.Select;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.executor.format.ErrorMessageFactory;
 import org.opensearch.sql.legacy.query.multi.MultiQueryRequestBuilder;
+import org.opensearch.sql.legacy.utils.OpenSearchFailures;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.transport.client.Client;
 
@@ -65,7 +66,7 @@ public class MinusExecutorTest {
     RuntimeException thrown =
         assertThrows(RuntimeException.class, new MinusExecutor(client, builder)::run);
 
-    assertSame(denied, ErrorMessageFactory.findClientErrorCause(thrown).orElseThrow());
+    assertSame(denied, OpenSearchFailures.findClientErrorCause(thrown).orElseThrow());
     // No point in time was created, so there is none to delete
     verify(client, never()).execute(any(DeletePitAction.class), any(DeletePitRequest.class));
   }
@@ -80,6 +81,19 @@ public class MinusExecutorTest {
         assertThrows(RuntimeException.class, new MinusExecutor(client, builder)::run);
 
     assertSame(unavailable, ErrorMessageFactory.unwrapCause(thrown));
+    verify(client, never()).execute(any(DeletePitAction.class), any(DeletePitRequest.class));
+  }
+
+  @Test
+  public void failureBeforeThePointInTimeIsCreatedIsThrownAsIs() throws Exception {
+    MinusExecutor executor = new MinusExecutor(client, builder);
+    IllegalArgumentException failure = new IllegalArgumentException("no second table");
+    when(builder.getOriginalSelect(false)).thenThrow(failure);
+
+    IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, executor::run);
+
+    assertSame(failure, thrown);
+    verify(client, never()).execute(any(CreatePitAction.class), any(CreatePitRequest.class));
     verify(client, never()).execute(any(DeletePitAction.class), any(DeletePitRequest.class));
   }
 

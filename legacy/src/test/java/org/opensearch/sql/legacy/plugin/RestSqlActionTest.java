@@ -6,18 +6,15 @@
 package org.opensearch.sql.legacy.plugin;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
-import java.util.ArrayList;
 import java.util.List;
 import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LogEvent;
-import org.apache.logging.log4j.core.Logger;
-import org.apache.logging.log4j.core.appender.AbstractAppender;
-import org.apache.logging.log4j.core.config.Property;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,6 +30,7 @@ import org.opensearch.sql.legacy.metrics.BasicCounter;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.metrics.NumericMetric;
+import org.opensearch.sql.legacy.util.LogCapture;
 
 public class RestSqlActionTest {
 
@@ -119,7 +117,7 @@ public class RestSqlActionTest {
     JSONObject body = new JSONObject(response.content().utf8ToString());
     assertEquals(429, body.getInt("status"));
     assertEquals("OpenSearchStatusException", body.getJSONObject("error").getString("type"));
-    // This path counts by the response status range, so a 429 counts as a client failure.
+    // A 429 is a client error on every path, so it counts as a client failure.
     assertEquals(1L, failedRequestCount(MetricName.FAILED_REQ_COUNT_CUS));
     assertEquals(0L, failedRequestCount(MetricName.FAILED_REQ_COUNT_SYS));
   }
@@ -167,27 +165,33 @@ public class RestSqlActionTest {
   }
 
   @Test
-  public void handleExceptionDoesNotLogClientErrorAsError() {
-    List<LogEvent> events = new ArrayList<>();
-    AbstractAppender appender =
-        new AbstractAppender("capture", null, null, true, Property.EMPTY_ARRAY) {
-          @Override
-          public void append(LogEvent event) {
-            events.add(event.toImmutable());
-          }
-        };
-    appender.start();
-    Logger logger = (Logger) LogManager.getLogger(RestSqlAction.class);
-    logger.addAppender(appender);
-    try {
-      RestSqlAction.handleException(mock(RestChannel.class), DENIED);
-    } finally {
-      logger.removeAppender(appender);
-      appender.stop();
-    }
+  public void handleExceptionLogsClientErrorAtWarnWithoutStackTrace() throws Exception {
+    List<LogEvent> events =
+        LogCapture.capture(
+            RestSqlAction.class,
+            () -> RestSqlAction.handleException(mock(RestChannel.class), DENIED));
 
+    assertEquals(events.toString(), 1, events.size());
+    assertEquals(Level.WARN, events.get(0).getLevel());
+    assertNull(events.get(0).getThrown());
     assertTrue(
-        events.toString(),
-        events.stream().noneMatch(event -> event.getLevel().isMoreSpecificThan(Level.WARN)));
+        events.get(0).getMessage().getFormattedMessage(),
+        events.get(0).getMessage().getFormattedMessage().contains("no permissions"));
+  }
+
+  @Test
+  public void handleExceptionLogsServerErrorAtErrorWithStackTrace() throws Exception {
+    Exception failure =
+        new IllegalStateException(
+            new OpenSearchStatusException("unavailable", RestStatus.SERVICE_UNAVAILABLE));
+
+    List<LogEvent> events =
+        LogCapture.capture(
+            RestSqlAction.class,
+            () -> RestSqlAction.handleException(mock(RestChannel.class), failure));
+
+    assertEquals(events.toString(), 1, events.size());
+    assertEquals(Level.ERROR, events.get(0).getLevel());
+    assertSame(failure, events.get(0).getThrown());
   }
 }

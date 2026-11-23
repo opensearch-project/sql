@@ -13,8 +13,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.search.MultiSearchRequest;
 import org.opensearch.action.search.MultiSearchResponse;
-import org.opensearch.sql.legacy.executor.format.ErrorMessageFactory;
 import org.opensearch.sql.legacy.query.join.BackOffRetryStrategy;
+import org.opensearch.sql.legacy.utils.OpenSearchFailures;
 import org.opensearch.transport.client.Client;
 
 public class OpenSearchClient {
@@ -56,11 +56,11 @@ public class OpenSearchClient {
     // Could get EsRejectedExecutionException and OpenSearchException as getCause
     for (int i = 0; i < res.length; i++) {
       if (res[i].isFailure()) {
-        // A denied request or a missing index fails the same way on every retry and for every
-        // item. Other failures, including a 400 caused by one item's values or a lost point in
-        // time, are retried and left to the caller.
-        if (ErrorMessageFactory.isDeniedOrMissing(res[i].getFailure())) {
-          throw ErrorMessageFactory.findClientErrorCause(res[i].getFailure()).get();
+        // A denied request or a missing index or point in time fails the same way on every retry
+        // and for every item. Other failures, including a 400 caused by one item's values, are
+        // retried and left to the caller.
+        if (OpenSearchFailures.isDeniedOrMissing(res[i].getFailure())) {
+          throw OpenSearchFailures.findOpenSearchCause(res[i].getFailure()).get();
         }
         indicesFailure.add(indices.get(i));
         if (retry == 3) {

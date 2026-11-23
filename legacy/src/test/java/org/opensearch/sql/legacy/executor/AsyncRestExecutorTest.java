@@ -8,6 +8,8 @@ package org.opensearch.sql.legacy.executor;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
@@ -22,8 +24,12 @@ import static org.mockito.Mockito.when;
 import static org.opensearch.transport.TcpTransport.TRANSPORT_WORKER_THREAD_NAME_PREFIX;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.LogEvent;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
@@ -46,6 +52,7 @@ import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.metrics.NumericMetric;
 import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.request.SqlRequest;
+import org.opensearch.sql.legacy.util.LogCapture;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
@@ -139,6 +146,7 @@ public class AsyncRestExecutorTest {
 
     assertEquals(RestStatus.FORBIDDEN, response.status());
     assertEquals(1L, failedRequestCount(MetricName.FAILED_REQ_COUNT_CUS));
+    assertEquals(0L, failedRequestCount(MetricName.FAILED_REQ_COUNT_SYS));
   }
 
   @Test
@@ -154,21 +162,41 @@ public class AsyncRestExecutorTest {
   }
 
   @Test
-  public void asyncWrappedTooManyRequestsIsNotReportedAsMemoryCircuitBreak() throws Exception {
-    BytesRestResponse response =
-        executeAsyncFailingWith(
-            new IllegalStateException(
-                "Error occurred during join query run",
-                new RuntimeException(
-                    "Error occurred while creating PIT.",
-                    new OpenSearchStatusException("busy", RestStatus.TOO_MANY_REQUESTS))));
+  public void asyncWrappedTooManyRequestsKeepsItsStatusAndCountsAsClientErrorOnce()
+      throws Exception {
+    BytesRestResponse response = executeAsyncFailingWith(wrappedTooManyRequests());
 
     assertEquals(RestStatus.TOO_MANY_REQUESTS, response.status());
     JSONObject body = new JSONObject(response.content().utf8ToString());
     assertEquals(429, body.getInt("status"));
     assertEquals("OpenSearchStatusException", body.getJSONObject("error").getString("type"));
-    assertEquals(0L, failedRequestCount(MetricName.FAILED_REQ_COUNT_CUS));
-    assertEquals(1L, failedRequestCount(MetricName.FAILED_REQ_COUNT_SYS));
+    assertEquals(1L, failedRequestCount(MetricName.FAILED_REQ_COUNT_CUS));
+    assertEquals(0L, failedRequestCount(MetricName.FAILED_REQ_COUNT_SYS));
+  }
+
+  @Test
+  public void asyncWrappedTooManyRequestsIsLoggedAtWarnWithoutStackTrace() throws Exception {
+    List<LogEvent> events =
+        LogCapture.capture(
+                AsyncRestExecutor.class, () -> executeAsyncFailingWith(wrappedTooManyRequests()))
+            .stream()
+            .filter(event -> event.getLevel().isMoreSpecificThan(Level.WARN))
+            .collect(Collectors.toList());
+
+    assertEquals(events.toString(), 1, events.size());
+    assertEquals(Level.WARN, events.get(0).getLevel());
+    assertNull(events.get(0).getThrown());
+    assertTrue(
+        events.get(0).getMessage().getFormattedMessage(),
+        events.get(0).getMessage().getFormattedMessage().contains("busy"));
+  }
+
+  private static Exception wrappedTooManyRequests() {
+    return new IllegalStateException(
+        "Error occurred during join query run",
+        new RuntimeException(
+            "Error occurred while creating PIT.",
+            new OpenSearchStatusException("busy", RestStatus.TOO_MANY_REQUESTS)));
   }
 
   @Test
@@ -178,6 +206,7 @@ public class AsyncRestExecutorTest {
 
     assertEquals(RestStatus.INSUFFICIENT_STORAGE, response.status());
     assertEquals("Memory circuit is broken.", response.content().utf8ToString());
+    assertEquals(0L, failedRequestCount(MetricName.FAILED_REQ_COUNT_CUS));
     assertEquals(1L, failedRequestCount(MetricName.FAILED_REQ_COUNT_SYS));
   }
 
@@ -187,6 +216,7 @@ public class AsyncRestExecutorTest {
 
     assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.status());
     assertEquals("connection reset", response.content().utf8ToString());
+    assertEquals(0L, failedRequestCount(MetricName.FAILED_REQ_COUNT_CUS));
     assertEquals(1L, failedRequestCount(MetricName.FAILED_REQ_COUNT_SYS));
   }
 
@@ -198,6 +228,7 @@ public class AsyncRestExecutorTest {
                 new OpenSearchStatusException("unavailable", RestStatus.SERVICE_UNAVAILABLE)));
 
     assertEquals(RestStatus.SERVICE_UNAVAILABLE, response.status());
+    assertEquals(0L, failedRequestCount(MetricName.FAILED_REQ_COUNT_CUS));
     assertEquals(1L, failedRequestCount(MetricName.FAILED_REQ_COUNT_SYS));
   }
 
@@ -208,6 +239,8 @@ public class AsyncRestExecutorTest {
 
     assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.status());
     assertEquals("boom", response.content().utf8ToString());
+    assertEquals(0L, failedRequestCount(MetricName.FAILED_REQ_COUNT_CUS));
+    assertEquals(1L, failedRequestCount(MetricName.FAILED_REQ_COUNT_SYS));
   }
 
   private BytesRestResponse executeAsyncFailingWith(Exception failure) throws Exception {

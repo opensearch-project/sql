@@ -30,6 +30,7 @@ import org.opensearch.sql.legacy.expression.domain.BindingTuple;
 import org.opensearch.sql.legacy.query.DefaultQueryAction;
 import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.query.planner.core.ColumnNode;
+import org.opensearch.sql.legacy.utils.OpenSearchFailures;
 import org.opensearch.transport.client.Client;
 
 public class Protocol {
@@ -92,7 +93,7 @@ public class Protocol {
     }
     // An OpenSearch failure under a wrapper, such as a failed join or PIT creation. The error body
     // is built from it, so the status must come from it too.
-    Optional<OpenSearchException> openSearchCause = ErrorMessageFactory.findOpenSearchCause(e);
+    Optional<OpenSearchException> openSearchCause = OpenSearchFailures.findOpenSearchCause(e);
     if (openSearchCause.isPresent()) {
       return openSearchCause.get().status().getStatus();
     }

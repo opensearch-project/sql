@@ -36,6 +36,7 @@ import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.pit.PointInTimeHandler;
 import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.rewriter.matchtoterm.VerificationException;
+import org.opensearch.sql.legacy.utils.OpenSearchFailures;
 import org.opensearch.sql.opensearch.response.error.ErrorMessageFactory;
 import org.opensearch.transport.client.Client;
 
@@ -70,14 +71,8 @@ public class CursorResultExecutor implements CursorRestExecutor {
                       RestStatus.BAD_REQUEST.getStatus())
                   .toString()));
     } catch (OpenSearchException e) {
-      int status = (e.status().getStatus());
-      if (status > 399 && status < 500) {
-        Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_CUS).increment();
-      } else if (status > 499) {
-        Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-      }
-      org.opensearch.sql.legacy.executor.format.ErrorMessageFactory.logFailure(
-          LOG, Level.ERROR, "Error completing cursor request", e);
+      OpenSearchFailures.countFailure(e.status().getStatus());
+      OpenSearchFailures.logFailure(LOG, Level.ERROR, "Error completing cursor request", e);
       channel.sendResponse(new BytesRestResponse(channel, e));
     }
   }

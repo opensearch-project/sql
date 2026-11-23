@@ -30,6 +30,7 @@ import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.query.DefaultQueryAction;
 import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.query.join.BackOffRetryStrategy;
+import org.opensearch.sql.legacy.utils.OpenSearchFailures;
 import org.opensearch.transport.client.Client;
 
 public class PrettyFormatRestExecutor implements RestExecutor {
@@ -63,6 +64,9 @@ public class PrettyFormatRestExecutor implements RestExecutor {
           "[PrettyFormatRestExecutor] Memory could be insufficient when sendResponse().");
     }
 
+    // Counted only once the response is sure to be sent. A failure thrown above is counted by the
+    // caller that sends its response.
+    OpenSearchFailures.countFailure(restStatus.getStatus());
     channel.sendResponse(bytesRestResponse);
   }
 
@@ -86,10 +90,7 @@ public class PrettyFormatRestExecutor implements RestExecutor {
   }
 
   private static Protocol failedProtocol(String message, Exception e) {
-    if (ErrorMessageFactory.isDeniedOrMissing(e)) {
-      Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_CUS).increment();
-    }
-    ErrorMessageFactory.logFailure(LOG, Level.WARN, message, e);
+    OpenSearchFailures.logFailure(LOG, Level.WARN, message, e);
     return new Protocol(e);
   }
 

@@ -18,12 +18,12 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.sql.legacy.cursor.CursorType;
 import org.opensearch.sql.legacy.cursor.DefaultCursor;
-import org.opensearch.sql.legacy.executor.format.ErrorMessageFactory;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.pit.PointInTimeHandler;
 import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.rewriter.matchtoterm.VerificationException;
+import org.opensearch.sql.legacy.utils.OpenSearchFailures;
 import org.opensearch.transport.client.Client;
 
 public class CursorCloseExecutor implements CursorRestExecutor {
@@ -50,13 +50,8 @@ public class CursorCloseExecutor implements CursorRestExecutor {
       LOG.error("Error parsing the cursor", e);
       channel.sendResponse(new BytesRestResponse(channel, e));
     } catch (OpenSearchException e) {
-      int status = (e.status().getStatus());
-      if (status > 399 && status < 500) {
-        Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_CUS).increment();
-      } else if (status > 499) {
-        Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-      }
-      ErrorMessageFactory.logFailure(LOG, Level.ERROR, "Error completing cursor request", e);
+      OpenSearchFailures.countFailure(e.status().getStatus());
+      OpenSearchFailures.logFailure(LOG, Level.ERROR, "Error completing cursor request", e);
       channel.sendResponse(new BytesRestResponse(channel, e));
     }
   }
@@ -89,7 +84,7 @@ public class CursorCloseExecutor implements CursorRestExecutor {
       pit.delete();
       return SUCCEEDED_TRUE;
     } catch (RuntimeException e) {
-      Optional<OpenSearchException> clientError = ErrorMessageFactory.findClientErrorCause(e);
+      Optional<OpenSearchException> clientError = OpenSearchFailures.findClientErrorCause(e);
       if (clientError.isPresent()) {
         throw clientError.get();
       }
