@@ -38,8 +38,11 @@ import org.opensearch.core.index.Index;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.query.QueryShardException;
+import org.opensearch.search.SearchContextMissingException;
+import org.opensearch.search.internal.ShardSearchContextId;
 import org.opensearch.sql.legacy.esdomain.OpenSearchClient;
 import org.opensearch.sql.legacy.query.join.BackOffRetryStrategy;
+import org.opensearch.transport.RemoteTransportException;
 import org.opensearch.transport.client.Client;
 
 public class OpenSearchClientTest {
@@ -120,6 +123,37 @@ public class OpenSearchClientTest {
 
     assertSame(missing, thrown);
     verify(failingClient, times(1)).multiSearch(any());
+  }
+
+  @Test
+  public void multiSearchDoesNotRetryMissingIndexFromRemoteNode() {
+    RemoteTransportException missing =
+        new RemoteTransportException(
+            "[node][indices:data/read/search]", new IndexNotFoundException("logs"));
+    Client failingClient = clientFailingEveryItemWith(missing);
+
+    RemoteTransportException thrown =
+        assertThrows(
+            RemoteTransportException.class,
+            () -> new OpenSearchClient(failingClient).multiSearch(oneRequest()));
+
+    assertSame(missing, thrown);
+    verify(failingClient, times(1)).multiSearch(any());
+  }
+
+  @Test
+  public void multiSearchRetriesLostPointInTime() {
+    // A lost point in time is a 404 even when every index exists, so it is retried like main.
+    SearchContextMissingException lostPit =
+        new SearchContextMissingException(new ShardSearchContextId("session", 1L));
+    Client failingClient = clientFailingEveryItemWith(lostPit);
+
+    MultiSearchResponse.Item[] res = new OpenSearchClient(failingClient).multiSearch(oneRequest());
+
+    assertEquals(1, res.length);
+    assertTrue(res[0].isFailure());
+    assertSame(lostPit, res[0].getFailure());
+    verify(failingClient, times(4)).multiSearch(any());
   }
 
   @Test

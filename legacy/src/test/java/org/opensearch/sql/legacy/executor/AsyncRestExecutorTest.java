@@ -21,8 +21,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.opensearch.transport.TcpTransport.TRANSPORT_WORKER_THREAD_NAME_PREFIX;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.function.Predicate;
+import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -140,13 +142,72 @@ public class AsyncRestExecutorTest {
   }
 
   @Test
-  public void asyncServerErrorStillReturnsInternalServerError() throws Exception {
+  public void asyncServerErrorKeepsItsStatus() throws Exception {
     BytesRestResponse response =
         executeAsyncFailingWith(
             new OpenSearchStatusException("unavailable", RestStatus.SERVICE_UNAVAILABLE));
 
-    assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.status());
+    assertEquals(RestStatus.SERVICE_UNAVAILABLE, response.status());
+    assertEquals(503, new JSONObject(response.content().utf8ToString()).getInt("status"));
+    assertEquals(0L, failedRequestCount(MetricName.FAILED_REQ_COUNT_CUS));
     assertEquals(1L, failedRequestCount(MetricName.FAILED_REQ_COUNT_SYS));
+  }
+
+  @Test
+  public void asyncWrappedTooManyRequestsIsNotReportedAsMemoryCircuitBreak() throws Exception {
+    BytesRestResponse response =
+        executeAsyncFailingWith(
+            new IllegalStateException(
+                "Error occurred during join query run",
+                new RuntimeException(
+                    "Error occurred while creating PIT.",
+                    new OpenSearchStatusException("busy", RestStatus.TOO_MANY_REQUESTS))));
+
+    assertEquals(RestStatus.TOO_MANY_REQUESTS, response.status());
+    JSONObject body = new JSONObject(response.content().utf8ToString());
+    assertEquals(429, body.getInt("status"));
+    assertEquals("OpenSearchStatusException", body.getJSONObject("error").getString("type"));
+    assertEquals(0L, failedRequestCount(MetricName.FAILED_REQ_COUNT_CUS));
+    assertEquals(1L, failedRequestCount(MetricName.FAILED_REQ_COUNT_SYS));
+  }
+
+  @Test
+  public void asyncIllegalStateWithoutOpenSearchErrorIsStillMemoryCircuitBreak() throws Exception {
+    BytesRestResponse response =
+        executeAsyncFailingWith(new IllegalStateException("Memory circuit is broken"));
+
+    assertEquals(RestStatus.INSUFFICIENT_STORAGE, response.status());
+    assertEquals("Memory circuit is broken.", response.content().utf8ToString());
+    assertEquals(1L, failedRequestCount(MetricName.FAILED_REQ_COUNT_SYS));
+  }
+
+  @Test
+  public void asyncIOExceptionWithoutOpenSearchErrorIsStillInternalServerError() throws Exception {
+    BytesRestResponse response = executeAsyncFailingWith(new IOException("connection reset"));
+
+    assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.status());
+    assertEquals("connection reset", response.content().utf8ToString());
+    assertEquals(1L, failedRequestCount(MetricName.FAILED_REQ_COUNT_SYS));
+  }
+
+  @Test
+  public void asyncUnknownFailureWrappingOpenSearchErrorKeepsItsStatus() throws Exception {
+    BytesRestResponse response =
+        executeAsyncFailingWith(
+            new UnsupportedOperationException(
+                new OpenSearchStatusException("unavailable", RestStatus.SERVICE_UNAVAILABLE)));
+
+    assertEquals(RestStatus.SERVICE_UNAVAILABLE, response.status());
+    assertEquals(1L, failedRequestCount(MetricName.FAILED_REQ_COUNT_SYS));
+  }
+
+  @Test
+  public void asyncUnknownFailureWithoutOpenSearchErrorIsStillInternalServerError()
+      throws Exception {
+    BytesRestResponse response = executeAsyncFailingWith(new RuntimeException("boom"));
+
+    assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.status());
+    assertEquals("boom", response.content().utf8ToString());
   }
 
   private BytesRestResponse executeAsyncFailingWith(Exception failure) throws Exception {

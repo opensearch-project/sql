@@ -90,10 +90,11 @@ public class Protocol {
       OpenSearchException osException = (OpenSearchException) e;
       return osException.status() != null ? osException.status().getStatus() : ERROR_STATUS;
     }
-    // A client error OpenSearch returned under a wrapper, such as a failed join or PIT creation
-    Optional<OpenSearchException> clientError = ErrorMessageFactory.findClientErrorCause(e);
-    if (clientError.isPresent()) {
-      return clientError.get().status().getStatus();
+    // An OpenSearch failure under a wrapper, such as a failed join or PIT creation. The error body
+    // is built from it, so the status must come from it too.
+    Optional<OpenSearchException> openSearchCause = ErrorMessageFactory.findOpenSearchCause(e);
+    if (openSearchCause.isPresent()) {
+      return openSearchCause.get().status().getStatus();
     }
     // Client errors (bad query, unsupported features) -> 400
     if (e instanceof UnsupportedOperationException || e instanceof IllegalArgumentException) {

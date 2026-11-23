@@ -12,6 +12,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -118,8 +119,10 @@ public class AsyncRestExecutor implements RestExecutor {
                 "[{}] [MCB] async task got an IO/SQL exception: {}",
                 QueryContext.getRequestId(),
                 e.getMessage());
-            channel.sendResponse(
-                new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+            sendFailure(
+                channel,
+                e,
+                () -> new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
           } catch (IllegalStateException e) {
             if (reportClientError(e, channel)) {
               return;
@@ -129,9 +132,12 @@ public class AsyncRestExecutor implements RestExecutor {
                 "[{}] [MCB] async task got a runtime exception: {}",
                 QueryContext.getRequestId(),
                 e.getMessage());
-            channel.sendResponse(
-                new BytesRestResponse(
-                    RestStatus.INSUFFICIENT_STORAGE, "Memory circuit is broken."));
+            sendFailure(
+                channel,
+                e,
+                () ->
+                    new BytesRestResponse(
+                        RestStatus.INSUFFICIENT_STORAGE, "Memory circuit is broken."));
           } catch (Throwable t) {
             if (reportClientError(t, channel)) {
               return;
@@ -141,9 +147,12 @@ public class AsyncRestExecutor implements RestExecutor {
                 "[{}] [MCB] async task got an unknown throwable: {}",
                 QueryContext.getRequestId(),
                 t.getMessage());
-            channel.sendResponse(
-                new BytesRestResponse(
-                    RestStatus.INTERNAL_SERVER_ERROR, String.valueOf(t.getMessage())));
+            sendFailure(
+                channel,
+                t,
+                () ->
+                    new BytesRestResponse(
+                        RestStatus.INTERNAL_SERVER_ERROR, String.valueOf(t.getMessage())));
           } finally {
             BackOffRetryStrategy.releaseMem(executor);
           }
@@ -172,13 +181,27 @@ public class AsyncRestExecutor implements RestExecutor {
         Level.WARN,
         "[" + QueryContext.getRequestId() + "] async task got a client error",
         failure);
-    RestStatus status = clientError.get().status();
-    channel.sendResponse(
-        new BytesRestResponse(
-            status,
-            ErrorMessageFactory.createErrorMessage(clientError.get(), status.getStatus())
-                .toString()));
+    channel.sendResponse(openSearchFailureResponse(clientError.get()));
     return true;
+  }
+
+  /**
+   * Sends a failure that is not a client error. If OpenSearch reported it, the response uses the
+   * status OpenSearch reported, such as 429 or 503, so that it matches the status in the body.
+   * Otherwise the response is the given fallback.
+   */
+  private static void sendFailure(
+      RestChannel channel, Throwable failure, Supplier<BytesRestResponse> fallback) {
+    channel.sendResponse(
+        ErrorMessageFactory.findOpenSearchCause(failure)
+            .map(AsyncRestExecutor::openSearchFailureResponse)
+            .orElseGet(fallback));
+  }
+
+  private static BytesRestResponse openSearchFailureResponse(OpenSearchException failure) {
+    RestStatus status = failure.status();
+    return new BytesRestResponse(
+        status, ErrorMessageFactory.createErrorMessage(failure, status.getStatus()).toString());
   }
 
   /** Time the real execution of Executor and log slow query for troubleshooting */

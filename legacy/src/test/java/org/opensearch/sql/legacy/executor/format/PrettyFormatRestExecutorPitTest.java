@@ -169,14 +169,29 @@ public class PrettyFormatRestExecutorPitTest {
   }
 
   @Test
-  public void testPitCreationServerErrorStillReturnsInternalServerError() throws Exception {
+  public void testPitCreationServerErrorKeepsItsStatus() throws Exception {
     when(sqlRequest.fetchSize()).thenReturn(5);
     failPitCreationWith(
         new OpenSearchStatusException("unavailable", RestStatus.SERVICE_UNAVAILABLE));
 
     BytesRestResponse response = executeAndCaptureResponse();
 
-    assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.status());
+    assertEquals(RestStatus.SERVICE_UNAVAILABLE, response.status());
+    assertEquals(503, new JSONObject(response.content().utf8ToString()).getInt("status"));
+    assertEquals(0L, failedRequestCount(MetricName.FAILED_REQ_COUNT_CUS));
+  }
+
+  @Test
+  public void testPitCreationRejectedReturnsTooManyRequests() throws Exception {
+    when(sqlRequest.fetchSize()).thenReturn(5);
+    failPitCreationWith(new OpenSearchStatusException("busy", RestStatus.TOO_MANY_REQUESTS));
+
+    BytesRestResponse response = executeAndCaptureResponse();
+
+    assertEquals(RestStatus.TOO_MANY_REQUESTS, response.status());
+    JSONObject body = new JSONObject(response.content().utf8ToString());
+    assertEquals(429, body.getInt("status"));
+    assertEquals("OpenSearchStatusException", body.getJSONObject("error").getString("type"));
     assertEquals(0L, failedRequestCount(MetricName.FAILED_REQ_COUNT_CUS));
   }
 

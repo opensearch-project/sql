@@ -57,8 +57,8 @@ public class OpenSearchClient {
     for (int i = 0; i < res.length; i++) {
       if (res[i].isFailure()) {
         // A denied request or a missing index fails the same way on every retry and for every
-        // item. Other failures, including a 400 caused by one item's values, are retried and
-        // left to the caller.
+        // item. Other failures, including a 400 caused by one item's values or a lost point in
+        // time, are retried and left to the caller.
         if (ErrorMessageFactory.isDeniedOrMissing(res[i].getFailure())) {
           throw ErrorMessageFactory.findClientErrorCause(res[i].getFailure()).get();
         }

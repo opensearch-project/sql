@@ -28,14 +28,18 @@ import org.junit.Test;
 import org.opensearch.OpenSearchException;
 import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.OpenSearchStatusException;
+import org.opensearch.ResourceNotFoundException;
 import org.opensearch.core.index.Index;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.query.QueryShardException;
+import org.opensearch.search.SearchContextMissingException;
+import org.opensearch.search.internal.ShardSearchContextId;
 import org.opensearch.sql.common.error.ErrorReport;
 import org.opensearch.sql.legacy.executor.format.ErrorMessage;
 import org.opensearch.sql.legacy.executor.format.ErrorMessageFactory;
 import org.opensearch.sql.legacy.executor.format.OpenSearchErrorMessage;
+import org.opensearch.transport.RemoteTransportException;
 
 public class ErrorMessageFactoryTest {
 
@@ -162,6 +166,69 @@ public class ErrorMessageFactoryTest {
         ErrorMessageFactory.findClientErrorCause(new IllegalArgumentException("bad argument")));
   }
 
+  private static final SearchContextMissingException LOST_PIT =
+      new SearchContextMissingException(new ShardSearchContextId("session", 1L));
+
+  @Test
+  public void findsOpenSearchCauseOfAnyStatus() {
+    OpenSearchStatusException busy =
+        new OpenSearchStatusException("busy", RestStatus.TOO_MANY_REQUESTS);
+    OpenSearchStatusException unavailable =
+        new OpenSearchStatusException("unavailable", RestStatus.SERVICE_UNAVAILABLE);
+
+    assertSame(
+        busy,
+        ErrorMessageFactory.findOpenSearchCause(
+                new IllegalStateException(new RuntimeException(busy)))
+            .orElseThrow());
+    assertSame(
+        unavailable,
+        ErrorMessageFactory.findOpenSearchCause(new RuntimeException(unavailable)).orElseThrow());
+    assertSame(DENIED, ErrorMessageFactory.findOpenSearchCause(DENIED).orElseThrow());
+  }
+
+  @Test
+  public void findOpenSearchCauseUsesTheFirstOpenSearchExceptionInTheChain() {
+    OpenSearchException outer = new OpenSearchException("failed", DENIED);
+
+    assertSame(
+        outer,
+        ErrorMessageFactory.findOpenSearchCause(new IllegalStateException(outer)).orElseThrow());
+    assertEquals(RestStatus.INTERNAL_SERVER_ERROR, outer.status());
+  }
+
+  @Test
+  public void findOpenSearchCauseIsEmptyWithoutOpenSearchException() {
+    assertEquals(
+        Optional.empty(),
+        ErrorMessageFactory.findOpenSearchCause(
+            new IllegalStateException(new IllegalArgumentException("bad argument"))));
+  }
+
+  @Test
+  public void missingIndexUnderTransportWrapperIsDeniedOrMissing() {
+    RemoteTransportException remote =
+        new RemoteTransportException(
+            "[node][indices:data/read/search]", new IndexNotFoundException("logs"));
+
+    assertEquals(RestStatus.NOT_FOUND, remote.status());
+    assertTrue(ErrorMessageFactory.isDeniedOrMissing(remote));
+    assertTrue(ErrorMessageFactory.isDeniedOrMissing(new IllegalStateException(remote)));
+  }
+
+  @Test
+  public void otherNotFoundIsNotDeniedOrMissing() {
+    // A lost point in time is a 404 even when every index exists.
+    assertEquals(RestStatus.NOT_FOUND, LOST_PIT.status());
+    assertFalse(ErrorMessageFactory.isDeniedOrMissing(LOST_PIT));
+    assertFalse(ErrorMessageFactory.isDeniedOrMissing(new IllegalStateException(LOST_PIT)));
+    assertFalse(
+        ErrorMessageFactory.isDeniedOrMissing(
+            new RemoteTransportException("[node][indices:data/read/search]", LOST_PIT)));
+    assertFalse(
+        ErrorMessageFactory.isDeniedOrMissing(new ResourceNotFoundException("model [m] missing")));
+  }
+
   @Test
   public void onlyDeniedOrMissingAreDeniedOrMissing() {
     assertTrue(
@@ -192,6 +259,28 @@ public class ErrorMessageFactoryTest {
     assertTrue(
         event.getMessage().getFormattedMessage(),
         event.getMessage().getFormattedMessage().contains("For input string"));
+  }
+
+  @Test
+  public void logFailureLogsLostPointInTimeAtWarnWithoutStackTrace() {
+    LogEvent event = logFailure(new IllegalStateException(LOST_PIT));
+
+    assertEquals(Level.WARN, event.getLevel());
+    assertNull(event.getThrown());
+    assertTrue(
+        event.getMessage().getFormattedMessage(),
+        event.getMessage().getFormattedMessage().contains("No search context found"));
+  }
+
+  @Test
+  public void logFailureLogsMissingIndexAtDebug() {
+    LogEvent event =
+        logFailure(
+            new IllegalStateException(
+                new RemoteTransportException(
+                    "[node][indices:data/read/search]", new IndexNotFoundException("logs"))));
+
+    assertEquals(Level.DEBUG, event.getLevel());
   }
 
   @Test

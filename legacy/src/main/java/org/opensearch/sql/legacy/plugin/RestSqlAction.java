@@ -237,9 +237,10 @@ public class RestSqlAction extends BaseRestHandler {
     if (ex instanceof OpenSearchException) {
       return ((OpenSearchException) ex).status().getStatus();
     }
-    Optional<OpenSearchException> clientError = ErrorMessageFactory.findClientErrorCause(ex);
-    if (clientError.isPresent()) {
-      return clientError.get().status().getStatus();
+    // The error body is built from a wrapped OpenSearch failure, so the status comes from it too
+    Optional<OpenSearchException> openSearchCause = ErrorMessageFactory.findOpenSearchCause(ex);
+    if (openSearchCause.isPresent()) {
+      return openSearchCause.get().status().getStatus();
     }
     if (isClientError(ex)) {
       return 400;
