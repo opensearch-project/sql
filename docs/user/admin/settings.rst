@@ -694,6 +694,47 @@ SQL query::
     }
 
 
+plugins.query.executionengine.spark.auto_index_management.interval
+==================================================================
+
+Version
+-------
+3.10
+
+Description
+-----------
+This setting controls how often the cluster manager deletes outdated request and result index documents when
+plugins.query.executionengine.spark.auto_index_management.enabled is true. The first run starts one interval after the
+node becomes cluster manager or a retention setting changes.
+
+* Default Value: 24 hours
+* Minimum Value: 1 second
+
+To run it every 12 hours for example, use this command:
+
+SQL query::
+
+    sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings \
+    ... -d '{"transient":{"plugins.query.executionengine.spark.auto_index_management.interval":"12h"}}'
+    {
+        "acknowledged": true,
+        "persistent": {},
+        "transient": {
+            "plugins": {
+                "query": {
+                    "executionengine": {
+                        "spark": {
+                            "auto_index_management": {
+                                "interval": "12h"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
 plugins.query.executionengine.spark.session.index.ttl
 =====================================================
 
