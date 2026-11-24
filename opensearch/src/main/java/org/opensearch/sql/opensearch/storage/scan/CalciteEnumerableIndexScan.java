@@ -30,6 +30,9 @@ import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.opensearch.sql.calcite.plan.Scannable;
 import org.opensearch.sql.calcite.plan.rule.OpenSearchRules;
+import org.opensearch.sql.calcite.utils.TimewrapPivot;
+import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.opensearch.executor.progress.PartialAggregation;
 import org.opensearch.sql.opensearch.executor.progress.QueryProgressTracker;
 import org.opensearch.sql.opensearch.executor.progress.SourceProgress;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
@@ -132,7 +135,27 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
 
   @Override
   public Enumerable<@Nullable Object> scanAsRoot() {
-    return scan(QueryProgressTracker.current().map(QueryProgressTracker::addSource).orElse(null));
+    Optional<QueryProgressTracker> tracker = QueryProgressTracker.current();
+    if (tracker.isEmpty()) {
+      return scan(null);
+    }
+    SourceProgress progress = tracker.get().addSource();
+    Integer batchedReduceSize =
+        osIndex.getSettings() == null
+            ? null
+            : osIndex.getSettings().getSettingValue(Settings.Key.QUERY_ASYNC_BATCHED_REDUCE_SIZE);
+    // These rows are the result, so a merge of some shards' aggregations is a running result.
+    // Timewrap reshapes the rows at the end.
+    if (batchedReduceSize != null
+        && batchedReduceSize >= 2
+        && pushDownContext.isAggregatePushed()
+        && !TimewrapPivot.isTimewrap()) {
+      PartialAggregation aggregation =
+          new PartialAggregation(batchedReduceSize, osIndex.getMaxBuckets(), getRowType());
+      progress.reduceInto(aggregation);
+      tracker.get().partialRows().interim(aggregation::snapshot);
+    }
+    return scan(progress);
   }
 
   public Enumerable<@Nullable Object> scan(@Nullable SourceProgress progress) {

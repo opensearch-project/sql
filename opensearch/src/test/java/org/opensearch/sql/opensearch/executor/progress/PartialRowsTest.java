@@ -12,6 +12,7 @@ import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
@@ -106,6 +107,32 @@ class PartialRowsTest {
     rows.open(values -> SCHEMA);
     rows.add(integerValue(1));
     rows.open(values -> SCHEMA);
+    assertTrue(rows.snapshot().isEmpty());
+  }
+
+  @Test
+  void interimIsShownUntilTheFirstRowAndSurvivesOpen() {
+    PartialRows rows = new PartialRows();
+    QueryResult.Rows interim =
+        new QueryResult.Rows(SCHEMA, List.of(integerValue(9)), null, List.of(), 0);
+    rows.interim(() -> Optional.of(interim));
+    assertSame(interim, rows.snapshot().orElseThrow());
+
+    rows.open(values -> SCHEMA);
+    assertSame(interim, rows.snapshot().orElseThrow());
+
+    rows.add(integerValue(1));
+    assertEquals(List.of(integerValue(1)), rows.snapshot().orElseThrow().rows());
+  }
+
+  @Test
+  void discardDropsTheInterim() {
+    PartialRows rows = new PartialRows();
+    rows.interim(
+        () ->
+            Optional.of(
+                new QueryResult.Rows(SCHEMA, List.of(integerValue(9)), null, List.of(), 0)));
+    rows.discard();
     assertTrue(rows.snapshot().isEmpty());
   }
 

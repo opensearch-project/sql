@@ -9,13 +9,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionEngine.Schema;
 import org.opensearch.sql.executor.Warning;
 import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.job.QueryResult;
 
-/** Rows an async query has produced so far, a prefix of its final result. */
+/**
+ * Rows an async query has produced so far: a prefix of its final result or, until the first row, an
+ * interim result that each new one replaces.
+ */
 public final class PartialRows {
 
   private final List<ExprValue> rows = new ArrayList<>();
@@ -23,6 +27,7 @@ public final class PartialRows {
   private Schema schema;
   private List<Warning> warnings = List.of();
   private QueryResult.Rows last;
+  private Supplier<Optional<QueryResult.Rows>> interim;
 
   public synchronized void open(Function<List<ExprValue>, Schema> schemaOf) {
     this.schemaOf = schemaOf;
@@ -42,15 +47,25 @@ public final class PartialRows {
     }
   }
 
+  /** Shown until the first row; read under this lock, so it must not block. */
+  public synchronized void interim(Supplier<Optional<QueryResult.Rows>> interim) {
+    this.interim = interim;
+  }
+
   public synchronized void discard() {
     schemaOf = null;
+    interim = null;
     reset();
   }
 
   public synchronized Optional<QueryResult.Rows> snapshot() {
-    if (schemaOf == null || rows.isEmpty()) {
-      return Optional.empty();
+    if (schemaOf != null && !rows.isEmpty()) {
+      return Optional.of(rowsSoFar());
     }
+    return interim == null ? Optional.empty() : interim.get();
+  }
+
+  private QueryResult.Rows rowsSoFar() {
     if (last == null || last.rows().size() != rows.size()) {
       List<ExprValue> copy = List.copyOf(rows);
       if (schema == null) {
@@ -59,7 +74,7 @@ public final class PartialRows {
       }
       last = new QueryResult.Rows(schema, copy, Cursor.None, warnings, 0);
     }
-    return Optional.of(last);
+    return last;
   }
 
   private void reset() {

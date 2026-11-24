@@ -9,11 +9,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.List;
+import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.lucene.search.TotalHits;
 import org.junit.jupiter.api.Test;
 import org.opensearch.action.search.SearchRequest;
@@ -21,12 +26,15 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchShard;
 import org.opensearch.action.search.SearchTask;
 import org.opensearch.core.tasks.TaskId;
+import org.opensearch.search.DocValueFormat;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.Aggregations;
+import org.opensearch.search.aggregations.InternalAggregations;
 import org.opensearch.search.aggregations.bucket.composite.InternalComposite;
 import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder;
+import org.opensearch.search.aggregations.metrics.InternalMax;
 import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 
@@ -246,6 +254,69 @@ class SourceProgressTest {
     SearchTask untracked =
         original.createTask(1L, "transport", "search", TaskId.EMPTY_TASK_ID, null);
     assertNotSame(SourceProgress.ShardListener.class, untracked.getProgressListener().getClass());
+  }
+
+  @Test
+  void singleAggregation_mergesEarlyAndKeepsEachReduce() {
+    SourceProgress progress = new SourceProgress();
+    PartialAggregation aggregation = new PartialAggregation(5, 100, maxRowType());
+    aggregation.rootRows(
+        (hits, aggs) ->
+            List.<Object[]>of(new Object[] {((InternalMax) aggs.asList().get(0)).getValue()}));
+    progress.reduceInto(aggregation);
+
+    SourceProgress.ShardListener listener = listenerOf(progress, maxSearch());
+    assertEquals(5, lastTracked.request().getBatchedReduceSize());
+
+    listener.onPartialReduce(shards(5), HITS, max(3), 1);
+    assertEquals(3D, firstCell(aggregation));
+    listener.onFinalReduce(shards(10), HITS, max(8), 2);
+    assertEquals(8D, firstCell(aggregation));
+  }
+
+  @Test
+  void otherSearches_keepTheDefaultMergeAndNoReduce() {
+    for (SearchRequest request : List.of(plainSearch(), pitSearch(), compositeSearch())) {
+      SourceProgress progress = new SourceProgress();
+      PartialAggregation aggregation = new PartialAggregation(5, 100, maxRowType());
+      aggregation.rootRows((hits, aggs) -> List.<Object[]>of(new Object[] {1D}));
+      progress.reduceInto(aggregation);
+
+      SourceProgress.ShardListener listener = listenerOf(progress, request);
+      assertEquals(
+          SearchRequest.DEFAULT_BATCHED_REDUCE_SIZE, lastTracked.request().getBatchedReduceSize());
+      listener.onPartialReduce(shards(5), HITS, max(3), 1);
+      assertTrue(aggregation.snapshot().isEmpty());
+    }
+  }
+
+  @Test
+  void singleAggregationWithoutReduceInto_keepsTheDefaultMerge() {
+    listenerOf(new SourceProgress(), maxSearch());
+    assertEquals(
+        SearchRequest.DEFAULT_BATCHED_REDUCE_SIZE, lastTracked.request().getBatchedReduceSize());
+  }
+
+  private static final TotalHits HITS = new TotalHits(10, TotalHits.Relation.EQUAL_TO);
+
+  private static double firstCell(PartialAggregation aggregation) {
+    return aggregation.snapshot().orElseThrow().rows().get(0).tupleValue().get("m").doubleValue();
+  }
+
+  private static SearchRequest maxSearch() {
+    return new SearchRequest("test")
+        .source(
+            new SearchSourceBuilder().size(0).aggregation(AggregationBuilders.max("m").field("n")));
+  }
+
+  private static InternalAggregations max(double value) {
+    return InternalAggregations.from(
+        List.of(new InternalMax("m", value, DocValueFormat.RAW, null)));
+  }
+
+  private static RelDataType maxRowType() {
+    RelDataTypeFactory factory = new JavaTypeFactoryImpl();
+    return factory.builder().add("m", factory.createSqlType(SqlTypeName.DOUBLE)).build();
   }
 
   private SourceProgress.Tracked lastTracked;

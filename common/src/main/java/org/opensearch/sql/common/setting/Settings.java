@@ -55,6 +55,7 @@ public abstract class Settings {
     QUERY_MEMORY_LIMIT("plugins.query.memory_limit"),
     QUERY_SIZE_LIMIT("plugins.query.size_limit"),
     QUERY_ASYNC_MAX_RETAINED_JOBS("plugins.query.async.max_retained_jobs"),
+    QUERY_ASYNC_BATCHED_REDUCE_SIZE("plugins.query.async.batched_reduce_size"),
     QUERY_PRUNING_ENABLED("plugins.query.pruning.enabled"),
     MAX_EXPRESSION_DEPTH("plugins.query.max_expression_depth"),
     DESERIALIZATION_MAX_DEPTH("plugins.query.deserialization.max_depth"),

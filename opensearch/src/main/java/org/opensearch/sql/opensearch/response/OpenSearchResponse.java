@@ -25,6 +25,7 @@ import lombok.Getter;
 import lombok.ToString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.search.TotalHits;
 import org.jetbrains.annotations.TestOnly;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.core.common.text.Text;
@@ -103,8 +104,32 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
       OpenSearchExprValueFactory exprValueFactory,
       List<String> includes,
       boolean isCountAgg) {
+    this(hits, null, exprValueFactory, includes, isCountAgg);
+  }
+
+  /** The response a reduce of shard results gives, before the search has finished. */
+  public static OpenSearchResponse ofReduce(
+      TotalHits totalHits,
+      Aggregations aggregations,
+      OpenSearchExprValueFactory exprValueFactory,
+      List<String> includes,
+      boolean isCountAgg) {
+    return new OpenSearchResponse(
+        new SearchHits(new SearchHit[0], totalHits, Float.NaN),
+        aggregations,
+        exprValueFactory,
+        includes,
+        isCountAgg);
+  }
+
+  private OpenSearchResponse(
+      SearchHits hits,
+      Aggregations aggregations,
+      OpenSearchExprValueFactory exprValueFactory,
+      List<String> includes,
+      boolean isCountAgg) {
     this.hits = hits;
-    this.aggregations = null;
+    this.aggregations = aggregations;
     this.exprValueFactory = exprValueFactory;
     this.includes = includes;
     this.isCountAgg = isCountAgg;

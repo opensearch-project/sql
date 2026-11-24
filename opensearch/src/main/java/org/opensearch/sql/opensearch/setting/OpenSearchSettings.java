@@ -230,6 +230,18 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  /**
+   * Shard results the coordinator buffers before it merges them, for an async aggregation. Each
+   * merge is a running result the query can return. Below 2, OpenSearch's default applies.
+   */
+  public static final Setting<Integer> QUERY_ASYNC_BATCHED_REDUCE_SIZE_SETTING =
+      Setting.intSetting(
+          Key.QUERY_ASYNC_BATCHED_REDUCE_SIZE.getKeyValue(),
+          5,
+          0,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   public static final Setting<?> QUERY_PRUNING_ENABLED_SETTING =
       Setting.boolSetting(
           Key.QUERY_PRUNING_ENABLED.getKeyValue(),
@@ -602,6 +614,12 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.QUERY_ASYNC_BATCHED_REDUCE_SIZE,
+        QUERY_ASYNC_BATCHED_REDUCE_SIZE_SETTING,
+        new Updater(Key.QUERY_ASYNC_BATCHED_REDUCE_SIZE));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.QUERY_PRUNING_ENABLED,
         QUERY_PRUNING_ENABLED_SETTING,
         new Updater(Key.QUERY_PRUNING_ENABLED));
@@ -845,6 +863,7 @@ public class OpenSearchSettings extends Settings {
         .add(QUERY_MEMORY_LIMIT_SETTING)
         .add(QUERY_SIZE_LIMIT_SETTING)
         .add(QUERY_ASYNC_MAX_RETAINED_JOBS_SETTING)
+        .add(QUERY_ASYNC_BATCHED_REDUCE_SIZE_SETTING)
         .add(QUERY_PRUNING_ENABLED_SETTING)
         .add(QUERY_BUCKET_SIZE_SETTING)
         .add(METRICS_ROLLING_WINDOW_SETTING)

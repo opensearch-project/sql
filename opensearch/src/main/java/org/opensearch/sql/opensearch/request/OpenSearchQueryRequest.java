@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import lombok.EqualsAndHashCode;
@@ -20,6 +21,7 @@ import lombok.Getter;
 import lombok.ToString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.search.TotalHits;
 import org.jetbrains.annotations.TestOnly;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
@@ -34,6 +36,7 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.SearchModule;
+import org.opensearch.search.aggregations.InternalAggregations;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.composite.InternalComposite;
 import org.opensearch.search.builder.PointInTimeBuilder;
@@ -148,6 +151,14 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
         && sourceBuilder.size() == 0
         && sourceBuilder.trackTotalHitsUpTo() != null // only set in v3
         && sourceBuilder.trackTotalHitsUpTo() == Integer.MAX_VALUE;
+  }
+
+  @Override
+  public Optional<OpenSearchResponse> reducedResponse(
+      TotalHits totalHits, InternalAggregations aggregations) {
+    return Optional.of(
+        OpenSearchResponse.ofReduce(
+            totalHits, aggregations, exprValueFactory, includes, isCountAggRequest()));
   }
 
   /**
