@@ -31,9 +31,10 @@ import org.opensearch.sql.spark.execution.statestore.StateStore;
 
 /**
  * Runs the plugin's own access to the async query indices on the secured cluster, with system index
- * protection on. The purge runs as the plugin subject: on the session index, a system index of the
- * plugin, and on the result index, which is not a system index and is allowed only by {@code
- * plugin-additional-permissions.yml}.
+ * protection on. The purge must reach the session index, a system index of the plugin, and the
+ * result index, which is not a system index and is allowed only by {@code
+ * plugin-additional-permissions.yml}. A purge denied as the plugin subject fails the test with the
+ * denial from the logs.
  */
 public class ResultIndexPluginAccessSecurityIT extends SecurityTestBase {
 
@@ -42,16 +43,17 @@ public class ResultIndexPluginAccessSecurityIT extends SecurityTestBase {
   private static final String SESSION_INDEX = OpenSearchStateStoreUtil.getIndexName("retention_it");
   private static final String INTERVAL_SETTING =
       "plugins.query.executionengine.spark.auto_index_management.interval";
-  private static final String PURGE_FAILED = "delete docs by query fails for result index";
+  private static final String PURGE_FAILED = "delete docs by query fails for ";
   private static final String PLUGIN_DENIED =
       "and User [name=plugin:org.opensearch.sql.plugin.SQLPlugin";
   private static final long TIMEOUT_MILLIS = 60_000;
 
   @After
   public void cleanUp() throws IOException {
+    // The session index goes first, so a failed step below cannot leave it for the next run.
+    deleteIfExists(superAdminClient(), SESSION_INDEX);
     updateClusterSettings(new ClusterSetting(TRANSIENT, INTERVAL_SETTING, null));
     deleteIfExists(RESULT_INDEX);
-    deleteIfExists(superAdminClient(), SESSION_INDEX);
     deleteIfExists("query_execution_result_" + DATASOURCE);
     Request deleteDataSource = new Request("DELETE", "/_plugins/_query/_datasources/" + DATASOURCE);
     try {
@@ -184,6 +186,7 @@ public class ResultIndexPluginAccessSecurityIT extends SecurityTestBase {
    * Creates the session index with the settings and mapping the plugin's {@link StateStore} uses.
    */
   private void createSessionIndex() throws IOException {
+    deleteIfExists(superAdminClient(), SESSION_INDEX);
     JSONObject body =
         new JSONObject()
             .put("settings", new JSONObject(loadYaml(StateStore.SETTINGS_FILE_NAME)))
