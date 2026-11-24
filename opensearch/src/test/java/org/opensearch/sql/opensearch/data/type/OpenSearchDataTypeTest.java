@@ -164,6 +164,10 @@ class OpenSearchDataTypeTest {
     var type = OpenSearchDataType.of(coreType);
     if (type instanceof OpenSearchDateType) {
       assertEquals(coreType, type.getExprCoreType());
+    } else if (coreType == ExprCoreType.BINARY) {
+      assertSame(OpenSearchBinaryType.of(), type);
+      assertEquals(coreType.toString(), type.typeName());
+      assertEquals(coreType.toString(), type.legacyTypeName());
     } else {
       assertEquals(coreType.toString(), type.typeName());
       assertEquals(coreType.toString(), type.legacyTypeName());

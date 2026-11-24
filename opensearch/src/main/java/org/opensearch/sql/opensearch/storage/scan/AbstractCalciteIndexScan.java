@@ -395,14 +395,28 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
                 };
             ExprType fieldType = osIndex.getFieldTypes().get(fieldName);
             if (fieldType instanceof OpenSearchBinaryType) {
-              if (LOG.isDebugEnabled()) {
-                LOG.debug("Cannot pushdown the sort on binary field {}", fieldName);
-              }
-              return null;
+              // A binary field has no doc values, so sort by a script that reads _source.
+              RexNode ref =
+                  getCluster()
+                      .getRexBuilder()
+                      .makeInputRef(getRowType().getFieldList().get(index).getType(), index);
+              // same rule as SortExprDigest#isMissingMax
+              boolean missingMax =
+                  (order == SortOrder.ASC) ^ (nullDirection == NullDirection.FIRST);
+              PredicateAnalyzer.ScriptQueryExpression scriptExpr =
+                  new PredicateAnalyzer.ScriptQueryExpression(
+                      ref,
+                      getRowType(),
+                      osIndex.getAllFieldTypes(),
+                      getCluster(),
+                      Map.of(MISSING_MAX, missingMax));
+              sortBuilder =
+                  SortBuilders.scriptSort(scriptExpr.getScript(), getScriptSortType(ref.getType()));
+            } else {
+              // Keyword field is optimized for sorting in OpenSearch
+              String field = OpenSearchTextType.toKeywordSubField(fieldName, fieldType);
+              sortBuilder = SortBuilders.fieldSort(field).missing(missing);
             }
-            // Keyword field is optimized for sorting in OpenSearch
-            String field = OpenSearchTextType.toKeywordSubField(fieldName, fieldType);
-            sortBuilder = SortBuilders.fieldSort(field).missing(missing);
           }
           builders.add(sortBuilder.order(order));
         }
@@ -447,15 +461,11 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
         SortOrder order =
             Direction.DESCENDING.equals(digest.getDirection()) ? SortOrder.DESC : SortOrder.ASC;
 
-        if (digest.isSimpleFieldReference()) {
-          // Only the field sort needs a guard. The script sort below reads the field from
-          // _source, see the OpenSearchBinaryType branch in RexStandardizer#visitInputRef.
-          if (osIndex.getFieldTypes().get(digest.getFieldName()) instanceof OpenSearchBinaryType) {
-            if (LOG.isDebugEnabled()) {
-              LOG.debug("Cannot pushdown the sort on binary field {}", digest.getFieldName());
-            }
-            return null;
-          }
+        // A binary field has no doc values, so it skips the field sort and takes the script
+        // sort below, which reads it from _source.
+        if (digest.isSimpleFieldReference()
+            && !(osIndex.getFieldTypes().get(digest.getFieldName())
+                instanceof OpenSearchBinaryType)) {
           String missing =
               switch (digest.getNullDirection()) {
                 case FIRST -> "_first";
@@ -466,22 +476,22 @@ public abstract class AbstractCalciteIndexScan extends TableScan implements Alia
               () -> SortBuilders.fieldSort(digest.getFieldName()).order(order).missing(missing));
           continue;
         }
-        RexNode sortExpr = digest.getExpression();
-        assert sortExpr instanceof RexCall : "sort expression should be RexCall";
+        RexNode sortExpr = digest.getEffectiveExpression(this);
+        if (sortExpr == null) {
+          return null;
+        }
+        assert digest.isSimpleFieldReference() || sortExpr instanceof RexCall
+            : "sort expression should be a RexCall or a binary field reference";
         Map<String, Object> missingValueParams =
             new LinkedHashMap<>() {
               {
                 put(MISSING_MAX, digest.isMissingMax());
               }
             };
-        // Complex expression - use ScriptQueryExpression to generate script for sort
+        // Expression or binary field - use ScriptQueryExpression to generate script for sort
         PredicateAnalyzer.ScriptQueryExpression scriptExpr =
             new PredicateAnalyzer.ScriptQueryExpression(
-                digest.getExpression(),
-                rowType,
-                osIndex.getAllFieldTypes(),
-                getCluster(),
-                missingValueParams);
+                sortExpr, rowType, osIndex.getAllFieldTypes(), getCluster(), missingValueParams);
         // Determine the correct ScriptSortType based on the expression's return type
         ScriptSortType sortType = getScriptSortType(sortExpr.getType());
 

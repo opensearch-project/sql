@@ -22,6 +22,7 @@ import static org.opensearch.sql.data.model.ExprValueUtils.nullValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.shortValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
+import static org.opensearch.sql.data.type.ExprCoreType.BINARY;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
@@ -804,6 +805,15 @@ class OpenSearchExprValueFactoryTest {
     assertEquals(
         new OpenSearchExprBinaryValue("U29tZSBiaW5hcnkgYmxvYg=="),
         tupleValue("{\"binaryV\":\"U29tZSBiaW5hcnkgYmxvYg==\"}").get("binaryV"));
+  }
+
+  @Test
+  // a pushed-down aggregation types its binary output column from the Calcite row type
+  public void constructBinaryFromAggregationOutputType() {
+    var factory = new OpenSearchExprValueFactory(Map.of(), true);
+    factory.extendTypeMapping(Map.of("first(binaryV)", OpenSearchDataType.of(BINARY)));
+    assertEquals(
+        new OpenSearchExprBinaryValue("YQ=="), factory.construct("first(binaryV)", "YQ==", true));
   }
 
   /**

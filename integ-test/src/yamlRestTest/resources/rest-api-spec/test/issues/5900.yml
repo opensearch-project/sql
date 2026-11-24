@@ -23,23 +23,25 @@ setup:
                 type: keyword
               category:
                 type: keyword
+              t:
+                type: text
   - do:
       bulk:
         index: text_minmax_5900
         refresh: true
         body:
           - '{"index": {}}'
-          - '{"category": "a", "name": "b", "kw": "b"}'
+          - '{"category": "a", "name": "b", "kw": "b", "t": "2024-01-05"}'
           - '{"index": {}}'
-          - '{"category": "a", "name": "9", "kw": "9"}'
+          - '{"category": "a", "name": "9", "kw": "9", "t": "2024-01-01"}'
           - '{"index": {}}'
-          - '{"category": "a", "name": "c", "kw": "c"}'
+          - '{"category": "a", "name": "c", "kw": "c", "t": "2024-01-03"}'
           - '{"index": {}}'
-          - '{"category": "b", "name": "10", "kw": "10"}'
+          - '{"category": "b", "name": "10", "kw": "10", "t": "2024-01-04"}'
           - '{"index": {}}'
-          - '{"category": "b", "name": "C", "kw": "C"}'
+          - '{"category": "b", "name": "C", "kw": "C", "t": "2024-01-07"}'
           - '{"index": {}}'
-          - '{"category": "b", "name": "a", "kw": "a"}'
+          - '{"category": "b", "name": "a", "kw": "a", "t": "2024-01-02"}'
           - '{"index": {}}'
           - '{"category": "b"}'
           - '{"index": {}}'
@@ -206,3 +208,49 @@ teardown:
   - match: { "calcite.physical": "/AGGREGATION/" }
   - match: { "calcite.physical": "/\"MISSING_MAX\":false[^}]*\\}\\},\"type\":\"string\",\"order\":\"desc\"/" }
   - match: { "calcite.physical": "/\"MISSING_MAX\":true[^}]*\\}\\},\"type\":\"string\",\"order\":\"asc\"/" }
+
+---
+"earliest and latest with a text time field order by the time field":
+  # t is text without a keyword subfield and holds ISO dates, so string order is time order.
+  # Two documents lack t, so a missing time sorts last in both orders.
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=text_minmax_5900 | stats earliest(name, t), latest(name, t)"
+  - match: {"total": 1}
+  - match: {"datarows": [["9", "C"]]}
+
+---
+"earliest and latest of a keyword field with a text time field order by the time field":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=text_minmax_5900 | stats earliest(kw, t), latest(kw, t)"
+  - match: {"total": 1}
+  - match: {"datarows": [["9", "C"]]}
+
+---
+"earliest and latest with a text time field push down a top_hits sorted by a script on it":
+  # earliest sorts asc and latest desc on t, with a text and a keyword value in one plan
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl.explain:
+        body:
+          query: "source=text_minmax_5900 | stats earliest(name, t), latest(kw, t)"
+  - match: { "calcite.physical": "/AGGREGATION/" }
+  - match: { "calcite.physical": "/\"MISSING_MAX\":true[^}]*\"DIGESTS\":\\[\"t\"\\]\\}\\},\"type\":\"string\",\"order\":\"asc\"/" }
+  - match: { "calcite.physical": "/\"MISSING_MAX\":false[^}]*\"DIGESTS\":\\[\"t\"\\]\\}\\},\"type\":\"string\",\"order\":\"desc\"/" }

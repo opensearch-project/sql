@@ -46,6 +46,7 @@ import org.opensearch.sql.expression.function.PPLBuiltinOperators;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.request.AggregateAnalyzer.ExpressionNotAnalyzableException;
+import org.opensearch.sql.opensearch.response.agg.ArgMaxMinParser;
 import org.opensearch.sql.opensearch.response.agg.BucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.CheckedLongSumParser;
 import org.opensearch.sql.opensearch.response.agg.FilterParser;
@@ -495,6 +496,65 @@ class AggregateAnalyzerTest {
             "[{\"last_b\":{\"top_hits\":{\"from\":0,\"size\":1,\"version\":false,\"seq_no_primary_term\":false,\"explain\":false,\"_source\":false,\"fields\":[{\"field\":\"b\"}],\"sort\":[{\"_doc\":{\"order\":\"desc\"}}]}}}]")
         .expectResponseParser(
             new MetricParserHelper(List.of(new TopHitsParser("last_b", true, false))))
+        .verify();
+  }
+
+  @Test
+  void analyze_aggCall_TextWithoutKeyword_minSortsByScript()
+      throws ExpressionNotAnalyzableException {
+    buildAggregation("min_c")
+        .withAggCall(b -> b.aggregateCall(SqlStdOperatorTable.MIN, b.field("c")).as("min_c"))
+        .expectDslQuery(
+            "[{\"min_c\":{\"top_hits\":{\"from\":0,\"size\":1,\"version\":false,\"seq_no_primary_term\":false,\"explain\":false,\"_source\":false,\"fields\":[{\"field\":\"c\"}],\"sort\":[{\"_script\":{\"script\":{\"source\":\"{\\\"langType\\\":\\\"calcite\\\",\\\"script\\\":\\\"rO0ABXQAaXsKICAiZHluYW1pY1BhcmFtIjogMCwKICAidHlwZSI6IHsKICAgICJ0eXBlIjogIlZBUkNIQVIiLAogICAgIm51bGxhYmxlIjogdHJ1ZSwKICAgICJwcmVjaXNpb24iOiAtMQogIH0KfQ==\\\"}\",\"lang\":\"opensearch_compounded_script\",\"params\":{\"MISSING_MAX\":true,\"utcTimestamp\":0,\"SOURCES\":[1],\"DIGESTS\":[\"c\"]}},\"type\":\"string\",\"order\":\"asc\"}}]}}}]")
+        .expectResponseParser(
+            new MetricParserHelper(List.of(new TopHitsParser("min_c", true, false))))
+        .verify();
+  }
+
+  @Test
+  void analyze_aggCall_TextWithoutKeyword_argMinSortsBySecondArgument()
+      throws ExpressionNotAnalyzableException {
+    // the value a is an integer, so the sort type has to come from c and not from a
+    buildAggregation("earliest_a")
+        .withAggCall(
+            b ->
+                b.aggregateCall(SqlStdOperatorTable.ARG_MIN, b.field("a"), b.field("c"))
+                    .as("earliest_a"))
+        .expectDslQuery(
+            "[{\"earliest_a\":{\"top_hits\":{\"from\":0,\"size\":1,\"version\":false,\"seq_no_primary_term\":false,\"explain\":false,\"_source\":false,\"fields\":[{\"field\":\"a\"}],\"sort\":[{\"_script\":{\"script\":{\"source\":\"{\\\"langType\\\":\\\"calcite\\\",\\\"script\\\":\\\"rO0ABXQAaXsKICAiZHluYW1pY1BhcmFtIjogMCwKICAidHlwZSI6IHsKICAgICJ0eXBlIjogIlZBUkNIQVIiLAogICAgIm51bGxhYmxlIjogdHJ1ZSwKICAgICJwcmVjaXNpb24iOiAtMQogIH0KfQ==\\\"}\",\"lang\":\"opensearch_compounded_script\",\"params\":{\"MISSING_MAX\":true,\"utcTimestamp\":0,\"SOURCES\":[1],\"DIGESTS\":[\"c\"]}},\"type\":\"string\",\"order\":\"asc\"}}]}}}]")
+        .expectResponseParser(new MetricParserHelper(List.of(new ArgMaxMinParser("earliest_a"))))
+        .verify();
+  }
+
+  @Test
+  void analyze_aggCall_TextWithoutKeyword_argMinOfExpressionSortsOnlyBySecondArgument()
+      throws ExpressionNotAnalyzableException {
+    buildAggregation("earliest_expr")
+        .withAggCall(
+            b ->
+                b.aggregateCall(
+                        SqlStdOperatorTable.ARG_MIN,
+                        b.call(SqlStdOperatorTable.PLUS, b.field("a"), b.literal(1)),
+                        b.field("c"))
+                    .as("earliest_expr"))
+        .expectDslTemplate(
+            "[{\"earliest_expr\":{\"top_hits\":{*\"script_fields\":*,\"sort\":[{\"_script\":{\"script\":{\"source\":\"{\\\"langType\\\":\\\"calcite\\\",\\\"script\\\":\\\"rO0ABXQAaXsKICAiZHluYW1pY1BhcmFtIjogMCwKICAidHlwZSI6IHsKICAgICJ0eXBlIjogIlZBUkNIQVIiLAogICAgIm51bGxhYmxlIjogdHJ1ZSwKICAgICJwcmVjaXNpb24iOiAtMQogIH0KfQ==\\\"}\",\"lang\":\"opensearch_compounded_script\",\"params\":{\"MISSING_MAX\":true,\"utcTimestamp\":0,\"SOURCES\":[1],\"DIGESTS\":[\"c\"]}},\"type\":\"string\",\"order\":\"asc\"}}]}}}]")
+        .expectResponseParser(new MetricParserHelper(List.of(new ArgMaxMinParser("earliest_expr"))))
+        .verify();
+  }
+
+  @Test
+  void analyze_aggCall_TextWithoutKeyword_argMaxSortsBySecondArgument()
+      throws ExpressionNotAnalyzableException {
+    // the value b has a keyword subfield, so a sort on b.keyword would be the wrong field
+    buildAggregation("latest_b")
+        .withAggCall(
+            b ->
+                b.aggregateCall(SqlStdOperatorTable.ARG_MAX, b.field("b"), b.field("c"))
+                    .as("latest_b"))
+        .expectDslQuery(
+            "[{\"latest_b\":{\"top_hits\":{\"from\":0,\"size\":1,\"version\":false,\"seq_no_primary_term\":false,\"explain\":false,\"_source\":false,\"fields\":[{\"field\":\"b\"}],\"sort\":[{\"_script\":{\"script\":{\"source\":\"{\\\"langType\\\":\\\"calcite\\\",\\\"script\\\":\\\"rO0ABXQAaXsKICAiZHluYW1pY1BhcmFtIjogMCwKICAidHlwZSI6IHsKICAgICJ0eXBlIjogIlZBUkNIQVIiLAogICAgIm51bGxhYmxlIjogdHJ1ZSwKICAgICJwcmVjaXNpb24iOiAtMQogIH0KfQ==\\\"}\",\"lang\":\"opensearch_compounded_script\",\"params\":{\"MISSING_MAX\":false,\"utcTimestamp\":0,\"SOURCES\":[1],\"DIGESTS\":[\"c\"]}},\"type\":\"string\",\"order\":\"desc\"}}]}}}]")
+        .expectResponseParser(new MetricParserHelper(List.of(new ArgMaxMinParser("latest_b"))))
         .verify();
   }
 

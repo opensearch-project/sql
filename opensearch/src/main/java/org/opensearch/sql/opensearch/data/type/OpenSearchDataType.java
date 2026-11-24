@@ -215,6 +215,9 @@ public class OpenSearchDataType implements ExprType, Serializable {
     if (OpenSearchDateType.isDateTypeCompatible(type)) {
       return OpenSearchDateType.of(type);
     }
+    if (type == ExprCoreType.BINARY) {
+      return OpenSearchBinaryType.of();
+    }
 
     return new OpenSearchDataType((ExprCoreType) type);
   }

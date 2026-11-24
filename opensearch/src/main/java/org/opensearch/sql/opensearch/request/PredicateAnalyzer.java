@@ -2058,10 +2058,9 @@ public class PredicateAnalyzer {
     }
 
     /**
-     * A binary field has neither fielddata nor doc values, so bucketing or sorting on it fails at
-     * the shard, while an {@code exists} filter succeeds and silently matches nothing. Refusing
-     * here rather than in the constructor leaves {@link #getRootName()} usable, because a {@code
-     * top_hits} fetch field is served from {@code _source} by the fields API and so is valid.
+     * An {@code exists} filter on a binary field succeeds and silently matches nothing, so the
+     * filter path throws here, and its caller falls back to a script. Refusing here rather than in
+     * the constructor leaves {@link #getRootName()} usable for a {@code top_hits} fetch field.
      */
     private static void rejectBinaryField(String name, ExprType type) {
       if (type instanceof OpenSearchBinaryType) {
@@ -2118,8 +2117,14 @@ public class PredicateAnalyzer {
       return getRootName();
     }
 
+    /**
+     * Returns null for a binary field or a text field with no keyword subfield, which have no exact
+     * value to match or sort on.
+     */
     public String getReferenceForTermQuery() {
-      rejectBinaryField(name, type);
+      if (type instanceof OpenSearchBinaryType) {
+        return null;
+      }
       return OpenSearchTextType.toKeywordSubField(getRootName(), this.type);
     }
   }
