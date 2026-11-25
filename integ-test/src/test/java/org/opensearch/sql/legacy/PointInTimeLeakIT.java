@@ -135,6 +135,35 @@ public class PointInTimeLeakIT extends SQLIntegTestCase {
     assertThat("V2 SQL should not leak PITs", v2Leaked, equalTo(0));
   }
 
+  @Test
+  public void testNoPitLeakWhenJoinFirstSearchFails() throws IOException {
+    int baselinePitCount = getCurrentPitCount();
+
+    // A term on the date field with a value that is not a date fails every shard with a 400, so
+    // the first search of that side fails right after its point in time is created. Cover the
+    // failure on the left side and on the right side of the hash join.
+    String[] failingSides = {"a", "b"};
+    for (String side : failingSides) {
+      String query =
+          StringUtils.format(
+              "SELECT a.action, b.action FROM %s a JOIN %s b ON a.action.keyword ="
+                  + " b.action.keyword WHERE %s.timestamp = 'not-a-date'",
+              TEST_INDEX, TEST_INDEX, side);
+
+      ResponseException e =
+          assertThrows(ResponseException.class, () -> executeQueryWithoutFetchSize(query));
+      assertThat(
+          "Join should fail when " + side + " fails its first search",
+          e.getResponse().getStatusLine().getStatusCode(),
+          equalTo(400));
+
+      assertThat(
+          "PIT should be deleted when the first search of side " + side + " fails",
+          getCurrentPitCount(),
+          equalTo(baselinePitCount));
+    }
+  }
+
   private JSONObject executeQueryWithoutFetchSize(String query) throws IOException {
     Request sqlRequest = new Request("POST", "/_plugins/_sql?format=jdbc");
     sqlRequest.setJsonEntity(String.format("{\"query\": \"%s\"}", query));
