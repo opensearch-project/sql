@@ -95,7 +95,7 @@ public class PointInTimeTest {
   @Test
   public void closeDeletesPitWhenFirstSearchFails() {
     when(searchRequestBuilder.get())
-        .thenThrow(new OpenSearchStatusException("search refused", RestStatus.FORBIDDEN));
+        .thenThrow(new OpenSearchStatusException("search rejected", RestStatus.TOO_MANY_REQUESTS));
 
     assertThrows(IllegalStateException.class, () -> pointInTime.hasNext());
     pointInTime.close();

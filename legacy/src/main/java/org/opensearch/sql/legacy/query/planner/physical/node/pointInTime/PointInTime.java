@@ -32,8 +32,8 @@ public class PointInTime extends Paginate {
   @Override
   public void close() {
     // Key on the PIT, not on the search response. loadFirstBatch() creates the PIT before the
-    // first search, so a first search that fails (refused, rejected, timed out) leaves
-    // searchResponse null while the PIT stays open until its keep-alive expires.
+    // first search, so a first search that fails (a bad query, a rejection, a cancellation)
+    // leaves searchResponse null while the PIT stays open until its keep-alive expires.
     if (pitId != null) {
       LOG.debug("Closing Point In Time (PIT) context");
       PointInTimeHandlerImpl openPit = pit;
