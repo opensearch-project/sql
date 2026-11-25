@@ -8,12 +8,14 @@ package org.opensearch.sql.security;
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.stream.Stream;
 import org.json.JSONObject;
 import org.junit.After;
@@ -21,25 +23,35 @@ import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
+import org.opensearch.client.RestClient;
+import org.opensearch.common.xcontent.XContentHelper;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.sql.spark.execution.statestore.OpenSearchStateStoreUtil;
+import org.opensearch.sql.spark.execution.statestore.StateStore;
 
 /**
- * Runs the plugin's own access to the async query result index, which is not a system index, on the
- * secured cluster. Those requests run as the plugin subject and are allowed only by {@code
- * plugin-additional-permissions.yml}.
+ * Runs the plugin's own access to the async query indices on the secured cluster, with system index
+ * protection on. The purge must reach the session index, a system index of the plugin, and the
+ * result index, which is not a system index and is allowed only by {@code
+ * plugin-additional-permissions.yml}. A purge denied as the plugin subject fails the test with the
+ * denial from the logs.
  */
 public class ResultIndexPluginAccessSecurityIT extends SecurityTestBase {
 
   private static final String RESULT_INDEX = "query_execution_result_purge_it";
   private static final String DATASOURCE = "result_it_s3";
+  private static final String SESSION_INDEX = OpenSearchStateStoreUtil.getIndexName("retention_it");
   private static final String INTERVAL_SETTING =
       "plugins.query.executionengine.spark.auto_index_management.interval";
-  private static final String PURGE_FAILED = "delete docs by query fails for result index";
+  private static final String PURGE_FAILED = "delete docs by query fails for ";
   private static final String PLUGIN_DENIED =
       "and User [name=plugin:org.opensearch.sql.plugin.SQLPlugin";
   private static final long TIMEOUT_MILLIS = 60_000;
 
   @After
   public void cleanUp() throws IOException {
+    // The session index goes first, so a failed step below cannot leave it for the next run.
+    deleteIfExists(superAdminClient(), SESSION_INDEX);
     updateClusterSettings(new ClusterSetting(TRANSIENT, INTERVAL_SETTING, null));
     deleteIfExists(RESULT_INDEX);
     deleteIfExists("query_execution_result_" + DATASOURCE);
@@ -55,12 +67,22 @@ public class ResultIndexPluginAccessSecurityIT extends SecurityTestBase {
   }
 
   @Test
-  public void retentionDeletesExpiredResultsAndKeepsFreshOnes() throws Exception {
+  public void retentionDeletesExpiredDocsAndKeepsFreshOnes() throws Exception {
+    long now = System.currentTimeMillis();
+    // The basic auth admin cannot write to a system index, so the session docs are seeded with the
+    // admin certificate.
+    createSessionIndex();
+    Request seedSessions = new Request("POST", "/" + SESSION_INDEX + "/_bulk");
+    seedSessions.addParameter("refresh", "true");
+    seedSessions.setJsonEntity(
+        sessionDoc("expired-session", 1000) + sessionDoc("fresh-session", now));
+    assertNoBulkErrors(superAdminClient().performRequest(seedSessions));
+    assertEquals(2, count(superAdminClient(), SESSION_INDEX, "{\"match_all\":{}}"));
+
     createIndexWithMapping(
         RESULT_INDEX,
         "{\"mappings\":{\"properties\":{\"updateTime\":{\"type\":\"date\","
             + "\"format\":\"strict_date_optional_time||epoch_millis\"}}}}");
-    long now = System.currentTimeMillis();
     Request bulk = new Request("POST", "/" + RESULT_INDEX + "/_bulk");
     bulk.addParameter("refresh", "true");
     bulk.setJsonEntity(
@@ -76,13 +98,15 @@ public class ResultIndexPluginAccessSecurityIT extends SecurityTestBase {
 
     long deadline = System.currentTimeMillis() + TIMEOUT_MILLIS;
     String expired = "{\"range\":{\"updateTime\":{\"lt\":10000}}}";
-    while (count(RESULT_INDEX, expired) > 0) {
+    String expiredSession = "{\"ids\":{\"values\":[\"expired-session\"]}}";
+    while (count(RESULT_INDEX, expired) > 0
+        || count(superAdminClient(), SESSION_INDEX, expiredSession) > 0) {
       List<String> problems = newProblemLines(problemsBefore);
       if (!problems.isEmpty()) {
-        fail("The result index purge failed: " + problems);
+        fail("The purge failed: " + problems);
       }
       if (System.currentTimeMillis() > deadline) {
-        fail("The result index purge did not delete the expired docs in " + TIMEOUT_MILLIS + "ms");
+        fail("The purge did not delete the expired docs in " + TIMEOUT_MILLIS + "ms");
       }
       Thread.sleep(500);
     }
@@ -90,6 +114,9 @@ public class ResultIndexPluginAccessSecurityIT extends SecurityTestBase {
     Thread.sleep(3000);
 
     assertEquals(1, count(RESULT_INDEX, "{\"ids\":{\"values\":[\"fresh\"]}}"));
+    assertEquals(1, count(superAdminClient(), SESSION_INDEX, "{\"match_all\":{}}"));
+    assertEquals(
+        1, count(superAdminClient(), SESSION_INDEX, "{\"ids\":{\"values\":[\"fresh-session\"]}}"));
     assertEquals(List.of(), newProblemLines(problemsBefore));
   }
 
@@ -136,15 +163,57 @@ public class ResultIndexPluginAccessSecurityIT extends SecurityTestBase {
   }
 
   private long count(String index, String query) throws IOException {
+    return count(client(), index, query);
+  }
+
+  private static long count(RestClient client, String index, String query) throws IOException {
     Request request = new Request("POST", "/" + index + "/_count");
     request.setJsonEntity("{\"query\":" + query + "}");
-    return new JSONObject(getResponseBody(client().performRequest(request), true)).getLong("count");
+    return new JSONObject(getResponseBody(client.performRequest(request), true)).getLong("count");
   }
 
   private void deleteIfExists(String index) throws IOException {
+    deleteIfExists(client(), index);
+  }
+
+  private static void deleteIfExists(RestClient client, String index) throws IOException {
     Request request = new Request("DELETE", "/" + index);
     request.addParameter("ignore_unavailable", "true");
-    client().performRequest(request);
+    client.performRequest(request);
+  }
+
+  /**
+   * Creates the session index with the settings and mapping the plugin's {@link StateStore} uses.
+   */
+  private void createSessionIndex() throws IOException {
+    deleteIfExists(superAdminClient(), SESSION_INDEX);
+    JSONObject body =
+        new JSONObject()
+            .put("settings", new JSONObject(loadYaml(StateStore.SETTINGS_FILE_NAME)))
+            .put("mappings", new JSONObject(loadYaml(StateStore.MAPPING_FILE_NAME)));
+    Request request = new Request("PUT", "/" + SESSION_INDEX);
+    request.setJsonEntity(body.toString());
+    superAdminClient().performRequest(request);
+  }
+
+  private static Map<String, Object> loadYaml(String resource) throws IOException {
+    try (InputStream in = StateStore.class.getClassLoader().getResourceAsStream(resource)) {
+      assertNotNull("Missing plugin resource " + resource, in);
+      return XContentHelper.convertToMap(XContentType.YAML.xContent(), in, true);
+    }
+  }
+
+  /** A bulk index item for a session doc, which the session purge matches on lastUpdateTime. */
+  private static String sessionDoc(String id, long lastUpdateTime) {
+    return String.format(
+        Locale.ROOT,
+        "{\"index\":{\"_id\":\"%s\"}}\n{\"version\":\"1.0\",\"type\":\"session\","
+            + "\"sessionType\":\"interactive\",\"sessionId\":\"%s\",\"state\":\"dead\","
+            + "\"dataSourceName\":\"retention_it\",\"applicationId\":\"app\",\"jobId\":\"job\","
+            + "\"lastUpdateTime\":%d}\n",
+        id,
+        id,
+        lastUpdateTime);
   }
 
   private static List<String> newProblemLines(int before) throws IOException {
