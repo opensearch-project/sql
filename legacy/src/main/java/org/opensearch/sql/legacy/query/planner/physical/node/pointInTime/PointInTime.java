@@ -31,11 +31,18 @@ public class PointInTime extends Paginate {
 
   @Override
   public void close() {
-    if (searchResponse != null) {
+    // Key on the PIT, not on the search response. loadFirstBatch() creates the PIT before the
+    // first search, so a first search that fails (refused, rejected, timed out) leaves
+    // searchResponse null while the PIT stays open until its keep-alive expires.
+    if (pitId != null) {
       LOG.debug("Closing Point In Time (PIT) context");
-      // Delete the Point In Time context
-      pit.delete();
+      PointInTimeHandlerImpl openPit = pit;
+      // Reset first so a repeated close() (the join closes its right side more than once) does
+      // not delete the same PIT again, even if this delete fails.
+      pit = null;
+      pitId = null;
       searchResponse = null;
+      openPit.delete();
     } else {
       LOG.debug("PIT context is already closed or was never opened");
     }
