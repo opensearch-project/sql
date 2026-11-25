@@ -6,7 +6,9 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.PhysType;
@@ -28,8 +30,13 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.opensearch.index.query.BoolQueryBuilder;
+import org.opensearch.index.query.NestedQueryBuilder;
+import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.sql.calcite.plan.Scannable;
 import org.opensearch.sql.calcite.plan.rule.OpenSearchRules;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.executor.progress.QueryProgressTracker;
 import org.opensearch.sql.opensearch.executor.progress.SourceProgress;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
@@ -135,6 +142,36 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
     return scan(QueryProgressTracker.current().map(QueryProgressTracker::addSource).orElse(null));
   }
 
+  @Nullable
+  private String projectedNestedPath(OpenSearchRequestBuilder requestBuilder) {
+    if (!pushDownContext.isProjectPushed()
+        || pushDownContext.isAggregatePushed()
+        || pushDownContext.isScriptPushed()
+        || containsNestedQuery(requestBuilder.getSourceBuilder().query())) {
+      return null;
+    }
+    List<String> fields = getRowType().getFieldNames();
+    List<String> paths =
+        OpenSearchDataType.traverseAndFlatten(osIndex.getFieldOpenSearchTypes()).entrySet().stream()
+            .filter(entry -> entry.getValue().getMappingType() == MappingType.Nested)
+            .map(Map.Entry::getKey)
+            .filter(path -> fields.stream().anyMatch(field -> field.startsWith(path + ".")))
+            .toList();
+    return paths.size() == 1 ? paths.getFirst() : null;
+  }
+
+  private static boolean containsNestedQuery(@Nullable QueryBuilder query) {
+    if (query instanceof NestedQueryBuilder) {
+      return true;
+    }
+    if (query instanceof BoolQueryBuilder bool) {
+      return Stream.of(bool.must(), bool.filter(), bool.should(), bool.mustNot())
+          .flatMap(List::stream)
+          .anyMatch(CalciteEnumerableIndexScan::containsNestedQuery);
+    }
+    return false;
+  }
+
   public Enumerable<@Nullable Object> scan(@Nullable SourceProgress progress) {
     return new AbstractEnumerable<>() {
       @Override
@@ -143,6 +180,7 @@ public class CalciteEnumerableIndexScan extends AbstractCalciteIndexScan
         return new OpenSearchIndexEnumerator(
             osIndex.getClient(),
             getRowType().getFieldNames(),
+            projectedNestedPath(requestBuilder),
             requestBuilder.getMaxResponseSize(),
             requestBuilder.getMaxResultWindow(),
             osIndex.getQueryBucketSize(),

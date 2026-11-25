@@ -33,6 +33,27 @@ public class CalcitePPLNestedAggregationIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testProjectNestedChildren() throws IOException {
+    JSONObject actual =
+        executeQuery(
+            String.format(
+                "source=%s | fields name, address.city, address.area", TEST_INDEX_NESTED_SIMPLE));
+    verifyDataRows(
+        actual,
+        rows("abbas", "New york city", 300.13),
+        rows("abbas", "bellevue", 400.99),
+        rows("abbas", "seattle", 127.4),
+        rows("abbas", "chicago", 10.24),
+        rows("chen", "Miami", 1000.99),
+        rows("chen", "los angeles", 9.99),
+        rows("peng", "san diego", 231.01),
+        rows("peng", "austin", 429.79),
+        rows("andy", "houston", null),
+        rows("david", "raleigh", 190.5),
+        rows("david", "charlotte", null));
+  }
+
+  @Test
   public void testNestedAggregation() throws IOException {
     enabledOnlyWhenPushdownIsEnabled();
     JSONObject actual =
