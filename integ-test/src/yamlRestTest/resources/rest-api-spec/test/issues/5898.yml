@@ -1,0 +1,385 @@
+# Issue: https://github.com/opensearch-project/sql/issues/5898
+# mvjoin, and nomv (which rewrites to mvjoin), returned a 500 at execution when the array's elements
+# were not strings, because Calcite's ARRAY_JOIN threw while converting them. A known non-string
+# element type is now rejected while analyzing, so the client sees a 400.
+#
+# Date, time and timestamp values are string-backed and stay accepted, as do keyword and text fields,
+# mixed arrays such as array('a', n) (widened to strings) and cast(n as string).
+setup:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : true
+  - do:
+      indices.create:
+        index: mvjoin_non_string_array_5898
+        body:
+          mappings:
+            properties:
+              k:
+                type: keyword
+              t:
+                type: text
+              d:
+                type: date
+              i:
+                type: integer
+              l:
+                type: long
+              db:
+                type: double
+              bo:
+                type: boolean
+              ip:
+                type: ip
+              gp:
+                type: geo_point
+              o:
+                properties:
+                  a:
+                    type: keyword
+              ne:
+                type: nested
+                properties:
+                  a:
+                    type: keyword
+  - do:
+      bulk:
+        index: mvjoin_non_string_array_5898
+        refresh: true
+        body:
+          - '{"index": {"_id": "1"}}'
+          - '{"k": "a", "t": "a", "d": "2024-01-01", "i": 3, "l": 3, "db": 1.5, "bo": true, "ip": "10.0.0.1", "gp": {"lat": 1, "lon": 2}, "o": {"a": "x"}, "ne": [{"a": "x"}]}'
+
+---
+teardown:
+  - do:
+      query.settings:
+        body:
+          transient:
+            plugins.calcite.enabled : false
+  - do:
+      indices.delete:
+        index: mvjoin_non_string_array_5898
+        ignore_unavailable: true
+
+---
+"mvjoin and nomv on an array of an integer field are rejected while analyzing":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvjoin_non_string_array_5898 | eval x = mvjoin(array(i), ',') | fields x"
+  - match: { "$body": "/ExpressionEvaluationException/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/only\\s+supports\\s+string\\s+arrays/" }
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvjoin_non_string_array_5898 | eval x = array(i) | nomv x | fields x"
+  - match: { "$body": "/ExpressionEvaluationException/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/only\\s+supports\\s+string\\s+arrays/" }
+
+---
+"mvjoin and nomv on an array of a long field are rejected while analyzing":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvjoin_non_string_array_5898 | eval x = mvjoin(array(l), ',') | fields x"
+  - match: { "$body": "/ExpressionEvaluationException/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/only\\s+supports\\s+string\\s+arrays/" }
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvjoin_non_string_array_5898 | eval x = array(l) | nomv x | fields x"
+  - match: { "$body": "/ExpressionEvaluationException/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/only\\s+supports\\s+string\\s+arrays/" }
+
+---
+"mvjoin and nomv on an array of a double field are rejected while analyzing":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvjoin_non_string_array_5898 | eval x = mvjoin(array(db), ',') | fields x"
+  - match: { "$body": "/ExpressionEvaluationException/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/only\\s+supports\\s+string\\s+arrays/" }
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvjoin_non_string_array_5898 | eval x = array(db) | nomv x | fields x"
+  - match: { "$body": "/ExpressionEvaluationException/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/only\\s+supports\\s+string\\s+arrays/" }
+
+---
+"mvjoin and nomv on an array of a boolean field are rejected while analyzing":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvjoin_non_string_array_5898 | eval x = mvjoin(array(bo), ',') | fields x"
+  - match: { "$body": "/ExpressionEvaluationException/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/only\\s+supports\\s+string\\s+arrays/" }
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvjoin_non_string_array_5898 | eval x = array(bo) | nomv x | fields x"
+  - match: { "$body": "/ExpressionEvaluationException/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/only\\s+supports\\s+string\\s+arrays/" }
+
+---
+"mvjoin and nomv on an array of an ip field are rejected while analyzing":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvjoin_non_string_array_5898 | eval x = mvjoin(array(ip), ',') | fields x"
+  - match: { "$body": "/ExpressionEvaluationException/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/only\\s+supports\\s+string\\s+arrays/" }
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvjoin_non_string_array_5898 | eval x = array(ip) | nomv x | fields x"
+  - match: { "$body": "/ExpressionEvaluationException/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/only\\s+supports\\s+string\\s+arrays/" }
+
+---
+"mvjoin and nomv on an array of a geo_point field are rejected while analyzing":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvjoin_non_string_array_5898 | eval x = mvjoin(array(gp), ',') | fields x"
+  - match: { "$body": "/ExpressionEvaluationException/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/only\\s+supports\\s+string\\s+arrays/" }
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvjoin_non_string_array_5898 | eval x = array(gp) | nomv x | fields x"
+  - match: { "$body": "/ExpressionEvaluationException/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/only\\s+supports\\s+string\\s+arrays/" }
+
+---
+"mvjoin and nomv on an array of an object field are rejected while analyzing":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvjoin_non_string_array_5898 | eval x = mvjoin(array(o), ',') | fields x"
+  - match: { "$body": "/ExpressionEvaluationException/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/only\\s+supports\\s+string\\s+arrays/" }
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvjoin_non_string_array_5898 | eval x = array(o) | nomv x | fields x"
+  - match: { "$body": "/ExpressionEvaluationException/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/only\\s+supports\\s+string\\s+arrays/" }
+
+---
+"mvjoin and nomv on an array of a nested field are rejected while analyzing":
+  - skip:
+      features:
+        - headers
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvjoin_non_string_array_5898 | eval x = mvjoin(array(ne), ',') | fields x"
+  - match: { "$body": "/ExpressionEvaluationException/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/only\\s+supports\\s+string\\s+arrays/" }
+  - do:
+      catch: bad_request
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvjoin_non_string_array_5898 | eval x = array(ne) | nomv x | fields x"
+  - match: { "$body": "/ExpressionEvaluationException/" }
+  - match: { "$body": "/analyzing/" }
+  - match: { "$body": "/only\\s+supports\\s+string\\s+arrays/" }
+
+---
+"mvjoin of a keyword array still works":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvjoin_non_string_array_5898 | eval x = mvjoin(array(k), ',') | fields x"
+  - match: {"total": 1}
+  - match: {"datarows": [["a"]]}
+
+---
+"nomv of a keyword array still works":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvjoin_non_string_array_5898 | eval x = array(k) | nomv x | fields x"
+  - match: {"total": 1}
+  - match: {"datarows": [["a"]]}
+
+---
+"mvjoin of a text array still works":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvjoin_non_string_array_5898 | eval x = mvjoin(array(t), ',') | fields x"
+  - match: {"total": 1}
+  - match: {"datarows": [["a"]]}
+
+---
+"mvjoin of a date array still works":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvjoin_non_string_array_5898 | eval x = mvjoin(array(d), ',') | fields x"
+  - match: {"total": 1}
+  - match: {"datarows": [["2024-01-01 00:00:00"]]}
+
+---
+"nomv of a date array still works":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvjoin_non_string_array_5898 | eval x = array(d) | nomv x | fields x"
+  - match: {"total": 1}
+  - match: {"datarows": [["2024-01-01 00:00:00"]]}
+
+---
+"mvjoin of a mixed array still works":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvjoin_non_string_array_5898 | eval x = mvjoin(array('a', l), ',') | fields x"
+  - match: {"total": 1}
+  - match: {"datarows": [["a,3"]]}
+
+---
+"mvjoin of an array cast to string still works":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvjoin_non_string_array_5898 | eval x = mvjoin(array(cast(l as string)), ',') | fields x"
+  - match: {"total": 1}
+  - match: {"datarows": [["3"]]}
+
+---
+"nomv of an array cast to string still works":
+  - skip:
+      features:
+        - headers
+  - do:
+      headers:
+        Content-Type: 'application/json'
+      ppl:
+        body:
+          query: "source=mvjoin_non_string_array_5898 | eval x = array(cast(l as string)) | nomv x | fields x"
+  - match: {"total": 1}
+  - match: {"datarows": [["3"]]}

@@ -57,6 +57,7 @@ The `nomv` command has the following limitations:
 - The `nomv` command is only available when the Apache Calcite query engine is enabled.
 - The newline delimiter (`\n`) is fixed and cannot be customized. For custom delimiters, use the [`mvjoin`](../functions/collection.md/#mvjoin) function directly in an [`eval`](./eval.md) expression.
 - `NULL` values within the array are automatically filtered out and do not appear in the output.
+- The array elements must be strings. Arrays with elements of other types are rejected with an error, so cast the elements to strings first (for example, with `cast(... as string)`).
 
 ## Related commands
 
