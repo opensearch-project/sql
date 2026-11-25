@@ -329,7 +329,22 @@ public class CalcitePPLEventstatsIT extends PPLIntegTestCase {
                   executeQuery(
                       String.format(
                           "source=%s | eventstats %s(age)", TEST_INDEX_STATE_COUNTRY, u)));
-      verifyErrorMessageContains(e, "Unexpected window function: " + u);
+      verifyErrorMessageContains(e, "is not supported in eventstats/streamstats");
+    }
+  }
+
+  @Test
+  public void testRankingWindowFunctionsUnsupportedInEventstats() {
+    for (String func : List.of("rank", "dense_rank")) {
+      Throwable e =
+          assertThrowsWithReplace(
+              UnsupportedOperationException.class,
+              () ->
+                  executeQuery(
+                      String.format(
+                          "source=%s | eventstats %s() by state", TEST_INDEX_STATE_COUNTRY, func)));
+      verifyErrorMessageContains(
+          e, "Window function '" + func + "' is not supported in eventstats/streamstats");
     }
   }
 
