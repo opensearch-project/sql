@@ -8,6 +8,7 @@ package org.opensearch.sql.legacy.executor.format;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
@@ -29,6 +30,7 @@ import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.query.DefaultQueryAction;
 import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.query.join.BackOffRetryStrategy;
+import org.opensearch.sql.legacy.utils.OpenSearchFailures;
 import org.opensearch.transport.client.Client;
 
 public class PrettyFormatRestExecutor implements RestExecutor {
@@ -62,6 +64,9 @@ public class PrettyFormatRestExecutor implements RestExecutor {
           "[PrettyFormatRestExecutor] Memory could be insufficient when sendResponse().");
     }
 
+    // Counted only once the response is sure to be sent. A failure thrown above is counted by the
+    // caller that sends its response.
+    OpenSearchFailures.countFailure(restStatus.getStatus());
     channel.sendResponse(bytesRestResponse);
   }
 
@@ -78,12 +83,15 @@ public class PrettyFormatRestExecutor implements RestExecutor {
       LOG.warn("SQL parsing error: {}", e.getMessage(), e);
       return new Protocol(e);
     } catch (OpenSearchException e) {
-      LOG.warn("An error occurred in OpenSearch engine: {}", e.getDetailedMessage(), e);
-      return new Protocol(e);
+      return failedProtocol("An error occurred in OpenSearch engine", e);
     } catch (Exception e) {
-      LOG.warn("Error happened in pretty formatter", e);
-      return new Protocol(e);
+      return failedProtocol("Error happened in pretty formatter", e);
     }
+  }
+
+  private static Protocol failedProtocol(String message, Exception e) {
+    OpenSearchFailures.logFailure(LOG, Level.WARN, message, e);
+    return new Protocol(e);
   }
 
   @Override

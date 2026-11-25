@@ -6,6 +6,7 @@
 package org.opensearch.sql.security;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 
 import java.io.IOException;
 import java.util.Base64;
@@ -15,6 +16,7 @@ import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
+import org.opensearch.client.ResponseException;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.legacy.TestUtils;
 import org.opensearch.sql.util.ClusterPlugins;
@@ -25,12 +27,19 @@ import org.opensearch.sql.util.ClusterPlugins;
  * <p>Exercises the legacy V1 cursor path (triggered by {@code SELECT ... LIMIT n} with {@code
  * fetch_size}). Before the fix, page 2 would return 403 because the continuation SearchRequest was
  * created with no indices, which Security resolves to a wildcard and denies under FGAC.
+ *
+ * <p>Also checks that legacy queries denied by the security plugin, such as cursor, join and minus
+ * queries in jdbc and csv format, return the plugin's 403 as their HTTP status.
  */
 public class SQLCursorPermissionsIT extends SQLIntegTestCase {
 
   private static final String ACCOUNT_USER = "account_cursor_user";
   private static final String ACCOUNT_ROLE = "account_cursor_role";
   private static final String STRONG_PASSWORD = "StrongPassword123!";
+
+  // Reads the account index, and can see the bank index's mapping but not search it
+  private static final String BANK_MAPPING_USER = "bank_mapping_user";
+  private static final String BANK_MAPPING_ROLE = "bank_mapping_role";
 
   private boolean initialized = false;
 
@@ -41,6 +50,7 @@ public class SQLCursorPermissionsIT extends SQLIntegTestCase {
         ClusterPlugins.SECURITY_PLUGIN,
         "opensearch-security plugin not installed on test cluster; skipping FGAC tests");
     loadIndex(Index.ACCOUNT);
+    loadIndex(Index.BANK);
     createSecurityRolesAndUsers();
   }
 
@@ -50,6 +60,8 @@ public class SQLCursorPermissionsIT extends SQLIntegTestCase {
     }
     createRole(ACCOUNT_ROLE, TEST_INDEX_ACCOUNT);
     createUser(ACCOUNT_USER, ACCOUNT_ROLE);
+    createBankMappingRole();
+    createUser(BANK_MAPPING_USER, BANK_MAPPING_ROLE);
     initialized = true;
   }
 
@@ -79,6 +91,47 @@ public class SQLCursorPermissionsIT extends SQLIntegTestCase {
             }
             """,
             indexPattern));
+    RequestOptions.Builder opts = RequestOptions.DEFAULT.toBuilder();
+    opts.addHeader("Content-Type", "application/json");
+    request.setOptions(opts);
+
+    Response response = client().performRequest(request);
+    int status = response.getStatusLine().getStatusCode();
+    assertTrue(status == 200 || status == 201);
+  }
+
+  private void createBankMappingRole() throws IOException {
+    Request request = new Request("PUT", "/_plugins/_security/api/roles/" + BANK_MAPPING_ROLE);
+    request.setJsonEntity(
+        String.format(
+            Locale.ROOT,
+            """
+            {
+              "cluster_permissions": [
+                "cluster:admin/opensearch/ppl"
+              ],
+              "index_permissions": [{
+                "index_patterns": ["%s"],
+                "allowed_actions": [
+                  "indices:data/read/search*",
+                  "indices:admin/mappings/get",
+                  "indices:admin/mappings/fields/get*",
+                  "indices:monitor/settings/get",
+                  "indices:data/read/point_in_time/create",
+                  "indices:data/read/point_in_time/delete"
+                ]
+              }, {
+                "index_patterns": ["%s"],
+                "allowed_actions": [
+                  "indices:admin/mappings/get",
+                  "indices:admin/mappings/fields/get*",
+                  "indices:monitor/settings/get"
+                ]
+              }]
+            }
+            """,
+            TEST_INDEX_ACCOUNT,
+            TEST_INDEX_BANK));
     RequestOptions.Builder opts = RequestOptions.DEFAULT.toBuilder();
     opts.addHeader("Content-Type", "application/json");
     request.setOptions(opts);
@@ -129,7 +182,15 @@ public class SQLCursorPermissionsIT extends SQLIntegTestCase {
   }
 
   private JSONObject executeSqlAsUser(String body, String username) throws IOException {
+    Response response = performSqlAsUser(body, username, "jdbc");
+    assertEquals(200, response.getStatusLine().getStatusCode());
+    return new JSONObject(TestUtils.getResponseBody(response, true));
+  }
+
+  private Response performSqlAsUser(String body, String username, String format)
+      throws IOException {
     Request request = new Request("POST", "/_plugins/_sql");
+    request.addParameter("format", format);
     request.setJsonEntity(body);
     RequestOptions.Builder opts = RequestOptions.DEFAULT.toBuilder();
     opts.addHeader("Content-Type", "application/json");
@@ -138,10 +199,53 @@ public class SQLCursorPermissionsIT extends SQLIntegTestCase {
         "Basic "
             + Base64.getEncoder().encodeToString((username + ":" + STRONG_PASSWORD).getBytes()));
     request.setOptions(opts);
+    return client().performRequest(request);
+  }
 
-    Response response = client().performRequest(request);
-    assertEquals(200, response.getStatusLine().getStatusCode());
-    return new JSONObject(TestUtils.getResponseBody(response, true));
+  /**
+   * Sends the query as the bank mapping user and checks that the response carries the security
+   * plugin's 403 as its HTTP status and in its body.
+   */
+  private void assertForbiddenForBankMappingUser(String body, String format) throws IOException {
+    ResponseException e =
+        expectThrows(
+            ResponseException.class, () -> performSqlAsUser(body, BANK_MAPPING_USER, format));
+
+    assertEquals(403, e.getResponse().getStatusLine().getStatusCode());
+    String responseBody = TestUtils.getResponseBody(e.getResponse(), true);
+    JSONObject json = new JSONObject(responseBody);
+    assertEquals(403, json.getInt("status"));
+    assertEquals(
+        "error type; body=" + responseBody,
+        "OpenSearchSecurityException",
+        json.getJSONObject("error").getString("type"));
+    assertTrue(
+        "expected the security denial; body=" + responseBody,
+        responseBody.contains("no permissions for"));
+  }
+
+  private static String joinQuery() {
+    return String.format(
+        Locale.ROOT,
+        "{\"query\": \"SELECT x.firstname, y.age FROM %s x JOIN %s y"
+            + " ON x.account_number = y.account_number\"}",
+        TEST_INDEX_ACCOUNT,
+        TEST_INDEX_BANK);
+  }
+
+  private static String minusQuery() {
+    return String.format(
+        Locale.ROOT,
+        "{\"query\": \"SELECT firstname FROM %s MINUS SELECT firstname FROM %s\"}",
+        TEST_INDEX_ACCOUNT,
+        TEST_INDEX_BANK);
+  }
+
+  private static String cursorQueryOnBank() {
+    return String.format(
+        Locale.ROOT,
+        "{\"fetch_size\": 50, \"query\": \"SELECT age FROM %s LIMIT 100\"}",
+        TEST_INDEX_BANK);
   }
 
   @Test
@@ -192,5 +296,44 @@ public class SQLCursorPermissionsIT extends SQLIntegTestCase {
     }
     // 234 rows / 50 per page = 5 pages
     assertEquals("expected 5 V1 cursor pages under FGAC", 5, pages);
+  }
+
+  /**
+   * A legacy cursor query on an index the user can see the mapping of but cannot search fails when
+   * it creates the point in time. The response carries the security plugin's 403 as its HTTP
+   * status, not 500.
+   */
+  @Test
+  public void cursorQueryOnUnreadableIndexReturnsForbidden() throws IOException {
+    assertForbiddenForBankMappingUser(cursorQueryOnBank(), "jdbc");
+  }
+
+  /** The csv format runs the same query without a point in time, and the search is denied. */
+  @Test
+  public void cursorQueryOnUnreadableIndexInCsvReturnsForbidden() throws IOException {
+    assertForbiddenForBankMappingUser(cursorQueryOnBank(), "csv");
+  }
+
+  /** A join creates a point in time on both indices, and the security plugin denies it. */
+  @Test
+  public void joinWithUnreadableIndexReturnsForbidden() throws IOException {
+    assertForbiddenForBankMappingUser(joinQuery(), "jdbc");
+  }
+
+  /** In csv format a denied join used to return 507 instead of the denial. */
+  @Test
+  public void joinWithUnreadableIndexInCsvReturnsForbidden() throws IOException {
+    assertForbiddenForBankMappingUser(joinQuery(), "csv");
+  }
+
+  /** A minus query used to swallow the denial and then fail with a NullPointerException. */
+  @Test
+  public void minusWithUnreadableIndexReturnsForbidden() throws IOException {
+    assertForbiddenForBankMappingUser(minusQuery(), "jdbc");
+  }
+
+  @Test
+  public void minusWithUnreadableIndexInCsvReturnsForbidden() throws IOException {
+    assertForbiddenForBankMappingUser(minusQuery(), "csv");
   }
 }

@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
@@ -22,10 +24,10 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
-import org.opensearch.sql.legacy.metrics.MetricName;
-import org.opensearch.sql.legacy.metrics.Metrics;
+import org.opensearch.sql.legacy.executor.format.ErrorMessageFactory;
 import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.query.join.BackOffRetryStrategy;
+import org.opensearch.sql.legacy.utils.OpenSearchFailures;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.Transports;
 import org.opensearch.transport.client.Client;
@@ -107,31 +109,27 @@ public class AsyncRestExecutor implements RestExecutor {
           try {
             doExecuteWithTimeMeasured(client, params, queryAction, channel);
           } catch (IOException | SqlParseException | OpenSearchException e) {
-            Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-            LOG.warn(
-                "[{}] [MCB] async task got an IO/SQL exception: {}",
-                QueryContext.getRequestId(),
-                e.getMessage());
-            channel.sendResponse(
-                new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+            sendFailure(
+                channel,
+                e,
+                "async task got an IO/SQL exception",
+                () -> new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
           } catch (IllegalStateException e) {
-            Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-            LOG.warn(
-                "[{}] [MCB] async task got a runtime exception: {}",
-                QueryContext.getRequestId(),
-                e.getMessage());
-            channel.sendResponse(
-                new BytesRestResponse(
-                    RestStatus.INSUFFICIENT_STORAGE, "Memory circuit is broken."));
+            sendFailure(
+                channel,
+                e,
+                "async task got a runtime exception",
+                () ->
+                    new BytesRestResponse(
+                        RestStatus.INSUFFICIENT_STORAGE, "Memory circuit is broken."));
           } catch (Throwable t) {
-            Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-            LOG.warn(
-                "[{}] [MCB] async task got an unknown throwable: {}",
-                QueryContext.getRequestId(),
-                t.getMessage());
-            channel.sendResponse(
-                new BytesRestResponse(
-                    RestStatus.INTERNAL_SERVER_ERROR, String.valueOf(t.getMessage())));
+            sendFailure(
+                channel,
+                t,
+                "async task got an unknown throwable",
+                () ->
+                    new BytesRestResponse(
+                        RestStatus.INTERNAL_SERVER_ERROR, String.valueOf(t.getMessage())));
           } finally {
             BackOffRetryStrategy.releaseMem(executor);
           }
@@ -141,6 +139,39 @@ public class AsyncRestExecutor implements RestExecutor {
     // blocking actions
     threadPool.schedule(
         QueryContext.withCurrentContext(runnable), new TimeValue(0L), SQL_WORKER_THREAD_POOL_NAME);
+  }
+
+  /**
+   * Sends a failed request and counts it by the status of the response. If OpenSearch reported the
+   * failure, the response uses the status OpenSearch reported, such as 403, 429 or 503, so that it
+   * matches the status in the body. Otherwise the response is the given fallback.
+   */
+  private static void sendFailure(
+      RestChannel channel,
+      Throwable failure,
+      String message,
+      Supplier<BytesRestResponse> fallback) {
+    if (OpenSearchFailures.findClientErrorCause(failure).isPresent()) {
+      OpenSearchFailures.logFailure(
+          LOG,
+          Level.WARN,
+          "[" + QueryContext.getRequestId() + "] async task got a client error",
+          failure);
+    } else {
+      LOG.warn("[{}] [MCB] {}: {}", QueryContext.getRequestId(), message, failure.getMessage());
+    }
+    BytesRestResponse response =
+        OpenSearchFailures.findOpenSearchCause(failure)
+            .map(AsyncRestExecutor::openSearchFailureResponse)
+            .orElseGet(fallback);
+    OpenSearchFailures.countFailure(response.status().getStatus());
+    channel.sendResponse(response);
+  }
+
+  private static BytesRestResponse openSearchFailureResponse(OpenSearchException failure) {
+    RestStatus status = failure.status();
+    return new BytesRestResponse(
+        status, ErrorMessageFactory.createErrorMessage(failure, status.getStatus()).toString());
   }
 
   /** Time the real execution of Executor and log slow query for troubleshooting */

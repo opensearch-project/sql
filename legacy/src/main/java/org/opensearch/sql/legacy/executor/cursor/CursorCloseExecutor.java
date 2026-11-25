@@ -8,6 +8,8 @@ package org.opensearch.sql.legacy.executor.cursor;
 import static org.opensearch.core.rest.RestStatus.OK;
 
 import java.util.Map;
+import java.util.Optional;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
@@ -21,6 +23,7 @@ import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.pit.PointInTimeHandler;
 import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.rewriter.matchtoterm.VerificationException;
+import org.opensearch.sql.legacy.utils.OpenSearchFailures;
 import org.opensearch.transport.client.Client;
 
 public class CursorCloseExecutor implements CursorRestExecutor {
@@ -47,13 +50,8 @@ public class CursorCloseExecutor implements CursorRestExecutor {
       LOG.error("Error parsing the cursor", e);
       channel.sendResponse(new BytesRestResponse(channel, e));
     } catch (OpenSearchException e) {
-      int status = (e.status().getStatus());
-      if (status > 399 && status < 500) {
-        Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_CUS).increment();
-      } else if (status > 499) {
-        Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-      }
-      LOG.error("Error completing cursor request", e);
+      OpenSearchFailures.countFailure(e.status().getStatus());
+      OpenSearchFailures.logFailure(LOG, Level.ERROR, "Error completing cursor request", e);
       channel.sendResponse(new BytesRestResponse(channel, e));
     }
   }
@@ -86,6 +84,10 @@ public class CursorCloseExecutor implements CursorRestExecutor {
       pit.delete();
       return SUCCEEDED_TRUE;
     } catch (RuntimeException e) {
+      Optional<OpenSearchException> clientError = OpenSearchFailures.findClientErrorCause(e);
+      if (clientError.isPresent()) {
+        throw clientError.get();
+      }
       Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
       return SUCCEEDED_FALSE;
     }

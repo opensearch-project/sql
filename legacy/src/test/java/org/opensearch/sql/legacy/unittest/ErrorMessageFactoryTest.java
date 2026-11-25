@@ -70,4 +70,22 @@ public class ErrorMessageFactoryTest {
         ErrorMessageFactory.createErrorMessage(exception, RestStatus.BAD_REQUEST.getStatus());
     Assert.assertTrue(msg instanceof OpenSearchErrorMessage);
   }
+
+  @Test
+  public void unwrapCauseReturnsTheFirstOpenSearchExceptionInTheChain() {
+    OpenSearchException inner = new OpenSearchException("inner");
+    OpenSearchException outer = new OpenSearchException("outer", inner);
+
+    Assert.assertSame(
+        outer, ErrorMessageFactory.unwrapCause(new IllegalStateException(new Exception(outer))));
+  }
+
+  @Test
+  public void unwrapCauseReturnsTheRootCauseWithoutOpenSearchException() {
+    IllegalArgumentException root = new IllegalArgumentException("bad argument");
+
+    Assert.assertSame(
+        root, ErrorMessageFactory.unwrapCause(new IllegalStateException(new Exception(root))));
+    Assert.assertSame(root, ErrorMessageFactory.unwrapCause(root));
+  }
 }

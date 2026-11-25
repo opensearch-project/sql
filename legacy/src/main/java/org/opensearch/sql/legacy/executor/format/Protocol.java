@@ -9,10 +9,12 @@ import static org.opensearch.sql.legacy.domain.IndexStatement.StatementType;
 
 import com.google.common.base.Strings;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.opensearch.OpenSearchException;
 import org.opensearch.sql.legacy.cursor.Cursor;
 import org.opensearch.sql.legacy.cursor.NullCursor;
 import org.opensearch.sql.legacy.domain.ColumnTypeProvider;
@@ -28,6 +30,7 @@ import org.opensearch.sql.legacy.expression.domain.BindingTuple;
 import org.opensearch.sql.legacy.query.DefaultQueryAction;
 import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.query.planner.core.ColumnNode;
+import org.opensearch.sql.legacy.utils.OpenSearchFailures;
 import org.opensearch.transport.client.Client;
 
 public class Protocol {
@@ -84,9 +87,15 @@ public class Protocol {
 
   private static int determineErrorStatus(Exception e) {
     // OpenSearchException has its own status (e.g. SearchPhaseExecutionException is 400)
-    if (e instanceof org.opensearch.OpenSearchException) {
-      org.opensearch.OpenSearchException osException = (org.opensearch.OpenSearchException) e;
+    if (e instanceof OpenSearchException) {
+      OpenSearchException osException = (OpenSearchException) e;
       return osException.status() != null ? osException.status().getStatus() : ERROR_STATUS;
+    }
+    // An OpenSearch failure under a wrapper, such as a failed join or PIT creation. The error body
+    // is built from it, so the status must come from it too.
+    Optional<OpenSearchException> openSearchCause = OpenSearchFailures.findOpenSearchCause(e);
+    if (openSearchCause.isPresent()) {
+      return openSearchCause.get().status().getStatus();
     }
     // Client errors (bad query, unsupported features) -> 400
     if (e instanceof UnsupportedOperationException || e instanceof IllegalArgumentException) {

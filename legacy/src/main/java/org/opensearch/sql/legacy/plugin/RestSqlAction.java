@@ -20,6 +20,7 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
@@ -62,6 +63,7 @@ import org.opensearch.sql.legacy.request.SqlRequestFactory;
 import org.opensearch.sql.legacy.request.SqlRequestParam;
 import org.opensearch.sql.legacy.rewriter.matchtoterm.VerificationException;
 import org.opensearch.sql.legacy.utils.JsonPrettyFormatter;
+import org.opensearch.sql.legacy.utils.OpenSearchFailures;
 import org.opensearch.sql.legacy.utils.QueryDataAnonymizer;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
 import org.opensearch.transport.client.Client;
@@ -236,6 +238,11 @@ public class RestSqlAction extends BaseRestHandler {
     if (ex instanceof OpenSearchException) {
       return ((OpenSearchException) ex).status().getStatus();
     }
+    // The error body is built from a wrapped OpenSearch failure, so the status comes from it too
+    Optional<OpenSearchException> openSearchCause = OpenSearchFailures.findOpenSearchCause(ex);
+    if (openSearchCause.isPresent()) {
+      return openSearchCause.get().status().getStatus();
+    }
     if (isClientError(ex)) {
       return 400;
     }
@@ -273,12 +280,15 @@ public class RestSqlAction extends BaseRestHandler {
   }
 
   private static void logAndPublishMetrics(final RestStatus status, final Exception e) {
+    OpenSearchFailures.countFailure(status.getStatus());
     if (400 <= status.getStatus() && status.getStatus() < 500) {
-      LOG.error(QueryContext.getRequestId() + " Client side error during query execution", e);
-      Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_CUS).increment();
+      OpenSearchFailures.logFailure(
+          LOG,
+          Level.ERROR,
+          QueryContext.getRequestId() + " Client side error during query execution",
+          e);
     } else if (500 <= status.getStatus() && status.getStatus() < 600) {
       LOG.error(QueryContext.getRequestId() + " Server side error during query execution", e);
-      Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
     } else {
       LOG.warn("Got an exception returning non-error status {}", status, e);
     }

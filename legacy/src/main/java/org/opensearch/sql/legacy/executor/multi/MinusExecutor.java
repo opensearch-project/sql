@@ -113,14 +113,15 @@ public class MinusExecutor extends ElasticHitsExecutor {
         SearchHit someHit = optimizationResult.getSomeHit();
         fillMinusHitsFromOneField(fieldName, results, someHit);
       }
-    } catch (Exception e) {
-      LOG.error("Failed during multi query run.", e);
     } finally {
-      try {
-        pit.delete();
-      } catch (RuntimeException e) {
-        Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-        LOG.info("Error deleting point in time {} ", pit);
+      // No point in time to delete if creating it failed or never started
+      if (pit != null && pit.getPitId() != null) {
+        try {
+          pit.delete();
+        } catch (RuntimeException e) {
+          Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
+          LOG.info("Error deleting point in time {} ", pit);
+        }
       }
     }
   }

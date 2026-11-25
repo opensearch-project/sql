@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
+import org.apache.logging.log4j.Level;
 import org.apache.lucene.search.TotalHits;
 import org.apache.lucene.search.TotalHits.Relation;
 import org.opensearch.action.search.SearchResponse;
@@ -36,6 +37,7 @@ import org.opensearch.sql.legacy.query.join.JoinRequestBuilder;
 import org.opensearch.sql.legacy.query.join.NestedLoopsElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.TableInJoinRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.HashJoinQueryPlanRequestBuilder;
+import org.opensearch.sql.legacy.utils.OpenSearchFailures;
 import org.opensearch.transport.client.Client;
 
 /** Created by Eliran on 15/9/2015. */
@@ -93,14 +95,17 @@ public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {
       long joinTimeInMilli = System.currentTimeMillis() - timeBefore;
       this.metaResults.setTookImMilli(joinTimeInMilli);
     } catch (Exception e) {
-      LOG.error("Failed during join query run.", e);
+      OpenSearchFailures.logFailure(LOG, Level.ERROR, "Failed during join query run.", e);
       throw new IllegalStateException("Error occurred during join query run", e);
     } finally {
-      try {
-        pit.delete();
-      } catch (RuntimeException e) {
-        Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
-        LOG.info("Error deleting point in time {} ", pit);
+      // No point in time to delete if creating it failed or never started
+      if (pit != null && pit.getPitId() != null) {
+        try {
+          pit.delete();
+        } catch (RuntimeException e) {
+          Metrics.getInstance().getNumericalMetric(MetricName.FAILED_REQ_COUNT_SYS).increment();
+          LOG.info("Error deleting point in time {} ", pit);
+        }
       }
     }
   }

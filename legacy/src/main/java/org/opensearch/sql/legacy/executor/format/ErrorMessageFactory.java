@@ -7,6 +7,7 @@ package org.opensearch.sql.legacy.executor.format;
 
 import org.opensearch.OpenSearchException;
 import org.opensearch.sql.common.error.ErrorReport;
+import org.opensearch.sql.legacy.utils.OpenSearchFailures;
 
 public class ErrorMessageFactory {
   /**
@@ -33,15 +34,11 @@ public class ErrorMessageFactory {
     return new ErrorMessage(e, status);
   }
 
+  /**
+   * Returns the first {@link OpenSearchException} in the cause chain, or the root cause if there is
+   * none.
+   */
   public static Throwable unwrapCause(Throwable t) {
-    Throwable result = t;
-    if (result instanceof OpenSearchException) {
-      return result;
-    }
-    if (result.getCause() == null) {
-      return result;
-    }
-    result = unwrapCause(result.getCause());
-    return result;
+    return OpenSearchFailures.unwrapToOpenSearchCause(t);
   }
 }
