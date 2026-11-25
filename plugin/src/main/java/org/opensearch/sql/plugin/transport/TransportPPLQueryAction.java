@@ -24,6 +24,7 @@ import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.ContextPreservingActionListener;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
+import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Guice;
 import org.opensearch.common.inject.Inject;
@@ -107,6 +108,7 @@ public class TransportPPLQueryAction
 
   private final NodeClient clientRef;
   private final ClusterService clusterServiceRef;
+  private final IndexNameExpressionResolver indexNameExpressionResolver;
   private final org.opensearch.sql.common.setting.Settings pluginSettingsRef;
   private final QueryJobService queryJobService;
   private final SecurityAdapter securityAdapter;
@@ -119,6 +121,7 @@ public class TransportPPLQueryAction
       ActionFilters actionFilters,
       NodeClient client,
       ClusterService clusterService,
+      IndexNameExpressionResolver indexNameExpressionResolver,
       DataSourceServiceImpl dataSourceService,
       org.opensearch.common.settings.Settings clusterSettings,
       EngineExtensionsHolder extensionsHolder,
@@ -130,6 +133,7 @@ public class TransportPPLQueryAction
     super(PPLQueryAction.NAME, transportService, actionFilters, TransportPPLQueryRequest::new);
     this.clientRef = client;
     this.clusterServiceRef = clusterService;
+    this.indexNameExpressionResolver = indexNameExpressionResolver;
     this.queryJobService = queryJobService;
     this.securityAdapter = securityAdapter;
     this.taskResourceTrackingService = taskResourceTrackingService;
@@ -191,6 +195,7 @@ public class TransportPPLQueryAction
           new RestUnifiedQueryAction(
               clientRef,
               clusterServiceRef,
+              indexNameExpressionResolver,
               executor,
               contextProvider,
               pluginSettingsRef,
