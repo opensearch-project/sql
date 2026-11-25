@@ -9,6 +9,7 @@ import static org.opensearch.search.internal.SearchContext.DEFAULT_TRACK_TOTAL_H
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.search.SearchProgressListener;
 import org.opensearch.action.search.SearchRequest;
@@ -17,8 +18,10 @@ import org.opensearch.action.search.SearchShard;
 import org.opensearch.action.search.SearchTask;
 import org.opensearch.core.tasks.TaskId;
 import org.opensearch.search.SearchShardTarget;
+import org.opensearch.search.aggregations.InternalAggregations;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.composite.InternalComposite;
+import org.opensearch.search.aggregations.pipeline.PipelineAggregator.PipelineTree;
 
 /**
  * Progress of one index scan. A single-request search reports finished shards; a PIT or composite
@@ -28,8 +31,22 @@ public final class SourceProgress {
 
   private boolean complete;
   private Pass pass = new Pass(Long.MAX_VALUE);
+  private PartialAggregation aggregation;
 
   SourceProgress() {}
+
+  /** Keeps the merges of this source's aggregation, if its search returns it in one response. */
+  public synchronized void reduceInto(PartialAggregation aggregation) {
+    this.aggregation = aggregation;
+  }
+
+  /** Converts a merged aggregation into the root's cells; see {@link PartialAggregation}. */
+  public synchronized void rootRows(
+      BiFunction<TotalHits, InternalAggregations, List<Object[]>> rootRows) {
+    if (aggregation != null) {
+      aggregation.rootRows(rootRows);
+    }
+  }
 
   /** Starts a new pass, e.g. when the inner side of a nested-loop join is scanned again. */
   public synchronized void start(long rowLimit) {
@@ -39,7 +56,13 @@ public final class SourceProgress {
   public synchronized Tracked track(SearchRequest request) {
     Pass current = pass;
     boolean firstPage = current.beginRequest(isPaged(request), pageSize(request));
-    ShardListener listener = new ShardListener(current);
+    PartialAggregation reduceTo =
+        aggregation != null && isSingleAggregation(request) ? aggregation : null;
+    ShardListener listener =
+        new ShardListener(
+            current,
+            reduceTo,
+            reduceTo == null ? null : request.source().aggregations().buildPipelineTree());
     SearchRequest tracked =
         new SearchRequest(request) {
           @Override
@@ -58,6 +81,10 @@ public final class SourceProgress {
       // Copy: the scan reuses its builder for later pages.
       tracked.source(
           request.source().shallowCopy().trackTotalHitsUpTo(current.totalHitsToTrack(request)));
+    }
+    if (reduceTo != null) {
+      // Below the shard count, the coordinator merges shard results as they arrive.
+      tracked.setBatchedReduceSize(reduceTo.batchedReduceSize());
     }
     // The copy constructor drops the pipeline.
     return new Tracked(tracked.pipeline(request.pipeline()), current);
@@ -213,6 +240,10 @@ public final class SourceProgress {
     return composite != null ? composite.size() : request.source().size();
   }
 
+  private static boolean isSingleAggregation(SearchRequest request) {
+    return request.source() != null && request.source().aggregations() != null && !isPaged(request);
+  }
+
   private static CompositeAggregationBuilder composite(SearchRequest request) {
     if (request.source() == null || request.source().aggregations() == null) {
       return null;
@@ -224,12 +255,35 @@ public final class SourceProgress {
         .orElse(null);
   }
 
-  /** Counts shards that finished the query phase; skipped shards count as finished. */
+  /**
+   * Counts shards that finished the query phase, skipped shards counting as finished, and keeps the
+   * merges of their aggregations.
+   */
   final class ShardListener extends SearchProgressListener {
     private final Pass pass;
+    private final PartialAggregation aggregation;
+    private final PipelineTree pipelines;
 
-    private ShardListener(Pass pass) {
+    private ShardListener(Pass pass, PartialAggregation aggregation, PipelineTree pipelines) {
       this.pass = pass;
+      this.aggregation = aggregation;
+      this.pipelines = pipelines;
+    }
+
+    @Override
+    protected void onPartialReduce(
+        List<SearchShard> shards, TotalHits totalHits, InternalAggregations aggs, int reducePhase) {
+      if (aggregation != null && aggs != null) {
+        aggregation.onReduce(totalHits, aggs, pipelines, false);
+      }
+    }
+
+    @Override
+    protected void onFinalReduce(
+        List<SearchShard> shards, TotalHits totalHits, InternalAggregations aggs, int reducePhase) {
+      if (aggregation != null && aggs != null) {
+        aggregation.onReduce(totalHits, aggs, pipelines, true);
+      }
     }
 
     @Override

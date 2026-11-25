@@ -6,9 +6,11 @@
 package org.opensearch.sql.opensearch.request;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import lombok.EqualsAndHashCode;
+import org.apache.lucene.search.TotalHits;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
@@ -16,6 +18,7 @@ import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.core.common.io.stream.Writeable;
+import org.opensearch.search.aggregations.InternalAggregations;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
@@ -60,6 +63,12 @@ public interface OpenSearchRequest extends Writeable {
    *     response.
    */
   boolean hasAnotherBatch();
+
+  /** The response a merge of some shards' results gives; empty if this request has none. */
+  default Optional<OpenSearchResponse> reducedResponse(
+      TotalHits totalHits, InternalAggregations aggregations) {
+    return Optional.empty();
+  }
 
   /** OpenSearch Index Name. Indices are separated by ",". */
   @EqualsAndHashCode

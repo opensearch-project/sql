@@ -131,6 +131,27 @@ curl -sS -H 'Content-Type: application/json' \
 -d '{"transient" : {"plugins.query.async.max_retained_jobs" : 100}}'
 ```
 
+## plugins.query.async.batched_reduce_size
+
+### Version
+
+3.11
+
+### Description
+
+This setting controls how many shard results the coordinating node collects before it merges them, for an asynchronous PPL query whose aggregation runs entirely in OpenSearch (other than a `stats count()` alone, which uses the hit count). Each merge is a running result that the query returns while it is still running. A smaller value gives more frequent running results and takes more merges on the coordinating node. Synchronous queries and other asynchronous queries are not affected.
+1. The default value is 5. A value below 2 turns running results of aggregations off, and the search uses OpenSearch's default.
+2. This setting is node scope.
+3. This setting can be updated dynamically. A new value applies to the next query.
+
+### Example
+
+```bash ignore
+curl -sS -H 'Content-Type: application/json' \
+-X PUT localhost:9200/_plugins/_query/settings \
+-d '{"transient" : {"plugins.query.async.batched_reduce_size" : 10}}'
+```
+
 ## plugins.query.memory_limit
 
 ### Version

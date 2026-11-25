@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.opensearch.storage.scan;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -22,6 +23,7 @@ import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.executor.OpenSearchQueryManager;
 import org.opensearch.sql.opensearch.executor.progress.SourceProgress;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
+import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.tasks.CancellableTask;
 
 /**
@@ -91,11 +93,25 @@ public class OpenSearchIndexEnumerator implements Enumerator<Object> {
     this.progress = progress;
     if (progress != null) {
       progress.start(maxResponseSize);
+      progress.rootRows(
+          (totalHits, aggregations) ->
+              request.reducedResponse(totalHits, aggregations).map(this::cells).orElse(List.of()));
     }
     this.bgScanner =
         new BackgroundSearchScanner(client, maxResultWindow, queryBucketSize, progress);
     this.bgScanner.startScanning(request);
     this.cancellableTask = OpenSearchQueryManager.getCancellableTask();
+  }
+
+  /** The cells {@link #current()} would return for each row of a response, up to the limit. */
+  private List<Object[]> cells(OpenSearchResponse response) {
+    List<Object[]> rows = new ArrayList<>();
+    Iterator<ExprValue> values = response.iterator();
+    while (values.hasNext() && rows.size() < maxResponseSize) {
+      ExprValue value = values.next();
+      rows.add(fields.stream().map(field -> resolveForCalcite(value, field)).toArray());
+    }
+    return rows;
   }
 
   private Iterator<ExprValue> fetchNextBatch() {
