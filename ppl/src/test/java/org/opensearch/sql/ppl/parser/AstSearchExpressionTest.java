@@ -29,7 +29,7 @@ public class AstSearchExpressionTest {
     assertTrue(plan instanceof Search);
     Search search = (Search) plan;
     // Double quotes are preserved for phrase search
-    assertEquals("error", search.getQueryString());
+    assertEquals("\"error\"", search.getQueryString());
 
     // Check the child is a Relation
     assertTrue(search.getChild().get(0) instanceof Relation);

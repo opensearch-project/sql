@@ -32,7 +32,22 @@ public class SearchLiteral extends SearchExpression {
 
   @Override
   public String toQueryString(Function<String, ExprType> fieldTypeResolver) {
-    // Unfielded literal: no enclosing field, so no index type. Take the field-agnostic branch.
+    // Unfielded literal: no enclosing field, so no index type. The value is matched against
+    // index.query.default_field, which usually includes analyzed text, so the user's quoting is
+    // honored the same way as on a text field: a quoted value is a phrase even without whitespace.
+    // Otherwise a value the analyzer splits (`foo-bar`) becomes an OR of its tokens. On fields
+    // with a no-op analyzer the phrase and the bare term resolve to the same single term.
+    if (userQuoted
+        && literal instanceof Literal
+        && ((Literal) literal).getValue() instanceof String) {
+      String str = (String) ((Literal) literal).getValue();
+      // Same exception as on text: a whitespace-free wildcard value stays unquoted so `*` and `?`
+      // keep their operator meaning.
+      boolean wildcardTerm = hasUnescapedWildcard(str) && !str.contains(" ");
+      if (!wildcardTerm) {
+        return quoted(str);
+      }
+    }
     return toQueryString((ExprType) null);
   }
 
