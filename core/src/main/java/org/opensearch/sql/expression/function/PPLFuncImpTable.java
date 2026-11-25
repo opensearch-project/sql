@@ -799,6 +799,21 @@ public class PPLFuncImpTable {
     };
   }
 
+  /**
+   * Casts a DATE, TIME or TIMESTAMP operand to its string form, the same as {@code cast(value as
+   * string)} in PPL, and returns any other operand unchanged.
+   */
+  private static RexNode castDatetimeToString(RexBuilder builder, RexNode node) {
+    SqlTypeName typeName = UserDefinedFunctionUtils.convertRelDataTypeToSqlTypeName(node.getType());
+    if (!SqlTypeFamily.DATETIME.getTypeNames().contains(typeName)) {
+      return node;
+    }
+    RelDataType stringType =
+        TYPE_FACTORY.createTypeWithNullability(
+            TYPE_FACTORY.createSqlType(SqlTypeName.VARCHAR), true);
+    return builder.makeCast(stringType, node, true, true);
+  }
+
   /** Whether {@code node} is, or transitively contains, a {@link RexSubQuery}. */
   private static boolean containsSubQuery(RexNode node) {
     if (node instanceof RexSubQuery) {
@@ -1339,41 +1354,60 @@ public class PPLFuncImpTable {
       // Register SPLIT with custom logic for empty delimiter
       // Case 1: Delimiter is not empty string, use SPLIT
       // Case 2: Delimiter is empty string, use REGEXP_EXTRACT_ALL with '.' pattern
+      // A DATE, TIME or TIMESTAMP input is implicitly cast to its string form first, the same as
+      // split(cast(value as string), delimiter), to match SPL where every value is splittable.
+      FunctionImp2 splitImpl =
+          (builder, str, delimiter) -> {
+            RexNode source = castDatetimeToString(builder, str);
+            // Create condition: delimiter = ''
+            RexNode emptyString = builder.makeLiteral("");
+            RexNode isEmptyDelimiter =
+                builder.makeCall(SqlStdOperatorTable.EQUALS, delimiter, emptyString);
+
+            // For empty delimiter: split into characters using REGEXP_EXTRACT_ALL with '.'
+            // pattern This matches each individual character
+            RexNode dotPattern = builder.makeLiteral(".");
+            RexNode splitChars =
+                builder.makeCall(SqlLibraryOperators.REGEXP_EXTRACT_ALL, source, dotPattern);
+
+            // For non-empty delimiter: use standard SPLIT
+            RexNode normalSplit = builder.makeCall(SqlLibraryOperators.SPLIT, source, delimiter);
+
+            // Use CASE to choose between the two approaches
+            // CASE WHEN isEmptyDelimiter THEN splitChars ELSE normalSplit END
+            return builder.makeCall(
+                SqlStdOperatorTable.CASE, isEmptyDelimiter, splitChars, normalSplit);
+          };
       register(
           SPLIT,
-          (FunctionImp2)
-              (builder, str, delimiter) -> {
-                // Create condition: delimiter = ''
-                RexNode emptyString = builder.makeLiteral("");
-                RexNode isEmptyDelimiter =
-                    builder.makeCall(SqlStdOperatorTable.EQUALS, delimiter, emptyString);
-
-                // For empty delimiter: split into characters using REGEXP_EXTRACT_ALL with '.'
-                // pattern This matches each individual character
-                RexNode dotPattern = builder.makeLiteral(".");
-                RexNode splitChars =
-                    builder.makeCall(SqlLibraryOperators.REGEXP_EXTRACT_ALL, str, dotPattern);
-
-                // For non-empty delimiter: use standard SPLIT
-                RexNode normalSplit = builder.makeCall(SqlLibraryOperators.SPLIT, str, delimiter);
-
-                // Use CASE to choose between the two approaches
-                // CASE WHEN isEmptyDelimiter THEN splitChars ELSE normalSplit END
-                return builder.makeCall(
-                    SqlStdOperatorTable.CASE, isEmptyDelimiter, splitChars, normalSplit);
-              },
+          splitImpl,
           PPLTypeChecker.family(SqlTypeFamily.CHARACTER, SqlTypeFamily.CHARACTER));
+      register(
+          SPLIT, splitImpl, PPLTypeChecker.family(SqlTypeFamily.DATETIME, SqlTypeFamily.CHARACTER));
 
-      // Register MVINDEX to use Calcite's ITEM/ARRAY_SLICE with index normalization
+      // Register MVINDEX to use Calcite's ITEM/ARRAY_SLICE with index normalization. A non-array
+      // first argument is treated as a one-element array, as SPL treats a single-value field as a
+      // one-element multivalue field (see MVIndexFunctionImp).
+      MVIndexFunctionImp mvIndexImpl = new MVIndexFunctionImp();
       register(
           MVINDEX,
-          new MVIndexFunctionImp(),
+          mvIndexImpl,
           PPLTypeChecker.wrapComposite(
               (CompositeOperandTypeChecker)
                   OperandTypes.family(SqlTypeFamily.ARRAY, SqlTypeFamily.INTEGER)
                       .or(
                           OperandTypes.family(
                               SqlTypeFamily.ARRAY, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER)),
+              false));
+      register(
+          MVINDEX,
+          mvIndexImpl,
+          PPLTypeChecker.wrapComposite(
+              (CompositeOperandTypeChecker)
+                  OperandTypes.family(SqlTypeFamily.ANY, SqlTypeFamily.INTEGER)
+                      .or(
+                          OperandTypes.family(
+                              SqlTypeFamily.ANY, SqlTypeFamily.INTEGER, SqlTypeFamily.INTEGER)),
               false));
 
       registerOperator(ARRAY, PPLBuiltinOperators.ARRAY);
