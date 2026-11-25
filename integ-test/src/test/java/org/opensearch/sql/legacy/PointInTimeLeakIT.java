@@ -155,7 +155,7 @@ public class PointInTimeLeakIT extends SQLIntegTestCase {
       assertThat(
           "Join should fail when " + side + " fails its first search",
           e.getResponse().getStatusLine().getStatusCode(),
-          greaterThan(399));
+          equalTo(400));
 
       assertThat(
           "PIT should be deleted when the first search of side " + side + " fails",
