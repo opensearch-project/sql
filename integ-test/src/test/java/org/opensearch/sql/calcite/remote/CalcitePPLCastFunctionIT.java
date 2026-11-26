@@ -135,26 +135,21 @@ public class CalcitePPLCastFunctionIT extends CastFunctionIT {
                 TEST_INDEX_DATATYPE_NONNUMERIC));
     verifyDataRows(actual, rows(1));
 
-    // TODO the calcite codegen cannot handle this case. The generated java code is
-    // return ((Number)org.apache.calcite.linq4j.tree.Primitive.of(float.class)
-    //
-    // .numberValueRoundDown((org.apache.calcite.runtime.SqlFunctions.toBoolean(input_value)))).floatValue();
-    // No applicable constructor/method found for actual parameters "boolean"; candidates are:
-    // "public java.lang.Object
-    // org.apache.calcite.linq4j.tree.Primitive.numberValueRoundDown(java.lang.Number)"
-    //    actual =
-    //        executeQuery(
-    //            String.format(
-    //                "source=%s | eval a = cast(boolean_value as FLOAT) | fields a",
-    // TEST_INDEX_DATATYPE_NONNUMERIC));
-    //    verifyDataRows(actual, rows(1));
-    //
-    //    actual =
-    //        executeQuery(
-    //            String.format(
-    //                "source=%s | eval a = cast(boolean_value as DOUBLE) | fields a",
-    // TEST_INDEX_DATATYPE_NONNUMERIC));
-    //    verifyDataRows(actual, rows(1));
+    actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval a = cast(boolean_value as FLOAT) | fields a",
+                TEST_INDEX_DATATYPE_NONNUMERIC));
+    verifySchema(actual, schema("a", "float"));
+    verifyDataRows(actual, rows(1.0));
+
+    actual =
+        executeQuery(
+            String.format(
+                "source=%s | eval a = cast(boolean_value as DOUBLE) | fields a",
+                TEST_INDEX_DATATYPE_NONNUMERIC));
+    verifySchema(actual, schema("a", "double"));
+    verifyDataRows(actual, rows(1.0));
 
     actual =
         executeQuery(

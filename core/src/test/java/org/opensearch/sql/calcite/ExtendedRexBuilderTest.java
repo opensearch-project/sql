@@ -10,10 +10,12 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.opensearch.sql.calcite.utils.OpenSearchTypeFactory.TYPE_FACTORY;
 
+import java.util.Locale;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.expression.function.PPLBuiltinOperators;
@@ -86,5 +88,45 @@ class ExtendedRexBuilderTest {
           false,
           "non-VARCHAR → VARBINARY must not emit BINARY placeholder");
     }
+  }
+
+  /**
+   * BOOLEAN → DOUBLE/FLOAT casts must be rewritten into a CASE expression, because Calcite's code
+   * generator cannot convert a boolean to an approximate numeric type.
+   */
+  @Test
+  void castNullableBooleanToApproximateNumericEmitsNullSafeCase() {
+    RelDataType nullableBoolean =
+        TYPE_FACTORY.createTypeWithNullability(
+            TYPE_FACTORY.createSqlType(SqlTypeName.BOOLEAN), true);
+    RexNode booleanRef = REX_BUILDER.makeInputRef(nullableBoolean, 0);
+
+    for (SqlTypeName target : new SqlTypeName[] {SqlTypeName.DOUBLE, SqlTypeName.REAL}) {
+      RelDataType targetType =
+          TYPE_FACTORY.createTypeWithNullability(TYPE_FACTORY.createSqlType(target), true);
+
+      RexNode result = REX_BUILDER.makeCast(targetType, booleanRef, true, true);
+
+      assertEquals(SqlKind.CASE, result.getKind());
+      assertEquals(target, result.getType().getSqlTypeName());
+      assertEquals(
+          String.format(
+              Locale.ROOT,
+              "CASE(IS NOT NULL($0), CASE($0, 1.0E0:%1$s, 0.0E0:%1$s), null:%1$s)",
+              target),
+          result.toString());
+    }
+  }
+
+  @Test
+  void castNotNullBooleanToDoubleEmitsCase() {
+    RexNode booleanRef =
+        REX_BUILDER.makeInputRef(TYPE_FACTORY.createSqlType(SqlTypeName.BOOLEAN), 0);
+    RelDataType doubleType = TYPE_FACTORY.createSqlType(SqlTypeName.DOUBLE);
+
+    RexNode result = REX_BUILDER.makeCast(doubleType, booleanRef);
+
+    assertEquals(SqlKind.CASE, result.getKind());
+    assertEquals("CASE($0, 1.0E0:DOUBLE, 0.0E0:DOUBLE)", result.toString());
   }
 }
