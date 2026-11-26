@@ -18,17 +18,30 @@ import static org.mockito.Mockito.when;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+import org.apache.calcite.plan.RelOptCluster;
+import org.apache.calcite.rel.RelCollations;
 import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.logical.LogicalAggregate;
+import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.logical.LogicalSort;
+import org.apache.calcite.rel.logical.LogicalValues;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rel.type.RelDataTypeSystem;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeFactoryImpl;
 import org.apache.calcite.sql.type.SqlTypeName;
+import org.apache.calcite.util.ImmutableBitSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opensearch.analytics.exec.QueryPlanExecutor;
+import org.opensearch.analytics.exec.profile.ProfiledResult;
 import org.opensearch.analytics.schema.BinaryType;
 import org.opensearch.analytics.schema.DateOnlyType;
 import org.opensearch.analytics.schema.IpType;
@@ -40,6 +53,7 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
+import org.opensearch.sql.executor.ExecutionEngine.Schema;
 import org.opensearch.sql.monitor.profile.ProfileContext;
 import org.opensearch.sql.monitor.profile.QueryProfiling;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
@@ -331,6 +345,169 @@ class AnalyticsExecutionEngineTest {
         Arrays.asList("19:36:22", "02:05:25", "12:34:56.123456789", "2020-10-13 13:00:00", "hello"),
         result,
         dump);
+  }
+
+  /**
+   * {@code count(), ANY_VALUE(vals)} grouped by the ARRAY {@code tags} and the scalar {@code id}.
+   */
+  private static RelNode groupByTagsAndId(RelOptCluster cluster, int... groupKeys) {
+    RelDataTypeFactory typeFactory = cluster.getTypeFactory();
+    RelDataType tags =
+        typeFactory.createArrayType(typeFactory.createSqlType(SqlTypeName.VARCHAR), -1);
+    RelDataType rowType =
+        typeFactory
+            .builder()
+            .add("tags", tags)
+            .add("vals", tags)
+            .add("id", SqlTypeName.INTEGER)
+            .build();
+    RelNode scan = LogicalValues.createEmpty(cluster, rowType);
+    AggregateCall count =
+        AggregateCall.create(
+            SqlStdOperatorTable.COUNT,
+            false,
+            List.of(),
+            -1,
+            typeFactory.createSqlType(SqlTypeName.BIGINT),
+            "count()");
+    AggregateCall collect =
+        AggregateCall.create(SqlStdOperatorTable.ANY_VALUE, false, List.of(1), -1, tags, "vals");
+    return LogicalAggregate.create(
+        scan, List.of(), ImmutableBitSet.of(groupKeys), null, List.of(count, collect));
+  }
+
+  private static RelOptCluster cluster() {
+    SqlTypeFactoryImpl typeFactory = new SqlTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+    return RelOptCluster.create(
+        new org.apache.calcite.plan.hep.HepPlanner(
+            org.apache.calcite.plan.hep.HepProgram.builder().build()),
+        new RexBuilder(typeFactory));
+  }
+
+  private static List<ExprCoreType> columnTypes(QueryResponse response) {
+    return response.getSchema().getColumns().stream()
+        .map(column -> (ExprCoreType) column.getExprType())
+        .collect(Collectors.toList());
+  }
+
+  @Test
+  void executeRelNode_multiValueGroupByKeyIsLabelledAsElement() {
+    RelOptCluster cluster = cluster();
+    RelNode aggregate = groupByTagsAndId(cluster, 0, 2);
+    RexBuilder rexBuilder = cluster.getRexBuilder();
+    RelNode relNode =
+        LogicalProject.create(
+            aggregate,
+            List.of(),
+            List.of(
+                rexBuilder.makeInputRef(aggregate, 2),
+                rexBuilder.makeInputRef(aggregate, 3),
+                rexBuilder.makeInputRef(aggregate, 0),
+                rexBuilder.makeInputRef(aggregate, 1)),
+            List.of("count()", "vals", "tags", "id"));
+    stubExecutorWith(relNode, List.<Object[]>of(new Object[] {2L, List.of("a", "b"), "prod", 1}));
+
+    QueryResponse response = executeAndCapture(relNode);
+
+    List<Schema.Column> columns = response.getSchema().getColumns();
+    assertEquals(ExprCoreType.LONG, columns.get(0).getExprType());
+    assertEquals(
+        ExprCoreType.ARRAY, columns.get(1).getExprType(), "a genuine ARRAY aggregate stays ARRAY");
+    assertEquals(
+        ExprCoreType.STRING,
+        columns.get(2).getExprType(),
+        "an ARRAY GROUP BY key is grouped per element");
+    assertEquals(ExprCoreType.INTEGER, columns.get(3).getExprType());
+    assertEquals("prod", response.getResults().getFirst().tupleValue().get("tags").value());
+  }
+
+  @Test
+  void executeRelNode_multiValueGroupByKeyThroughFilterAndSort() {
+    RelOptCluster cluster = cluster();
+    RexBuilder rexBuilder = cluster.getRexBuilder();
+    RelNode aggregate = groupByTagsAndId(cluster, 0);
+    RelNode filter =
+        LogicalFilter.create(
+            aggregate,
+            rexBuilder.makeCall(
+                SqlStdOperatorTable.IS_NOT_NULL, rexBuilder.makeInputRef(aggregate, 0)));
+    RelNode relNode = LogicalSort.create(filter, RelCollations.of(0), null, null);
+    stubExecutorWith(relNode, List.<Object[]>of(new Object[] {"prod", 2L, List.of("a")}));
+
+    QueryResponse response = executeAndCapture(relNode);
+
+    assertEquals(
+        List.of(ExprCoreType.STRING, ExprCoreType.LONG, ExprCoreType.ARRAY), columnTypes(response));
+  }
+
+  @Test
+  void executeRelNode_computedColumnOverMultiValueGroupByKeyIsNotRetyped() {
+    RelOptCluster cluster = cluster();
+    RexBuilder rexBuilder = cluster.getRexBuilder();
+    RelNode aggregate = groupByTagsAndId(cluster, 0);
+    RelNode relNode =
+        LogicalProject.create(
+            aggregate,
+            List.of(),
+            List.of(
+                rexBuilder.makeInputRef(aggregate, 0),
+                rexBuilder.makeCall(
+                    SqlStdOperatorTable.IS_NULL, rexBuilder.makeInputRef(aggregate, 0))),
+            List.of("tags", "missing"));
+    stubExecutorWith(relNode, List.<Object[]>of(new Object[] {"prod", false}));
+
+    QueryResponse response = executeAndCapture(relNode);
+
+    assertEquals(List.of(ExprCoreType.STRING, ExprCoreType.BOOLEAN), columnTypes(response));
+  }
+
+  @Test
+  void executeRelNode_scalarGroupByKeyUnderProjectIsUnchanged() {
+    RelOptCluster cluster = cluster();
+    RexBuilder rexBuilder = cluster.getRexBuilder();
+    RelNode aggregate = groupByTagsAndId(cluster, 2);
+    RelNode relNode =
+        LogicalProject.create(
+            aggregate,
+            List.of(),
+            List.of(rexBuilder.makeInputRef(aggregate, 0), rexBuilder.makeInputRef(aggregate, 2)),
+            List.of("id", "vals"));
+    stubExecutorWith(relNode, List.<Object[]>of(new Object[] {1, List.of("a")}));
+
+    QueryResponse response = executeAndCapture(relNode);
+
+    assertEquals(List.of(ExprCoreType.INTEGER, ExprCoreType.ARRAY), columnTypes(response));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void executeWithProfile_multiValueGroupByKeyIsLabelledAsElement() {
+    QueryProfiling.activate(true);
+    try {
+      RelNode relNode = groupByTagsAndId(cluster(), 0);
+      doAnswer(
+              inv -> {
+                ((ActionListener<ProfiledResult>) inv.getArgument(2))
+                    .onResponse(
+                        new ProfiledResult(
+                            List.<Object[]>of(new Object[] {"prod", 2L, List.of("a")}),
+                            null,
+                            null));
+                return null;
+              })
+          .when(mockExecutor)
+          .executeWithProfile(eq(relNode), any(), any(ActionListener.class));
+
+      AtomicReference<QueryResponse> ref = new AtomicReference<>();
+      engine.executeWithProfile(relNode, mockContext, null, captureListener(ref));
+
+      assertNotNull(ref.get(), "QueryResponse should not be null");
+      assertEquals(
+          List.of(ExprCoreType.STRING, ExprCoreType.LONG, ExprCoreType.ARRAY),
+          columnTypes(ref.get()));
+    } finally {
+      QueryProfiling.clear();
+    }
   }
 
   @Test
