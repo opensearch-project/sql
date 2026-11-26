@@ -121,4 +121,28 @@ public class CalcitePPLCastFunctionTest extends CalcitePPLAbstractTest {
             + "FROM `scott`.`EMP`";
     verifyPPLToSparkSQL(root, expectedSparkSql);
   }
+
+  @Test
+  public void testCastBooleanToApproximateNumeric() {
+    // COMM is null for 10 of the 14 EMP rows, so COMM > 0 covers true, false and null booleans.
+    String ppl =
+        "source=EMP | where EMPNO in (7369, 7499, 7844) | eval i = cast(COMM > 0 as int), d ="
+            + " cast(COMM > 0 as double), f = cast(COMM > 0 as float) | fields EMPNO, i, d, f";
+    RelNode root = getRelNode(ppl);
+    String expectedResult =
+        ""
+            + "EMPNO=7369; i=null; d=null; f=null\n"
+            + "EMPNO=7499; i=1; d=1.0; f=1.0\n"
+            + "EMPNO=7844; i=0; d=0.0; f=0.0\n";
+    verifyResult(root, expectedResult);
+  }
+
+  @Test
+  public void testCastBooleanLiteralToApproximateNumeric() {
+    String ppl =
+        "source=EMP | eval d = cast(true as double), f = cast(false as float) | fields d, f |"
+            + " head 1";
+    RelNode root = getRelNode(ppl);
+    verifyResult(root, "d=1.0; f=0.0\n");
+  }
 }

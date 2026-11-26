@@ -6,6 +6,7 @@
 package org.opensearch.sql.calcite;
 
 import com.google.common.collect.ImmutableList;
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -176,6 +177,13 @@ public class ExtendedRexBuilder extends RexBuilder {
                 String.format(Locale.ROOT, "Cannot cast from %s to %s", argExprType, udt.name()));
       };
     }
+    // Calcite rewrites BOOLEAN -> exact numeric casts into CASE expressions, but has no such
+    // rewrite for approximate numeric targets, so the generated code passes a boolean to
+    // Primitive.numberValueRoundDown(Number) and fails to compile. Map TRUE/FALSE to 1.0/0.0 here,
+    // matching the integer casts and the v2 engine.
+    else if (SqlTypeUtil.isBoolean(sourceType) && SqlTypeUtil.isApproximateNumeric(type)) {
+      return makeCastBooleanToApproximateNumeric(type, exp);
+    }
     // Use a custom operator when casting floating point or decimal number to a character type.
     // This patch is necessary because in Calcite, 0.0F is cast to 0E0, decimal 0.x to x
     else if ((SqlTypeUtil.isApproximateNumeric(sourceType) || SqlTypeUtil.isDecimal(sourceType))
@@ -190,5 +198,27 @@ public class ExtendedRexBuilder extends RexBuilder {
       return makeCall(type, PPLBuiltinOperators.BINARY, List.of(exp));
     }
     return super.makeCast(pos, type, exp, matchNullability, safe, format);
+  }
+
+  /**
+   * Casts a BOOLEAN expression to an approximate numeric type (FLOAT/REAL or DOUBLE): TRUE becomes
+   * 1.0, FALSE becomes 0.0 and NULL stays NULL.
+   */
+  private RexNode makeCastBooleanToApproximateNumeric(RelDataType toType, RexNode exp) {
+    final RelDataType literalType = typeFactory.createTypeWithNullability(toType, false);
+    final RexNode casted =
+        makeCall(
+            toType,
+            SqlStdOperatorTable.CASE,
+            ImmutableList.of(
+                exp, makeApproxLiteral(BigDecimal.ONE, literalType), makeZeroLiteral(literalType)));
+    if (!exp.getType().isNullable()) {
+      return casted;
+    }
+    return makeCall(
+        toType,
+        SqlStdOperatorTable.CASE,
+        ImmutableList.of(
+            makeCall(SqlStdOperatorTable.IS_NOT_NULL, exp), casted, makeNullLiteral(toType)));
   }
 }
