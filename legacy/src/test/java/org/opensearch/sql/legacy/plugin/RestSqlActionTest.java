@@ -6,6 +6,7 @@
 package org.opensearch.sql.legacy.plugin;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -30,6 +31,7 @@ import org.opensearch.sql.legacy.metrics.BasicCounter;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.metrics.NumericMetric;
+import org.opensearch.sql.legacy.request.SqlRequest;
 import org.opensearch.sql.legacy.util.LogCapture;
 
 public class RestSqlActionTest {
@@ -193,5 +195,27 @@ public class RestSqlActionTest {
     assertEquals(events.toString(), 1, events.size());
     assertEquals(Level.ERROR, events.get(0).getLevel());
     assertSame(failure, events.get(0).getThrown());
+  }
+
+  @Test
+  public void emptyCursorIsClientError() {
+    assertEquals(
+        RestStatus.BAD_REQUEST,
+        RestSqlAction.getRestStatus(new IllegalArgumentException("Cursor is empty or invalid")));
+  }
+
+  @Test
+  public void isLegacyCursorRejectsEmptyAndNullCursorsWithoutThrowing() {
+    assertFalse(RestSqlAction.isLegacyCursor(new SqlRequest("")));
+    assertFalse(RestSqlAction.isLegacyCursor(new SqlRequest((String) null)));
+    assertFalse(RestSqlAction.isLegacyCursor(new SqlRequest("select 1", null)));
+  }
+
+  @Test
+  public void isLegacyCursorDetectsLegacyAndV2Cursors() {
+    assertTrue(RestSqlAction.isLegacyCursor(new SqlRequest("d:eyJhIjp7fSwicyI6IkRYRjFaWEo1")));
+    assertTrue(RestSqlAction.isLegacyCursor(new SqlRequest("a:aggregation-cursor")));
+    assertTrue(RestSqlAction.isLegacyCursor(new SqlRequest("j:join-cursor")));
+    assertFalse(RestSqlAction.isLegacyCursor(new SqlRequest("n:v2-cursor")));
   }
 }

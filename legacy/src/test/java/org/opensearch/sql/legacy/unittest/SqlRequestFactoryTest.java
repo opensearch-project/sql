@@ -208,4 +208,40 @@ public class SqlRequestFactoryTest {
 
     SqlRequest sqlRequest = SqlRequestFactory.getSqlRequest(this.restRequest);
   }
+
+  @Test
+  public void testGenerateSqlRequest_cursorFromPayload() {
+    String payload = "{ \"cursor\": \"d:eyJhIjp7fSwicyI6IkRYRjFaWEo1\" }";
+    Mockito.when(this.restRequest.content()).thenReturn(new BytesArray(payload));
+    Mockito.when(this.restRequest.method()).thenReturn(RestRequest.Method.POST);
+
+    SqlRequest sqlRequest = SqlRequestFactory.getSqlRequest(this.restRequest);
+    Assert.assertEquals("d:eyJhIjp7fSwicyI6IkRYRjFaWEo1", sqlRequest.cursor());
+  }
+
+  @Test
+  public void testGenerateSqlRequest_emptyCursor() {
+    String payload = "{ \"cursor\": \"\" }";
+    Mockito.when(this.restRequest.content()).thenReturn(new BytesArray(payload));
+    Mockito.when(this.restRequest.method()).thenReturn(RestRequest.Method.POST);
+
+    IllegalArgumentException exception =
+        Assert.assertThrows(
+            IllegalArgumentException.class,
+            () -> SqlRequestFactory.getSqlRequest(this.restRequest));
+    Assert.assertEquals("Cursor is empty or invalid", exception.getMessage());
+  }
+
+  @Test
+  public void testGenerateSqlRequest_blankCursor() {
+    String payload = "{ \"cursor\": \"   \" }";
+    Mockito.when(this.restRequest.content()).thenReturn(new BytesArray(payload));
+    Mockito.when(this.restRequest.method()).thenReturn(RestRequest.Method.POST);
+
+    IllegalArgumentException exception =
+        Assert.assertThrows(
+            IllegalArgumentException.class,
+            () -> SqlRequestFactory.getSqlRequest(this.restRequest));
+    Assert.assertEquals("Cursor is empty or invalid", exception.getMessage());
+  }
 }
