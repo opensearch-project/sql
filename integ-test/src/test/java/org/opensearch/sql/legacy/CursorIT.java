@@ -103,6 +103,31 @@ public class CursorIT extends SQLIntegTestCase {
     assertThat(resp.query("/error/type"), equalTo("IllegalArgumentException"));
   }
 
+  @Test
+  public void emptyCursorReturnsBadRequest() throws IOException {
+    assertEmptyCursorRejected(getSqlRequest("{\"cursor\": \"\"}", false));
+  }
+
+  @Test
+  public void emptyCursorCloseReturnsBadRequest() throws IOException {
+    assertEmptyCursorRejected(getSqlCursorCloseRequest("{\"cursor\": \"\"}"));
+  }
+
+  private void assertEmptyCursorRejected(Request request) throws IOException {
+    Response response = null;
+    try {
+      executeRequest(request);
+    } catch (ResponseException ex) {
+      response = ex.getResponse();
+    }
+
+    JSONObject resp = new JSONObject(TestUtils.getResponseBody(response));
+    assertThat(resp.getInt("status"), equalTo(400));
+    assertThat(resp.query("/error/reason"), equalTo("Invalid SQL query"));
+    assertThat(resp.query("/error/details"), equalTo("Cursor is empty or invalid"));
+    assertThat(resp.query("/error/type"), equalTo("IllegalArgumentException"));
+  }
+
   /**
    * For fetch_size = 0, default to non-pagination behaviour for simple queries This can be verified
    * by checking that cursor is not present, and old default limit applies

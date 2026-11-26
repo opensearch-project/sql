@@ -51,7 +51,11 @@ public class SqlRequestFactory {
     try {
       jsonContent = new JSONObject(content);
       if (jsonContent.has(SQL_CURSOR_FIELD_NAME)) {
-        return new SqlRequest(jsonContent.getString(SQL_CURSOR_FIELD_NAME));
+        String cursor = jsonContent.getString(SQL_CURSOR_FIELD_NAME);
+        if (cursor == null || cursor.isBlank()) {
+          throw new IllegalArgumentException("Cursor is empty or invalid");
+        }
+        return new SqlRequest(cursor);
       }
       String sql = jsonContent.getString(SQL_FIELD_NAME);
 
